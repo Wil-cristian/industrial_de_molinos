@@ -77,8 +77,15 @@ CREATE INDEX IF NOT EXISTS idx_material_prices_category ON material_prices(categ
 -- =====================================================
 
 -- Enum para tipo de cliente
-CREATE TYPE customer_type AS ENUM ('individual', 'business');
-CREATE TYPE document_type AS ENUM ('dni', 'ruc', 'ce', 'passport');
+DO $$ BEGIN
+    CREATE TYPE customer_type AS ENUM ('individual', 'business');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE document_type AS ENUM ('dni', 'ruc', 'ce', 'passport');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- Tabla: customers (Clientes)
 CREATE TABLE IF NOT EXISTS customers (
@@ -133,7 +140,10 @@ CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active);
 
 -- Enum para tipo de movimiento de stock
-CREATE TYPE stock_movement_type AS ENUM ('incoming', 'outgoing', 'adjustment');
+DO $$ BEGIN
+    CREATE TYPE stock_movement_type AS ENUM ('incoming', 'outgoing', 'adjustment');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- Tabla: stock_movements (Movimientos de stock)
 CREATE TABLE IF NOT EXISTS stock_movements (
@@ -158,7 +168,10 @@ CREATE INDEX IF NOT EXISTS idx_stock_movements_date ON stock_movements(created_a
 -- =====================================================
 
 -- Enum para estado de cotización
-CREATE TYPE quotation_status AS ENUM ('Borrador', 'Enviada', 'Aprobada', 'Rechazada', 'Vencida');
+DO $$ BEGIN
+    CREATE TYPE quotation_status AS ENUM ('Borrador', 'Enviada', 'Aprobada', 'Rechazada', 'Vencida');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- Tabla: quotations (Cotizaciones)
 CREATE TABLE IF NOT EXISTS quotations (
@@ -200,7 +213,10 @@ CREATE INDEX IF NOT EXISTS idx_quotations_status ON quotations(status);
 CREATE INDEX IF NOT EXISTS idx_quotations_date ON quotations(date);
 
 -- Enum para tipo de componente
-CREATE TYPE component_type AS ENUM ('cylinder', 'circular_plate', 'rectangular_plate', 'shaft', 'ring', 'custom', 'product');
+DO $$ BEGIN
+    CREATE TYPE component_type AS ENUM ('cylinder', 'circular_plate', 'rectangular_plate', 'shaft', 'ring', 'custom', 'product');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- Tabla: quotation_items (Items de cotización)
 CREATE TABLE IF NOT EXISTS quotation_items (
@@ -237,9 +253,20 @@ CREATE INDEX IF NOT EXISTS idx_quotation_items_quotation ON quotation_items(quot
 -- =====================================================
 
 -- Enums para facturas
-CREATE TYPE invoice_type AS ENUM ('invoice', 'receipt', 'credit_note', 'debit_note');
-CREATE TYPE invoice_status AS ENUM ('draft', 'issued', 'paid', 'partial', 'cancelled', 'overdue');
-CREATE TYPE payment_method AS ENUM ('cash', 'card', 'transfer', 'credit', 'check');
+DO $$ BEGIN
+    CREATE TYPE invoice_type AS ENUM ('invoice', 'receipt', 'credit_note', 'debit_note');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE invoice_status AS ENUM ('draft', 'issued', 'paid', 'partial', 'cancelled', 'overdue');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE payment_method AS ENUM ('cash', 'card', 'transfer', 'credit', 'check');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- Tabla: invoices (Facturas/Comprobantes)
 CREATE TABLE IF NOT EXISTS invoices (
@@ -749,25 +776,76 @@ ON CONFLICT DO NOTHING;
 -- POLÍTICAS DE SEGURIDAD (Row Level Security)
 -- =====================================================
 
--- Habilitar RLS en tablas principales
+-- Habilitar RLS en todas las tablas
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chart_of_accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE company_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE quotations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE quotation_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoice_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journal_entry_lines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE material_prices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE operational_costs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quotation_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quotations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sync_log ENABLE ROW LEVEL SECURITY;
 
 -- Políticas permisivas para desarrollo (ajustar para producción)
-CREATE POLICY "Allow all for authenticated users" ON customers FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated users" ON products FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated users" ON quotations FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated users" ON quotation_items FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated users" ON invoices FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated users" ON invoice_items FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated users" ON payments FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated users" ON material_prices FOR ALL USING (true);
+-- CATEGORIES
+CREATE POLICY "Allow all for authenticated users" ON categories FOR ALL USING (true) WITH CHECK (true);
+
+-- CHART_OF_ACCOUNTS
+CREATE POLICY "Allow all for authenticated users" ON chart_of_accounts FOR ALL USING (true) WITH CHECK (true);
+
+-- COMPANY_SETTINGS
+CREATE POLICY "Allow all for authenticated users" ON company_settings FOR ALL USING (true) WITH CHECK (true);
+
+-- CUSTOMERS
+CREATE POLICY "Allow all for authenticated users" ON customers FOR ALL USING (true) WITH CHECK (true);
+
+-- INVOICE_ITEMS
+CREATE POLICY "Allow all for authenticated users" ON invoice_items FOR ALL USING (true) WITH CHECK (true);
+
+-- INVOICES
+CREATE POLICY "Allow all for authenticated users" ON invoices FOR ALL USING (true) WITH CHECK (true);
+
+-- JOURNAL_ENTRIES
+CREATE POLICY "Allow all for authenticated users" ON journal_entries FOR ALL USING (true) WITH CHECK (true);
+
+-- JOURNAL_ENTRY_LINES
+CREATE POLICY "Allow all for authenticated users" ON journal_entry_lines FOR ALL USING (true) WITH CHECK (true);
+
+-- MATERIAL_PRICES
+CREATE POLICY "Allow all for authenticated users" ON material_prices FOR ALL USING (true) WITH CHECK (true);
+
+-- OPERATIONAL_COSTS
+CREATE POLICY "Allow all for authenticated users" ON operational_costs FOR ALL USING (true) WITH CHECK (true);
+
+-- PAYMENTS
+CREATE POLICY "Allow all for authenticated users" ON payments FOR ALL USING (true) WITH CHECK (true);
+
+-- PRODUCT_TEMPLATES
+CREATE POLICY "Allow all for authenticated users" ON product_templates FOR ALL USING (true) WITH CHECK (true);
+
+-- PRODUCTS
+CREATE POLICY "Allow all for authenticated users" ON products FOR ALL USING (true) WITH CHECK (true);
+
+-- QUOTATION_ITEMS
+CREATE POLICY "Allow all for authenticated users" ON quotation_items FOR ALL USING (true) WITH CHECK (true);
+
+-- QUOTATIONS
+CREATE POLICY "Allow all for authenticated users" ON quotations FOR ALL USING (true) WITH CHECK (true);
+
+-- STOCK_MOVEMENTS
+CREATE POLICY "Allow all for authenticated users" ON stock_movements FOR ALL USING (true) WITH CHECK (true);
+
+-- SYNC_LOG
+CREATE POLICY "Allow all for authenticated users" ON sync_log FOR ALL USING (true) WITH CHECK (true);
 
 -- =====================================================
 -- COMENTARIOS FINALES

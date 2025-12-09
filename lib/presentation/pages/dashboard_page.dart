@@ -34,101 +34,87 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     return Scaffold(
       body: Row(
         children: [
-          // Navigation Rail (Menú lateral)
-          NavigationRail(
-            selectedIndex: 0,
-            onDestinationSelected: (index) {
-              switch (index) {
-                case 0:
-                  context.go('/');
-                  break;
-                case 1:
-                  context.go('/products');
-                  break;
-                case 2:
-                  context.go('/customers');
-                  break;
-                case 3:
-                  context.go('/invoices');
-                  break;
-                case 4:
-                  context.go('/quotations');
-                  break;
-                case 5:
-                  context.go('/reports');
-                  break;
-                case 6:
-                  context.go('/settings');
-                  break;
-              }
-            },
-            labelType: NavigationRailLabelType.all,
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Column(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.factory,
-                      color: AppTheme.primaryColor,
-                      size: 28,
+          // Navigation Rail (Menú lateral) - Scrollable
+          Container(
+            width: 80,
+            color: AppTheme.primaryColor,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.factory,
+                          color: AppTheme.primaryColor,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Molinos',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _NavItem(
+                          icon: Icons.dashboard,
+                          label: 'Inicio',
+                          onTap: () => context.go('/'),
+                        ),
+                        _NavItem(
+                          icon: Icons.inventory_2,
+                          label: 'Productos',
+                          onTap: () => context.go('/products'),
+                        ),
+                        _NavItem(
+                          icon: Icons.people,
+                          label: 'Clientes',
+                          onTap: () => context.go('/customers'),
+                        ),
+                        _NavItem(
+                          icon: Icons.receipt_long,
+                          label: 'Ventas',
+                          onTap: () => context.go('/invoices'),
+                        ),
+                        _NavItem(
+                          icon: Icons.request_quote,
+                          label: 'Cotizar',
+                          onTap: () => context.go('/quotations'),
+                        ),
+                        _NavItem(
+                          icon: Icons.bar_chart,
+                          label: 'Reportes',
+                          onTap: () => context.go('/reports'),
+                        ),
+                        _NavItem(
+                          icon: Icons.settings,
+                          label: 'Config',
+                          onTap: () => context.go('/settings'),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Molinos',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard),
-                label: Text('Inicio'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.inventory_2_outlined),
-                selectedIcon: Icon(Icons.inventory_2),
-                label: Text('Productos'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.people_outline),
-                selectedIcon: Icon(Icons.people),
-                label: Text('Clientes'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.receipt_long_outlined),
-                selectedIcon: Icon(Icons.receipt_long),
-                label: Text('Ventas'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.request_quote_outlined),
-                selectedIcon: Icon(Icons.request_quote),
-                label: Text('Cotizar'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.bar_chart_outlined),
-                selectedIcon: Icon(Icons.bar_chart),
-                label: Text('Reportes'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: Text('Config'),
-              ),
-            ],
           ),
           
           // Contenido principal
@@ -492,6 +478,59 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Widget personalizado para items del menú navegación
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: 64,
+            height: 70,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 28,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
