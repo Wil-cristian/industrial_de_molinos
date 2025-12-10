@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/providers.dart';
+import '../../domain/entities/invoice.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -22,6 +23,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       ref.read(productsProvider.notifier).loadProducts();
       ref.read(quotationsProvider.notifier).loadQuotations();
       ref.read(materialsProvider.notifier).loadMaterials();
+      ref.read(invoicesProvider.notifier).refresh();
     });
   }
 
@@ -29,7 +31,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget build(BuildContext context) {
     final customersState = ref.watch(customersProvider);
     final productsState = ref.watch(productsProvider);
-    final quotationsState = ref.watch(quotationsProvider);
+    // final quotationsState = ref.watch(quotationsProvider);  // TODO: Usar cuando se integre
+    final invoicesState = ref.watch(invoicesProvider);
+    final recentInvoices = ref.watch(recentInvoicesProvider);
     
     return Scaffold(
       body: Row(
@@ -173,22 +177,22 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         Expanded(
                           child: _buildSummaryCard(
                             context,
-                            title: 'Cotizaciones',
-                            value: quotationsState.totalQuotations.toString(),
-                            icon: Icons.request_quote,
-                            color: AppTheme.primaryColor,
-                            subtitle: '${quotationsState.approvedCount} aprobadas',
+                            title: 'Ventas del Mes',
+                            value: Formatters.currency(invoicesState.totalVentas),
+                            icon: Icons.attach_money,
+                            color: AppTheme.successColor,
+                            subtitle: '${invoicesState.invoices.length} recibos',
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: _buildSummaryCard(
                             context,
-                            title: 'Cotizaciones Pendientes',
-                            value: '${quotationsState.draftCount + quotationsState.sentCount}',
+                            title: 'Pendiente de Cobro',
+                            value: Formatters.currency(invoicesState.totalPendiente),
                             icon: Icons.pending_actions,
                             color: AppTheme.warningColor,
-                            subtitle: Formatters.currency(quotationsState.totalApprovedAmount),
+                            subtitle: '${invoicesState.countPendientes} recibos',
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -295,11 +299,24 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                     ],
                                   ),
                                   const SizedBox(height: 16),
-                                  _buildInvoiceRow('F001-00045', 'Juan Pérez', 1250.00, 'Pagado'),
-                                  _buildInvoiceRow('F001-00044', 'María García', 890.50, 'Pendiente'),
-                                  _buildInvoiceRow('F001-00043', 'Carlos López', 2100.00, 'Pagado'),
-                                  _buildInvoiceRow('F001-00042', 'Ana Torres', 450.00, 'Parcial'),
-                                  _buildInvoiceRow('F001-00041', 'Pedro Ruiz', 3200.00, 'Pagado'),
+                                  if (invoicesState.isLoading)
+                                    const Center(child: CircularProgressIndicator())
+                                  else if (recentInvoices.isEmpty)
+                                    const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(20),
+                                        child: Text('No hay ventas registradas'),
+                                      ),
+                                    )
+                                  else
+                                    ...recentInvoices.take(5).map((invoice) => 
+                                      _buildInvoiceRow(
+                                        '${invoice.series}-${invoice.number}',
+                                        invoice.customerName,
+                                        invoice.total,
+                                        _getStatusLabel(invoice.status),
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -424,6 +441,23 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
+  String _getStatusLabel(InvoiceStatus status) {
+    switch (status) {
+      case InvoiceStatus.draft:
+        return 'Borrador';
+      case InvoiceStatus.issued:
+        return 'Pendiente';
+      case InvoiceStatus.paid:
+        return 'Pagado';
+      case InvoiceStatus.partial:
+        return 'Parcial';
+      case InvoiceStatus.cancelled:
+        return 'Cancelada';
+      case InvoiceStatus.overdue:
+        return 'Vencida';
+    }
+  }
+
   Widget _buildInvoiceRow(String number, String customer, double amount, String status) {
     Color statusColor;
     switch (status) {
@@ -436,44 +470,68 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       case 'Parcial':
         statusColor = AppTheme.accentColor;
         break;
+      case 'Vencida':
+        statusColor = AppTheme.errorColor;
+        break;
+      case 'Borrador':
+        statusColor = Colors.grey;
+        break;
+      case 'Cancelada':
+        statusColor = Colors.grey[600]!;
+        break;
       default:
         statusColor = Colors.grey;
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          Expanded(
-            flex: 2,
+          // Número de recibo - ancho fijo
+          SizedBox(
+            width: 130,
             child: Text(
               number,
-              style: const TextStyle(fontWeight: FontWeight.w500),
+              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
             ),
           ),
+          const SizedBox(width: 16),
+          // Cliente - expandido
           Expanded(
-            flex: 3,
-            child: Text(customer),
+            child: Text(
+              customer,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
-          Expanded(
-            flex: 2,
+          const SizedBox(width: 16),
+          // Monto - ancho fijo alineado a la derecha
+          SizedBox(
+            width: 120,
             child: Text(
               Formatters.currency(amount),
-              style: const TextStyle(fontWeight: FontWeight.w500),
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+          const SizedBox(width: 16),
+          // Estado - ancho fijo
+          SizedBox(
+            width: 90,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                status,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),

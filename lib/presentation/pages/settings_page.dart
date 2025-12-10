@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -33,12 +34,26 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Configuración',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryColor,
-                        ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor),
+                            onPressed: () => context.go('/'),
+                            tooltip: 'Volver al menú',
+                            constraints: const BoxConstraints(),
+                            padding: EdgeInsets.zero,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Configuración',
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -56,7 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       _buildNavItem(Icons.business, 'Empresa', true),
                       _buildNavItem(Icons.person, 'Mi Perfil', false),
                       _buildNavItem(Icons.people, 'Usuarios', false),
-                      _buildNavItem(Icons.receipt_long, 'Facturación', false),
+                      _buildNavItem(Icons.receipt_long, 'Caja Menor', false),
                       _buildNavItem(Icons.inventory_2, 'Inventario', false),
                       _buildNavItem(Icons.sync, 'Sincronización', false),
                       _buildNavItem(Icons.notifications, 'Notificaciones', false),
@@ -214,7 +229,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         const Divider(),
                         _buildInfoSetting(
-                          'Facturas Vencidas',
+                          'Recibos Vencidos',
                           'Recordatorio de cuentas por cobrar',
                           Icons.receipt_long,
                           Colors.red,
@@ -455,12 +470,14 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         Icon(icon, size: 18, color: Colors.grey[500]),
         const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-            Text(value, style: const TextStyle(fontSize: 13)),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              Text(value, style: const TextStyle(fontSize: 13)),
+            ],
+          ),
         ),
       ],
     );
@@ -485,7 +502,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppTheme.primaryColor,
+            activeThumbColor: AppTheme.primaryColor,
           ),
         ],
       ),

@@ -5,7 +5,7 @@ class AppConstants {
   
   // Supabase
   static const String supabaseUrl = 'https://slpawyxxqzjdkbhwikwt.supabase.co';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNscGF3eXh4cXpqZGtiaHdpa3d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM1NzgzOTksImV4cCI6MjA0OTE1NDM5OX0.kWMGRNfLwF-HDsATx3_Zg12IL_nUP4y78kFJVbmnGAw';
+  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNscGF3eXh4cXpqZGtiaHdpa3d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMjk5OTMsImV4cCI6MjA4MDgwNTk5M30.ClD1mxj--zPwQ1Ey4DA9K7PrlAxwxK4vc5yEuJnoffg';
   
   // Base de datos local
   static const String dbName = 'molinos_app.db';

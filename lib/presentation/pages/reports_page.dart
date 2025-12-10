@@ -1,30 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
+import '../../data/providers/reports_provider.dart';
+import '../../data/datasources/reports_datasource.dart';
 
-class ReportsPage extends StatefulWidget {
+class ReportsPage extends ConsumerStatefulWidget {
   const ReportsPage({super.key});
 
   @override
-  State<ReportsPage> createState() => _ReportsPageState();
+  ConsumerState<ReportsPage> createState() => _ReportsPageState();
 }
 
-class _ReportsPageState extends State<ReportsPage> {
-  String _selectedPeriod = 'Este Mes';
+class _ReportsPageState extends ConsumerState<ReportsPage> {
   String _selectedReport = 'Ventas';
 
-  // Datos de ejemplo para gráficos
-  final List<double> _ventasMensuales = [12500, 15800, 18200, 14500, 22000, 19500, 25000, 21000, 28500, 24000, 31000, 35000];
-  final List<String> _meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(salesReportProvider.notifier).loadSalesReport();
+      ref.read(inventoryReportProvider.notifier).loadInventoryReport();
+      ref.read(receivablesReportProvider.notifier).loadReceivablesReport();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final salesState = ref.watch(salesReportProvider);
+    final inventoryState = ref.watch(inventoryReportProvider);
+    final receivablesState = ref.watch(receivablesReportProvider);
+    
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: Row(
         children: [
-          // Panel lateral de reportes
           Container(
             width: 280,
             color: Colors.white,
@@ -36,48 +48,53 @@ class _ReportsPageState extends State<ReportsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Reportes',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryColor,
-                        ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor),
+                            onPressed: () => context.go('/'),
+                            tooltip: 'Volver al menu',
+                            constraints: const BoxConstraints(),
+                            padding: EdgeInsets.zero,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Reportes',
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Análisis y estadísticas',
+                        'Analisis y estadisticas',
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                     ],
                   ),
                 ),
                 const Divider(height: 1),
-                // Lista de reportes
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     children: [
                       _buildReportCategory('Ventas', Icons.trending_up, [
-                        'Ventas por Período',
+                        'Ventas por Periodo',
                         'Ventas por Producto',
                         'Ventas por Cliente',
-                        'Productos más Vendidos',
+                        'Productos mas Vendidos',
                       ]),
                       _buildReportCategory('Inventario', Icons.inventory_2, [
                         'Stock Actual',
-                        'Movimientos de Stock',
-                        'Productos Bajo Mínimo',
-                        'Valorización de Inventario',
+                        'Valorizacion de Inventario',
                       ]),
                       _buildReportCategory('Cuentas por Cobrar', Icons.account_balance_wallet, [
                         'Cartera de Clientes',
-                        'Antigüedad de Saldos',
-                        'Clientes Morosos',
-                      ]),
-                      _buildReportCategory('Financieros', Icons.analytics, [
-                        'Estado de Resultados',
-                        'Flujo de Caja',
-                        'Balance General',
+                        'Antiguedad de Saldos',
                       ]),
                     ],
                   ),
@@ -85,506 +102,634 @@ class _ReportsPageState extends State<ReportsPage> {
               ],
             ),
           ),
-          // Contenido principal
           Expanded(
-            child: Column(
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  color: Colors.white,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _selectedReport,
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Período: $_selectedPeriod',
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Selector de período
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedPeriod,
-                            items: ['Hoy', 'Esta Semana', 'Este Mes', 'Este Trimestre', 'Este Año', 'Personalizado']
-                                .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                                .toList(),
-                            onChanged: (value) => setState(() => _selectedPeriod = value!),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      OutlinedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.download),
-                        label: const Text('Exportar PDF'),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.table_chart),
-                        label: const Text('Exportar Excel'),
-                      ),
-                    ],
-                  ),
-                ),
-                // Contenido del reporte
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        // KPIs
-                        Row(
-                          children: [
-                            Expanded(child: _buildKpiCard('Ventas Totales', 'S/ 285,420.50', '+12.5%', Colors.blue, Icons.trending_up, true)),
-                            const SizedBox(width: 16),
-                            Expanded(child: _buildKpiCard('Transacciones', '1,245', '+8.3%', Colors.green, Icons.receipt_long, true)),
-                            const SizedBox(width: 16),
-                            Expanded(child: _buildKpiCard('Ticket Promedio', 'S/ 229.25', '+4.2%', Colors.purple, Icons.shopping_cart, true)),
-                            const SizedBox(width: 16),
-                            Expanded(child: _buildKpiCard('Margen Bruto', '32.5%', '-1.2%', Colors.orange, Icons.pie_chart, false)),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        // Gráfico principal
-                        Container(
-                          height: 350,
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Evolución de Ventas',
-                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                  ),
-                                  const Spacer(),
-                                  _buildChartLegend('Ventas 2025', Colors.blue),
-                                  const SizedBox(width: 16),
-                                  _buildChartLegend('Ventas 2024', Colors.grey),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-                              Expanded(
-                                child: LineChart(
-                                  LineChartData(
-                                    gridData: FlGridData(
-                                      show: true,
-                                      drawVerticalLine: false,
-                                      horizontalInterval: 10000,
-                                      getDrawingHorizontalLine: (value) => FlLine(
-                                        color: Colors.grey[200]!,
-                                        strokeWidth: 1,
-                                      ),
-                                    ),
-                                    titlesData: FlTitlesData(
-                                      leftTitles: AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: true,
-                                          reservedSize: 60,
-                                          getTitlesWidget: (value, meta) {
-                                            return Text(
-                                              'S/ ${(value / 1000).toStringAsFixed(0)}K',
-                                              style: TextStyle(color: Colors.grey[600], fontSize: 11),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                      bottomTitles: AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: true,
-                                          getTitlesWidget: (value, meta) {
-                                            if (value.toInt() >= 0 && value.toInt() < _meses.length) {
-                                              return Text(
-                                                _meses[value.toInt()],
-                                                style: TextStyle(color: Colors.grey[600], fontSize: 11),
-                                              );
-                                            }
-                                            return const Text('');
-                                          },
-                                        ),
-                                      ),
-                                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                    ),
-                                    borderData: FlBorderData(show: false),
-                                    lineBarsData: [
-                                      LineChartBarData(
-                                        spots: _ventasMensuales.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
-                                        isCurved: true,
-                                        color: Colors.blue,
-                                        barWidth: 3,
-                                        dotData: const FlDotData(show: false),
-                                        belowBarData: BarAreaData(
-                                          show: true,
-                                          color: Colors.blue.withValues(alpha: 0.1),
-                                        ),
-                                      ),
-                                      LineChartBarData(
-                                        spots: _ventasMensuales.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value * 0.85)).toList(),
-                                        isCurved: true,
-                                        color: Colors.grey[400],
-                                        barWidth: 2,
-                                        dotData: const FlDotData(show: false),
-                                        dashArray: [5, 5],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        // Gráficos secundarios
-                        Row(
-                          children: [
-                            // Productos más vendidos
-                            Expanded(
-                              child: Container(
-                                height: 300,
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.05),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Top 5 Productos',
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Expanded(
-                                      child: BarChart(
-                                        BarChartData(
-                                          alignment: BarChartAlignment.spaceAround,
-                                          maxY: 100,
-                                          barGroups: [
-                                            _buildBarGroup(0, 95, 'Harina'),
-                                            _buildBarGroup(1, 78, 'Arroz'),
-                                            _buildBarGroup(2, 65, 'Azúcar'),
-                                            _buildBarGroup(3, 52, 'Aceite'),
-                                            _buildBarGroup(4, 45, 'Fideos'),
-                                          ],
-                                          titlesData: FlTitlesData(
-                                            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                            bottomTitles: AxisTitles(
-                                              sideTitles: SideTitles(
-                                                showTitles: true,
-                                                getTitlesWidget: (value, meta) {
-                                                  const titles = ['Harina', 'Arroz', 'Azúcar', 'Aceite', 'Fideos'];
-                                                  return Padding(
-                                                    padding: const EdgeInsets.only(top: 8),
-                                                    child: Text(
-                                                      titles[value.toInt()],
-                                                      style: TextStyle(color: Colors.grey[600], fontSize: 11),
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ),
-                                          borderData: FlBorderData(show: false),
-                                          gridData: const FlGridData(show: false),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 24),
-                            // Distribución por categoría
-                            Expanded(
-                              child: Container(
-                                height: 300,
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.05),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Ventas por Categoría',
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Expanded(
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: PieChart(
-                                              PieChartData(
-                                                sectionsSpace: 2,
-                                                centerSpaceRadius: 40,
-                                                sections: [
-                                                  PieChartSectionData(value: 35, color: Colors.blue, title: '35%', titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                                                  PieChartSectionData(value: 25, color: Colors.green, title: '25%', titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                                                  PieChartSectionData(value: 20, color: Colors.orange, title: '20%', titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                                                  PieChartSectionData(value: 12, color: Colors.purple, title: '12%', titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                                                  PieChartSectionData(value: 8, color: Colors.grey, title: '8%', titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 16),
-                                          Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              _buildPieLegend('Harinas', Colors.blue, 'S/ 99,897'),
-                                              _buildPieLegend('Granos', Colors.green, 'S/ 71,355'),
-                                              _buildPieLegend('Aceites', Colors.orange, 'S/ 57,084'),
-                                              _buildPieLegend('Azúcares', Colors.purple, 'S/ 34,250'),
-                                              _buildPieLegend('Otros', Colors.grey, 'S/ 22,833'),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        // Tabla de detalle
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Detalle de Ventas',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  const Spacer(),
-                                  TextButton.icon(
-                                    onPressed: () {},
-                                    icon: const Icon(Icons.visibility, size: 18),
-                                    label: const Text('Ver todo'),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              DataTable(
-                                headingRowColor: WidgetStateProperty.all(Colors.grey[50]),
-                                columns: const [
-                                  DataColumn(label: Text('Fecha', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Documento', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Cliente', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Productos', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
-                                  DataColumn(label: Text('Total', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
-                                ],
-                                rows: [
-                                  _buildTableRow('08/12/2025', 'F001-00045', 'Juan Pérez', 5, 1250.00),
-                                  _buildTableRow('08/12/2025', 'B001-00023', 'Cliente Mostrador', 2, 50.00),
-                                  _buildTableRow('07/12/2025', 'F001-00044', 'María García', 12, 890.00),
-                                  _buildTableRow('06/12/2025', 'F001-00043', 'Distribuidora El Sol', 45, 14800.00),
-                                  _buildTableRow('05/12/2025', 'F001-00042', 'Carlos Rodríguez', 3, 500.00),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            child: _buildMainContent(salesState, inventoryState, receivablesState),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildReportCategory(String title, IconData icon, List<String> items) {
+  Widget _buildReportCategory(String title, IconData icon, List<String> reports) {
+    final isSelected = _selectedReport == title;
+    
     return ExpansionTile(
-      leading: Icon(icon, color: AppTheme.primaryColor),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-      children: items.map((item) => ListTile(
-        contentPadding: const EdgeInsets.only(left: 72, right: 16),
-        title: Text(item, style: const TextStyle(fontSize: 14)),
-        selected: _selectedReport == item,
-        selectedTileColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-        onTap: () => setState(() => _selectedReport = item),
+      leading: Icon(icon, color: isSelected ? AppTheme.primaryColor : Colors.grey[600]),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? AppTheme.primaryColor : Colors.black87,
+        ),
+      ),
+      initiallyExpanded: isSelected,
+      children: reports.map((report) => ListTile(
+        contentPadding: const EdgeInsets.only(left: 56, right: 16),
+        title: Text(report, style: const TextStyle(fontSize: 14)),
+        dense: true,
+        onTap: () => setState(() => _selectedReport = title),
       )).toList(),
     );
   }
 
-  Widget _buildKpiCard(String title, String value, String change, Color color, IconData icon, bool isPositive) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+  Widget _buildMainContent(SalesReportState salesState, InventoryReportState inventoryState, ReceivablesReportState receivablesState) {
+    if (salesState.isLoading || inventoryState.isLoading || receivablesState.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    if (salesState.error != null) {
+      return Center(child: Text('Error: ${salesState.error}', style: const TextStyle(color: Colors.red)));
+    }
+    
+    switch (_selectedReport) {
+      case 'Ventas':
+        return _buildSalesReport(salesState);
+      case 'Inventario':
+        return _buildInventoryReport(inventoryState);
+      case 'Cuentas por Cobrar':
+        return _buildReceivablesReport(receivablesState);
+      default:
+        return _buildSalesReport(salesState);
+    }
+  }
+
+  Widget _buildSalesReport(SalesReportState state) {
+    final stats = state.stats;
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Reporte de Ventas',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => ref.read(salesReportProvider.notifier).loadSalesReport(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Actualizar'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Exportacion proximamente')),
+                    ),
+                    icon: const Icon(Icons.download, color: Colors.white),
+                    label: const Text('Exportar', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              _buildKPICard('Ventas Totales', Helpers.formatCurrency(stats?.totalSales ?? 0), Icons.attach_money, Colors.green, '${stats?.transactionCount ?? 0} transacciones'),
+              const SizedBox(width: 16),
+              _buildKPICard('Ticket Promedio', Helpers.formatCurrency(stats?.averageTicket ?? 0), Icons.receipt, Colors.blue, 'por recibo'),
+              const SizedBox(width: 16),
+              _buildKPICard('Margen Bruto', '${(stats?.grossMargin ?? 0).toStringAsFixed(1)}%', Icons.trending_up, Colors.orange, 'rentabilidad'),
+              const SizedBox(width: 16),
+              _buildKPICard('Crecimiento', '${(stats?.growthPercentage ?? 0).toStringAsFixed(1)}%', Icons.show_chart, 
+                (stats?.growthPercentage ?? 0) >= 0 ? Colors.green : Colors.red, 
+                'vs periodo anterior'),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildSalesChart(state),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildTopProductsCard(state)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildSalesByCustomerCard(state)),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSalesChart(SalesReportState state) {
+    return Container(
+      height: 350,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
+              const Text('Evolucion de Ventas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: (isPositive ? Colors.green : Colors.red).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                      size: 12,
-                      color: isPositive ? Colors.green : Colors.red,
-                    ),
-                    Text(
-                      change,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isPositive ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.w500,
+              _buildChartLegend('Actual', Colors.blue),
+              const SizedBox(width: 16),
+              _buildChartLegend('Anterior', Colors.grey),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: state.chartData.isEmpty
+                ? const Center(child: Text('No hay datos de ventas por periodo'))
+                : BarChart(
+                    BarChartData(
+                      alignment: BarChartAlignment.spaceAround,
+                      maxY: state.chartData.map((e) => e.currentValue > e.previousValue ? e.currentValue : e.previousValue).reduce((a, b) => a > b ? a : b) * 1.2,
+                      barGroups: state.chartData.asMap().entries.map((entry) {
+                        return BarChartGroupData(
+                          x: entry.key,
+                          barRods: [
+                            BarChartRodData(
+                              toY: entry.value.currentValue,
+                              color: Colors.blue,
+                              width: 12,
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                            ),
+                            BarChartRodData(
+                              toY: entry.value.previousValue,
+                              color: Colors.grey[400],
+                              width: 12,
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 60,
+                            getTitlesWidget: (value, meta) => Text('S/ ${(value / 1000).toStringAsFixed(0)}K', style: TextStyle(color: Colors.grey[600], fontSize: 11)),
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final index = value.toInt();
+                              if (index >= 0 && index < state.chartData.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(state.chartData[index].label, style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+                                );
+                              }
+                              return const Text('');
+                            },
+                          ),
+                        ),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       ),
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey[200]!, strokeWidth: 1),
+                      ),
+                      borderData: FlBorderData(show: false),
                     ),
-                  ],
-                ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopProductsCard(SalesReportState state) {
+    return Container(
+      height: 350,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Productos mas Vendidos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          Expanded(
+            child: state.topProducts.isEmpty
+                ? const Center(child: Text('No hay datos de productos'))
+                : ListView.builder(
+                    itemCount: state.topProducts.length,
+                    itemBuilder: (context, index) {
+                      final product = state.topProducts[index];
+                      final maxTotal = state.topProducts.first.totalSales;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(child: Text(product.productName, style: const TextStyle(fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
+                                Text(Helpers.formatCurrency(product.totalSales), style: const TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            LinearProgressIndicator(
+                              value: maxTotal > 0 ? product.totalSales / maxTotal : 0,
+                              backgroundColor: Colors.grey[200],
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.primaries[index % Colors.primaries.length]),
+                            ),
+                            Text('${product.quantity.toStringAsFixed(0)} unidades', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSalesByCustomerCard(SalesReportState state) {
+    return Container(
+      height: 350,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Ventas por Cliente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          Expanded(
+            child: state.salesByCustomer.isEmpty
+                ? const Center(child: Text('No hay datos de clientes'))
+                : Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: PieChart(
+                          PieChartData(
+                            sections: state.salesByCustomer.asMap().entries.map((entry) {
+                              final total = state.salesByCustomer.fold<double>(0, (sum, e) => sum + e.totalSales);
+                              final percentage = total > 0 ? (entry.value.totalSales / total * 100) : 0;
+                              return PieChartSectionData(
+                                value: entry.value.totalSales,
+                                title: '${percentage.toStringAsFixed(1)}%',
+                                color: Colors.primaries[entry.key % Colors.primaries.length],
+                                radius: 60,
+                                titleStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                              );
+                            }).toList(),
+                            sectionsSpace: 2,
+                            centerSpaceRadius: 40,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: state.salesByCustomer.asMap().entries.take(5).map((entry) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      color: Colors.primaries[entry.key % Colors.primaries.length],
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text(entry.value.customerName, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInventoryReport(InventoryReportState state) {
+    final totalValue = state.products.fold<double>(0, (sum, p) => sum + p.totalValue);
+    final lowStockCount = state.products.where((p) => p.isLowStock).length;
+    final totalProducts = state.products.length;
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Reporte de Inventario', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => ref.read(inventoryReportProvider.notifier).loadInventoryReport(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Actualizar'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Exportacion proximamente'))),
+                    icon: const Icon(Icons.download, color: Colors.white),
+                    label: const Text('Exportar', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              _buildKPICard('Total Productos', '$totalProducts', Icons.inventory, Colors.blue, 'en inventario'),
+              const SizedBox(width: 16),
+              _buildKPICard('Valor Total', Helpers.formatCurrency(totalValue), Icons.attach_money, Colors.green, 'valorizacion'),
+              const SizedBox(width: 16),
+              _buildKPICard('Bajo Stock', '$lowStockCount', Icons.warning, Colors.orange, 'productos'),
+              const SizedBox(width: 16),
+              _buildKPICard('Sin Stock', '${state.products.where((p) => p.currentStock == 0).length}', Icons.error, Colors.red, 'productos'),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Detalle de Inventario', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text('$totalProducts productos', style: TextStyle(color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Container(
+                  color: Colors.grey[50],
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(flex: 2, child: Text('Producto', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]))),
+                      Expanded(child: Text('Codigo', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]))),
+                      Expanded(child: Text('Stock', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]), textAlign: TextAlign.center)),
+                      Expanded(child: Text('Minimo', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]), textAlign: TextAlign.center)),
+                      Expanded(child: Text('Precio', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]), textAlign: TextAlign.right)),
+                      Expanded(child: Text('Valor Total', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]), textAlign: TextAlign.right)),
+                      const SizedBox(width: 80, child: Text('Estado', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    ],
+                  ),
+                ),
+                ...state.products.map((item) => _buildInventoryRow(item)),
+              ],
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInventoryRow(InventoryReport item) {
+    Color statusColor;
+    String statusText;
+    
+    if (item.currentStock == 0) {
+      statusColor = Colors.red;
+      statusText = 'Sin Stock';
+    } else if (item.isLowStock) {
+      statusColor = Colors.orange;
+      statusText = 'Bajo';
+    } else {
+      statusColor = Colors.green;
+      statusText = 'OK';
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey[200]!))),
+      child: Row(
+        children: [
+          Expanded(flex: 2, child: Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w500))),
+          Expanded(child: Text(item.productCode, style: TextStyle(color: Colors.grey[600]))),
+          Expanded(child: Text(item.currentStock.toStringAsFixed(0), textAlign: TextAlign.center)),
+          Expanded(child: Text(item.minStock.toStringAsFixed(0), textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600]))),
+          Expanded(child: Text(Helpers.formatCurrency(item.unitPrice), textAlign: TextAlign.right)),
+          Expanded(child: Text(Helpers.formatCurrency(item.totalValue), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold))),
+          SizedBox(
+            width: 80,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+              child: Text(statusText, textAlign: TextAlign.center, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w500)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReceivablesReport(ReceivablesReportState state) {
+    final totalDebt = state.receivables.fold<double>(0, (sum, r) => sum + r.totalDebt);
+    final overdueTotal = state.receivables.fold<double>(0, (sum, r) => sum + r.overdue30 + r.overdue60 + r.overdue90);
+    final currentTotal = state.receivables.fold<double>(0, (sum, r) => sum + r.current);
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Cuentas por Cobrar', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => ref.read(receivablesReportProvider.notifier).loadReceivablesReport(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Actualizar'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Exportacion proximamente'))),
+                    icon: const Icon(Icons.download, color: Colors.white),
+                    label: const Text('Exportar', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              _buildKPICard('Total por Cobrar', Helpers.formatCurrency(totalDebt), Icons.account_balance_wallet, Colors.blue, '${state.receivables.length} clientes'),
+              const SizedBox(width: 16),
+              _buildKPICard('Vencidas', Helpers.formatCurrency(overdueTotal), Icons.warning, Colors.red, 'deuda vencida'),
+              const SizedBox(width: 16),
+              _buildKPICard('Al Dia', Helpers.formatCurrency(currentTotal), Icons.check_circle, Colors.green, '0-30 dias'),
+              const SizedBox(width: 16),
+              _buildKPICard('Clientes Morosos', '${state.receivables.where((r) => r.overdueInvoices > 0).length}', Icons.person_off, Colors.orange, 'con deuda'),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Detalle de Cartera', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text('${state.receivables.length} clientes con deuda', style: TextStyle(color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Container(
+                  color: Colors.grey[50],
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(flex: 2, child: Text('Cliente', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]))),
+                      Expanded(child: Text('Total Deuda', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]), textAlign: TextAlign.right)),
+                      Expanded(child: Text('0-30 dias', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]), textAlign: TextAlign.right)),
+                      Expanded(child: Text('31-60 dias', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]), textAlign: TextAlign.right)),
+                      Expanded(child: Text('61-90 dias', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]), textAlign: TextAlign.right)),
+                      Expanded(child: Text('+90 dias', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700]), textAlign: TextAlign.right)),
+                      const SizedBox(width: 80, child: Text('Recibos', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                    ],
+                  ),
+                ),
+                state.receivables.isEmpty
+                    ? const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('No hay cuentas por cobrar pendientes')))
+                    : Column(children: state.receivables.map((item) => _buildReceivableRow(item)).toList()),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReceivableRow(ReceivableReport item) {
+    Color statusColor;
+    
+    if (item.overdue90 > 0) {
+      statusColor = Colors.red[700]!;
+    } else if (item.overdue60 > 0 || item.overdue30 > 0) {
+      statusColor = Colors.orange;
+    } else {
+      statusColor = Colors.green;
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey[200]!))),
+      child: Row(
+        children: [
+          Expanded(flex: 2, child: Text(item.customerName, style: const TextStyle(fontWeight: FontWeight.w500))),
+          Expanded(child: Text(Helpers.formatCurrency(item.totalDebt), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold))),
+          Expanded(child: Text(Helpers.formatCurrency(item.current), textAlign: TextAlign.right, style: TextStyle(color: Colors.green[700]))),
+          Expanded(child: Text(Helpers.formatCurrency(item.overdue30), textAlign: TextAlign.right, style: TextStyle(color: item.overdue30 > 0 ? Colors.orange : Colors.grey))),
+          Expanded(child: Text(Helpers.formatCurrency(item.overdue60), textAlign: TextAlign.right, style: TextStyle(color: item.overdue60 > 0 ? Colors.orange[700] : Colors.grey))),
+          Expanded(child: Text(Helpers.formatCurrency(item.overdue90), textAlign: TextAlign.right, style: TextStyle(color: item.overdue90 > 0 ? Colors.red[700] : Colors.grey))),
+          SizedBox(
+            width: 80,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+              child: Text('${item.overdueInvoices}', textAlign: TextAlign.center, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w500)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKPICard(String title, String value, IconData icon, Color color, String subtitle) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  Text(subtitle, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildChartLegend(String label, Color color) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 12, height: 3, color: color),
-        const SizedBox(width: 8),
+        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 6),
         Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }
-
-  BarChartGroupData _buildBarGroup(int x, double y, String label) {
-    return BarChartGroupData(
-      x: x,
-      barRods: [
-        BarChartRodData(
-          toY: y,
-          color: AppTheme.primaryColor,
-          width: 20,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPieLegend(String label, Color color, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontSize: 12)),
-          const SizedBox(width: 8),
-          Text(value, style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-
-  DataRow _buildTableRow(String date, String doc, String customer, int items, double total) {
-    return DataRow(cells: [
-      DataCell(Text(date)),
-      DataCell(Text(doc, style: const TextStyle(fontWeight: FontWeight.w500))),
-      DataCell(Text(customer)),
-      DataCell(Text(items.toString())),
-      DataCell(Text(Formatters.currency(total), style: const TextStyle(fontWeight: FontWeight.w600))),
-    ]);
-  }
 }
+

@@ -242,6 +242,11 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
       color: Colors.white,
       child: Row(
         children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor),
+            onPressed: () => context.go('/'),
+            tooltip: 'Volver al menú',
+          ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -643,11 +648,15 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           width: 600,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Row(
                 children: [
                   Icon(Icons.description, color: AppTheme.primaryColor, size: 28),
@@ -726,6 +735,7 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
                 ],
               ),
             ],
+            ),
           ),
         ),
       ),

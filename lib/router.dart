@@ -8,6 +8,7 @@ import 'presentation/pages/reports_page.dart';
 import 'presentation/pages/settings_page.dart';
 import 'presentation/pages/quotations_page.dart';
 import 'presentation/pages/new_quotation_page.dart';
+import 'presentation/pages/new_invoice_page.dart';
 
 // Configuración del router
 final GoRouter router = GoRouter(
@@ -23,9 +24,7 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/products/new',
-      builder: (context, state) => const Scaffold(
-        body: Center(child: Text('Nuevo Producto - Por implementar')),
-      ),
+      builder: (context, state) => const ProductsPage(openNewDialog: true),
     ),
     GoRoute(
       path: '/customers',
@@ -33,9 +32,7 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/customers/new',
-      builder: (context, state) => const Scaffold(
-        body: Center(child: Text('Nuevo Cliente - Por implementar')),
-      ),
+      builder: (context, state) => const CustomersPage(openNewDialog: true),
     ),
     GoRoute(
       path: '/invoices',
@@ -43,9 +40,7 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/invoices/new',
-      builder: (context, state) => const Scaffold(
-        body: Center(child: Text('Nueva Factura - Por implementar')),
-      ),
+      builder: (context, state) => const NewInvoicePage(),
     ),
     GoRoute(
       path: '/quotations',

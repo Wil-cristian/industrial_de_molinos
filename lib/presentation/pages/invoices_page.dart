@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
+import '../../domain/entities/invoice.dart';
+import '../widgets/receipt_preview.dart';
 
 class InvoicesPage extends StatefulWidget {
   const InvoicesPage({super.key});
@@ -232,7 +234,7 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
                         labelColor: Colors.white,
                         unselectedLabelColor: Colors.grey[600],
                         tabs: const [
-                          Tab(text: '  Facturas  '),
+                          Tab(text: '  Recibos de Caja Menor  '),
                           Tab(text: '  Boletas  '),
                         ],
                       ),
@@ -313,7 +315,7 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
               ],
             ),
           ),
-          // Lista de facturas
+          // Lista de recibos de caja menor
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -589,11 +591,15 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           width: 700,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Row(
                 children: [
                   Container(
@@ -683,6 +689,34 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
                 ),
               ),
               const SizedBox(height: 24),
+              // Vista previa de recibo
+              const Divider(),
+              const SizedBox(height: 12),
+              const Text('Ver Recibo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showReceiptPreview(invoice, isClientVersion: true);
+                    },
+                    icon: const Icon(Icons.receipt_long),
+                    label: const Text('Recibo Cliente'),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showReceiptPreview(invoice, isClientVersion: false);
+                    },
+                    icon: const Icon(Icons.description),
+                    label: const Text('Recibo Empresa'),
+                    style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               // Acciones
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -712,6 +746,7 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
                 ],
               ),
             ],
+            ),
           ),
         ),
       ),
@@ -864,6 +899,147 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
     );
   }
 
+  void _showReceiptPreview(Map<String, dynamic> invoice, {required bool isClientVersion}) {
+    // Convertir Map a Invoice para usar en los widgets de recibo
+    final now = DateTime.now();
+    final invoiceEntity = Invoice(
+      id: invoice['id'] ?? '',
+      type: InvoiceType.invoice,
+      series: 'F001',
+      number: invoice['number']?.toString().split('-').last ?? '0',
+      customerId: invoice['customerId'] ?? '',
+      customerName: invoice['customer'] ?? '',
+      customerDocument: '',
+      issueDate: invoice['date'] ?? now,
+      dueDate: invoice['dueDate'],
+      subtotal: (invoice['subtotal'] as num?)?.toDouble() ?? 0,
+      taxAmount: (invoice['tax'] as num?)?.toDouble() ?? 0,
+      discount: 0,
+      total: (invoice['total'] as num?)?.toDouble() ?? 0,
+      paidAmount: (invoice['paid'] as num?)?.toDouble() ?? 0,
+      status: _getInvoiceStatus(invoice['status'] ?? ''),
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    // Items de ejemplo (en producción se cargarían de la base de datos)
+    final items = <InvoiceItem>[
+      InvoiceItem(
+        id: '1',
+        invoiceId: invoiceEntity.id,
+        productName: 'Productos varios',
+        quantity: invoice['items'] ?? 1,
+        unitPrice: invoiceEntity.subtotal / (invoice['items'] ?? 1),
+        subtotal: invoiceEntity.subtotal,
+        total: invoiceEntity.total,
+      ),
+    ];
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          width: 500,
+          height: MediaQuery.of(context).size.height * 0.85,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // Encabezado
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isClientVersion ? 'Recibo Cliente' : 'Recibo Empresa (Detallado)',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isClientVersion ? Colors.blue : Colors.red,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          _showReceiptPreview(invoice, isClientVersion: !isClientVersion);
+                        },
+                        icon: Icon(isClientVersion ? Icons.description : Icons.receipt_long),
+                        label: Text(isClientVersion ? 'Ver Empresa' : 'Ver Cliente'),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(dialogContext),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const Divider(),
+              // Vista previa del recibo
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: isClientVersion
+                        ? ReceiptPreviewClient(
+                            invoice: invoiceEntity,
+                            items: items,
+                          )
+                        : ReceiptPreviewEnterprise(
+                            invoice: invoiceEntity,
+                            items: items,
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Botones
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    icon: const Icon(Icons.close),
+                    label: const Text('Cerrar'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Función de impresión próximamente'),
+                          backgroundColor: Colors.blue,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.print),
+                    label: const Text('Imprimir'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  InvoiceStatus _getInvoiceStatus(String status) {
+    switch (status) {
+      case 'Pagada': return InvoiceStatus.paid;
+      case 'Pendiente': return InvoiceStatus.issued;
+      case 'Parcial': return InvoiceStatus.partial;
+      case 'Vencida': return InvoiceStatus.overdue;
+      case 'Anulada': return InvoiceStatus.cancelled;
+      default: return InvoiceStatus.draft;
+    }
+  }
+
   void _showNewInvoiceDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -871,10 +1047,13 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           width: 800,
-          height: 600,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 children: [
@@ -891,12 +1070,12 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: 'Factura',
+                      value: 'Recibo de Caja Menor',
                       decoration: const InputDecoration(
                         labelText: 'Tipo de Documento',
                         border: OutlineInputBorder(),
                       ),
-                      items: ['Factura', 'Boleta']
+                      items: ['Recibo de Caja Menor', 'Boleta']
                           .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                           .toList(),
                       onChanged: (value) {},

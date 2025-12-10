@@ -108,6 +108,88 @@ class Invoice {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  factory Invoice.fromJson(Map<String, dynamic> json) {
+    return Invoice(
+      id: json['id'] ?? '',
+      type: _parseInvoiceType(json['type']),
+      series: json['series'] ?? '',
+      number: json['number'] ?? '',
+      customerId: json['customer_id'],
+      customerName: json['customer_name'] ?? '',
+      customerDocument: json['customer_document'] ?? '',
+      issueDate: DateTime.parse(json['issue_date']),
+      dueDate: json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
+      subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
+      taxAmount: (json['tax_amount'] as num?)?.toDouble() ?? 0,
+      discount: (json['discount'] as num?)?.toDouble() ?? 0,
+      total: (json['total'] as num?)?.toDouble() ?? 0,
+      paidAmount: (json['paid_amount'] as num?)?.toDouble() ?? 0,
+      status: _parseInvoiceStatus(json['status']),
+      paymentMethod: json['payment_method'] != null 
+          ? _parsePaymentMethod(json['payment_method']) 
+          : null,
+      notes: json['notes'],
+      items: [],
+      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
+      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type.name,
+      'series': series,
+      'number': number,
+      'customer_id': customerId,
+      'customer_name': customerName,
+      'customer_document': customerDocument,
+      'issue_date': issueDate.toIso8601String().split('T')[0],
+      'due_date': dueDate?.toIso8601String().split('T')[0],
+      'subtotal': subtotal,
+      'tax_amount': taxAmount,
+      'discount': discount,
+      'total': total,
+      'paid_amount': paidAmount,
+      'status': status.name,
+      'payment_method': paymentMethod?.name,
+      'notes': notes,
+    };
+  }
+
+  static InvoiceType _parseInvoiceType(String? value) {
+    switch (value) {
+      case 'invoice': return InvoiceType.invoice;
+      case 'receipt': return InvoiceType.receipt;
+      case 'credit_note': return InvoiceType.creditNote;
+      case 'debit_note': return InvoiceType.debitNote;
+      default: return InvoiceType.invoice;
+    }
+  }
+
+  static InvoiceStatus _parseInvoiceStatus(String? value) {
+    switch (value) {
+      case 'draft': return InvoiceStatus.draft;
+      case 'issued': return InvoiceStatus.issued;
+      case 'paid': return InvoiceStatus.paid;
+      case 'partial': return InvoiceStatus.partial;
+      case 'cancelled': return InvoiceStatus.cancelled;
+      case 'overdue': return InvoiceStatus.overdue;
+      default: return InvoiceStatus.draft;
+    }
+  }
+
+  static PaymentMethod _parsePaymentMethod(String? value) {
+    switch (value) {
+      case 'cash': return PaymentMethod.cash;
+      case 'card': return PaymentMethod.card;
+      case 'transfer': return PaymentMethod.transfer;
+      case 'credit': return PaymentMethod.credit;
+      case 'check': return PaymentMethod.check;
+      default: return PaymentMethod.cash;
+    }
+  }
 }
 
 // Item de Factura
@@ -117,11 +199,14 @@ class InvoiceItem {
   final String? productId;
   final String productName;
   final String? productCode;
+  final String? description;
   final double quantity;
+  final String unit;
   final double unitPrice;
   final double discount;
   final double taxRate;
   final double subtotal;
+  final double taxAmount;
   final double total;
 
   InvoiceItem({
@@ -130,13 +215,54 @@ class InvoiceItem {
     this.productId,
     required this.productName,
     this.productCode,
+    this.description,
     required this.quantity,
+    this.unit = 'UND',
     required this.unitPrice,
     this.discount = 0,
     this.taxRate = 18,
     required this.subtotal,
+    this.taxAmount = 0,
     required this.total,
   });
+
+  factory InvoiceItem.fromJson(Map<String, dynamic> json) {
+    return InvoiceItem(
+      id: json['id'] ?? '',
+      invoiceId: json['invoice_id'] ?? '',
+      productId: json['product_id'],
+      productName: json['product_name'] ?? '',
+      productCode: json['product_code'],
+      description: json['description'],
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 0,
+      unit: json['unit'] ?? 'UND',
+      unitPrice: (json['unit_price'] as num?)?.toDouble() ?? 0,
+      discount: (json['discount'] as num?)?.toDouble() ?? 0,
+      taxRate: (json['tax_rate'] as num?)?.toDouble() ?? 18,
+      subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
+      taxAmount: (json['tax_amount'] as num?)?.toDouble() ?? 0,
+      total: (json['total'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'invoice_id': invoiceId,
+      'product_id': productId,
+      'product_name': productName,
+      'product_code': productCode,
+      'description': description,
+      'quantity': quantity,
+      'unit': unit,
+      'unit_price': unitPrice,
+      'discount': discount,
+      'tax_rate': taxRate,
+      'subtotal': subtotal,
+      'tax_amount': taxAmount,
+      'total': total,
+    };
+  }
 }
 
 // Pago

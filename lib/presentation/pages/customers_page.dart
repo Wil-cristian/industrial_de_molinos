@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
@@ -7,7 +8,9 @@ import '../../data/providers/customers_provider.dart';
 import '../../domain/entities/customer.dart';
 
 class CustomersPage extends ConsumerStatefulWidget {
-  const CustomersPage({super.key});
+  final bool openNewDialog;
+  
+  const CustomersPage({super.key, this.openNewDialog = false});
 
   @override
   ConsumerState<CustomersPage> createState() => _CustomersPageState();
@@ -21,6 +24,12 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
     super.initState();
     Future.microtask(() {
       ref.read(customersProvider.notifier).loadCustomers();
+      // Abrir diálogo si viene de la ruta /customers/new
+      if (widget.openNewDialog) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showAddCustomerDialog(context);
+        });
+      }
     });
   }
 
@@ -58,6 +67,11 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
               children: [
                 Row(
                   children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor),
+                      onPressed: () => context.go('/'),
+                      tooltip: 'Volver al menú',
+                    ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,21 +480,24 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
     );
   }
 
-  void _showAddCustomerDialog(BuildContext context) {
+  void _showAddCustomerDialog(BuildContext context, {Customer? customer}) {
+    final isEditMode = customer != null;
     final formKey = GlobalKey<FormState>();
-    final nameController = TextEditingController();
-    final documentController = TextEditingController();
-    final phoneController = TextEditingController();
-    final emailController = TextEditingController();
-    final addressController = TextEditingController();
-    CustomerType selectedType = CustomerType.business;
-    DocumentType selectedDocType = DocumentType.ruc;
+    final nameController = TextEditingController(text: isEditMode ? customer.name : '');
+    final documentController = TextEditingController(text: isEditMode ? customer.documentNumber : '');
+    final phoneController = TextEditingController(text: isEditMode ? customer.phone ?? '' : '');
+    final emailController = TextEditingController(text: isEditMode ? customer.email ?? '' : '');
+    final addressController = TextEditingController(text: isEditMode ? customer.address ?? '' : '');
+    final creditLimitController = TextEditingController(text: isEditMode ? customer.creditLimit.toString() : '0');
+    final currentBalanceController = TextEditingController(text: isEditMode ? customer.currentBalance.toString() : '0');
+    CustomerType selectedType = isEditMode ? customer.type : CustomerType.business;
+    DocumentType selectedDocType = isEditMode ? customer.documentType : DocumentType.ruc;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Nuevo Cliente'),
+          title: Text(isEditMode ? 'Editar Cliente' : 'Nuevo Cliente'),
           content: SizedBox(
             width: 500,
             child: Form(
@@ -580,6 +597,51 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
                       ),
                       maxLines: 2,
                     ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Límite de Crédito y Deuda',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: creditLimitController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Límite de Crédito',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.attach_money),
+                            ),
+                            validator: (value) {
+                              if (value?.isEmpty ?? true) return 'Campo requerido';
+                              if (double.tryParse(value!) == null) return 'Valor inválido';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: currentBalanceController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Deuda Actual',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.money_off),
+                            ),
+                            validator: (value) {
+                              if (value?.isEmpty ?? true) return 'Campo requerido';
+                              if (double.tryParse(value!) == null) return 'Valor inválido';
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -587,38 +649,73 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancelar'),
             ),
             FilledButton(
               onPressed: () async {
                 if (formKey.currentState?.validate() ?? false) {
-                  final customer = Customer(
-                    id: const Uuid().v4(),
-                    type: selectedType,
-                    documentType: selectedDocType,
-                    documentNumber: documentController.text,
-                    name: nameController.text,
-                    phone: phoneController.text.isNotEmpty ? phoneController.text : null,
-                    email: emailController.text.isNotEmpty ? emailController.text : null,
-                    address: addressController.text.isNotEmpty ? addressController.text : null,
-                    createdAt: DateTime.now(),
-                    updatedAt: DateTime.now(),
-                  );
+                  final creditLimit = double.tryParse(creditLimitController.text) ?? 0;
+                  final currentBalance = double.tryParse(currentBalanceController.text) ?? 0;
                   
-                  final result = await ref.read(customersProvider.notifier).createCustomer(customer);
-                  if (result != null && context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Cliente creado exitosamente'),
-                        backgroundColor: Colors.green,
-                      ),
+                  if (isEditMode) {
+                    // Modo edición
+                    final updatedCustomer = Customer(
+                      id: customer.id,
+                      type: selectedType,
+                      documentType: selectedDocType,
+                      documentNumber: documentController.text,
+                      name: nameController.text,
+                      phone: phoneController.text.isNotEmpty ? phoneController.text : null,
+                      email: emailController.text.isNotEmpty ? emailController.text : null,
+                      address: addressController.text.isNotEmpty ? addressController.text : null,
+                      creditLimit: creditLimit,
+                      currentBalance: currentBalance,
+                      createdAt: customer.createdAt,
+                      updatedAt: DateTime.now(),
                     );
+                    
+                    final result = await ref.read(customersProvider.notifier).updateCustomer(updatedCustomer);
+                    if (result && mounted) {
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        const SnackBar(
+                          content: Text('Cliente actualizado exitosamente'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } else {
+                    // Modo creación
+                    final newCustomer = Customer(
+                      id: const Uuid().v4(),
+                      type: selectedType,
+                      documentType: selectedDocType,
+                      documentNumber: documentController.text,
+                      name: nameController.text,
+                      phone: phoneController.text.isNotEmpty ? phoneController.text : null,
+                      email: emailController.text.isNotEmpty ? emailController.text : null,
+                      address: addressController.text.isNotEmpty ? addressController.text : null,
+                      creditLimit: creditLimit,
+                      currentBalance: currentBalance,
+                      createdAt: DateTime.now(),
+                      updatedAt: DateTime.now(),
+                    );
+                    
+                    final result = await ref.read(customersProvider.notifier).createCustomer(newCustomer);
+                    if (result != null && mounted) {
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        const SnackBar(
+                          content: Text('Cliente creado exitosamente'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
                   }
                 }
               },
-              child: const Text('Guardar'),
+              child: Text(isEditMode ? 'Actualizar' : 'Guardar'),
             ),
           ],
         ),
@@ -627,12 +724,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
   }
 
   void _showEditCustomerDialog(Customer customer) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Editando cliente: ${customer.name}'),
-        backgroundColor: Colors.blue,
-      ),
-    );
+    _showAddCustomerDialog(context, customer: customer);
   }
 
   void _showCustomerDetails(Customer customer) {

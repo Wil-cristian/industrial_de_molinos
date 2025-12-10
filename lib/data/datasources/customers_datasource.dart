@@ -55,7 +55,8 @@ class CustomersDataSource {
     final data = _toJson(customer);
     data.remove('id');
     data.remove('created_at');
-    data.remove('updated_at');
+    // Mantener updated_at para que se actualice en la BD
+    data['updated_at'] = DateTime.now().toIso8601String();
     
     final response = await _client
         .from(_table)

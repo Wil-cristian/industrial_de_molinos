@@ -51,9 +51,12 @@ class CustomersNotifier extends Notifier<CustomersState> {
   Future<void> loadCustomers({bool activeOnly = true}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
+      print('🔄 Cargando clientes desde Supabase...');
       final customers = await CustomersDataSource.getAll(activeOnly: activeOnly);
+      print('✅ Clientes cargados: ${customers.length}');
       state = state.copyWith(customers: customers, isLoading: false);
     } catch (e) {
+      print('❌ Error cargando clientes: $e');
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
