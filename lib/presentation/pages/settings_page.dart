@@ -566,27 +566,20 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildActionSetting(String title, String subtitle, IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Icon(icon, color: AppTheme.primaryColor),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w500, color: AppTheme.primaryColor)),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: AppTheme.primaryColor),
-          ],
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
         ),
+        child: Icon(icon, color: AppTheme.primaryColor, size: 20),
       ),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
+      contentPadding: EdgeInsets.zero,
     );
   }
 

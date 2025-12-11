@@ -510,7 +510,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<CustomerType>(
-                            value: selectedType,
+                            initialValue: selectedType,
                             decoration: const InputDecoration(
                               labelText: 'Tipo de Cliente',
                               border: OutlineInputBorder(),
@@ -532,7 +532,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: DropdownButtonFormField<DocumentType>(
-                            value: selectedDocType,
+                            initialValue: selectedDocType,
                             decoration: const InputDecoration(
                               labelText: 'Tipo Documento',
                               border: OutlineInputBorder(),

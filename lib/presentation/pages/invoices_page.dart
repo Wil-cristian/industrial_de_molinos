@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../domain/entities/invoice.dart';
@@ -205,7 +206,7 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
                     _buildQuickStat('Por Cobrar', Formatters.currency(_totalPendiente), Colors.orange, Icons.schedule),
                     const SizedBox(width: 24),
                     FilledButton.icon(
-                      onPressed: () => _showNewInvoiceDialog(context),
+                      onPressed: () => context.go('/invoices/new'),
                       icon: const Icon(Icons.add),
                       label: const Text('Nueva Venta'),
                       style: FilledButton.styleFrom(
@@ -833,7 +834,7 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: 'Efectivo',
+                initialValue: 'Efectivo',
                 decoration: const InputDecoration(
                   labelText: 'Método de pago',
                   border: OutlineInputBorder(),
@@ -1038,170 +1039,5 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
       case 'Anulada': return InvoiceStatus.cancelled;
       default: return InvoiceStatus.draft;
     }
-  }
-
-  void _showNewInvoiceDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          width: 800,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.9,
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.add_shopping_cart, color: AppTheme.primaryColor),
-                  const SizedBox(width: 12),
-                  const Text('Nueva Venta', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  const Spacer(),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-                ],
-              ),
-              const SizedBox(height: 24),
-              // Tipo de documento y cliente
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: 'Recibo de Caja Menor',
-                      decoration: const InputDecoration(
-                        labelText: 'Tipo de Documento',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ['Recibo de Caja Menor', 'Boleta']
-                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                          .toList(),
-                      onChanged: (value) {},
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Cliente',
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.search),
-                          onPressed: () {},
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              // Área de productos
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: TextField(
-                                decoration: InputDecoration(
-                                  hintText: 'Buscar producto...',
-                                  prefixIcon: const Icon(Icons.search),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            FilledButton.icon(
-                              onPressed: () {},
-                              icon: const Icon(Icons.add),
-                              label: const Text('Agregar'),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.shopping_cart_outlined, size: 48, color: Colors.grey[300]),
-                              const SizedBox(height: 12),
-                              Text('Agrega productos a la venta', style: TextStyle(color: Colors.grey[500])),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Totales
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: 'Efectivo',
-                      decoration: const InputDecoration(
-                        labelText: 'Método de Pago',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ['Efectivo', 'Transferencia', 'Yape', 'Plin', 'Tarjeta', 'Crédito']
-                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                          .toList(),
-                      onChanged: (value) {},
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('Subtotal: S/ 0.00', style: TextStyle(color: Colors.grey[600])),
-                      Text('IGV (18%): S/ 0.00', style: TextStyle(color: Colors.grey[600])),
-                      const SizedBox(height: 4),
-                      const Text('Total: S/ 0.00', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Venta registrada exitosamente'), backgroundColor: Colors.green),
-                      );
-                    },
-                    icon: const Icon(Icons.save),
-                    label: const Text('Guardar Venta'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

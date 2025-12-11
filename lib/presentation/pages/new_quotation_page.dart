@@ -53,6 +53,64 @@ class _NewQuotationPageState extends State<NewQuotationPage> {
     {'id': '7', 'name': 'Fundición Gris', 'category': 'otros', 'pricePerKg': 3.50, 'density': 7.2},
   ];
 
+  // Productos compuestos de ejemplo (BOM)
+  final List<Map<String, dynamic>> _compositeProducts = [
+    {
+      'id': 'PROD-001',
+      'code': 'MOL-44M',
+      'name': 'Molino 44m',
+      'category': 'molino',
+      'totalWeight': 850.5,
+      'totalPrice': 4500.00,
+      'components': [
+        {'name': 'Cilindro principal', 'material': 'Acero A36', 'dimensions': 'Ø508mm × 12mm × 1000mm', 'weight': 150.2, 'price': 675.90, 'quantity': 1},
+        {'name': 'Tapa frontal', 'material': 'Acero A36', 'dimensions': 'Ø508mm × 12mm', 'weight': 18.5, 'price': 83.25, 'quantity': 2},
+        {'name': 'Eje de transmisión', 'material': 'Acero SAE 4140', 'dimensions': 'Ø100mm × 1200mm', 'weight': 74.0, 'price': 592.00, 'quantity': 1},
+        {'name': 'Base metálica', 'material': 'Acero A36', 'dimensions': '1500mm × 800mm × 10mm', 'weight': 94.2, 'price': 423.90, 'quantity': 1},
+        {'name': 'Rodamiento principal', 'material': 'SKF 6310', 'dimensions': 'Estándar', 'weight': 1.2, 'price': 85.00, 'quantity': 2},
+      ],
+    },
+    {
+      'id': 'PROD-002',
+      'code': 'MOL-36M',
+      'name': 'Molino 36m',
+      'category': 'molino',
+      'totalWeight': 620.0,
+      'totalPrice': 3200.00,
+      'components': [
+        {'name': 'Cilindro principal', 'material': 'Acero A36', 'dimensions': 'Ø406mm × 10mm × 800mm', 'weight': 95.5, 'price': 429.75, 'quantity': 1},
+        {'name': 'Tapa frontal', 'material': 'Acero A36', 'dimensions': 'Ø406mm × 10mm', 'weight': 10.2, 'price': 45.90, 'quantity': 2},
+        {'name': 'Eje de transmisión', 'material': 'Acero SAE 4140', 'dimensions': 'Ø80mm × 1000mm', 'weight': 39.4, 'price': 315.20, 'quantity': 1},
+      ],
+    },
+    {
+      'id': 'PROD-003',
+      'code': 'TRANS-001',
+      'name': 'Transportador de banda 5m',
+      'category': 'transportador',
+      'totalWeight': 320.0,
+      'totalPrice': 1800.00,
+      'components': [
+        {'name': 'Estructura lateral', 'material': 'Acero A36', 'dimensions': '5000mm × 150mm × 6mm', 'weight': 35.3, 'price': 158.85, 'quantity': 2},
+        {'name': 'Rodillo tensor', 'material': 'Acero al Carbono', 'dimensions': 'Ø89mm × 500mm', 'weight': 15.2, 'price': 76.00, 'quantity': 3},
+        {'name': 'Tambor motriz', 'material': 'Acero A36', 'dimensions': 'Ø200mm × 500mm', 'weight': 45.0, 'price': 202.50, 'quantity': 1},
+      ],
+    },
+    {
+      'id': 'PROD-004',
+      'code': 'TAN-500L',
+      'name': 'Tanque 500 litros',
+      'category': 'tanque',
+      'totalWeight': 180.0,
+      'totalPrice': 950.00,
+      'components': [
+        {'name': 'Cuerpo cilíndrico', 'material': 'Acero Inoxidable 304', 'dimensions': 'Ø800mm × 3mm × 1000mm', 'weight': 60.5, 'price': 726.00, 'quantity': 1},
+        {'name': 'Tapa superior', 'material': 'Acero Inoxidable 304', 'dimensions': 'Ø800mm × 3mm', 'weight': 12.0, 'price': 144.00, 'quantity': 1},
+        {'name': 'Fondo cónico', 'material': 'Acero Inoxidable 304', 'dimensions': 'Ø800mm × 3mm', 'weight': 15.0, 'price': 180.00, 'quantity': 1},
+      ],
+    },
+  ];
+
   // Cálculos
   double get _materialsCost => _items.fold(0.0, (sum, item) => sum + (item['totalPrice'] as double));
   double get _totalWeight => _items.fold(0.0, (sum, item) => sum + (item['totalWeight'] as double));
@@ -426,7 +484,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _selectedCustomerId,
+          initialValue: _selectedCustomerId,
           decoration: InputDecoration(
             labelText: 'Cliente',
             prefixIcon: const Icon(Icons.person),
@@ -507,13 +565,51 @@ class _NewQuotationPageState extends State<NewQuotationPage> {
                 style: TextStyle(color: Colors.grey[700]),
               ),
             ),
-            ElevatedButton.icon(
-              onPressed: _showAddComponentDialog,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Agregar Componente'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'new_component') {
+                  _showAddComponentDialog();
+                } else if (value == 'from_product') {
+                  _showSelectProductDialog();
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'new_component',
+                  child: ListTile(
+                    leading: Icon(Icons.add_circle_outline, color: AppTheme.primaryColor),
+                    title: Text('Nuevo Componente'),
+                    subtitle: Text('Crear con dimensiones'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'from_product',
+                  child: ListTile(
+                    leading: Icon(Icons.inventory_2, color: Colors.green),
+                    title: Text('Desde Producto'),
+                    subtitle: Text('Seleccionar del inventario'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+              child: ElevatedButton.icon(
+                onPressed: null, // El popup se abre con el onTap del PopupMenuButton
+                icon: const Icon(Icons.add, size: 18),
+                label: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Agregar'),
+                    SizedBox(width: 4),
+                    Icon(Icons.arrow_drop_down, size: 18),
+                  ],
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppTheme.primaryColor,
+                  disabledForegroundColor: Colors.white,
+                ),
               ),
             ),
           ],
@@ -1056,6 +1152,55 @@ class _NewQuotationPageState extends State<NewQuotationPage> {
       ),
     );
   }
+
+  void _showSelectProductDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => _SelectProductDialog(
+        products: _compositeProducts,
+        onSelect: (product, addComponents) {
+          setState(() {
+            if (addComponents) {
+              // Agregar todos los componentes del producto
+              final components = product['components'] as List<dynamic>;
+              for (final comp in components) {
+                _items.add({
+                  'id': DateTime.now().millisecondsSinceEpoch.toString(),
+                  'name': comp['name'],
+                  'type': 'from_product',
+                  'material': comp['material'],
+                  'dimensions': comp['dimensions'],
+                  'quantity': comp['quantity'],
+                  'unitWeight': comp['weight'] / (comp['quantity'] as int),
+                  'totalWeight': comp['weight'],
+                  'pricePerKg': 0,
+                  'totalPrice': comp['price'],
+                  'productCode': product['code'],
+                  'productName': product['name'],
+                });
+              }
+            } else {
+              // Agregar como producto único
+              _items.add({
+                'id': DateTime.now().millisecondsSinceEpoch.toString(),
+                'name': product['name'],
+                'type': 'composite_product',
+                'material': 'Producto compuesto',
+                'dimensions': '${product['code']} - Ver desglose',
+                'quantity': 1,
+                'unitWeight': product['totalWeight'],
+                'totalWeight': product['totalWeight'],
+                'pricePerKg': 0,
+                'totalPrice': product['totalPrice'],
+                'productCode': product['code'],
+                'components': product['components'],
+              });
+            }
+          });
+        },
+      ),
+    );
+  }
 }
 
 // Diálogo para agregar componentes
@@ -1247,7 +1392,7 @@ class _AddComponentDialogState extends State<_AddComponentDialog> {
               const SizedBox(height: 16),
               // Material
               DropdownButtonFormField<String>(
-                value: _selectedMaterialId,
+                initialValue: _selectedMaterialId,
                 decoration: InputDecoration(
                   labelText: 'Material',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -1574,6 +1719,449 @@ class _AddComponentDialogState extends State<_AddComponentDialog> {
       case 'rectangular_plate': return 'Lámina rectangular';
       case 'shaft': return 'Eje';
       default: return 'Componente';
+    }
+  }
+}
+// Diálogo para seleccionar producto del inventario
+class _SelectProductDialog extends StatefulWidget {
+  final List<Map<String, dynamic>> products;
+  final Function(Map<String, dynamic> product, bool addComponents) onSelect;
+
+  const _SelectProductDialog({
+    required this.products,
+    required this.onSelect,
+  });
+
+  @override
+  State<_SelectProductDialog> createState() => _SelectProductDialogState();
+}
+
+class _SelectProductDialogState extends State<_SelectProductDialog> {
+  String _searchQuery = '';
+  String _selectedCategory = 'todos';
+  Map<String, dynamic>? _selectedProduct;
+  bool _showComponents = false;
+
+  List<Map<String, dynamic>> get _filteredProducts {
+    return widget.products.where((p) {
+      final matchesSearch = p['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          p['code'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesCategory = _selectedCategory == 'todos' || p['category'] == _selectedCategory;
+      return matchesSearch && matchesCategory;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: 900,
+        height: MediaQuery.of(context).size.height * 0.85,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Icon(Icons.inventory_2, color: AppTheme.primaryColor, size: 28),
+                const SizedBox(width: 12),
+                const Text(
+                  'Seleccionar Producto',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Filtros
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Buscar por nombre o código...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    onChanged: (value) => setState(() => _searchQuery = value),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedCategory,
+                    decoration: InputDecoration(
+                      labelText: 'Categoría',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'todos', child: Text('Todos')),
+                      DropdownMenuItem(value: 'molino', child: Text('Molinos')),
+                      DropdownMenuItem(value: 'transportador', child: Text('Transportadores')),
+                      DropdownMenuItem(value: 'tanque', child: Text('Tanques')),
+                      DropdownMenuItem(value: 'estructura', child: Text('Estructuras')),
+                    ],
+                    onChanged: (value) => setState(() => _selectedCategory = value!),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Contenido principal
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Lista de productos
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: _filteredProducts.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
+                                  const SizedBox(height: 12),
+                                  Text('No se encontraron productos', style: TextStyle(color: Colors.grey[600])),
+                                ],
+                              ),
+                            )
+                          : ListView.separated(
+                              itemCount: _filteredProducts.length,
+                              separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
+                              itemBuilder: (context, index) {
+                                final product = _filteredProducts[index];
+                                final isSelected = _selectedProduct?['id'] == product['id'];
+                                return ListTile(
+                                  selected: isSelected,
+                                  selectedTileColor: AppTheme.primaryColor.withOpacity(0.1),
+                                  leading: Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: _getCategoryColor(product['category']).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      _getCategoryIcon(product['category']),
+                                      color: _getCategoryColor(product['category']),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    product['name'],
+                                    style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                                  ),
+                                  subtitle: Text('${product['code']} • ${product['totalWeight']} kg'),
+                                  trailing: Text(
+                                    'S/ ${Helpers.formatNumber(product['totalPrice'])}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primaryColor,
+                                    ),
+                                  ),
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedProduct = product;
+                                      _showComponents = true;
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  
+                  // Detalle del producto seleccionado
+                  Expanded(
+                    flex: 3,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: _selectedProduct == null
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.touch_app, size: 48, color: Colors.grey[400]),
+                                  const SizedBox(height: 12),
+                                  Text('Selecciona un producto', style: TextStyle(color: Colors.grey[600])),
+                                  const SizedBox(height: 4),
+                                  Text('para ver sus componentes', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                                ],
+                              ),
+                            )
+                          : _buildProductDetail(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Botones de acción
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                const SizedBox(width: 12),
+                if (_selectedProduct != null) ...[
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      widget.onSelect(_selectedProduct!, true);
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.list_alt, size: 18),
+                    label: const Text('Agregar Componentes Separados'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      widget.onSelect(_selectedProduct!, false);
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.add_shopping_cart, size: 18),
+                    label: const Text('Agregar como Producto'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductDetail() {
+    final product = _selectedProduct!;
+    final components = product['components'] as List<dynamic>;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header del producto
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product['name'],
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Código: ${product['code']}',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'S/ ${Helpers.formatNumber(product['totalPrice'])}',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                  Text(
+                    '${Helpers.formatNumber(product['totalWeight'])} kg',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        
+        // Título de componentes
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.list_alt, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Componentes (${components.length})',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Text(
+                'Para factura empresa',
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        
+        // Lista de componentes
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: components.length,
+            itemBuilder: (context, index) {
+              final comp = components[index];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${comp['quantity']}×',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            comp['name'],
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          Text(
+                            '${comp['material']} • ${comp['dimensions']}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'S/ ${Helpers.formatNumber(comp['price'])}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '${Helpers.formatNumber(comp['weight'])} kg',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        
+        // Resumen
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.05),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+            border: Border(top: BorderSide(color: Colors.grey[200]!)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 8),
+                  Text(
+                    'El cliente verá: "${product['name']}"',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Text('Total: ', style: TextStyle(color: Colors.grey[600])),
+                  Text(
+                    'S/ ${Helpers.formatNumber(product['totalPrice'])}',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case 'molino': return Colors.blue;
+      case 'transportador': return Colors.green;
+      case 'tanque': return Colors.orange;
+      case 'estructura': return Colors.purple;
+      default: return Colors.grey;
+    }
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'molino': return Icons.settings;
+      case 'transportador': return Icons.conveyor_belt;
+      case 'tanque': return Icons.local_drink;
+      case 'estructura': return Icons.foundation;
+      default: return Icons.category;
     }
   }
 }

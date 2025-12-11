@@ -62,8 +62,9 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
       // Filtrar por categoría - aquí usaremos la descripción como categoría temporal
       filtered = filtered.where((p) {
         // Mapear según el precio (implementación temporal)
-        if (_selectedCategory == 'Harinas')
+        if (_selectedCategory == 'Harinas') {
           return p.unitPrice >= 80 && p.unitPrice <= 120;
+        }
         if (_selectedCategory == 'Subproductos') return p.unitPrice < 80;
         return true;
       }).toList();
@@ -404,7 +405,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
               StatefulBuilder(
                 builder: (context, setDialogState) =>
                     DropdownButtonFormField<String>(
-                      value: selectedCategory,
+                      initialValue: selectedCategory,
                       decoration: const InputDecoration(
                         labelText: 'Categoría *',
                         prefixIcon: Icon(Icons.category),
