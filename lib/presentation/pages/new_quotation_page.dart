@@ -134,6 +134,71 @@ class _NewQuotationPageState extends State<NewQuotationPage> {
   double get _total => _subtotal + _profitAmount;
 
   @override
+  void initState() {
+    super.initState();
+    // Cargar datos de ejemplo para probar la previsualización
+    _loadExampleData();
+  }
+
+  void _loadExampleData() {
+    // Seleccionar cliente de ejemplo
+    _selectedCustomerId = '1'; // Minera San Martín S.A.
+    
+    // Agregar producto compuesto de ejemplo (Molino 44m)
+    _items.add({
+      'id': '1',
+      'name': 'Molino 44m',
+      'type': 'composite_product',
+      'material': 'Producto compuesto',
+      'dimensions': 'MOL-44M - Ver desglose',
+      'quantity': 1,
+      'unitWeight': 850.5,
+      'totalWeight': 850.5,
+      'pricePerKg': 0,
+      'totalPrice': 4500.00,
+      'productCode': 'MOL-44M',
+      'components': [
+        {'name': 'Cilindro principal', 'material': 'Acero A36', 'dimensions': 'Ø508mm × 12mm × 1000mm', 'weight': 150.2, 'price': 675.90, 'quantity': 1},
+        {'name': 'Tapa frontal', 'material': 'Acero A36', 'dimensions': 'Ø508mm × 12mm', 'weight': 18.5, 'price': 83.25, 'quantity': 2},
+        {'name': 'Eje de transmisión', 'material': 'Acero SAE 4140', 'dimensions': 'Ø100mm × 1200mm', 'weight': 74.0, 'price': 592.00, 'quantity': 1},
+        {'name': 'Base metálica', 'material': 'Acero A36', 'dimensions': '1500mm × 800mm × 10mm', 'weight': 94.2, 'price': 423.90, 'quantity': 1},
+        {'name': 'Rodamiento principal', 'material': 'SKF 6310', 'dimensions': 'Estándar', 'weight': 1.2, 'price': 85.00, 'quantity': 2},
+      ],
+    });
+
+    // Agregar transportador de ejemplo
+    _items.add({
+      'id': '2',
+      'name': 'Transportador de banda 5m',
+      'type': 'composite_product',
+      'material': 'Producto compuesto',
+      'dimensions': 'TRANS-001 - Ver desglose',
+      'quantity': 1,
+      'unitWeight': 320.0,
+      'totalWeight': 320.0,
+      'pricePerKg': 0,
+      'totalPrice': 1800.00,
+      'productCode': 'TRANS-001',
+      'components': [
+        {'name': 'Estructura lateral', 'material': 'Acero A36', 'dimensions': '5000mm × 150mm × 6mm', 'weight': 35.3, 'price': 158.85, 'quantity': 2},
+        {'name': 'Rodillo tensor', 'material': 'Acero al Carbono', 'dimensions': 'Ø89mm × 500mm', 'weight': 15.2, 'price': 76.00, 'quantity': 3},
+        {'name': 'Tambor motriz', 'material': 'Acero A36', 'dimensions': 'Ø200mm × 500mm', 'weight': 45.0, 'price': 202.50, 'quantity': 1},
+      ],
+    });
+
+    // Costos adicionales de ejemplo
+    _laborHoursController.text = '80';
+    _laborRateController.text = '25';
+    _energyCostController.text = '350';
+    _gasCostController.text = '180';
+    _suppliesCostController.text = '420';
+    _otherCostsController.text = '150';
+    _profitMarginController.text = '25';
+    _notesController.text = 'Tiempo de entrega: 30 días hábiles.\nGarantía: 12 meses por defectos de fabricación.\nForma de pago: 50% anticipo, 50% contra entrega.';
+    _validDaysController.text = '15';
+  }
+
+  @override
   void dispose() {
     _customerController.dispose();
     _laborHoursController.dispose();
@@ -188,7 +253,18 @@ class _NewQuotationPageState extends State<NewQuotationPage> {
                                   ),
                                   child: const Text('Continuar'),
                                 ),
-                              if (_currentStep == 3)
+                              if (_currentStep == 3) ...[
+                                ElevatedButton.icon(
+                                  onPressed: _showPreviewDialog,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  ),
+                                  icon: const Icon(Icons.preview),
+                                  label: const Text('Previsualizar'),
+                                ),
+                                const SizedBox(width: 12),
                                 ElevatedButton.icon(
                                   onPressed: _saveQuotation,
                                   style: ElevatedButton.styleFrom(
@@ -199,6 +275,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> {
                                   icon: const Icon(Icons.save),
                                   label: const Text('Guardar Cotización'),
                                 ),
+                              ],
                               const SizedBox(width: 12),
                               if (_currentStep > 0)
                                 TextButton(
@@ -1149,6 +1226,30 @@ class _NewQuotationPageState extends State<NewQuotationPage> {
         onAdd: (component) {
           setState(() => _items.add(component));
         },
+      ),
+    );
+  }
+
+  void _showPreviewDialog() {
+    final customer = _selectedCustomerId != null
+        ? _customers.firstWhere((c) => c['id'] == _selectedCustomerId)
+        : {'name': 'Sin cliente', 'ruc': ''};
+    
+    showDialog(
+      context: context,
+      builder: (context) => _QuotationPreviewDialog(
+        customer: customer,
+        items: _items,
+        materialsCost: _materialsCost,
+        laborCost: _laborCost,
+        indirectCosts: _indirectCosts,
+        subtotal: _subtotal,
+        profitMargin: double.tryParse(_profitMarginController.text) ?? 0,
+        profitAmount: _profitAmount,
+        total: _total,
+        totalWeight: _totalWeight,
+        notes: _notesController.text,
+        validDays: int.tryParse(_validDaysController.text) ?? 15,
       ),
     );
   }
@@ -2163,5 +2264,742 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
       case 'estructura': return Icons.foundation;
       default: return Icons.category;
     }
+  }
+}
+
+// ============================================
+// DIÁLOGO DE PREVISUALIZACIÓN DE COTIZACIÓN
+// ============================================
+class _QuotationPreviewDialog extends StatefulWidget {
+  final Map<String, dynamic> customer;
+  final List<Map<String, dynamic>> items;
+  final double materialsCost;
+  final double laborCost;
+  final double indirectCosts;
+  final double subtotal;
+  final double profitMargin;
+  final double profitAmount;
+  final double total;
+  final double totalWeight;
+  final String notes;
+  final int validDays;
+
+  const _QuotationPreviewDialog({
+    required this.customer,
+    required this.items,
+    required this.materialsCost,
+    required this.laborCost,
+    required this.indirectCosts,
+    required this.subtotal,
+    required this.profitMargin,
+    required this.profitAmount,
+    required this.total,
+    required this.totalWeight,
+    required this.notes,
+    required this.validDays,
+  });
+
+  @override
+  State<_QuotationPreviewDialog> createState() => _QuotationPreviewDialogState();
+}
+
+class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final String _quotationNumber = 'COT-2024-${DateTime.now().millisecondsSinceEpoch.toString().substring(5, 11)}';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: 900,
+        height: 700,
+        padding: const EdgeInsets.all(0),
+        child: Column(
+          children: [
+            // Header con tabs
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.preview, color: Colors.white, size: 28),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Previsualización de Cotización',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Compare las vistas de cliente y empresa',
+                                style: TextStyle(color: Colors.white70, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TabBar(
+                    controller: _tabController,
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 3,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white70,
+                    tabs: const [
+                      Tab(
+                        icon: Icon(Icons.person),
+                        text: 'Vista Cliente',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.business),
+                        text: 'Vista Empresa',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Contenido de tabs
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildClientView(),
+                  _buildEnterpriseView(),
+                ],
+              ),
+            ),
+            // Footer con acciones
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'El cliente verá solo el nombre del producto, no los materiales',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Editar'),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Cotización lista para guardar')),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                        icon: const Icon(Icons.check),
+                        label: const Text('Confirmar'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // VISTA CLIENTE - Simple, solo productos
+  // ==========================================
+  Widget _buildClientView() {
+    return Container(
+      color: Colors.grey[200],
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Container(
+          width: 650,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header de empresa con logo
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          'lib/photo/logo_empresa.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [AppTheme.primaryColor, AppTheme.primaryColor.withValues(alpha: 0.7)],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.precision_manufacturing, size: 50, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'INDUSTRIAL DE MOLINOS',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1a365d)),
+                          ),
+                          Text('E IMPORTACIONES S.A.S.', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1a365d))),
+                          SizedBox(height: 4),
+                          Text('NIT: 901946675-1', style: TextStyle(color: Colors.grey)),
+                          Text('Vrd la playita - Supía, Caldas', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text('Tel: 3217551145 - 3136446632', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('COTIZACIÓN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(_quotationNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text('Fecha: ${_formatDate(DateTime.now())}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                        Text('Válida hasta: ${_formatDate(DateTime.now().add(Duration(days: widget.validDays)))}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 16),
+                // Info cliente
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.person, color: Colors.grey[600]),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('CLIENTE', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                          Text(widget.customer['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text('RUC: ${widget.customer['ruc'] ?? ''}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Tabla de productos (VISTA SIMPLE)
+                const Text('PRODUCTOS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      // Header tabla
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                        ),
+                        child: const Row(
+                          children: [
+                            SizedBox(width: 40, child: Text('Cant.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            Expanded(child: Text('Descripción', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            SizedBox(width: 100, child: Text('Precio Unit.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                            SizedBox(width: 100, child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                          ],
+                        ),
+                      ),
+                      // Items - SOLO nombre del producto, sin componentes
+                      ...widget.items.map((item) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border(top: BorderSide(color: Colors.grey[200]!)),
+                        ),
+                        child: Row(
+                          children: [
+                            SizedBox(width: 40, child: Text('${item['quantity']}', style: const TextStyle(fontSize: 13))),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(item['name'], style: const TextStyle(fontWeight: FontWeight.w500)),
+                                  if (item['productCode'] != null)
+                                    Text('Código: ${item['productCode']}', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              width: 100,
+                              child: Text(
+                                'S/ ${Helpers.formatNumber(item['totalPrice'])}',
+                                style: const TextStyle(fontSize: 13),
+                                textAlign: TextAlign.right,
+                              ),
+                            ),
+                            SizedBox(
+                              width: 100,
+                              child: Text(
+                                'S/ ${Helpers.formatNumber(item['totalPrice'] * (item['quantity'] as int))}',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                textAlign: TextAlign.right,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Resumen de costos para cliente (simplificado)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    SizedBox(
+                      width: 250,
+                      child: Column(
+                        children: [
+                          _buildTotalRow('Subtotal', widget.subtotal),
+                          _buildTotalRow('Mano de Obra', widget.laborCost),
+                          _buildTotalRow('Otros Costos', widget.indirectCosts),
+                          const Divider(),
+                          _buildTotalRow('TOTAL', widget.total, isTotal: true),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Notas
+                if (widget.notes.isNotEmpty) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, size: 16, color: Colors.blue[700]),
+                            const SizedBox(width: 8),
+                            Text('Condiciones', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700])),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(widget.notes, style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // VISTA EMPRESA - Detallada, con materiales
+  // ==========================================
+  Widget _buildEnterpriseView() {
+    return Container(
+      color: Colors.grey[200],
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Container(
+          width: 750,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header con logo
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(
+                              'lib/photo/logo_empresa.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.orange[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(Icons.business, color: Colors.orange[800]),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('DOCUMENTO INTERNO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text('Desglose de materiales y costos', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[100],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text('USO INTERNO', style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text('Cotización: $_quotationNumber  |  Cliente: ${widget.customer['name']}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 16),
+                // Desglose por producto
+                ...widget.items.map((item) => _buildProductBreakdown(item)),
+                const SizedBox(height: 24),
+                const Divider(thickness: 2),
+                const SizedBox(height: 16),
+                // Resumen de costos completo
+                const Text('RESUMEN DE COSTOS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildCostDetailRow('Materiales (total productos)', widget.materialsCost, Icons.inventory_2),
+                      const Divider(),
+                      _buildCostDetailRow('Mano de Obra', widget.laborCost, Icons.engineering),
+                      _buildCostDetailRow('Energía Eléctrica', widget.indirectCosts * 0.32, Icons.bolt),
+                      _buildCostDetailRow('Gas', widget.indirectCosts * 0.16, Icons.local_fire_department),
+                      _buildCostDetailRow('Insumos', widget.indirectCosts * 0.38, Icons.build),
+                      _buildCostDetailRow('Otros', widget.indirectCosts * 0.14, Icons.more_horiz),
+                      const Divider(thickness: 2),
+                      _buildCostDetailRow('Subtotal', widget.subtotal, Icons.calculate, isBold: true),
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.green[50],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.trending_up, color: Colors.green[700], size: 20),
+                                const SizedBox(width: 8),
+                                Text('Margen de Ganancia (${widget.profitMargin.toStringAsFixed(0)}%)',
+                                    style: TextStyle(color: Colors.green[700])),
+                              ],
+                            ),
+                            Text('S/ ${Helpers.formatNumber(widget.profitAmount)}',
+                                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700])),
+                          ],
+                        ),
+                      ),
+                      const Divider(thickness: 2),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.payments, size: 24),
+                                SizedBox(width: 8),
+                                Text('TOTAL COTIZACIÓN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              ],
+                            ),
+                            Text('S/ ${Helpers.formatNumber(widget.total)}',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: AppTheme.primaryColor)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Peso total
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.scale, color: Colors.blue[700]),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Peso Total: ${Helpers.formatNumber(widget.totalWeight)} kg',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700]),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductBreakdown(Map<String, dynamic> item) {
+    final components = item['components'] as List<dynamic>? ?? [];
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          // Header del producto
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.precision_manufacturing, color: AppTheme.primaryColor),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Código: ${item['productCode'] ?? 'N/A'}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('S/ ${Helpers.formatNumber(item['totalPrice'])}',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                    Text('${Helpers.formatNumber(item['totalWeight'])} kg', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Tabla de componentes/materiales
+          if (components.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+              ),
+              child: const Row(
+                children: [
+                  SizedBox(width: 30, child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                  Expanded(flex: 2, child: Text('Componente', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                  Expanded(flex: 2, child: Text('Material', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                  Expanded(flex: 2, child: Text('Dimensiones', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                  SizedBox(width: 60, child: Text('Peso', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
+                  SizedBox(width: 80, child: Text('Precio', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
+                ],
+              ),
+            ),
+            ...components.map((comp) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.grey[200]!)),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(width: 30, child: Text('${comp['quantity']}×', style: TextStyle(fontSize: 12, color: Colors.grey[600]))),
+                  Expanded(flex: 2, child: Text(comp['name'], style: const TextStyle(fontSize: 12))),
+                  Expanded(flex: 2, child: Text(comp['material'], style: TextStyle(fontSize: 12, color: Colors.grey[700]))),
+                  Expanded(flex: 2, child: Text(comp['dimensions'], style: TextStyle(fontSize: 11, color: Colors.grey[600]))),
+                  SizedBox(width: 60, child: Text('${Helpers.formatNumber(comp['weight'])} kg',
+                      style: const TextStyle(fontSize: 12), textAlign: TextAlign.right)),
+                  SizedBox(width: 80, child: Text('S/ ${Helpers.formatNumber(comp['price'])}',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500), textAlign: TextAlign.right)),
+                ],
+              ),
+            )),
+          ] else
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Text('Producto sin desglose de componentes', style: TextStyle(color: Colors.grey[500], fontStyle: FontStyle.italic)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalRow(String label, double value, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+            fontSize: isTotal ? 16 : 13,
+          )),
+          Text(
+            'S/ ${Helpers.formatNumber(value)}',
+            style: TextStyle(
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              fontSize: isTotal ? 18 : 13,
+              color: isTotal ? AppTheme.primaryColor : Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCostDetailRow(String label, double value, IconData icon, {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+            ],
+          ),
+          Text(
+            'S/ ${Helpers.formatNumber(value)}',
+            style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 }
