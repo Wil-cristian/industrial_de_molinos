@@ -1224,129 +1224,125 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
           Text('Traslado entre Cuentas'),
         ],
       ),
-      content: SizedBox(
-        width: 450,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Cuenta origen
-              DropdownButtonFormField<String>(
-                value: _fromAccountId,
-                decoration: const InputDecoration(
-                  labelText: 'Desde (Cuenta Origen) *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.output, color: Colors.red),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: 400,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Cuenta origen
+                DropdownButtonFormField<String>(
+                  value: _fromAccountId,
+                  decoration: const InputDecoration(
+                    labelText: 'De (Cuenta Origen)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.output, color: Colors.red),
+                    isDense: true,
+                  ),
+                  isExpanded: true,
+                  items: state.accounts.map((account) {
+                    return DropdownMenuItem<String>(
+                      value: account.id,
+                      child: Text(
+                        '${account.name} - ${Formatters.currency(account.balance)}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() => _fromAccountId = value);
+                  },
+                  validator: (value) {
+                    if (value == null) return 'Seleccione cuenta origen';
+                    return null;
+                  },
                 ),
-                items: state.accounts.map((account) {
-                  return DropdownMenuItem<String>(
-                    value: account.id,
-                    child: Row(
-                      children: [
-                        Text(account.name),
-                        const Spacer(),
-                        Text(
-                          Formatters.currency(account.balance),
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() => _fromAccountId = value);
-                },
-                validator: (value) {
-                  if (value == null) return 'Seleccione cuenta origen';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Icono de flecha
-              const Icon(Icons.arrow_downward, color: Colors.orange, size: 32),
-              const SizedBox(height: 16),
+                // Icono de flecha
+                const Icon(Icons.arrow_downward, color: Colors.orange, size: 28),
+                const SizedBox(height: 16),
 
-              // Cuenta destino
-              DropdownButtonFormField<String>(
-                value: _toAccountId,
-                decoration: const InputDecoration(
-                  labelText: 'Hacia (Cuenta Destino) *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.input, color: Colors.green),
+                // Cuenta destino
+                DropdownButtonFormField<String>(
+                  value: _toAccountId,
+                  decoration: const InputDecoration(
+                    labelText: 'Hacia (Cuenta Destino)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.input, color: Colors.green),
+                    isDense: true,
+                  ),
+                  isExpanded: true,
+                  items: state.accounts
+                      .where((a) => a.id != _fromAccountId)
+                      .map((account) {
+                    return DropdownMenuItem<String>(
+                      value: account.id,
+                      child: Text(
+                        '${account.name} - ${Formatters.currency(account.balance)}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() => _toAccountId = value);
+                  },
+                  validator: (value) {
+                    if (value == null) return 'Seleccione cuenta destino';
+                    if (value == _fromAccountId) return 'Debe ser diferente';
+                    return null;
+                  },
                 ),
-                items: state.accounts.where((a) => a.id != _fromAccountId).map((account) {
-                  return DropdownMenuItem<String>(
-                    value: account.id,
-                    child: Row(
-                      children: [
-                        Text(account.name),
-                        const Spacer(),
-                        Text(
-                          Formatters.currency(account.balance),
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() => _toAccountId = value);
-                },
-                validator: (value) {
-                  if (value == null) return 'Seleccione cuenta destino';
-                  if (value == _fromAccountId) return 'Debe ser diferente a la cuenta origen';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Monto
-              TextFormField(
-                controller: _amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Monto a Trasladar *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.attach_money),
-                  prefixText: 'L ',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
-                ],
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Ingrese el monto';
-                  final amount = double.tryParse(value);
-                  if (amount == null || amount <= 0) return 'Monto inválido';
-                  
-                  // Validar que hay suficiente saldo
-                  if (_fromAccountId != null) {
-                    final fromAccount = state.getAccountById(_fromAccountId!);
-                    if (fromAccount != null && amount > fromAccount.balance) {
-                      return 'Saldo insuficiente (disponible: ${Formatters.currency(fromAccount.balance)})';
+                // Monto
+                TextFormField(
+                  controller: _amountController,
+                  decoration: const InputDecoration(
+                    labelText: 'Monto',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.attach_money),
+                    prefixText: 'L ',
+                    isDense: true,
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+                  ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Ingrese el monto';
+                    final amount = double.tryParse(value);
+                    if (amount == null || amount <= 0) return 'Monto inválido';
+
+                    if (_fromAccountId != null) {
+                      final fromAccount = state.getAccountById(_fromAccountId!);
+                      if (fromAccount != null && amount > fromAccount.balance) {
+                        return 'Saldo insuficiente';
+                      }
                     }
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Descripción
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Descripción *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description),
-                  hintText: 'Ej: Retiro para pagos, Depósito en banco...',
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Ingrese una descripción';
-                  return null;
-                },
-              ),
-            ],
+                const SizedBox(height: 16),
+
+                // Descripción
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.description),
+                    isDense: true,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Ingrese descripción';
+                    return null;
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1360,7 +1356,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.orange,
           ),
-          child: const Text('Realizar Traslado', style: TextStyle(color: Colors.white)),
+          child: const Text('Trasladar', style: TextStyle(color: Colors.white)),
         ),
       ],
     );
