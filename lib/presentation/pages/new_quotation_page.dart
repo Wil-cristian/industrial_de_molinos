@@ -1899,7 +1899,7 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedCategory,
+                    initialValue: _selectedCategory,
                     decoration: InputDecoration(
                       labelText: 'Categoría',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),

@@ -251,7 +251,7 @@ class _MaterialsPageState extends State<MaterialsPage> {
                     // Filtro por categoría
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedCategory,
+                        initialValue: _selectedCategory,
                         decoration: InputDecoration(
                           labelText: 'Categoría',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -752,7 +752,7 @@ class _AddMaterialDialogState extends State<_AddMaterialDialog> {
   String? _thicknessFraction;
   int _wallThicknessInches = 0;
   String? _wallThicknessFraction;
-  int _lengthInches = 0;
+  final int _lengthInches = 0;
   String? _lengthFraction;
   int _widthInches = 0;
   String? _widthFraction;

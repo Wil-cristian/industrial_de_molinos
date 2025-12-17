@@ -911,7 +911,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog> with Sin
     
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
+      child: SizedBox(
         width: 950,
         height: 750,
         child: Column(
