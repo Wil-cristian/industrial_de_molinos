@@ -69,18 +69,21 @@ CREATE POLICY "Allow all operations on cash_movements" ON cash_movements FOR ALL
 -- INSERTAR CUENTAS PREDETERMINADAS
 -- =====================================================
 
--- Solo insertar si la tabla está vacía
-INSERT INTO accounts (name, type, balance, color, is_active)
-SELECT 'Caja', 'cash', 0, '#4CAF50', TRUE
-WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE name = 'Caja');
+-- Insertar las 3 cuentas (usar ON CONFLICT para evitar duplicados)
+INSERT INTO accounts (id, name, type, balance, color, is_active)
+VALUES 
+  (gen_random_uuid(), 'Caja', 'cash', 0, '#4CAF50', TRUE)
+ON CONFLICT DO NOTHING;
 
-INSERT INTO accounts (name, type, balance, bank_name, color, is_active)
-SELECT 'Cuenta Daniela', 'bank', 0, 'Banco', '#2196F3', TRUE
-WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE name = 'Cuenta Daniela');
+INSERT INTO accounts (id, name, type, balance, bank_name, color, is_active)
+VALUES 
+  (gen_random_uuid(), 'Cuenta Daniela', 'bank', 0, 'Banco', '#2196F3', TRUE)
+ON CONFLICT DO NOTHING;
 
-INSERT INTO accounts (name, type, balance, bank_name, color, is_active)
-SELECT 'Cuenta Industrial de Molinos', 'bank', 0, 'Banco', '#9C27B0', TRUE
-WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE name = 'Cuenta Industrial de Molinos');
+INSERT INTO accounts (id, name, type, balance, bank_name, color, is_active)
+VALUES 
+  (gen_random_uuid(), 'Cuenta Industrial de Molinos', 'bank', 0, 'Banco', '#9C27B0', TRUE)
+ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- VERIFICAR ESTRUCTURA

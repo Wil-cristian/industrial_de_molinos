@@ -99,13 +99,41 @@ class DailyCashState {
       return null;
     }
   }
+
+  /// Cuentas predeterminadas (para mostrar si no hay conexión)
+  static List<Account> get defaultAccounts => [
+    Account(
+      id: 'default-caja',
+      name: 'Caja',
+      type: AccountType.cash,
+      balance: 0,
+      color: '#4CAF50',
+    ),
+    Account(
+      id: 'default-daniela',
+      name: 'Cuenta Daniela',
+      type: AccountType.bank,
+      bankName: 'Banco',
+      balance: 0,
+      color: '#2196F3',
+    ),
+    Account(
+      id: 'default-industrial',
+      name: 'Cuenta Industrial de Molinos',
+      type: AccountType.bank,
+      bankName: 'Banco',
+      balance: 0,
+      color: '#9C27B0',
+    ),
+  ];
 }
 
 /// Notifier para gestionar Caja Diaria
 class DailyCashNotifier extends Notifier<DailyCashState> {
   @override
   DailyCashState build() {
-    return DailyCashState();
+    // Iniciar con cuentas por defecto para mostrar algo de inmediato
+    return DailyCashState(accounts: DailyCashState.defaultAccounts);
   }
 
   /// Cargar datos iniciales
@@ -120,13 +148,20 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
         AccountsDataSource.getMovementsByDate(state.selectedDate),
       ]);
       
+      final loadedAccounts = results[0] as List<Account>;
+      
       state = state.copyWith(
-        accounts: results[0] as List<Account>,
+        accounts: loadedAccounts.isNotEmpty ? loadedAccounts : DailyCashState.defaultAccounts,
         movements: results[1] as List<CashMovement>,
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      // Si hay error, mantener las cuentas por defecto
+      state = state.copyWith(
+        isLoading: false, 
+        error: e.toString(),
+        accounts: DailyCashState.defaultAccounts,
+      );
     }
   }
 

@@ -293,10 +293,13 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
         ),
         const SizedBox(height: 16),
         Row(
-          children: state.accounts.map((account) {
+          children: state.accounts.asMap().entries.map((entry) {
+            final index = entry.key;
+            final account = entry.value;
+            final isLast = index == state.accounts.length - 1;
             return Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(right: 16),
+                padding: EdgeInsets.only(right: isLast ? 0 : 16),
                 child: _buildAccountCard(context, account, state),
               ),
             );
@@ -315,16 +318,13 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     final expenseToday = state.expenseByAccount[account.id] ?? 0.0;
 
     return Card(
-      elevation: 4,
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [accountColor, accountColor.withOpacity(0.8)],
-          ),
+          color: Colors.white,
+          border: Border.all(color: Colors.grey.shade200),
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -332,12 +332,19 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
           children: [
             Row(
               children: [
-                Icon(
-                  account.type == AccountType.cash
-                      ? Icons.account_balance_wallet
-                      : Icons.account_balance,
-                  color: Colors.white,
-                  size: 28,
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: accountColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    account.type == AccountType.cash
+                        ? Icons.account_balance_wallet
+                        : Icons.account_balance,
+                    color: accountColor,
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -346,16 +353,18 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     children: [
                       Text(
                         account.name,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Colors.grey[800],
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 14,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         account.typeLabel,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.grey[500],
                           fontSize: 12,
                         ),
                       ),
@@ -363,36 +372,44 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  icon: Icon(Icons.more_vert, color: Colors.grey[400]),
                   onPressed: () => _showAccountOptions(context, account),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Text(
               Formatters.currency(account.balance),
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: accountColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 28,
+                fontSize: 26,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
+            Text(
+              'Saldo actual',
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 12,
+              ),
+            ),
+            const Divider(height: 24),
             Row(
               children: [
                 Expanded(
                   child: _buildMiniStat(
                     'Ingresos Hoy',
                     '+${Formatters.currency(incomeToday)}',
-                    Colors.green[200]!,
+                    AppTheme.successColor,
                   ),
                 ),
-                const SizedBox(width: 8),
+                Container(width: 1, height: 30, color: Colors.grey[200]),
                 Expanded(
                   child: _buildMiniStat(
                     'Gastos Hoy',
                     '-${Formatters.currency(expenseToday)}',
-                    Colors.red[200]!,
+                    AppTheme.errorColor,
                   ),
                 ),
               ],
@@ -405,22 +422,21 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
 
   Widget _buildMiniStat(String label, String value, Color textColor) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
-            fontSize: 11,
-          ),
-        ),
-        const SizedBox(height: 2),
         Text(
           value,
           style: TextStyle(
             color: textColor,
             fontWeight: FontWeight.bold,
             fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey[500],
+            fontSize: 11,
           ),
         ),
       ],
@@ -764,7 +780,6 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
       initialDate: state.selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      locale: const Locale('es', 'ES'),
     );
 
     if (picked != null) {
