@@ -84,6 +84,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           onTap: () => context.go('/'),
                         ),
                         _NavItem(
+                          icon: Icons.account_balance_wallet,
+                          label: 'Caja',
+                          onTap: () => context.go('/daily-cash'),
+                        ),
+                        _NavItem(
                           icon: Icons.inventory_2,
                           label: 'Productos',
                           onTap: () => context.go('/products'),
@@ -243,6 +248,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 16),
+                                  _buildQuickAction(
+                                    context,
+                                    icon: Icons.account_balance_wallet,
+                                    label: 'Caja Diaria',
+                                    onTap: () => context.go('/daily-cash'),
+                                    highlighted: true,
+                                  ),
                                   _buildQuickAction(
                                     context,
                                     icon: Icons.add_shopping_cart,
@@ -437,17 +449,27 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    bool highlighted = false,
   }) {
+    final bgColor = highlighted 
+        ? AppTheme.successColor.withOpacity(0.15)
+        : AppTheme.primaryColor.withOpacity(0.1);
+    final iconColor = highlighted ? AppTheme.successColor : AppTheme.primaryColor;
+    
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.primaryColor.withOpacity(0.1),
+          color: bgColor,
           borderRadius: BorderRadius.circular(8),
+          border: highlighted ? Border.all(color: AppTheme.successColor.withOpacity(0.3)) : null,
         ),
-        child: Icon(icon, color: AppTheme.primaryColor, size: 20),
+        child: Icon(icon, color: iconColor, size: 20),
       ),
-      title: Text(label),
+      title: Text(
+        label,
+        style: highlighted ? TextStyle(fontWeight: FontWeight.w600, color: AppTheme.successColor) : null,
+      ),
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
       contentPadding: EdgeInsets.zero,

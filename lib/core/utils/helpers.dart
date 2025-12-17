@@ -36,6 +36,11 @@ class Formatters {
     }
   }
 
+  // Formato de hora
+  static String time(DateTime date) {
+    return DateFormat('HH:mm').format(date);
+  }
+
   // Formato de porcentaje
   static String percentage(double value) {
     return '${value.toStringAsFixed(1)}%';

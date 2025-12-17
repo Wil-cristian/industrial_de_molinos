@@ -11,6 +11,7 @@ import 'presentation/pages/new_quotation_page.dart';
 import 'presentation/pages/new_invoice_page.dart';
 import 'presentation/pages/materials_page.dart';
 import 'presentation/pages/composite_products_page.dart';
+import 'presentation/pages/daily_cash_page.dart';
 
 // Configuración del router
 final GoRouter router = GoRouter(
@@ -19,6 +20,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/',
       builder: (context, state) => const DashboardPage(),
+    ),
+    GoRoute(
+      path: '/daily-cash',
+      builder: (context, state) => const DailyCashPage(),
     ),
     GoRoute(
       path: '/products',
