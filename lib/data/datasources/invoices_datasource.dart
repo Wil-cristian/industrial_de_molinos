@@ -299,41 +299,90 @@ class InvoicesDataSource {
     int? installmentNumber,
     int? totalInstallments,
   }) async {
-    // Insertar pago
-    await _client.from('payments').insert({
-      'invoice_id': invoiceId,
-      'amount': amount,
-      'method': method,
-      'reference': reference,
-      'notes': notes,
-      'payment_date': DateTime.now().toIso8601String().split('T')[0],
-      'payment_type': paymentType,
-      'installment_number': installmentNumber,
-      'total_installments': totalInstallments,
-    });
+    try {
+      // Usar la función RPC para registrar pago
+      await _client.rpc('register_payment', params: {
+        'p_invoice_id': invoiceId,
+        'p_amount': amount,
+        'p_method': method,
+        'p_reference': reference,
+        'p_notes': notes,
+      });
+    } catch (e) {
+      // Fallback al método anterior si la función RPC no existe
+      print('⚠️ Usando método alternativo para registrar pago: $e');
+      
+      // Insertar pago
+      await _client.from('payments').insert({
+        'invoice_id': invoiceId,
+        'amount': amount,
+        'method': method,
+        'reference': reference,
+        'notes': notes,
+        'payment_date': DateTime.now().toIso8601String().split('T')[0],
+        'payment_type': paymentType,
+        'installment_number': installmentNumber,
+        'total_installments': totalInstallments,
+      });
 
-    // Obtener recibo actual
-    final invoice = await getById(invoiceId);
-    if (invoice == null) return;
+      // Obtener recibo actual
+      final invoice = await getById(invoiceId);
+      if (invoice == null) return;
 
-    // Calcular nuevo monto pagado
-    final newPaidAmount = invoice.paidAmount + amount;
-    
-    // Determinar nuevo estado
-    String newStatus;
-    if (newPaidAmount >= invoice.total) {
-      newStatus = 'paid';
-    } else if (newPaidAmount > 0) {
-      newStatus = 'partial';
-    } else {
-      newStatus = invoice.status.name;
+      // Calcular nuevo monto pagado
+      final newPaidAmount = invoice.paidAmount + amount;
+      
+      // Determinar nuevo estado
+      String newStatus;
+      if (newPaidAmount >= invoice.total) {
+        newStatus = 'paid';
+      } else if (newPaidAmount > 0) {
+        newStatus = 'partial';
+      } else {
+        newStatus = invoice.status.name;
+      }
+
+      // Actualizar recibo
+      await _client.from('invoices').update({
+        'paid_amount': newPaidAmount,
+        'status': newStatus,
+      }).eq('id', invoiceId);
     }
+  }
 
-    // Actualizar recibo
-    await _client.from('invoices').update({
-      'paid_amount': newPaidAmount,
-      'status': newStatus,
-    }).eq('id', invoiceId);
+  /// Obtener historial de pagos de una factura
+  static Future<List<Map<String, dynamic>>> getPayments(String invoiceId) async {
+    final response = await _client
+        .from('payments')
+        .select()
+        .eq('invoice_id', invoiceId)
+        .order('payment_date', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Obtener resumen de ventas
+  static Future<Map<String, dynamic>> getSalesSummary({DateTime? startDate, DateTime? endDate}) async {
+    try {
+      final response = await _client.rpc('get_sales_summary', params: {
+        'p_start_date': startDate?.toIso8601String().split('T')[0],
+        'p_end_date': endDate?.toIso8601String().split('T')[0],
+      });
+      if (response != null && response is List && response.isNotEmpty) {
+        return Map<String, dynamic>.from(response[0]);
+      }
+      return {
+        'total_sales': 0.0,
+        'total_paid': 0.0,
+        'total_pending': 0.0,
+        'total_count': 0,
+        'paid_count': 0,
+        'pending_count': 0,
+        'overdue_count': 0,
+      };
+    } catch (e) {
+      print('⚠️ Error obteniendo resumen: $e');
+      return await getMonthlyStats();
+    }
   }
 
   // ==================== DELETE ====================

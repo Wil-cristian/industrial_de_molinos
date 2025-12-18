@@ -10,7 +10,6 @@ import 'presentation/pages/quotations_page.dart';
 import 'presentation/pages/new_quotation_page.dart';
 import 'presentation/pages/new_invoice_page.dart';
 import 'presentation/pages/materials_page.dart';
-import 'presentation/pages/composite_products_page.dart';
 import 'presentation/pages/daily_cash_page.dart';
 
 // Configuración del router
@@ -39,7 +38,7 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/composite-products',
-      builder: (context, state) => const CompositeProductsPage(),
+      builder: (context, state) => const ProductsPage(), // Usa ProductsPage que tiene formulario completo
     ),
     GoRoute(
       path: '/customers',

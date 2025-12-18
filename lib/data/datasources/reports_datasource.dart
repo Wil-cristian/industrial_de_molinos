@@ -131,7 +131,7 @@ class ReportsDataSource {
       // Ventas del período actual
       final currentResponse = await _client
           .from('invoices')
-          .select('total_amount, paid_amount, status')
+          .select('total, paid_amount, status')
           .gte('issue_date', startDate.toIso8601String())
           .lte('issue_date', endDate.toIso8601String())
           .neq('status', 'cancelled');
@@ -140,7 +140,7 @@ class ReportsDataSource {
       int transactionCount = currentResponse.length;
       
       for (var invoice in currentResponse) {
-        totalSales += (invoice['total_amount'] ?? 0).toDouble();
+        totalSales += (invoice['total'] ?? 0).toDouble();
       }
 
       double averageTicket = transactionCount > 0 ? totalSales / transactionCount : 0;
@@ -152,14 +152,14 @@ class ReportsDataSource {
 
       final prevResponse = await _client
           .from('invoices')
-          .select('total_amount')
+          .select('total')
           .gte('issue_date', prevStartDate.toIso8601String())
           .lte('issue_date', prevEndDate.toIso8601String())
           .neq('status', 'cancelled');
 
       double previousPeriodSales = 0;
       for (var invoice in prevResponse) {
-        previousPeriodSales += (invoice['total_amount'] ?? 0).toDouble();
+        previousPeriodSales += (invoice['total'] ?? 0).toDouble();
       }
 
       double growthPercentage = previousPeriodSales > 0
@@ -208,27 +208,27 @@ class ReportsDataSource {
         // Ventas mes actual
         final currentResponse = await _client
             .from('invoices')
-            .select('total_amount')
+            .select('total')
             .gte('issue_date', startDate.toIso8601String())
             .lte('issue_date', endDate.toIso8601String())
             .neq('status', 'cancelled');
 
         double currentValue = 0;
         for (var invoice in currentResponse) {
-          currentValue += (invoice['total_amount'] ?? 0).toDouble();
+          currentValue += (invoice['total'] ?? 0).toDouble();
         }
 
         // Ventas mes anterior
         final prevResponse = await _client
             .from('invoices')
-            .select('total_amount')
+            .select('total')
             .gte('issue_date', prevStartDate.toIso8601String())
             .lte('issue_date', prevEndDate.toIso8601String())
             .neq('status', 'cancelled');
 
         double previousValue = 0;
         for (var invoice in prevResponse) {
-          previousValue += (invoice['total_amount'] ?? 0).toDouble();
+          previousValue += (invoice['total'] ?? 0).toDouble();
         }
 
         chartData.add(SalesChartData(
@@ -319,7 +319,7 @@ class ReportsDataSource {
           .from('invoices')
           .select('''
             customer_id,
-            total_amount,
+            total,
             paid_amount,
             customers(id, name)
           ''')
@@ -335,7 +335,7 @@ class ReportsDataSource {
         final customer = invoice['customers'];
         
         if (customer != null && customerId.isNotEmpty) {
-          final totalAmount = (invoice['total_amount'] ?? 0).toDouble();
+          final totalAmount = (invoice['total'] ?? 0).toDouble();
           final paidAmount = (invoice['paid_amount'] ?? 0).toDouble();
           final pending = totalAmount - paidAmount;
           
@@ -450,12 +450,12 @@ class ReportsDataSource {
           .select('''
             id,
             customer_id,
-            total_amount,
+            total,
             paid_amount,
             due_date,
             customers(id, name)
           ''')
-          .or('status.eq.pending,status.eq.partial')
+          .or('status.eq.issued,status.eq.partial')
           .order('due_date');
 
       // Agrupar por cliente
@@ -466,7 +466,7 @@ class ReportsDataSource {
         final customer = invoice['customers'];
         
         if (customer != null && customerId.isNotEmpty) {
-          final total = (invoice['total_amount'] ?? 0).toDouble();
+          final total = (invoice['total'] ?? 0).toDouble();
           final paid = (invoice['paid_amount'] ?? 0).toDouble();
           final pending = total - paid;
           final dueDate = DateTime.parse(invoice['due_date'] ?? now.toIso8601String());

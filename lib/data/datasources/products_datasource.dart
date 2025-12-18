@@ -67,8 +67,16 @@ class ProductsDataSource {
     return _fromJson(response);
   }
 
-  /// Eliminar producto (soft delete)
+  /// Eliminar producto (hard delete - elimina completamente)
   static Future<void> delete(String id) async {
+    // Primero eliminar componentes relacionados (si es receta)
+    await _client.from('product_components').delete().eq('product_id', id);
+    // Luego eliminar el producto
+    await _client.from(_table).delete().eq('id', id);
+  }
+
+  /// Desactivar producto (soft delete - solo marca como inactivo)
+  static Future<void> deactivate(String id) async {
     await _client.from(_table).update({'is_active': false}).eq('id', id);
   }
 
@@ -83,6 +91,65 @@ class ProductsDataSource {
   /// Actualizar stock
   static Future<void> updateStock(String id, double newStock) async {
     await _client.from(_table).update({'stock': newStock}).eq('id', id);
+  }
+
+  /// Registrar movimiento de stock
+  static Future<void> registerStockMovement({
+    required String productId,
+    required String type, // 'incoming', 'outgoing', 'adjustment'
+    required double quantity,
+    String? reason,
+    String? reference,
+  }) async {
+    // Obtener stock actual
+    final product = await getById(productId);
+    if (product == null) throw Exception('Producto no encontrado');
+    
+    final previousStock = product.stock;
+    double newStock;
+    
+    if (type == 'incoming') {
+      newStock = previousStock + quantity;
+    } else if (type == 'outgoing') {
+      newStock = previousStock - quantity;
+      if (newStock < 0) throw Exception('Stock insuficiente');
+    } else {
+      newStock = quantity; // adjustment = set direct value
+    }
+    
+    // Registrar movimiento
+    await _client.from('stock_movements').insert({
+      'product_id': productId,
+      'type': type,
+      'quantity': quantity,
+      'previous_stock': previousStock,
+      'new_stock': newStock,
+      'reason': reason,
+      'reference': reference,
+    });
+    
+    // Actualizar stock del producto
+    await updateStock(productId, newStock);
+  }
+
+  /// Descontar stock para una factura
+  static Future<void> deductStockForInvoice(String invoiceId) async {
+    try {
+      await _client.rpc('deduct_stock_for_invoice', params: {'p_invoice_id': invoiceId});
+    } catch (e) {
+      print('❌ Error al descontar stock: $e');
+      rethrow;
+    }
+  }
+
+  /// Obtener movimientos de stock de un producto
+  static Future<List<Map<String, dynamic>>> getStockMovements(String productId) async {
+    final response = await _client
+        .from('stock_movements')
+        .select()
+        .eq('product_id', productId)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
   }
 
   /// Obtener todas las categorías
@@ -113,6 +180,10 @@ class ProductsDataSource {
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
+      isRecipe: json['is_recipe'] ?? false,
+      recipeDescription: json['recipe_description'],
+      totalWeight: (json['total_weight'] ?? 0).toDouble(),
+      totalCost: (json['total_cost'] ?? 0).toDouble(),
     );
   }
 
@@ -131,6 +202,10 @@ class ProductsDataSource {
       'is_active': product.isActive,
       'created_at': product.createdAt.toIso8601String(),
       'updated_at': product.updatedAt.toIso8601String(),
+      'is_recipe': product.isRecipe,
+      'recipe_description': product.recipeDescription,
+      'total_weight': product.totalWeight,
+      'total_cost': product.totalCost,
     };
   }
 }

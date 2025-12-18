@@ -149,6 +149,10 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
       ]);
       
       final loadedAccounts = results[0] as List<Account>;
+      print('📦 Cuentas cargadas: ${loadedAccounts.length}');
+      for (final acc in loadedAccounts) {
+        print('   - ${acc.name} (ID: ${acc.id})');
+      }
       
       state = state.copyWith(
         accounts: loadedAccounts.isNotEmpty ? loadedAccounts : DailyCashState.defaultAccounts,
@@ -156,6 +160,7 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
         isLoading: false,
       );
     } catch (e) {
+      print('❌ Error cargando cuentas: $e');
       // Si hay error, mantener las cuentas por defecto
       state = state.copyWith(
         isLoading: false, 
@@ -191,6 +196,7 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
     String? reference,
   }) async {
     try {
+      print('💰 Registrando ingreso: $amount en cuenta $accountId');
       final movement = CashMovement(
         id: '',
         accountId: accountId,
@@ -204,9 +210,11 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
       );
       
       await AccountsDataSource.createMovementWithBalanceUpdate(movement);
+      print('✅ Ingreso registrado correctamente');
       await load(); // Recargar todo
       return true;
     } catch (e) {
+      print('❌ Error al registrar ingreso: $e');
       state = state.copyWith(error: e.toString());
       return false;
     }

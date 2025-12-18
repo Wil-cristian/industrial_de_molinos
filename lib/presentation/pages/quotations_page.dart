@@ -1,223 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
+import '../../data/providers/quotations_provider.dart';
 
-class QuotationsPage extends StatefulWidget {
+class QuotationsPage extends ConsumerStatefulWidget {
   const QuotationsPage({super.key});
 
   @override
-  State<QuotationsPage> createState() => _QuotationsPageState();
+  ConsumerState<QuotationsPage> createState() => _QuotationsPageState();
 }
 
-class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProviderStateMixin {
+class _QuotationsPageState extends ConsumerState<QuotationsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _searchQuery = '';
   String _filterStatus = 'Todas';
 
-  // Datos de ejemplo con componentes completos
-  final List<Map<String, dynamic>> _quotations = [
-    {
-      'id': '1',
-      'number': 'COT-2024-001',
-      'date': DateTime(2024, 12, 5),
-      'validUntil': DateTime(2024, 12, 20),
-      'customer': 'Minera San Martín S.A.',
-      'customerRuc': '20123456789',
-      'description': 'Molino de bolas 4x6 pies',
-      'status': 'Aprobada',
-      'materialsCost': 12500.0,
-      'laborCost': 3500.0,
-      'indirectCosts': 1200.0,
-      'profitMargin': 25.0,
-      'total': 21500.0,
-      'weight': 2850.0,
-      'notes': 'Tiempo de entrega: 45 días hábiles.\nGarantía: 12 meses por defectos de fabricación.\nForma de pago: 50% anticipo, 50% contra entrega.',
-      'items': [
-        {
-          'name': 'Molino de Bolas 4x6 pies',
-          'type': 'composite_product',
-          'productCode': 'MOL-46P',
-          'quantity': 1,
-          'totalWeight': 2850.0,
-          'totalPrice': 12500.0,
-          'components': [
-            {'name': 'Cilindro principal', 'material': 'Acero A36', 'dimensions': 'Ø1220mm × 16mm × 1830mm', 'weight': 850.5, 'price': 3827.25, 'quantity': 1},
-            {'name': 'Tapa frontal con trunnion', 'material': 'Acero A36', 'dimensions': 'Ø1220mm × 25mm', 'weight': 235.0, 'price': 1057.50, 'quantity': 2},
-            {'name': 'Eje de transmisión', 'material': 'Acero SAE 4140', 'dimensions': 'Ø150mm × 2000mm', 'weight': 277.5, 'price': 2220.00, 'quantity': 1},
-            {'name': 'Corona dentada', 'material': 'Acero SAE 4340', 'dimensions': 'Ø1500mm × 120mm', 'weight': 380.0, 'price': 2280.00, 'quantity': 1},
-            {'name': 'Piñón de ataque', 'material': 'Acero SAE 4340', 'dimensions': 'Ø200mm × 120mm', 'weight': 45.0, 'price': 270.00, 'quantity': 1},
-            {'name': 'Chumaceras principales', 'material': 'Fundición + SKF', 'dimensions': 'Ø150mm', 'weight': 85.0, 'price': 950.00, 'quantity': 2},
-            {'name': 'Base estructural', 'material': 'Acero A36', 'dimensions': '2500mm × 1200mm × 12mm', 'weight': 282.0, 'price': 1269.00, 'quantity': 1},
-            {'name': 'Blindaje interior', 'material': 'Acero Manganeso', 'dimensions': 'Según diseño', 'weight': 420.0, 'price': 2100.00, 'quantity': 1},
-          ],
-        },
-      ],
-    },
-    {
-      'id': '2',
-      'number': 'COT-2024-002',
-      'date': DateTime(2024, 12, 7),
-      'validUntil': DateTime(2024, 12, 22),
-      'customer': 'Procesadora de Minerales del Norte',
-      'customerRuc': '20234567890',
-      'description': 'Molino de bolas 3x4 pies + repuestos',
-      'status': 'Enviada',
-      'materialsCost': 8200.0,
-      'laborCost': 2200.0,
-      'indirectCosts': 800.0,
-      'profitMargin': 20.0,
-      'total': 13440.0,
-      'weight': 1450.0,
-      'notes': 'Incluye repuestos para 2 años de operación.\nEntrega: 30 días.\nInstalación no incluida.',
-      'items': [
-        {
-          'name': 'Molino de Bolas 3x4 pies',
-          'type': 'composite_product',
-          'productCode': 'MOL-34P',
-          'quantity': 1,
-          'totalWeight': 1200.0,
-          'totalPrice': 6500.0,
-          'components': [
-            {'name': 'Cilindro principal', 'material': 'Acero A36', 'dimensions': 'Ø915mm × 12mm × 1220mm', 'weight': 420.3, 'price': 1891.35, 'quantity': 1},
-            {'name': 'Tapa frontal', 'material': 'Acero A36', 'dimensions': 'Ø915mm × 20mm', 'weight': 105.0, 'price': 472.50, 'quantity': 2},
-            {'name': 'Eje de transmisión', 'material': 'Acero SAE 4140', 'dimensions': 'Ø100mm × 1500mm', 'weight': 92.5, 'price': 740.00, 'quantity': 1},
-            {'name': 'Corona dentada', 'material': 'Acero SAE 4340', 'dimensions': 'Ø1000mm × 100mm', 'weight': 185.0, 'price': 1110.00, 'quantity': 1},
-            {'name': 'Base estructural', 'material': 'Acero A36', 'dimensions': '1800mm × 900mm × 10mm', 'weight': 127.2, 'price': 572.40, 'quantity': 1},
-          ],
-        },
-        {
-          'name': 'Kit de Repuestos',
-          'type': 'composite_product',
-          'productCode': 'REP-34P',
-          'quantity': 1,
-          'totalWeight': 250.0,
-          'totalPrice': 1700.0,
-          'components': [
-            {'name': 'Blindaje de repuesto', 'material': 'Acero Manganeso', 'dimensions': 'Set completo', 'weight': 180.0, 'price': 900.00, 'quantity': 1},
-            {'name': 'Sellos y empaquetaduras', 'material': 'Varios', 'dimensions': 'Kit completo', 'weight': 5.0, 'price': 350.00, 'quantity': 1},
-            {'name': 'Rodamientos SKF', 'material': 'SKF 6220', 'dimensions': 'Estándar', 'weight': 15.0, 'price': 450.00, 'quantity': 2},
-          ],
-        },
-      ],
-    },
-    {
-      'id': '3',
-      'number': 'COT-2024-003',
-      'date': DateTime(2024, 12, 9),
-      'validUntil': DateTime(2024, 12, 24),
-      'customer': 'Cementos Pacífico',
-      'customerRuc': '20345678901',
-      'description': 'Cilindro y tapas para molino 5x8',
-      'status': 'Borrador',
-      'materialsCost': 18500.0,
-      'laborCost': 5500.0,
-      'indirectCosts': 2100.0,
-      'profitMargin': 22.0,
-      'total': 31842.0,
-      'weight': 4200.0,
-      'notes': 'Cotización preliminar sujeta a confirmación de medidas.',
-      'items': [
-        {
-          'name': 'Cilindro para Molino 5x8',
-          'type': 'composite_product',
-          'productCode': 'CIL-58',
-          'quantity': 1,
-          'totalWeight': 3200.0,
-          'totalPrice': 14400.0,
-          'components': [
-            {'name': 'Cilindro principal', 'material': 'Acero A36', 'dimensions': 'Ø1525mm × 20mm × 2440mm', 'weight': 1850.0, 'price': 8325.00, 'quantity': 1},
-            {'name': 'Anillos de refuerzo', 'material': 'Acero A36', 'dimensions': 'Ø1525mm × 50mm × 100mm', 'weight': 450.0, 'price': 2025.00, 'quantity': 3},
-            {'name': 'Bridas de conexión', 'material': 'Acero A36', 'dimensions': 'Ø1525mm × 30mm', 'weight': 300.0, 'price': 1350.00, 'quantity': 2},
-          ],
-        },
-        {
-          'name': 'Tapas para Molino 5x8',
-          'type': 'composite_product',
-          'productCode': 'TAP-58',
-          'quantity': 2,
-          'totalWeight': 1000.0,
-          'totalPrice': 4100.0,
-          'components': [
-            {'name': 'Tapa con trunnion', 'material': 'Acero A36', 'dimensions': 'Ø1525mm × 35mm', 'weight': 420.0, 'price': 1890.00, 'quantity': 1},
-            {'name': 'Buje de trunnion', 'material': 'Bronce SAE 64', 'dimensions': 'Ø200mm × 150mm', 'weight': 35.0, 'price': 525.00, 'quantity': 1},
-            {'name': 'Pernos de sujeción', 'material': 'Acero Grado 8', 'dimensions': 'M24 × 150mm', 'weight': 45.0, 'price': 135.00, 'quantity': 24},
-          ],
-        },
-      ],
-    },
-    {
-      'id': '4',
-      'number': 'COT-2024-004',
-      'date': DateTime(2024, 11, 25),
-      'validUntil': DateTime(2024, 12, 10),
-      'customer': 'Industrias Metalúrgicas Sur',
-      'customerRuc': '20456789012',
-      'description': 'Reparación de molino - cambio de tapas',
-      'status': 'Vencida',
-      'materialsCost': 4500.0,
-      'laborCost': 1800.0,
-      'indirectCosts': 600.0,
-      'profitMargin': 18.0,
-      'total': 8142.0,
-      'weight': 980.0,
-      'notes': 'Servicio de reparación in-situ.\nIncluye desmontaje e instalación.',
-      'items': [
-        {
-          'name': 'Tapas de reemplazo',
-          'type': 'composite_product',
-          'productCode': 'TAP-REP',
-          'quantity': 2,
-          'totalWeight': 980.0,
-          'totalPrice': 4500.0,
-          'components': [
-            {'name': 'Tapa de alimentación', 'material': 'Acero A36', 'dimensions': 'Ø1000mm × 25mm', 'weight': 390.0, 'price': 1755.00, 'quantity': 1},
-            {'name': 'Tapa de descarga', 'material': 'Acero A36', 'dimensions': 'Ø1000mm × 25mm', 'weight': 390.0, 'price': 1755.00, 'quantity': 1},
-            {'name': 'Rejilla de descarga', 'material': 'Acero Inoxidable 304', 'dimensions': 'Ø800mm × 10mm', 'weight': 100.0, 'price': 600.00, 'quantity': 1},
-            {'name': 'Sellos de goma', 'material': 'Neopreno', 'dimensions': 'Ø1000mm', 'weight': 15.0, 'price': 195.00, 'quantity': 2},
-          ],
-        },
-      ],
-    },
-    {
-      'id': '5',
-      'number': 'COT-2024-005',
-      'date': DateTime(2024, 12, 1),
-      'validUntil': DateTime(2024, 12, 16),
-      'customer': 'Minera Los Andes',
-      'customerRuc': '20567890123',
-      'description': 'Molino de bolas 6x10 pies industrial',
-      'status': 'Rechazada',
-      'materialsCost': 35000.0,
-      'laborCost': 12000.0,
-      'indirectCosts': 4500.0,
-      'profitMargin': 30.0,
-      'total': 66950.0,
-      'weight': 8500.0,
-      'notes': 'Proyecto de gran escala.\nRequiere transporte especial.\nInstalación supervisada incluida.',
-      'items': [
-        {
-          'name': 'Molino de Bolas 6x10 pies Industrial',
-          'type': 'composite_product',
-          'productCode': 'MOL-610I',
-          'quantity': 1,
-          'totalWeight': 8500.0,
-          'totalPrice': 35000.0,
-          'components': [
-            {'name': 'Cilindro principal', 'material': 'Acero A36', 'dimensions': 'Ø1830mm × 25mm × 3050mm', 'weight': 3420.0, 'price': 15390.00, 'quantity': 1},
-            {'name': 'Tapa frontal con trunnion', 'material': 'Acero A36', 'dimensions': 'Ø1830mm × 40mm', 'weight': 520.0, 'price': 2340.00, 'quantity': 2},
-            {'name': 'Eje de transmisión', 'material': 'Acero SAE 4140', 'dimensions': 'Ø200mm × 2500mm', 'weight': 617.5, 'price': 4940.00, 'quantity': 1},
-            {'name': 'Corona dentada', 'material': 'Acero SAE 4340', 'dimensions': 'Ø2200mm × 150mm', 'weight': 890.0, 'price': 5340.00, 'quantity': 1},
-            {'name': 'Piñón de ataque', 'material': 'Acero SAE 4340', 'dimensions': 'Ø300mm × 150mm', 'weight': 105.0, 'price': 630.00, 'quantity': 1},
-            {'name': 'Chumaceras principales', 'material': 'Fundición + SKF', 'dimensions': 'Ø200mm', 'weight': 180.0, 'price': 2700.00, 'quantity': 2},
-            {'name': 'Base estructural', 'material': 'Acero A36', 'dimensions': '4000mm × 2000mm × 20mm', 'weight': 1256.0, 'price': 5652.00, 'quantity': 1},
-            {'name': 'Blindaje interior', 'material': 'Acero Manganeso', 'dimensions': 'Según diseño', 'weight': 1200.0, 'price': 6000.00, 'quantity': 1},
-            {'name': 'Sistema de lubricación', 'material': 'Varios', 'dimensions': 'Completo', 'weight': 85.0, 'price': 2500.00, 'quantity': 1},
-          ],
-        },
-      ],
-    },
-  ];
+  // Los datos vienen del provider, ya no hardcodeados
+  List<Map<String, dynamic>> get _quotations {
+    final state = ref.watch(quotationsProvider);
+    return state.quotations.map((q) => {
+      'id': q.id,
+      'number': q.number,
+      'date': q.date,
+      'validUntil': q.validUntil,
+      'customer': q.customerName,
+      'customerRuc': q.customerId, // Usamos customerId como RUC
+      'description': q.notes.isNotEmpty ? q.notes.split('\n').first : 'Cotización ${q.number}',
+      'status': q.status,
+      'materialsCost': q.materialsCost,
+      'laborCost': q.laborCost,
+      'indirectCosts': q.indirectCosts,
+      'profitMargin': q.profitMargin,
+      'total': q.total,
+      'weight': q.totalWeight,
+      'notes': q.notes,
+      'items': q.items.map((item) => {
+        'name': item.name,
+        'type': item.type,
+        'productCode': item.materialType,
+        'quantity': item.quantity,
+        'totalWeight': item.totalWeight,
+        'totalPrice': item.totalPrice,
+      }).toList(),
+    }).toList();
+  }
 
   List<Map<String, dynamic>> get _filteredQuotations {
     return _quotations.where((q) {
@@ -238,7 +66,7 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
   int get _approvedQuotations => _quotations.where((q) => q['status'] == 'Aprobada').length;
   double get _totalApprovedValue => _quotations
       .where((q) => q['status'] == 'Aprobada')
-      .fold(0.0, (sum, q) => sum + (q['total'] as double));
+      .fold(0.0, (sum, q) => sum + (q['total'] as double? ?? 0.0));
 
   @override
   void initState() {
@@ -255,6 +83,8 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
         }
       });
     });
+    // Cargar cotizaciones desde Supabase
+    Future.microtask(() => ref.read(quotationsProvider.notifier).loadQuotations());
   }
 
   @override
@@ -265,6 +95,8 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final quotationsState = ref.watch(quotationsProvider);
+    
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: Column(
@@ -334,17 +166,36 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
                   ),
                   // Lista de cotizaciones
                   Expanded(
-                    child: _filteredQuotations.isEmpty
-                        ? _buildEmptyState()
-                        : ListView.separated(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _filteredQuotations.length,
-                            separatorBuilder: (_, __) => const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final quotation = _filteredQuotations[index];
-                              return _buildQuotationItem(quotation);
-                            },
-                          ),
+                    child: quotationsState.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : quotationsState.error != null
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                                    const SizedBox(height: 16),
+                                    Text('Error: ${quotationsState.error}', style: TextStyle(color: Colors.red[700])),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton.icon(
+                                      onPressed: () => ref.read(quotationsProvider.notifier).loadQuotations(),
+                                      icon: const Icon(Icons.refresh),
+                                      label: const Text('Reintentar'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : _filteredQuotations.isEmpty
+                                ? _buildEmptyState()
+                                : ListView.separated(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    itemCount: _filteredQuotations.length,
+                                    separatorBuilder: (_, __) => const Divider(height: 1),
+                                    itemBuilder: (context, index) {
+                                      final quotation = _filteredQuotations[index];
+                                      return _buildQuotationItem(quotation);
+                                    },
+                                  ),
                   ),
                 ],
               ),
@@ -658,11 +509,12 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
                   title: Text('Ver detalle'),
                   contentPadding: EdgeInsets.zero,
                 )),
-                const PopupMenuItem(value: 'edit', child: ListTile(
-                  leading: Icon(Icons.edit),
-                  title: Text('Editar'),
-                  contentPadding: EdgeInsets.zero,
-                )),
+                if (quotation['status'] == 'Borrador' || quotation['status'] == 'Enviada')
+                  const PopupMenuItem(value: 'edit', child: ListTile(
+                    leading: Icon(Icons.edit),
+                    title: Text('Editar'),
+                    contentPadding: EdgeInsets.zero,
+                  )),
                 const PopupMenuItem(value: 'duplicate', child: ListTile(
                   leading: Icon(Icons.copy),
                   title: Text('Duplicar'),
@@ -673,12 +525,31 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
                   title: Text('Generar PDF'),
                   contentPadding: EdgeInsets.zero,
                 )),
+                if (quotation['status'] == 'Borrador')
+                  const PopupMenuItem(value: 'send', child: ListTile(
+                    leading: Icon(Icons.send, color: Colors.blue),
+                    title: Text('Enviar al cliente', style: TextStyle(color: Colors.blue)),
+                    contentPadding: EdgeInsets.zero,
+                  )),
+                if (quotation['status'] == 'Enviada' || quotation['status'] == 'Borrador')
+                  const PopupMenuItem(value: 'approve', child: ListTile(
+                    leading: Icon(Icons.check_circle, color: Colors.green),
+                    title: Text('Aprobar y crear venta', style: TextStyle(color: Colors.green)),
+                    contentPadding: EdgeInsets.zero,
+                  )),
+                if (quotation['status'] == 'Enviada' || quotation['status'] == 'Borrador')
+                  const PopupMenuItem(value: 'reject', child: ListTile(
+                    leading: Icon(Icons.cancel, color: Colors.orange),
+                    title: Text('Rechazar', style: TextStyle(color: Colors.orange)),
+                    contentPadding: EdgeInsets.zero,
+                  )),
                 const PopupMenuDivider(),
-                const PopupMenuItem(value: 'delete', child: ListTile(
-                  leading: Icon(Icons.delete, color: Colors.red),
-                  title: Text('Eliminar', style: TextStyle(color: Colors.red)),
-                  contentPadding: EdgeInsets.zero,
-                )),
+                if (quotation['status'] != 'Aprobada')
+                  const PopupMenuItem(value: 'delete', child: ListTile(
+                    leading: Icon(Icons.delete, color: Colors.red),
+                    title: Text('Eliminar', style: TextStyle(color: Colors.red)),
+                    contentPadding: EdgeInsets.zero,
+                  )),
               ],
             ),
           ],
@@ -689,24 +560,28 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.description_outlined, size: 80, color: Colors.grey[300]),
-          const SizedBox(height: 16),
-          Text(
-            'No hay cotizaciones',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _searchQuery.isNotEmpty
-                ? 'No se encontraron resultados para "$_searchQuery"'
-                : 'Crea tu primera cotización',
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.description_outlined, size: 64, color: Colors.grey[300]),
+              const SizedBox(height: 16),
+              Text(
+                'No hay cotizaciones',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _searchQuery.isNotEmpty
+                    ? 'No se encontraron resultados para "$_searchQuery"'
+                    : 'Crea tu primera cotización',
             style: TextStyle(color: Colors.grey[500]),
           ),
           const SizedBox(height: 24),
@@ -720,6 +595,8 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
             ),
           ),
         ],
+          ),
+        ),
       ),
     );
   }
@@ -760,9 +637,261 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
       case 'pdf':
         _generatePdf(quotation);
         break;
+      case 'send':
+        _sendQuotation(quotation);
+        break;
+      case 'approve':
+        _showApproveDialog(quotation);
+        break;
+      case 'reject':
+        _showRejectDialog(quotation);
+        break;
       case 'delete':
         _confirmDelete(quotation);
         break;
+    }
+  }
+
+  void _sendQuotation(Map<String, dynamic> quotation) async {
+    try {
+      await ref.read(quotationsProvider.notifier).updateStatus(
+        quotation['id'],
+        'Enviada',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Cotización ${quotation['number']} enviada al cliente'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showApproveDialog(Map<String, dynamic> quotation) {
+    final seriesController = TextEditingController(text: 'FAC');
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 28),
+            const SizedBox(width: 12),
+            const Text('Aprobar Cotización'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Al aprobar la cotización ${quotation['number']}:',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            _buildApprovalInfo(Icons.receipt_long, 'Se creará una factura automáticamente'),
+            _buildApprovalInfo(Icons.inventory, 'Se descontará el stock de los productos'),
+            _buildApprovalInfo(Icons.lock, 'La cotización no podrá ser editada'),
+            const SizedBox(height: 20),
+            TextField(
+              controller: seriesController,
+              decoration: const InputDecoration(
+                labelText: 'Serie de Factura',
+                hintText: 'Ej: FAC, A, B',
+                prefixIcon: Icon(Icons.numbers),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _approveQuotation(quotation, seriesController.text);
+            },
+            icon: const Icon(Icons.check, color: Colors.white),
+            label: const Text('Aprobar y Crear Venta', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildApprovalInfo(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: TextStyle(color: Colors.grey[700]))),
+        ],
+      ),
+    );
+  }
+
+  void _approveQuotation(Map<String, dynamic> quotation, String series) async {
+    // Mostrar loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Procesando aprobación...'),
+            SizedBox(height: 8),
+            Text('Creando factura y actualizando stock', 
+              style: TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final result = await ref.read(quotationsProvider.notifier).approveAndCreateInvoice(
+        quotation['id'],
+        series.isEmpty ? 'FAC' : series,
+      );
+
+      if (mounted) Navigator.pop(context); // Cerrar loading
+
+      if (result != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Factura ${result['invoice_number']} creada exitosamente'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Ver Ventas',
+              textColor: Colors.white,
+              onPressed: () => context.go('/sales'),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context); // Cerrar loading
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Error al aprobar: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showRejectDialog(Map<String, dynamic> quotation) {
+    final reasonController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.cancel, color: Colors.orange, size: 28),
+            const SizedBox(width: 12),
+            const Text('Rechazar Cotización'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Estás seguro de rechazar la cotización ${quotation['number']}?',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Motivo del rechazo (opcional)',
+                hintText: 'Ej: Cliente decidió no proceder, precio muy alto...',
+                prefixIcon: Icon(Icons.comment),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _rejectQuotation(quotation, reasonController.text);
+            },
+            icon: const Icon(Icons.cancel, color: Colors.white),
+            label: const Text('Rechazar', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _rejectQuotation(Map<String, dynamic> quotation, String reason) async {
+    try {
+      await ref.read(quotationsProvider.notifier).reject(
+        quotation['id'],
+        reason.isEmpty ? null : reason,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Cotización ${quotation['number']} rechazada'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -838,24 +967,36 @@ class _QuotationsPageState extends State<QuotationsPage> with SingleTickerProvid
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar Cotización'),
-        content: Text('¿Estás seguro de eliminar la cotización ${quotation['number']}?'),
+        content: Text('¿Estás seguro de eliminar la cotización ${quotation['number']}?\n\nEsta acción no se puede deshacer.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              setState(() {
-                _quotations.removeWhere((q) => q['id'] == quotation['id']);
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Cotización eliminada'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              
+              // Eliminar de la base de datos usando el provider
+              final success = await ref.read(quotationsProvider.notifier).deleteQuotation(quotation['id']);
+              
+              if (mounted) {
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('✅ Cotización ${quotation['number']} eliminada'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('❌ Error al eliminar la cotización'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Eliminar', style: TextStyle(color: Colors.white)),

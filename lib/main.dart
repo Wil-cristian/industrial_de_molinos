@@ -15,7 +15,59 @@ void main() async {
   // Inicializar Supabase
   await SupabaseDataSource.initialize();
   
+  // TEST: Verificar conexión a las tablas nuevas
+  await _testSupabaseConnection();
+  
   runApp(const ProviderScope(child: MolinosApp()));
+}
+
+Future<void> _testSupabaseConnection() async {
+  final client = SupabaseDataSource.client;
+  
+  print('🔍 ===== TEST DE CONEXIÓN SUPABASE =====');
+  print('📍 URL: ${AppConstants.supabaseUrl}');
+  
+  // Test 1: Tabla products (sabemos que existe)
+  try {
+    final products = await client.from('products').select('id').limit(1);
+    print('✅ products: OK (${products.length} registros)');
+  } catch (e) {
+    print('❌ products: $e');
+  }
+  
+  // Test 2: Tabla customers (sabemos que existe)
+  try {
+    final customers = await client.from('customers').select('id').limit(1);
+    print('✅ customers: OK (${customers.length} registros)');
+  } catch (e) {
+    print('❌ customers: $e');
+  }
+  
+  // Test 3: Tabla accounts (nueva)
+  try {
+    final accounts = await client.from('accounts').select('id').limit(1);
+    print('✅ accounts: OK (${accounts.length} registros)');
+  } catch (e) {
+    print('❌ accounts: $e');
+  }
+  
+  // Test 4: Tabla cash_movements (nueva)
+  try {
+    final movements = await client.from('cash_movements').select('id').limit(1);
+    print('✅ cash_movements: OK (${movements.length} registros)');
+  } catch (e) {
+    print('❌ cash_movements: $e');
+  }
+  
+  // Test 5: Tabla proveedores (nueva)
+  try {
+    final proveedores = await client.from('proveedores').select('id').limit(1);
+    print('✅ proveedores: OK (${proveedores.length} registros)');
+  } catch (e) {
+    print('❌ proveedores: $e');
+  }
+  
+  print('🔍 ===== FIN TEST =====');
 }
 
 class MolinosApp extends StatelessWidget {

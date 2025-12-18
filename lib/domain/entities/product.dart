@@ -13,6 +13,12 @@ class Product {
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
+  
+  // Campos de receta
+  final bool isRecipe;
+  final String? recipeDescription;
+  final double totalWeight;
+  final double totalCost;
 
   Product({
     required this.id,
@@ -28,6 +34,10 @@ class Product {
     this.isActive = true,
     required this.createdAt,
     required this.updatedAt,
+    this.isRecipe = false,
+    this.recipeDescription,
+    this.totalWeight = 0,
+    this.totalCost = 0,
   });
 
   // Stock bajo
@@ -52,6 +62,10 @@ class Product {
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? isRecipe,
+    String? recipeDescription,
+    double? totalWeight,
+    double? totalCost,
   }) {
     return Product(
       id: id ?? this.id,
@@ -67,6 +81,10 @@ class Product {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isRecipe: isRecipe ?? this.isRecipe,
+      recipeDescription: recipeDescription ?? this.recipeDescription,
+      totalWeight: totalWeight ?? this.totalWeight,
+      totalCost: totalCost ?? this.totalCost,
     );
   }
 }

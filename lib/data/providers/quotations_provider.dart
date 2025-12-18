@@ -97,6 +97,7 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
       );
       return created;
     } catch (e) {
+      print('❌ QuotationsProvider.createQuotation error: $e');
       state = state.copyWith(error: e.toString());
       return null;
     }
@@ -139,6 +140,53 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
     } catch (e) {
       state = state.copyWith(error: e.toString());
       return false;
+    }
+  }
+
+  /// Aprobar cotización y crear factura automáticamente
+  Future<Map<String, dynamic>?> approveAndCreateInvoice(String quotationId, String series) async {
+    try {
+      final invoiceId = await QuotationsDataSource.approveAndCreateInvoice(quotationId, series: series);
+      
+      // Actualizar estado local
+      final quotations = state.quotations.map((q) =>
+        q.id == quotationId ? q.copyWith(status: 'Aprobada') : q
+      ).toList();
+      state = state.copyWith(quotations: quotations);
+      
+      // Retornar info de la factura creada
+      return invoiceId != null ? {'invoice_id': invoiceId, 'invoice_number': series} : null;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      rethrow;
+    }
+  }
+
+  /// Rechazar cotización con motivo opcional
+  Future<bool> reject(String quotationId, String? reason) async {
+    try {
+      await QuotationsDataSource.reject(quotationId, reason: reason);
+      
+      // Actualizar estado local
+      final quotations = state.quotations.map((q) =>
+        q.id == quotationId ? q.copyWith(status: 'Rechazada', notes: reason ?? q.notes) : q
+      ).toList();
+      state = state.copyWith(quotations: quotations);
+      
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return false;
+    }
+  }
+
+  /// Verificar disponibilidad de stock para una cotización
+  Future<List<Map<String, dynamic>>> checkStockAvailability(String quotationId) async {
+    try {
+      return await QuotationsDataSource.checkStockAvailability(quotationId);
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return [];
     }
   }
 

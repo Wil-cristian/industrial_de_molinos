@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/accounts_provider.dart';
+import '../../data/providers/customers_provider.dart';
+import '../../data/providers/suppliers_provider.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
 
@@ -19,7 +21,11 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(dailyCashProvider.notifier).load());
+    Future.microtask(() {
+      ref.read(dailyCashProvider.notifier).load();
+      ref.read(suppliersProvider.notifier).loadSuppliers();
+      ref.read(customersProvider.notifier).loadCustomers();
+    });
   }
 
   @override
@@ -74,7 +80,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
         onPressed: () => _showAddMovementDialog(context),
         backgroundColor: AppTheme.primaryColor,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Nuevo Movimiento', style: TextStyle(color: Colors.white)),
+        label: const Text(
+          'Nuevo Movimiento',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
     );
   }
@@ -192,16 +201,16 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 Text(
                   'Caja Diaria',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryColor,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Control de ingresos, gastos y traslados',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[600],
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -216,12 +225,18 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               decoration: BoxDecoration(
                 color: AppTheme.primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                border: Border.all(
+                  color: AppTheme.primaryColor.withOpacity(0.3),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.calendar_today, color: AppTheme.primaryColor, size: 20),
+                  Icon(
+                    Icons.calendar_today,
+                    color: AppTheme.primaryColor,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     Formatters.dateLong(state.selectedDate),
@@ -263,9 +278,9 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
           children: [
             Text(
               'Saldos Actuales',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -276,7 +291,11 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.account_balance, color: AppTheme.successColor, size: 18),
+                  Icon(
+                    Icons.account_balance,
+                    color: AppTheme.successColor,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Total: ${Formatters.currency(state.totalBalance)}',
@@ -309,7 +328,11 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     );
   }
 
-  Widget _buildAccountCard(BuildContext context, Account account, DailyCashState state) {
+  Widget _buildAccountCard(
+    BuildContext context,
+    Account account,
+    DailyCashState state,
+  ) {
     final accountColor = account.color != null
         ? Color(int.parse(account.color!.replaceFirst('#', '0xFF')))
         : AppTheme.primaryColor;
@@ -363,10 +386,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                       const SizedBox(height: 2),
                       Text(
                         account.typeLabel,
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
                       ),
                     ],
                   ),
@@ -389,10 +409,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             const SizedBox(height: 4),
             Text(
               'Saldo actual',
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.grey[500], fontSize: 12),
             ),
             const Divider(height: 24),
             Row(
@@ -432,13 +449,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontSize: 11,
-          ),
-        ),
+        Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 11)),
       ],
     );
   }
@@ -452,9 +463,9 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
           children: [
             Text(
               'Resumen del Día',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Row(
@@ -468,11 +479,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     color: AppTheme.successColor,
                   ),
                 ),
-                Container(
-                  width: 1,
-                  height: 60,
-                  color: Colors.grey[300],
-                ),
+                Container(width: 1, height: 60, color: Colors.grey[300]),
                 Expanded(
                   child: _buildSummaryItem(
                     context,
@@ -482,26 +489,20 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     color: AppTheme.errorColor,
                   ),
                 ),
-                Container(
-                  width: 1,
-                  height: 60,
-                  color: Colors.grey[300],
-                ),
+                Container(width: 1, height: 60, color: Colors.grey[300]),
                 Expanded(
                   child: _buildSummaryItem(
                     context,
                     icon: Icons.trending_up,
                     label: 'Saldo Neto',
                     value: state.dayNet,
-                    color: state.dayNet >= 0 ? AppTheme.successColor : AppTheme.errorColor,
+                    color: state.dayNet >= 0
+                        ? AppTheme.successColor
+                        : AppTheme.errorColor,
                     showSign: true,
                   ),
                 ),
-                Container(
-                  width: 1,
-                  height: 60,
-                  color: Colors.grey[300],
-                ),
+                Container(width: 1, height: 60, color: Colors.grey[300]),
                 Expanded(
                   child: _buildSummaryItem(
                     context,
@@ -559,13 +560,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 12,
-            ),
-          ),
+          Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
         ],
       ),
     );
@@ -584,8 +579,8 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 Text(
                   'Movimientos del Día',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 // Filtro por cuenta
                 DropdownButton<String?>(
@@ -636,14 +631,18 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     );
   }
 
-  Widget _buildMovementRow(BuildContext context, CashMovement movement, DailyCashState state) {
+  Widget _buildMovementRow(
+    BuildContext context,
+    CashMovement movement,
+    DailyCashState state,
+  ) {
     final account = state.getAccountById(movement.accountId);
     final isIncome = movement.isIncome;
     final isTransfer = movement.type == MovementType.transfer;
-    
+
     Color iconColor;
     IconData icon;
-    
+
     if (isTransfer) {
       iconColor = Colors.orange;
       icon = Icons.swap_horiz;
@@ -689,7 +688,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: iconColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
@@ -707,19 +709,13 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     if (account != null)
                       Text(
                         account.name,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     if (movement.personName != null) ...[
                       const SizedBox(width: 8),
                       Text(
                         '• ${movement.personName}',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ],
                   ],
@@ -740,10 +736,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               ),
               Text(
                 Formatters.time(movement.createdAt),
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: Colors.grey[500], fontSize: 11),
               ),
             ],
           ),
@@ -795,10 +788,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
   }
 
   void _showTransferDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const _TransferDialog(),
-    );
+    showDialog(context: context, builder: (context) => const _TransferDialog());
   }
 
   void _showAccountOptions(BuildContext context, Account account) {
@@ -844,8 +834,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
   }
 
   void _showAdjustBalanceDialog(BuildContext context, Account account) {
-    final controller = TextEditingController(text: account.balance.toStringAsFixed(2));
-    
+    final controller = TextEditingController(
+      text: account.balance.toStringAsFixed(2),
+    );
+
     showDialog(
       context: context,
       builder: (context) {
@@ -858,7 +850,9 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               const SizedBox(height: 16),
               TextField(
                 controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: const InputDecoration(
                   labelText: 'Nuevo Saldo',
                   prefixText: 'L ',
@@ -877,8 +871,11 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                final newBalance = double.tryParse(controller.text) ?? account.balance;
-                ref.read(dailyCashProvider.notifier).adjustBalance(account.id, newBalance);
+                final newBalance =
+                    double.tryParse(controller.text) ?? account.balance;
+                ref
+                    .read(dailyCashProvider.notifier)
+                    .adjustBalance(account.id, newBalance);
                 Navigator.pop(context);
               },
               child: const Text('Guardar'),
@@ -906,11 +903,16 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                ref.read(dailyCashProvider.notifier).deleteMovement(movement.id);
+                ref
+                    .read(dailyCashProvider.notifier)
+                    .deleteMovement(movement.id);
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Eliminar',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
@@ -933,10 +935,25 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
   bool _isIncome = true;
   String? _selectedAccountId;
   MovementCategory? _selectedCategory;
+  String? _errorMessage;
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _personController = TextEditingController();
   final _referenceController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Seleccionar la primera cuenta por defecto después del primer frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final accounts = ref.read(dailyCashProvider).accounts;
+      if (accounts.isNotEmpty && _selectedAccountId == null) {
+        setState(() {
+          _selectedAccountId = accounts.first.id;
+        });
+      }
+    });
+  }
 
   List<MovementCategory> get _incomeCategories => [
     MovementCategory.sale,
@@ -1003,7 +1020,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
 
                 // Cuenta
                 DropdownButtonFormField<String>(
-                  value: _selectedAccountId,
+                  initialValue: _selectedAccountId,
                   decoration: const InputDecoration(
                     labelText: 'Cuenta *',
                     border: OutlineInputBorder(),
@@ -1027,7 +1044,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
 
                 // Categoría
                 DropdownButtonFormField<MovementCategory>(
-                  value: _selectedCategory,
+                  initialValue: _selectedCategory,
                   decoration: const InputDecoration(
                     labelText: 'Categoría *',
                     border: OutlineInputBorder(),
@@ -1058,12 +1075,16 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                     prefixIcon: Icon(Icons.attach_money),
                     prefixText: 'L ',
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
                   ],
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Ingrese el monto';
+                    if (value == null || value.isEmpty) {
+                      return 'Ingrese el monto';
+                    }
                     final amount = double.tryParse(value);
                     if (amount == null || amount <= 0) return 'Monto inválido';
                     return null;
@@ -1080,23 +1101,103 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                     prefixIcon: Icon(Icons.description),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Ingrese una descripción';
+                    if (value == null || value.isEmpty) {
+                      return 'Ingrese una descripción';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // Persona (opcional)
-                TextFormField(
-                  controller: _personController,
-                  decoration: const InputDecoration(
-                    labelText: 'Persona (opcional)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
-                    hintText: 'Cliente, proveedor, empleado...',
-                  ),
+                // Persona (opcional) - Autocomplete de clientes y proveedores
+                Consumer(
+                  builder: (context, ref, _) {
+                    final customersState = ref.watch(customersProvider);
+                    final suppliersState = ref.watch(suppliersProvider);
+
+                    // Combinar nombres de clientes y proveedores
+                    final allNames = <String>[];
+                    for (final c in customersState.customers) {
+                      allNames.add('👤 ${c.displayName}'); // Cliente
+                    }
+                    for (final s in suppliersState.suppliers) {
+                      allNames.add('🏢 ${s.displayName}'); // Proveedor
+                    }
+
+                    return Autocomplete<String>(
+                      optionsBuilder: (TextEditingValue textEditingValue) {
+                        // Mostrar todas las opciones si el campo está vacío (al hacer clic)
+                        if (textEditingValue.text.isEmpty) {
+                          // Mostrar máximo 10 opciones cuando está vacío
+                          return allNames.take(10);
+                        }
+                        final query = textEditingValue.text.toLowerCase();
+                        final matches = allNames
+                            .where((name) => name.toLowerCase().contains(query))
+                            .take(10)
+                            .toList();
+
+                        // Si no hay coincidencias, mostrar opción para crear
+                        if (matches.isEmpty &&
+                            textEditingValue.text.length > 2) {
+                          return [
+                            '➕ Crear "${textEditingValue.text}" como nuevo...',
+                          ];
+                        }
+                        return matches;
+                      },
+                      onSelected: (String selection) {
+                        if (selection.startsWith('➕ Crear')) {
+                          // Mostrar diálogo para crear cliente o proveedor
+                          _showCreatePersonDialog(context, ref);
+                        } else {
+                          // Quitar el emoji del inicio (👤 o 🏢)
+                          String cleanName = selection;
+                          if (selection.startsWith('👤 ')) {
+                            cleanName = selection.substring(3);
+                          } else if (selection.startsWith('🏢 ')) {
+                            cleanName = selection.substring(3);
+                          }
+                          setState(() {
+                            _personController.text = cleanName;
+                          });
+                        }
+                      },
+                      fieldViewBuilder:
+                          (context, controller, focusNode, onFieldSubmitted) {
+                            // Sincronizar controladores
+                            if (_personController.text.isNotEmpty &&
+                                controller.text.isEmpty) {
+                              controller.text = _personController.text;
+                            }
+                            return TextFormField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              decoration: InputDecoration(
+                                labelText: _isIncome
+                                    ? 'Cliente (opcional)'
+                                    : 'Proveedor/Persona (opcional)',
+                                border: const OutlineInputBorder(),
+                                prefixIcon: Icon(
+                                  _isIncome ? Icons.person : Icons.business,
+                                ),
+                                hintText:
+                                    'Clic para ver opciones o escriba para buscar...',
+                                suffixIcon: IconButton(
+                                  icon: const Icon(Icons.person_add),
+                                  tooltip: 'Crear nuevo',
+                                  onPressed: () =>
+                                      _showCreatePersonDialog(context, ref),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                _personController.text = value;
+                              },
+                            );
+                          },
+                    );
+                  },
                 ),
-                const SizedBox(height: 16),
 
                 // Referencia (opcional)
                 TextFormField(
@@ -1108,6 +1209,13 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                     hintText: 'Número de factura, recibo...',
                   ),
                 ),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1121,7 +1229,9 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
         ElevatedButton(
           onPressed: _save,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _isIncome ? AppTheme.successColor : AppTheme.errorColor,
+            backgroundColor: _isIncome
+                ? AppTheme.successColor
+                : AppTheme.errorColor,
           ),
           child: Text(
             _isIncome ? 'Registrar Ingreso' : 'Registrar Gasto',
@@ -1157,41 +1267,159 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
     }
   }
 
+  void _showCreatePersonDialog(BuildContext context, WidgetRef ref) {
+    final nameController = TextEditingController(text: _personController.text);
+    String selectedType = _isIncome ? 'cliente' : 'proveedor';
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Crear Nuevo'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Tipo
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'cliente',
+                        label: Text('Cliente'),
+                        icon: Icon(Icons.person),
+                      ),
+                      ButtonSegment(
+                        value: 'proveedor',
+                        label: Text('Proveedor'),
+                        icon: Icon(Icons.business),
+                      ),
+                    ],
+                    selected: {selectedType},
+                    onSelectionChanged: (selected) {
+                      setDialogState(() => selectedType = selected.first);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  // Nombre
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: selectedType == 'cliente'
+                          ? 'Nombre del cliente'
+                          : 'Nombre del proveedor',
+                      border: const OutlineInputBorder(),
+                      prefixIcon: Icon(
+                        selectedType == 'cliente'
+                            ? Icons.person
+                            : Icons.business,
+                      ),
+                    ),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Podrás completar los datos adicionales después.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final name = nameController.text.trim();
+                    if (name.isEmpty) return;
+
+                    if (selectedType == 'proveedor') {
+                      await ref
+                          .read(suppliersProvider.notifier)
+                          .createQuickSupplier(name);
+                    } else {
+                      // Para clientes, por ahora solo usamos el nombre
+                      // TODO: Implementar creación rápida de clientes
+                    }
+
+                    _personController.text = name;
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
+
+                    // Mostrar confirmación
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('$name agregado como $selectedType'),
+                          backgroundColor: AppTheme.successColor,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Crear'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _save() async {
+    setState(() => _errorMessage = null);
     if (!_formKey.currentState!.validate()) return;
 
     final notifier = ref.read(dailyCashProvider.notifier);
     final amount = double.parse(_amountController.text);
-    
     bool success;
-    if (_isIncome) {
-      success = await notifier.addIncome(
-        accountId: _selectedAccountId!,
-        amount: amount,
-        description: _descriptionController.text,
-        category: _selectedCategory!,
-        personName: _personController.text.isEmpty ? null : _personController.text,
-        reference: _referenceController.text.isEmpty ? null : _referenceController.text,
-      );
-    } else {
-      success = await notifier.addExpense(
-        accountId: _selectedAccountId!,
-        amount: amount,
-        description: _descriptionController.text,
-        category: _selectedCategory!,
-        personName: _personController.text.isEmpty ? null : _personController.text,
-        reference: _referenceController.text.isEmpty ? null : _referenceController.text,
-      );
-    }
-
-    if (success && mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isIncome ? 'Ingreso registrado' : 'Gasto registrado'),
-          backgroundColor: AppTheme.successColor,
-        ),
-      );
+    try {
+      if (_isIncome) {
+        success = await notifier.addIncome(
+          accountId: _selectedAccountId!,
+          amount: amount,
+          description: _descriptionController.text,
+          category: _selectedCategory!,
+          personName: _personController.text.isEmpty
+              ? null
+              : _personController.text,
+          reference: _referenceController.text.isEmpty
+              ? null
+              : _referenceController.text,
+        );
+      } else {
+        success = await notifier.addExpense(
+          accountId: _selectedAccountId!,
+          amount: amount,
+          description: _descriptionController.text,
+          category: _selectedCategory!,
+          personName: _personController.text.isEmpty
+              ? null
+              : _personController.text,
+          reference: _referenceController.text.isEmpty
+              ? null
+              : _referenceController.text,
+        );
+      }
+      if (success && mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isIncome ? 'Ingreso registrado' : 'Gasto registrado',
+            ),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+      } else if (!success) {
+        setState(
+          () => _errorMessage =
+              (ref.read(dailyCashProvider).error ??
+              'No se pudo registrar el movimiento.'),
+        );
+      }
+    } catch (e) {
+      setState(() => _errorMessage = 'Error: ${e.toString()}');
     }
   }
 }
@@ -1234,7 +1462,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
               children: [
                 // Cuenta origen
                 DropdownButtonFormField<String>(
-                  value: _fromAccountId,
+                  initialValue: _fromAccountId,
                   decoration: const InputDecoration(
                     labelText: 'De (Cuenta Origen)',
                     border: OutlineInputBorder(),
@@ -1262,12 +1490,16 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
                 const SizedBox(height: 16),
 
                 // Icono de flecha
-                const Icon(Icons.arrow_downward, color: Colors.orange, size: 28),
+                const Icon(
+                  Icons.arrow_downward,
+                  color: Colors.orange,
+                  size: 28,
+                ),
                 const SizedBox(height: 16),
 
                 // Cuenta destino
                 DropdownButtonFormField<String>(
-                  value: _toAccountId,
+                  initialValue: _toAccountId,
                   decoration: const InputDecoration(
                     labelText: 'Hacia (Cuenta Destino)',
                     border: OutlineInputBorder(),
@@ -1275,9 +1507,9 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
                     isDense: true,
                   ),
                   isExpanded: true,
-                  items: state.accounts
-                      .where((a) => a.id != _fromAccountId)
-                      .map((account) {
+                  items: state.accounts.where((a) => a.id != _fromAccountId).map((
+                    account,
+                  ) {
                     return DropdownMenuItem<String>(
                       value: account.id,
                       child: Text(
@@ -1307,12 +1539,16 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
                     prefixText: 'L ',
                     isDense: true,
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
                   ],
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Ingrese el monto';
+                    if (value == null || value.isEmpty) {
+                      return 'Ingrese el monto';
+                    }
                     final amount = double.tryParse(value);
                     if (amount == null || amount <= 0) return 'Monto inválido';
 
@@ -1337,7 +1573,9 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
                     isDense: true,
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Ingrese descripción';
+                    if (value == null || value.isEmpty) {
+                      return 'Ingrese descripción';
+                    }
                     return null;
                   },
                 ),
@@ -1353,9 +1591,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
         ),
         ElevatedButton(
           onPressed: _transfer,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange,
-          ),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
           child: const Text('Trasladar', style: TextStyle(color: Colors.white)),
         ),
       ],
@@ -1367,7 +1603,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
 
     final notifier = ref.read(dailyCashProvider.notifier);
     final amount = double.parse(_amountController.text);
-    
+
     final success = await notifier.transfer(
       fromAccountId: _fromAccountId!,
       toAccountId: _toAccountId!,
@@ -1410,7 +1646,9 @@ class _NavItem extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent,
+          color: isSelected
+              ? Colors.white.withOpacity(0.1)
+              : Colors.transparent,
           border: isSelected
               ? const Border(left: BorderSide(color: Colors.white, width: 3))
               : null,
@@ -1422,10 +1660,7 @@ class _NavItem extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 10),
             ),
           ],
         ),

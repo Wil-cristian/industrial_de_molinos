@@ -6,3 +6,4 @@ export 'materials_provider.dart';
 export 'invoices_provider.dart';
 export 'reports_provider.dart';
 export 'accounts_provider.dart';
+export 'inventory_provider.dart';

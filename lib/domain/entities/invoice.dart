@@ -1,7 +1,7 @@
 // Entidad: Factura/Comprobante
 enum InvoiceType { invoice, receipt, creditNote, debitNote }
 enum InvoiceStatus { draft, issued, paid, partial, cancelled, overdue }
-enum PaymentMethod { cash, card, transfer, credit, check }
+enum PaymentMethod { cash, card, transfer, credit, check, yape, plin }
 
 class Invoice {
   final String id;

@@ -1,293 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../domain/entities/invoice.dart';
-import '../widgets/receipt_preview.dart';
+import '../../data/providers/invoices_provider.dart';
 
-class InvoicesPage extends StatefulWidget {
+class InvoicesPage extends ConsumerStatefulWidget {
   const InvoicesPage({super.key});
 
   @override
-  State<InvoicesPage> createState() => _InvoicesPageState();
+  ConsumerState<InvoicesPage> createState() => _InvoicesPageState();
 }
 
-class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderStateMixin {
+class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _searchQuery = '';
   String _selectedStatus = 'Todos';
   DateTimeRange? _dateRange;
 
-  // Datos de ejemplo con items detallados y componentes
-  final List<Map<String, dynamic>> _invoices = [
-    {
-      'id': '1',
-      'number': 'F001-00045',
-      'customer': 'Juan Pérez García',
-      'customerId': '1',
-      'customerRuc': '12345678901',
-      'date': DateTime.now().subtract(const Duration(days: 1)),
-      'dueDate': DateTime.now().add(const Duration(days: 29)),
-      'items': 5,
-      'subtotal': 1050.85,
-      'tax': 189.15,
-      'total': 1240.00,
-      'paid': 1240.00,
-      'status': 'Pagada',
-      'paymentMethod': 'Efectivo',
-      'notes': 'Entrega inmediata. Cliente frecuente.',
-      'products': [
-        {
-          'name': 'Rodamiento SKF 6310',
-          'quantity': 2,
-          'unitPrice': 85.00,
-          'total': 170.00,
-          'type': 'Repuesto',
-          'material': 'Acero cromado',
-          'dimensions': 'Ø50mm × Ø110mm × 27mm',
-        },
-        {
-          'name': 'Sello mecánico',
-          'quantity': 4,
-          'unitPrice': 45.50,
-          'total': 182.00,
-          'type': 'Repuesto',
-          'material': 'Neopreno/Acero',
-          'dimensions': 'Ø80mm',
-        },
-        {
-          'name': 'Perno grado 8',
-          'quantity': 24,
-          'unitPrice': 8.50,
-          'total': 204.00,
-          'type': 'Ferretería',
-          'material': 'Acero Grado 8',
-          'dimensions': 'M16 × 80mm',
-        },
-        {
-          'name': 'Grasa industrial SKF',
-          'quantity': 3,
-          'unitPrice': 125.00,
-          'total': 375.00,
-          'type': 'Lubricante',
-          'material': 'Grasa EP2',
-          'dimensions': 'Balde 5 kg',
-        },
-        {
-          'name': 'Empaquetadura grafitada',
-          'quantity': 2,
-          'unitPrice': 59.93,
-          'total': 119.85,
-          'type': 'Sello',
-          'material': 'Grafito/PTFE',
-          'dimensions': 'Rollo 5m × 25mm',
-        },
-      ],
-    },
-    {
-      'id': '2',
-      'number': 'F001-00044',
-      'customer': 'María García López',
-      'customerId': '2',
-      'customerRuc': '23456789012',
-      'date': DateTime.now().subtract(const Duration(days: 2)),
-      'dueDate': DateTime.now().add(const Duration(days: 28)),
-      'items': 12,
-      'subtotal': 754.24,
-      'tax': 135.76,
-      'total': 890.00,
-      'paid': 0.0,
-      'status': 'Pendiente',
-      'paymentMethod': null,
-      'notes': 'Pendiente de aprobación de crédito.',
-      'products': [
-        {
-          'name': 'Kit de mantenimiento molino',
-          'quantity': 1,
-          'unitPrice': 754.24,
-          'total': 754.24,
-          'type': 'Kit completo',
-          'material': 'Varios',
-          'dimensions': 'N/A',
-          'components': [
-            'Rodamientos × 4',
-            'Sellos mecánicos × 8',
-            'Grasa industrial × 2',
-            'Tornillería completa',
-            'Manual de instalación',
-          ],
-        },
-      ],
-    },
-    {
-      'id': '3',
-      'number': 'F001-00043',
-      'customer': 'Distribuidora El Sol SAC',
-      'customerId': '4',
-      'customerRuc': '20456789012',
-      'date': DateTime.now().subtract(const Duration(days: 3)),
-      'dueDate': DateTime.now().add(const Duration(days: 27)),
-      'items': 45,
-      'subtotal': 12542.37,
-      'tax': 2257.63,
-      'total': 14800.00,
-      'paid': 7400.00,
-      'status': 'Parcial',
-      'paymentMethod': 'Transferencia',
-      'notes': 'Pago en 2 cuotas. Primera cuota pagada.',
-      'products': [
-        {
-          'name': 'Molino de Bolas 3x4 pies',
-          'quantity': 1,
-          'unitPrice': 8500.00,
-          'total': 8500.00,
-          'type': 'Equipo completo',
-          'material': 'Acero A36/SAE 4140',
-          'weight': '1450 kg',
-          'dimensions': 'Ø915mm × 1220mm',
-          'components': [
-            'Cilindro principal - Acero A36',
-            'Tapas frontales × 2 - Acero A36',
-            'Eje de transmisión - SAE 4140',
-            'Corona dentada - SAE 4340',
-            'Base estructural soldada',
-            'Chumaceras con rodamientos SKF',
-          ],
-        },
-        {
-          'name': 'Transportador de banda 3m',
-          'quantity': 1,
-          'unitPrice': 2800.00,
-          'total': 2800.00,
-          'type': 'Equipo',
-          'material': 'Acero/Caucho',
-          'dimensions': '3000mm × 500mm',
-          'components': [
-            'Estructura metálica lateral × 2',
-            'Rodillos tensores × 6',
-            'Tambor motriz',
-            'Banda de caucho 3 lonas',
-          ],
-        },
-        {
-          'name': 'Repuestos varios',
-          'quantity': 1,
-          'unitPrice': 1242.37,
-          'total': 1242.37,
-          'type': 'Repuestos',
-          'material': 'Varios',
-        },
-      ],
-    },
-    {
-      'id': '4',
-      'number': 'F001-00042',
-      'customer': 'Carlos Rodríguez',
-      'customerId': '3',
-      'customerRuc': '34567890123',
-      'date': DateTime.now().subtract(const Duration(days: 5)),
-      'dueDate': DateTime.now().subtract(const Duration(days: 5)),
-      'items': 3,
-      'subtotal': 423.73,
-      'tax': 76.27,
-      'total': 500.00,
-      'paid': 0.0,
-      'status': 'Vencida',
-      'paymentMethod': null,
-      'notes': 'URGENTE: Contactar cliente.',
-      'products': [
-        {
-          'name': 'Rodamiento 6220',
-          'quantity': 2,
-          'unitPrice': 180.00,
-          'total': 360.00,
-          'type': 'Repuesto',
-          'material': 'Acero SKF',
-        },
-        {
-          'name': 'Retenedor de grasa',
-          'quantity': 2,
-          'unitPrice': 31.87,
-          'total': 63.73,
-          'type': 'Sello',
-          'material': 'NBR',
-        },
-      ],
-    },
-    {
-      'id': '5',
-      'number': 'F001-00041',
-      'customer': 'Ana Torres Mendoza',
-      'customerId': '5',
-      'customerRuc': '45678901234',
-      'date': DateTime.now().subtract(const Duration(days: 7)),
-      'dueDate': DateTime.now().add(const Duration(days: 23)),
-      'items': 8,
-      'subtotal': 1864.41,
-      'tax': 335.59,
-      'total': 2200.00,
-      'paid': 2200.00,
-      'status': 'Pagada',
-      'paymentMethod': 'Yape',
-      'notes': 'Cliente satisfecho. Solicitar reseña.',
-      'products': [
-        {
-          'name': 'Tapa para molino 4x6',
-          'quantity': 2,
-          'unitPrice': 850.00,
-          'total': 1700.00,
-          'type': 'Componente',
-          'material': 'Acero A36',
-          'weight': '235 kg c/u',
-          'dimensions': 'Ø1220mm × 25mm',
-        },
-        {
-          'name': 'Buje de bronce',
-          'quantity': 2,
-          'unitPrice': 82.21,
-          'total': 164.41,
-          'type': 'Repuesto',
-          'material': 'Bronce SAE 64',
-          'dimensions': 'Ø120mm × Ø100mm × 80mm',
-        },
-      ],
-    },
-    {
-      'id': '6',
-      'number': 'F001-00040',
-      'customer': 'Distribuidora El Sol SAC',
-      'customerId': '4',
-      'date': DateTime.now().subtract(const Duration(days: 10)),
-      'dueDate': DateTime.now().add(const Duration(days: 20)),
-      'items': 67,
-      'subtotal': 21186.44,
-      'tax': 3813.56,
-      'total': 25000.00,
-      'paid': 25000.00,
-      'status': 'Pagada',
-      'paymentMethod': 'Transferencia',
-    },
-    {
-      'id': '7',
-      'number': 'B001-00023',
-      'customer': 'Cliente Mostrador',
-      'customerId': null,
-      'date': DateTime.now().subtract(const Duration(hours: 3)),
-      'dueDate': null,
-      'items': 2,
-      'subtotal': 42.37,
-      'tax': 7.63,
-      'total': 50.00,
-      'paid': 50.00,
-      'status': 'Pagada',
-      'paymentMethod': 'Efectivo',
-    },
-  ];
+  // Los datos vienen del provider
+  List<Map<String, dynamic>> get _invoices {
+    final state = ref.watch(invoicesProvider);
+    return state.invoices.map((inv) => {
+      'id': inv.id,
+      'number': '${inv.series}-${inv.number}',
+      'customer': inv.customerName,
+      'customerId': inv.customerId,
+      'customerRuc': inv.customerDocument,
+      'date': inv.issueDate,
+      'dueDate': inv.dueDate,
+      'items': inv.items.length,
+      'subtotal': inv.subtotal,
+      'tax': inv.taxAmount,
+      'total': inv.total,
+      'paid': inv.paidAmount,
+      'status': _mapStatus(inv.status),
+      'paymentMethod': inv.paymentMethod?.name,
+      'notes': inv.notes,
+      'products': inv.items.map((item) => {
+        'name': item.productName,
+        'quantity': item.quantity,
+        'unitPrice': item.unitPrice,
+        'total': item.total,
+      }).toList(),
+    }).toList();
+  }
+
+  String _mapStatus(InvoiceStatus status) {
+    switch (status) {
+      case InvoiceStatus.draft: return 'Borrador';
+      case InvoiceStatus.issued: return 'Pendiente';
+      case InvoiceStatus.paid: return 'Pagada';
+      case InvoiceStatus.partial: return 'Parcial';
+      case InvoiceStatus.cancelled: return 'Anulada';
+      case InvoiceStatus.overdue: return 'Vencida';
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Cargar facturas desde Supabase
+    Future.microtask(() => ref.read(invoicesProvider.notifier).refresh());
   }
 
   @override
@@ -955,79 +731,115 @@ class _InvoicesPageState extends State<InvoicesPage> with SingleTickerProviderSt
 
   void _showPaymentDialog(Map<String, dynamic> invoice) {
     final pending = (invoice['total'] as double) - (invoice['paid'] as double);
+    final amountController = TextEditingController(text: pending.toStringAsFixed(2));
+    final referenceController = TextEditingController();
+    String selectedMethod = 'Efectivo';
     
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.payment, color: Colors.green),
-                  const SizedBox(width: 12),
-                  const Text('Registrar Pago', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const Spacer(),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text('Documento: ${invoice['number']}', style: TextStyle(color: Colors.grey[600])),
-              Text('Pendiente: ${Formatters.currency(pending)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-              const SizedBox(height: 24),
-              TextFormField(
-                initialValue: pending.toStringAsFixed(2),
-                decoration: const InputDecoration(
-                  labelText: 'Monto a pagar',
-                  border: OutlineInputBorder(),
-                  prefixText: 'S/ ',
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            width: 400,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.payment, color: Colors.green),
+                    const SizedBox(width: 12),
+                    const Text('Registrar Pago', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  ],
                 ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: 'Efectivo',
-                decoration: const InputDecoration(
-                  labelText: 'Método de pago',
-                  border: OutlineInputBorder(),
-                ),
-                items: ['Efectivo', 'Transferencia', 'Yape', 'Plin', 'Tarjeta']
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (value) {},
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Referencia (opcional)',
-                  border: OutlineInputBorder(),
-                  hintText: 'Ej: Nro. de operación',
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Pago registrado exitosamente'), backgroundColor: Colors.green),
-                      );
-                    },
-                    icon: const Icon(Icons.check),
-                    label: const Text('Confirmar'),
+                const SizedBox(height: 16),
+                Text('Documento: ${invoice['number']}', style: TextStyle(color: Colors.grey[600])),
+                Text('Pendiente: ${Formatters.currency(pending)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                const SizedBox(height: 24),
+                TextFormField(
+                  controller: amountController,
+                  decoration: const InputDecoration(
+                    labelText: 'Monto a pagar',
+                    border: OutlineInputBorder(),
+                    prefixText: 'S/ ',
                   ),
-                ],
-              ),
-            ],
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedMethod,
+                  decoration: const InputDecoration(
+                    labelText: 'Método de pago',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: ['Efectivo', 'Transferencia', 'Yape', 'Plin', 'Tarjeta']
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (value) => setDialogState(() => selectedMethod = value ?? 'Efectivo'),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: referenceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Referencia (opcional)',
+                    border: OutlineInputBorder(),
+                    hintText: 'Ej: Nro. de operación',
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+                    const SizedBox(width: 12),
+                    FilledButton.icon(
+                      onPressed: () async {
+                        final amount = double.tryParse(amountController.text) ?? 0;
+                        if (amount <= 0 || amount > pending) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Monto inválido'), backgroundColor: Colors.red),
+                          );
+                          return;
+                        }
+                        
+                        Navigator.pop(context);
+                        
+                        // Convertir método de pago
+                        PaymentMethod method;
+                        switch (selectedMethod) {
+                          case 'Transferencia': method = PaymentMethod.transfer; break;
+                          case 'Yape': method = PaymentMethod.yape; break;
+                          case 'Plin': method = PaymentMethod.plin; break;
+                          case 'Tarjeta': method = PaymentMethod.card; break;
+                          default: method = PaymentMethod.cash;
+                        }
+                        
+                        final success = await ref.read(invoicesProvider.notifier).registerPayment(
+                          invoice['id'],
+                          amount,
+                          method,
+                        );
+                        
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(success ? 'Pago registrado exitosamente' : 'Error al registrar pago'),
+                              backgroundColor: success ? Colors.green : Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.check),
+                      label: const Text('Confirmar'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

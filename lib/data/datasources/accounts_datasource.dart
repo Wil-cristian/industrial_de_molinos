@@ -149,11 +149,14 @@ class AccountsDataSource {
     data.remove('id');
     data.remove('created_at');
     
+    print('📤 Insertando movimiento: $data');
+    
     final response = await _client
         .from(_movementsTable)
         .insert(data)
         .select()
         .single();
+    print('✅ Movimiento insertado: $response');
     return _movementFromJson(response);
   }
 

@@ -68,39 +68,59 @@ class QuotationsDataSource {
 
   /// Crear cotización
   static Future<Quotation> create(Quotation quotation) async {
-    // Generar número automático
-    final number = await generateNumber();
-    
-    final data = _toJson(quotation);
-    data['number'] = number;
-    data.remove('id');
-    data.remove('items');
-    data.remove('created_at');
-    data.remove('updated_at');
-    data.remove('synced');
-    
-    final response = await _client.from(_table).insert(data).select().single();
-    final newId = response['id'];
-    
-    // Insertar items
-    for (var i = 0; i < quotation.items.length; i++) {
-      await createItem(newId, quotation.items[i], i);
+    try {
+      // Generar número automático
+      print('📝 Generando número de cotización...');
+      final number = await generateNumber();
+      print('✅ Número generado: $number');
+      
+      final data = _toJson(quotation);
+      data['number'] = number;
+      data.remove('id');
+      data.remove('items');
+      data.remove('created_at');
+      data.remove('updated_at');
+      data.remove('synced');
+      
+      print('📤 Insertando cotización: $data');
+      final response = await _client.from(_table).insert(data).select().single();
+      final newId = response['id'];
+      print('✅ Cotización creada con ID: $newId');
+      
+      // Insertar items
+      print('📝 Insertando ${quotation.items.length} items...');
+      for (var i = 0; i < quotation.items.length; i++) {
+        print('  Item $i: ${quotation.items[i].name}');
+        await createItem(newId, quotation.items[i], i);
+      }
+      print('✅ Items insertados');
+      
+      // Retornar cotización con items
+      return (await getById(newId))!;
+    } catch (e, stack) {
+      print('❌ Error al crear cotización: $e');
+      print('Stack: $stack');
+      rethrow;
     }
-    
-    // Retornar cotización con items
-    return (await getById(newId))!;
   }
 
   /// Crear item de cotización
   static Future<QuotationItem> createItem(String quotationId, QuotationItem item, int order) async {
-    final data = _itemToJson(item);
-    data['quotation_id'] = quotationId;
-    data['sort_order'] = order;
-    data.remove('id');
-    data.remove('created_at');
-    
-    final response = await _client.from(_itemsTable).insert(data).select().single();
-    return _itemFromJson(response);
+    try {
+      final data = _itemToJson(item);
+      data['quotation_id'] = quotationId;
+      data['sort_order'] = order;
+      data.remove('id');
+      data.remove('created_at');
+      
+      print('  📤 Insertando item: $data');
+      final response = await _client.from(_itemsTable).insert(data).select().single();
+      print('  ✅ Item insertado');
+      return _itemFromJson(response);
+    } catch (e) {
+      print('  ❌ Error insertando item: $e');
+      rethrow;
+    }
   }
 
   /// Actualizar cotización
@@ -128,6 +148,53 @@ class QuotationsDataSource {
   /// Actualizar estado
   static Future<void> updateStatus(String id, String status) async {
     await _client.from(_table).update({'status': status}).eq('id', id);
+  }
+
+  /// Aprobar cotización y crear factura automáticamente
+  static Future<String?> approveAndCreateInvoice(String quotationId, {String series = 'F001'}) async {
+    try {
+      final response = await _client.rpc(
+        'approve_quotation_and_create_invoice',
+        params: {
+          'p_quotation_id': quotationId,
+          'p_series': series,
+        },
+      );
+      return response as String?;
+    } catch (e) {
+      print('❌ Error al aprobar cotización: $e');
+      rethrow;
+    }
+  }
+
+  /// Rechazar cotización
+  static Future<void> reject(String quotationId, {String? reason}) async {
+    try {
+      await _client.rpc(
+        'reject_quotation',
+        params: {
+          'p_quotation_id': quotationId,
+          'p_reason': reason,
+        },
+      );
+    } catch (e) {
+      print('❌ Error al rechazar cotización: $e');
+      rethrow;
+    }
+  }
+
+  /// Verificar disponibilidad de stock para cotización
+  static Future<List<Map<String, dynamic>>> checkStockAvailability(String quotationId) async {
+    try {
+      final response = await _client.rpc(
+        'check_stock_availability',
+        params: {'p_quotation_id': quotationId},
+      );
+      return List<Map<String, dynamic>>.from(response ?? []);
+    } catch (e) {
+      print('❌ Error al verificar stock: $e');
+      return [];
+    }
   }
 
   /// Eliminar cotización
