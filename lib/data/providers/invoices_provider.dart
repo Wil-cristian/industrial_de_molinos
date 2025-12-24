@@ -59,8 +59,9 @@ class InvoicesNotifier extends Notifier<InvoicesState> {
 
   @override
   InvoicesState build() {
-    // Cargar recibos al iniciar
-    _loadInvoices();
+    // Cargar recibos al iniciar - usar Future.microtask para evitar
+    // acceder al state antes de que build() retorne
+    Future.microtask(() => _loadInvoices());
     return const InvoicesState(isLoading: true);
   }
 

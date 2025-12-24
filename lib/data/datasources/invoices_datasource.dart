@@ -194,12 +194,15 @@ class InvoicesDataSource {
       notes: notes,
     );
 
+    print('💾 Creada factura: ${invoice.number}');
+
     // Insertar items
     for (int i = 0; i < items.length; i++) {
       final item = items[i];
       await _client.from('invoice_items').insert({
         'invoice_id': invoice.id,
         'product_id': item.productId,
+        'material_id': item.materialId,
         'product_code': item.productCode,
         'product_name': item.productName,
         'description': item.description,
@@ -213,7 +216,12 @@ class InvoicesDataSource {
         'total': item.total,
         'sort_order': i,
       });
+      print('  ✅ Item insertado: ${item.productName} x${item.quantity}');
     }
+
+    // NOTA: El descuento de inventario se hace en updateStatus() cuando 
+    // el estado cambia a 'issued', NO aquí al crear el borrador.
+    // Esto evita el descuento doble.
 
     return invoice;
   }
@@ -260,6 +268,24 @@ class InvoicesDataSource {
 
   /// Actualiza el stock de productos para un recibo
   static Future<void> _updateStockForInvoice(String invoiceId, {required bool decrease}) async {
+    if (decrease) {
+      try {
+        // Usar la nueva función unificada de descuento
+        await _client.rpc('deduct_inventory_for_invoice', params: {
+          'p_invoice_id': invoiceId,
+        });
+      } catch (e) {
+        print('⚠️ Error al descontar inventario vía RPC: $e');
+        // Fallback al método manual si falla
+        await _fallbackUpdateStock(invoiceId, decrease: true);
+      }
+    } else {
+      // Para restaurar stock (cancelación), por ahora usamos el método manual
+      await _fallbackUpdateStock(invoiceId, decrease: false);
+    }
+  }
+
+  static Future<void> _fallbackUpdateStock(String invoiceId, {required bool decrease}) async {
     // Obtener los items del recibo
     final items = await getItems(invoiceId);
     

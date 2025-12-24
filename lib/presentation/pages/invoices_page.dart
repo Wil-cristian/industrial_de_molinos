@@ -5,6 +5,8 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../domain/entities/invoice.dart';
 import '../../data/providers/invoices_provider.dart';
+import '../widgets/app_sidebar.dart';
+import '../widgets/quick_actions_button.dart';
 
 class InvoicesPage extends ConsumerStatefulWidget {
   const InvoicesPage({super.key});
@@ -101,9 +103,15 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: Column(
+      body: Stack(
         children: [
-          // Header
+          Row(
+            children: [
+              const AppSidebar(currentRoute: '/invoices'),
+              Expanded(
+                child: Column(
+                  children: [
+                    // Header
           Container(
             padding: const EdgeInsets.all(24),
             color: Colors.white,
@@ -259,6 +267,12 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
               ],
             ),
           ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const QuickActionsButton(),
         ],
       ),
     );

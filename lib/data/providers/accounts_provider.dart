@@ -230,6 +230,7 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
     String? reference,
   }) async {
     try {
+      print('📤 Registrando gasto: cuenta=$accountId, monto=$amount, desc=$description');
       final movement = CashMovement(
         id: '',
         accountId: accountId,
@@ -243,9 +244,11 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
       );
       
       await AccountsDataSource.createMovementWithBalanceUpdate(movement);
+      print('✅ Gasto registrado exitosamente');
       await load(); // Recargar todo
       return true;
     } catch (e) {
+      print('❌ Error al registrar gasto: $e');
       state = state.copyWith(error: e.toString());
       return false;
     }

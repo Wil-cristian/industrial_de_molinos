@@ -7,9 +7,11 @@ import '../../core/utils/weight_calculator.dart';
 import '../../data/providers/customers_provider.dart';
 import '../../data/providers/products_provider.dart';
 import '../../data/providers/quotations_provider.dart';
+import '../../data/providers/inventory_provider.dart';
 import '../../data/datasources/inventory_datasource.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/quotation.dart';
+import '../../domain/entities/material.dart' as domain;
 
 class NewQuotationPage extends ConsumerStatefulWidget {
   const NewQuotationPage({super.key});
@@ -50,19 +52,19 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
     }).toList();
   }
 
-  // Los materiales vienen del provider (Supabase - tabla products)
+  // Los materiales vienen del provider de Inventario (tabla materials)
   List<Map<String, dynamic>> get _materialPrices {
-    final state = ref.watch(productsProvider);
-    return state.products.map((p) => {
-      'id': p.id,
-      'name': p.name,
-      'code': p.code,
-      'category': p.categoryId ?? 'otros',
-      'pricePerKg': p.unitPrice,
-      'costPrice': p.costPrice,
-      'density': 7.85, // Densidad por defecto (acero)
-      'stock': p.stock,
-      'unit': p.unit,
+    final state = ref.watch(inventoryProvider);
+    return state.materials.map((m) => {
+      'id': m.id,
+      'name': m.name,
+      'code': m.code,
+      'category': m.category,
+      'pricePerKg': m.pricePerKg > 0 ? m.pricePerKg : m.unitPrice,
+      'costPrice': m.costPrice,
+      'density': m.density,
+      'stock': m.stock,
+      'unit': m.unit,
     }).toList();
   }
 
@@ -103,10 +105,11 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
   @override
   void initState() {
     super.initState();
-    // Cargar clientes y productos desde Supabase
+    // Cargar clientes, productos y materiales desde Supabase
     Future.microtask(() {
       ref.read(customersProvider.notifier).loadCustomers();
       ref.read(productsProvider.notifier).loadProducts();
+      ref.read(inventoryProvider.notifier).loadMaterials();
     });
   }
 
@@ -538,55 +541,24 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
           children: [
             Expanded(
               child: Text(
-                'Agrega los componentes a cotizar',
-                style: TextStyle(color: Colors.grey[700]),
+                'Productos / Servicios',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'new_component') {
-                  _showAddComponentDialog();
-                } else if (value == 'from_product') {
-                  _showSelectProductDialog();
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'new_component',
-                  child: ListTile(
-                    leading: Icon(Icons.add_circle_outline, color: AppTheme.primaryColor),
-                    title: Text('Nuevo Componente'),
-                    subtitle: Text('Crear con dimensiones'),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'from_product',
-                  child: ListTile(
-                    leading: Icon(Icons.inventory_2, color: Colors.green),
-                    title: Text('Desde Producto'),
-                    subtitle: Text('Seleccionar del inventario'),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ],
-              child: ElevatedButton.icon(
-                onPressed: null, // El popup se abre con el onTap del PopupMenuButton
-                icon: const Icon(Icons.add, size: 18),
-                label: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Agregar'),
-                    SizedBox(width: 4),
-                    Icon(Icons.arrow_drop_down, size: 18),
-                  ],
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppTheme.primaryColor,
-                  disabledForegroundColor: Colors.white,
-                ),
+            OutlinedButton.icon(
+              onPressed: () => _showAddMaterialDialog(ref.read(inventoryProvider).materials),
+              icon: const Icon(Icons.inventory_2_outlined, size: 18),
+              label: const Text('Agregar Material'),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              onPressed: _showSelectProductDialog,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Agregar Producto'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
               ),
             ),
           ],
@@ -594,26 +566,27 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
         const SizedBox(height: 16),
         if (_items.isEmpty)
           Container(
-            padding: const EdgeInsets.all(40),
+            padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!, style: BorderStyle.solid),
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Column(
-              children: [
-                Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[400]),
-                const SizedBox(height: 12),
-                Text(
-                  'No hay componentes agregados',
-                  style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Agrega cilindros, tapas, ejes u otros componentes',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
-                ),
-              ],
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.shopping_cart_outlined, size: 48, color: Colors.grey[400]),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No hay productos agregados',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Haz clic en "Agregar" para añadir productos',
+                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  ),
+                ],
+              ),
             ),
           )
         else
@@ -1127,6 +1100,8 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
         name: item['name'] ?? '',
         description: item['dimensions'] ?? '',
         type: item['type'] ?? 'custom',
+        productId: item['productId'],
+        materialId: item['materialId'] ?? item['inv_material_id'], // Buscar en ambas claves
         quantity: (item['quantity'] ?? 1).toInt(),
         unitWeight: (item['unitWeight'] ?? 0).toDouble(),
         pricePerKg: (item['pricePerKg'] ?? 0).toDouble(),
@@ -1158,38 +1133,45 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
       final created = await ref.read(quotationsProvider.notifier).createQuotation(quotation);
       
       // Cerrar indicador de carga
-      if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.of(context).pop();
       
       if (created != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Cotización ${created.number} guardada exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        context.go('/quotations');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ Cotización ${created.number} guardada exitosamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Usar go en lugar de pop para evitar errores de Navigator
+          context.go('/quotations');
+        }
       } else {
-        final errorMsg = ref.read(quotationsProvider).error ?? 'Error desconocido';
-        print('❌ Error al guardar: $errorMsg');
+        if (mounted) {
+          final errorMsg = ref.read(quotationsProvider).error ?? 'Error desconocido';
+          print('❌ Error al guardar: $errorMsg');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: $errorMsg'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 10),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Cerrar indicador de carga
+      if (mounted) Navigator.of(context).pop();
+      print('❌ Exception: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $errorMsg'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 10),
           ),
         );
       }
-    } catch (e) {
-      // Cerrar indicador de carga
-      if (mounted) Navigator.pop(context);
-      print('❌ Exception: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 10),
-        ),
-      );
     }
   }
 
@@ -1216,6 +1198,18 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
         materialPrices: _materialPrices,
         onAdd: (component) {
           setState(() => _items.add(component));
+        },
+      ),
+    );
+  }
+
+  void _showAddMaterialDialog(List<domain.Material> materials) {
+    showDialog(
+      context: context,
+      builder: (context) => _AddMaterialFromInventoryDialog(
+        materials: materials,
+        onAdd: (materialData) {
+          setState(() => _items.add(materialData));
         },
       ),
     );
@@ -1264,6 +1258,10 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
         categories: _categories,
         onSelect: (product, quantity) {
           setState(() {
+            // Calcular peso: usar totalWeight del producto (receta) o 0 si no tiene
+            final unitWeight = product.totalWeight > 0 ? product.totalWeight : 0.0;
+            final totalWeight = unitWeight * quantity;
+            
             // Agregar producto del inventario como item
             _items.add({
               'id': DateTime.now().millisecondsSinceEpoch.toString(),
@@ -1271,15 +1269,16 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
               'name': product.name,
               'type': 'product', // Tipo válido del ENUM
               'material': product.code,
-              'dimensions': product.description ?? '-',
+              'dimensions': product.description ?? (product.isRecipe ? 'Receta' : '-'),
               'quantity': quantity,
-              'unitWeight': 0.0, // Se puede calcular si tienes peso
-              'totalWeight': 0.0,
+              'unitWeight': unitWeight,
+              'totalWeight': totalWeight,
               'pricePerKg': product.unitPrice,
               'totalPrice': product.unitPrice * quantity,
               'productCode': product.code,
               'stock': product.stock,
               'unit': product.unit,
+              'isRecipe': product.isRecipe,
             });
           });
         },
@@ -1785,6 +1784,7 @@ class _AddComponentDialogState extends State<_AddComponentDialog> {
       'name': _nameController.text.isNotEmpty ? _nameController.text : _getDefaultName(),
       'type': _componentType,
       'material': material?['name'] ?? 'No especificado',
+      'materialId': _selectedMaterialId,
       'dimensions': _getDimensionsString(),
       'quantity': quantity,
       'unitWeight': _calculatedWeight,
@@ -2389,16 +2389,6 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: TextStyle(color: Colors.grey[600])),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
-      ],
     );
   }
 }
@@ -3137,5 +3127,215 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog> with S
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+}
+
+// Diálogo para agregar material del inventario (como en facturas)
+class _AddMaterialFromInventoryDialog extends StatefulWidget {
+  final List<domain.Material> materials;
+  final Function(Map<String, dynamic>) onAdd;
+
+  const _AddMaterialFromInventoryDialog({
+    required this.materials,
+    required this.onAdd,
+  });
+
+  @override
+  State<_AddMaterialFromInventoryDialog> createState() => _AddMaterialFromInventoryDialogState();
+}
+
+class _AddMaterialFromInventoryDialogState extends State<_AddMaterialFromInventoryDialog> {
+  final _searchController = TextEditingController();
+  String? _selectedCategory;
+  domain.Material? _selectedMaterial;
+  double _quantity = 1;
+
+  List<String> get _categories {
+    final cats = widget.materials.map((m) => m.category).toSet().toList();
+    cats.sort();
+    return cats;
+  }
+
+  List<domain.Material> get _filteredMaterials {
+    var filtered = widget.materials;
+    
+    // Filtrar por categoría
+    if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+      filtered = filtered.where((m) => m.category == _selectedCategory).toList();
+    }
+    
+    // Filtrar por búsqueda
+    if (_searchController.text.isNotEmpty) {
+      final query = _searchController.text.toLowerCase();
+      filtered = filtered.where((m) =>
+        m.name.toLowerCase().contains(query) ||
+        m.code.toLowerCase().contains(query)
+      ).toList();
+    }
+    
+    return filtered;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Agregar Material del Inventario'),
+      content: SizedBox(
+        width: 550,
+        height: 450,
+        child: Column(
+          children: [
+            // Barra de búsqueda y filtro de categoría
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      labelText: 'Buscar material',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedCategory,
+                    decoration: const InputDecoration(
+                      labelText: 'Categoría',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('Todas')),
+                      ..._categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                    ],
+                    onChanged: (value) => setState(() => _selectedCategory = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _filteredMaterials.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 8),
+                        Text('No hay materiales', style: TextStyle(color: Colors.grey[600])),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                itemCount: _filteredMaterials.length,
+                itemBuilder: (context, index) {
+                  final material = _filteredMaterials[index];
+                  final isSelected = _selectedMaterial?.id == material.id;
+                  return ListTile(
+                    selected: isSelected,
+                    selectedTileColor: Colors.orange.withValues(alpha: 0.1),
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                      child: const Icon(Icons.inventory_2, color: Colors.orange, size: 20),
+                    ),
+                    title: Text(material.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    subtitle: Text('${material.code} • Stock: ${material.stock.toStringAsFixed(0)} ${material.unit}'),
+                    trailing: Text(
+                      Helpers.formatCurrency(material.pricePerKg > 0 ? material.pricePerKg : material.unitPrice),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    onTap: () => setState(() => _selectedMaterial = material),
+                  );
+                },
+              ),
+            ),
+            if (_selectedMaterial != null) ...[
+              const Divider(),
+              Row(
+                children: [
+                  Text('Cantidad (${_selectedMaterial!.unit}):', style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: _quantity > 1 
+                        ? () => setState(() => _quantity--) 
+                        : null,
+                  ),
+                  SizedBox(
+                    width: 80,
+                    child: TextField(
+                      textAlign: TextAlign.center,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      controller: TextEditingController(text: _quantity.toStringAsFixed(_quantity == _quantity.truncate() ? 0 : 2)),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      ),
+                      onChanged: (v) {
+                        final qty = double.tryParse(v);
+                        if (qty != null && qty > 0) {
+                          setState(() => _quantity = qty);
+                        }
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () => setState(() => _quantity++),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'Total: ${Helpers.formatCurrency((_selectedMaterial!.pricePerKg > 0 ? _selectedMaterial!.pricePerKg : _selectedMaterial!.unitPrice) * _quantity)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _selectedMaterial == null
+              ? null
+              : () {
+                  final price = _selectedMaterial!.pricePerKg > 0 
+                      ? _selectedMaterial!.pricePerKg 
+                      : _selectedMaterial!.unitPrice;
+                  final totalPrice = price * _quantity;
+                  
+                  // Crear item compatible con la estructura de cotización
+                  widget.onAdd({
+                    'id': DateTime.now().millisecondsSinceEpoch.toString(),
+                    'materialId': _selectedMaterial!.id, // ID del material del inventario
+                    'inv_material_id': _selectedMaterial!.id, // También guardarlo aquí para compatibilidad
+                    'name': _selectedMaterial!.name,
+                    'type': 'custom', // Usar 'custom' porque el ENUM no incluye 'material'
+                    'material': _selectedMaterial!.code,
+                    'dimensions': _selectedMaterial!.category,
+                    'quantity': _quantity.toInt(),
+                    'unitWeight': 1.0,
+                    'totalWeight': _quantity,
+                    'pricePerKg': price,
+                    'totalPrice': totalPrice,
+                    'productCode': _selectedMaterial!.code,
+                    'stock': _selectedMaterial!.stock,
+                    'unit': _selectedMaterial!.unit,
+                  });
+                  Navigator.pop(context);
+                },
+          child: const Text('Agregar'),
+        ),
+      ],
+    );
   }
 }

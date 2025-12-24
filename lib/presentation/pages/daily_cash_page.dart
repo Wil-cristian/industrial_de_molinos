@@ -9,6 +9,8 @@ import '../../data/providers/customers_provider.dart';
 import '../../data/providers/suppliers_provider.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
+import '../widgets/app_sidebar.dart';
+import '../widgets/quick_actions_button.dart';
 
 class DailyCashPage extends ConsumerStatefulWidget {
   const DailyCashPage({super.key});
@@ -33,21 +35,23 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     final state = ref.watch(dailyCashProvider);
 
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          // Navigation Rail (mismo del dashboard)
-          _buildNavigationRail(context),
+          Row(
+            children: [
+              // Sidebar unificado
+              const AppSidebar(currentRoute: '/daily-cash'),
 
-          // Contenido principal
-          Expanded(
-            child: Container(
-              color: AppTheme.backgroundColor,
-              child: state.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Column(
-                      children: [
-                        // Header con fecha
-                        _buildHeader(context, state),
+              // Contenido principal
+              Expanded(
+                child: Container(
+                  color: AppTheme.backgroundColor,
+                  child: state.isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : Column(
+                          children: [
+                            // Header con fecha
+                            _buildHeader(context, state),
 
                         // Contenido
                         Expanded(
@@ -72,18 +76,27 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                         ),
                       ],
                     ),
+              ),
+            ),
+          ],
+        ),
+        // QuickActions Button
+        const QuickActionsButton(),
+        // FAB para nuevo movimiento
+        Positioned(
+          bottom: 20,
+          right: 20,
+          child: FloatingActionButton.extended(
+            onPressed: () => _showAddMovementDialog(context),
+            backgroundColor: AppTheme.primaryColor,
+            icon: const Icon(Icons.add, color: Colors.white),
+            label: const Text(
+              'Nuevo Movimiento',
+              style: TextStyle(color: Colors.white),
             ),
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddMovementDialog(context),
-        backgroundColor: AppTheme.primaryColor,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Nuevo Movimiento',
-          style: TextStyle(color: Colors.white),
         ),
+      ],
       ),
     );
   }

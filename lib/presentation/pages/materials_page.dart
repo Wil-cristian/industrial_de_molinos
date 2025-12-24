@@ -30,7 +30,8 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
     return state.materials.where((m) {
       final matchesSearch = m.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           m.code.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesCategory = _selectedCategory == 'todos' || m.category == _selectedCategory;
+      final matchesCategory = _selectedCategory == 'todos' || 
+          m.category.toLowerCase() == _selectedCategory.toLowerCase();
       return matchesSearch && matchesCategory;
     }).toList();
   }
@@ -121,7 +122,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     SizedBox(
                       width: 180,
                       child: DropdownButtonFormField<String>(
-                        initialValue: _selectedCategory,
+                        value: _selectedCategory,
                         decoration: InputDecoration(
                           labelText: 'Categoría',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

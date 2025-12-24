@@ -149,6 +149,8 @@ class QuotationItem {
   final String name;
   final String description;
   final String type; // cylinder, plate, shaft, custom, product
+  final String? productId; // ID del producto si viene de una receta
+  final String? materialId; // ID del material si es directo del inventario
   final int quantity;
   final double unitWeight; // Peso unitario en kg
   final double pricePerKg; // Precio por kg del material
@@ -161,6 +163,8 @@ class QuotationItem {
     required this.name,
     this.description = '',
     required this.type,
+    this.productId,
+    this.materialId,
     this.quantity = 1,
     this.unitWeight = 0,
     this.pricePerKg = 0,
@@ -185,6 +189,8 @@ class QuotationItem {
     String? name,
     String? description,
     String? type,
+    String? productId,
+    String? materialId,
     int? quantity,
     double? unitWeight,
     double? pricePerKg,
@@ -197,6 +203,8 @@ class QuotationItem {
       name: name ?? this.name,
       description: description ?? this.description,
       type: type ?? this.type,
+      productId: productId ?? this.productId,
+      materialId: materialId ?? this.materialId,
       quantity: quantity ?? this.quantity,
       unitWeight: unitWeight ?? this.unitWeight,
       pricePerKg: pricePerKg ?? this.pricePerKg,
@@ -211,6 +219,8 @@ class QuotationItem {
     'name': name,
     'description': description,
     'type': type,
+    'product_id': productId,
+    'material_id': materialId,
     'quantity': quantity,
     'unit_weight': unitWeight,
     'price_per_kg': pricePerKg,
@@ -224,6 +234,8 @@ class QuotationItem {
     name: json['name'],
     description: json['description'] ?? '',
     type: json['type'],
+    productId: json['product_id'],
+    materialId: json['material_id'],
     quantity: json['quantity'] ?? 1,
     unitWeight: (json['unit_weight'] ?? 0).toDouble(),
     pricePerKg: (json['price_per_kg'] ?? 0).toDouble(),

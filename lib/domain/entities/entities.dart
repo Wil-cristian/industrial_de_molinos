@@ -8,3 +8,4 @@ export 'material_price.dart';
 export 'quotation.dart';
 export 'account.dart';
 export 'cash_movement.dart';
+export 'analytics.dart';

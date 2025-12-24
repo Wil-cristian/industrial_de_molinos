@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/providers.dart';
 import '../../domain/entities/invoice.dart';
+import '../widgets/app_sidebar.dart';
+import '../widgets/quick_actions_button.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -14,6 +17,8 @@ class DashboardPage extends ConsumerStatefulWidget {
 }
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
+  DateTime _selectedDate = DateTime.now();
+  
   @override
   void initState() {
     super.initState();
@@ -22,7 +27,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       ref.read(customersProvider.notifier).loadCustomers();
       ref.read(productsProvider.notifier).loadProducts();
       ref.read(quotationsProvider.notifier).loadQuotations();
-      ref.read(materialsProvider.notifier).loadMaterials();
+      ref.read(inventoryProvider.notifier).loadMaterials();
       ref.read(invoicesProvider.notifier).refresh();
     });
   }
@@ -31,330 +36,600 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget build(BuildContext context) {
     final customersState = ref.watch(customersProvider);
     final productsState = ref.watch(productsProvider);
-    // final quotationsState = ref.watch(quotationsProvider);  // TODO: Usar cuando se integre
     final invoicesState = ref.watch(invoicesProvider);
     final recentInvoices = ref.watch(recentInvoicesProvider);
+    final inventoryState = ref.watch(inventoryProvider);
+    
+    // Calcular alertas de stock bajo
+    final lowStockMaterials = inventoryState.materials
+        .where((m) => m.stock <= m.minStock && m.isActive)
+        .toList();
     
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          // Navigation Rail (Menú lateral) - Scrollable
-          Container(
-            width: 80,
-            color: AppTheme.primaryColor,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.factory,
-                          color: AppTheme.primaryColor,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Molinos',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
+          Row(
+            children: [
+              // Sidebar con navegación
+              const AppSidebar(currentRoute: '/'),
+              
+              // Contenido principal
+              Expanded(
+                child: Container(
+                  color: AppTheme.backgroundColor,
                   child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _NavItem(
-                          icon: Icons.dashboard,
-                          label: 'Inicio',
-                          onTap: () => context.go('/'),
+                        // Header
+                        _buildHeader(context),
+                        const SizedBox(height: 24),
+
+                        // Cards de resumen
+                        _buildSummaryCards(context, invoicesState, productsState, customersState),
+                        const SizedBox(height: 24),
+
+                        // Notificaciones y Mini Calendario
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Panel de Notificaciones
+                            Expanded(
+                              flex: 2,
+                              child: _buildNotificationsPanel(
+                                context, 
+                                lowStockMaterials, 
+                                invoicesState,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            
+                            // Mini Calendario
+                            Expanded(
+                              flex: 1,
+                              child: _buildMiniCalendar(context),
+                            ),
+                          ],
                         ),
-                        _NavItem(
-                          icon: Icons.account_balance_wallet,
-                          label: 'Caja',
-                          onTap: () => context.go('/daily-cash'),
-                        ),
-                        _NavItem(
-                          icon: Icons.inventory_2,
-                          label: 'Productos',
-                          onTap: () => context.go('/products'),
-                        ),
-                        _NavItem(
-                          icon: Icons.people,
-                          label: 'Clientes',
-                          onTap: () => context.go('/customers'),
-                        ),
-                        _NavItem(
-                          icon: Icons.receipt_long,
-                          label: 'Ventas',
-                          onTap: () => context.go('/invoices'),
-                        ),
-                        _NavItem(
-                          icon: Icons.request_quote,
-                          label: 'Cotizar',
-                          onTap: () => context.go('/quotations'),
-                        ),
-                        _NavItem(
-                          icon: Icons.bar_chart,
-                          label: 'Reportes',
-                          onTap: () => context.go('/reports'),
-                        ),
-                        _NavItem(
-                          icon: Icons.settings,
-                          label: 'Config',
-                          onTap: () => context.go('/settings'),
-                        ),
+                        const SizedBox(height: 24),
+
+                        // Últimas ventas
+                        _buildRecentSalesCard(context, invoicesState, recentInvoices),
                       ],
                     ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          // Botón de acciones rápidas
+          const QuickActionsButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¡Bienvenido!',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              Formatters.dateLong(DateTime.now()),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            _buildStatusChip(
+              icon: Icons.cloud_done,
+              label: 'Conectado a Supabase',
+              color: AppTheme.successColor,
+            ),
+            const SizedBox(width: 16),
+            CircleAvatar(
+              backgroundColor: AppTheme.primaryColor,
+              child: const Icon(Icons.person, color: Colors.white),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryCards(
+    BuildContext context, 
+    dynamic invoicesState, 
+    dynamic productsState,
+    dynamic customersState,
+  ) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildSummaryCard(
+            context,
+            title: 'Ventas del Mes',
+            value: Formatters.currency(invoicesState.totalVentas),
+            icon: Icons.attach_money,
+            color: AppTheme.successColor,
+            subtitle: '${invoicesState.invoices.length} recibos',
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildSummaryCard(
+            context,
+            title: 'Pendiente de Cobro',
+            value: Formatters.currency(invoicesState.totalPendiente),
+            icon: Icons.pending_actions,
+            color: AppTheme.warningColor,
+            subtitle: '${invoicesState.countPendientes} recibos',
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildSummaryCard(
+            context,
+            title: 'Productos',
+            value: productsState.products.length.toString(),
+            icon: Icons.inventory_2,
+            color: productsState.lowStockProducts.isNotEmpty 
+                ? AppTheme.errorColor 
+                : AppTheme.successColor,
+            subtitle: '${productsState.lowStockProducts.length} stock bajo',
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildSummaryCard(
+            context,
+            title: 'Clientes Activos',
+            value: customersState.customers.length.toString(),
+            icon: Icons.people,
+            color: AppTheme.accentColor,
+            subtitle: 'En la base de datos',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNotificationsPanel(
+    BuildContext context, 
+    List<dynamic> lowStockMaterials,
+    dynamic invoicesState,
+  ) {
+    // Crear lista de notificaciones basadas en datos reales
+    final notifications = <_NotificationItem>[];
+    
+    // Alertas de stock bajo
+    for (var material in lowStockMaterials.take(3)) {
+      notifications.add(_NotificationItem(
+        icon: Icons.inventory_2,
+        title: 'Stock Bajo: ${material.name}',
+        message: 'Actual: ${material.stock.toStringAsFixed(1)} ${material.unit}, Mínimo: ${material.minStock.toStringAsFixed(1)}',
+        severity: material.stock == 0 ? 'error' : 'warning',
+        time: 'Ahora',
+        route: '/materials',
+      ));
+    }
+    
+    // Facturas vencidas
+    final overdueInvoices = invoicesState.invoices
+        .where((i) => i.status == InvoiceStatus.overdue || 
+                      (i.status != InvoiceStatus.paid && 
+                       i.status != InvoiceStatus.cancelled &&
+                       i.dueDate != null && 
+                       i.dueDate!.isBefore(DateTime.now())))
+        .take(3)
+        .toList();
+    
+    for (var invoice in overdueInvoices) {
+      notifications.add(_NotificationItem(
+        icon: Icons.receipt_long,
+        title: 'Factura Vencida: ${invoice.fullNumber}',
+        message: 'Cliente: ${invoice.customerName}, Pendiente: ${Formatters.currency(invoice.pendingAmount)}',
+        severity: 'error',
+        time: 'Vencida',
+        route: '/invoices',
+      ));
+    }
+    
+    // Si no hay notificaciones, mostrar mensaje
+    if (notifications.isEmpty) {
+      notifications.add(_NotificationItem(
+        icon: Icons.check_circle,
+        title: '¡Todo en orden!',
+        message: 'No hay alertas pendientes',
+        severity: 'success',
+        time: 'Ahora',
+      ));
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.notifications_active, color: Colors.orange[600], size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Notificaciones',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              if (notifications.length > 1)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${notifications.length}',
+                    style: TextStyle(
+                      color: Colors.red[600],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
+          ...notifications.map((n) => _buildNotificationTile(context, n)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationTile(BuildContext context, _NotificationItem notification) {
+    Color severityColor;
+    switch (notification.severity) {
+      case 'error':
+        severityColor = Colors.red;
+        break;
+      case 'warning':
+        severityColor = Colors.orange;
+        break;
+      case 'success':
+        severityColor = Colors.green;
+        break;
+      default:
+        severityColor = Colors.blue;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: notification.route != null 
+            ? () => context.go(notification.route!) 
+            : null,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: severityColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(notification.icon, color: severityColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      notification.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      notification.message,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                notification.time,
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 11,
+                ),
+              ),
+              if (notification.route != null) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right, color: Colors.grey[400], size: 18),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniCalendar(BuildContext context) {
+    final now = DateTime.now();
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final firstDayOfMonth = DateTime(now.year, now.month, 1);
+    final firstWeekday = firstDayOfMonth.weekday;
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo[50],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.calendar_month, color: Colors.indigo[600], size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    DateFormat('MMMM yyyy', 'es').format(now),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // Días de la semana
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+                .map((d) => SizedBox(
+                      width: 28,
+                      child: Text(
+                        d,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 8),
+          
+          // Días del mes
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 4,
+              crossAxisSpacing: 4,
+            ),
+            itemCount: 42,
+            itemBuilder: (context, index) {
+              final dayOffset = index - (firstWeekday - 1);
+              if (dayOffset < 1 || dayOffset > daysInMonth) {
+                return const SizedBox();
+              }
+              
+              final isToday = dayOffset == now.day;
+              final isSelected = dayOffset == _selectedDate.day && 
+                                 now.month == _selectedDate.month;
+              
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedDate = DateTime(now.year, now.month, dayOffset);
+                  });
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isToday 
+                        ? AppTheme.primaryColor 
+                        : isSelected 
+                            ? AppTheme.primaryColor.withOpacity(0.1)
+                            : null,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$dayOffset',
+                      style: TextStyle(
+                        color: isToday 
+                            ? Colors.white 
+                            : isSelected 
+                                ? AppTheme.primaryColor 
+                                : Colors.grey[700],
+                        fontSize: 12,
+                        fontWeight: isToday || isSelected 
+                            ? FontWeight.bold 
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          
+          // Actividades del día (placeholder)
+          Text(
+            'Actividades del ${_selectedDate.day}/${_selectedDate.month}',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.event_available, color: Colors.grey[400], size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'Sin actividades programadas',
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-          
-          // Contenido principal
-          Expanded(
-            child: Container(
-              color: AppTheme.backgroundColor,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentSalesCard(
+    BuildContext context, 
+    dynamic invoicesState,
+    List<Invoice> recentInvoices,
+  ) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    // Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '¡Bienvenido!',
-                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryColor,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              Formatters.dateLong(DateTime.now()),
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            _buildStatusChip(
-                              icon: Icons.cloud_done,
-                              label: 'Conectado a Supabase',
-                              color: AppTheme.successColor,
-                            ),
-                            const SizedBox(width: 16),
-                            CircleAvatar(
-                              backgroundColor: AppTheme.primaryColor,
-                              child: const Icon(Icons.person, color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.receipt_long, color: Colors.green[600], size: 22),
                     ),
-                    const SizedBox(height: 32),
-
-                    // Cards de resumen
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSummaryCard(
-                            context,
-                            title: 'Ventas del Mes',
-                            value: Formatters.currency(invoicesState.totalVentas),
-                            icon: Icons.attach_money,
-                            color: AppTheme.successColor,
-                            subtitle: '${invoicesState.invoices.length} recibos',
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSummaryCard(
-                            context,
-                            title: 'Pendiente de Cobro',
-                            value: Formatters.currency(invoicesState.totalPendiente),
-                            icon: Icons.pending_actions,
-                            color: AppTheme.warningColor,
-                            subtitle: '${invoicesState.countPendientes} recibos',
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSummaryCard(
-                            context,
-                            title: 'Productos',
-                            value: productsState.products.length.toString(),
-                            icon: Icons.inventory_2,
-                            color: productsState.lowStockProducts.isNotEmpty 
-                                ? AppTheme.errorColor 
-                                : AppTheme.successColor,
-                            subtitle: '${productsState.lowStockProducts.length} stock bajo',
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSummaryCard(
-                            context,
-                            title: 'Clientes Activos',
-                            value: customersState.customers.length.toString(),
-                            icon: Icons.people,
-                            color: AppTheme.accentColor,
-                            subtitle: 'En la base de datos',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Sección de acciones rápidas y últimas ventas
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Acciones rápidas
-                        Expanded(
-                          flex: 1,
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Acciones Rápidas',
-                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildQuickAction(
-                                    context,
-                                    icon: Icons.account_balance_wallet,
-                                    label: 'Caja Diaria',
-                                    onTap: () => context.go('/daily-cash'),
-                                    highlighted: true,
-                                  ),
-                                  _buildQuickAction(
-                                    context,
-                                    icon: Icons.add_shopping_cart,
-                                    label: 'Nueva Venta',
-                                    onTap: () => context.go('/invoices/new'),
-                                  ),
-                                  _buildQuickAction(
-                                    context,
-                                    icon: Icons.request_quote,
-                                    label: 'Nueva Cotización',
-                                    onTap: () => context.go('/quotations/new'),
-                                  ),
-                                  _buildQuickAction(
-                                    context,
-                                    icon: Icons.person_add,
-                                    label: 'Nuevo Cliente',
-                                    onTap: () => context.go('/customers/new'),
-                                  ),
-                                  _buildQuickAction(
-                                    context,
-                                    icon: Icons.add_box,
-                                    label: 'Nuevo Producto',
-                                    onTap: () => context.go('/products/new'),
-                                  ),
-                                  const Divider(height: 24),
-                                  _buildQuickAction(
-                                    context,
-                                    icon: Icons.inventory_2,
-                                    label: 'Materiales (Inventario)',
-                                    onTap: () => context.go('/materials'),
-                                  ),
-                                  _buildQuickAction(
-                                    context,
-                                    icon: Icons.precision_manufacturing,
-                                    label: 'Productos Compuestos',
-                                    onTap: () => context.go('/composite-products'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-
-                        // Últimas ventas
-                        Expanded(
-                          flex: 2,
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Últimas Ventas',
-                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      TextButton(
-                                        onPressed: () => context.go('/invoices'),
-                                        child: const Text('Ver todas'),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  if (invoicesState.isLoading)
-                                    const Center(child: CircularProgressIndicator())
-                                  else if (recentInvoices.isEmpty)
-                                    const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(20),
-                                        child: Text('No hay ventas registradas'),
-                                      ),
-                                    )
-                                  else
-                                    ...recentInvoices.take(5).map((invoice) => 
-                                      _buildInvoiceRow(
-                                        '${invoice.series}-${invoice.number}',
-                                        invoice.customerName,
-                                        invoice.total,
-                                        _getStatusLabel(invoice.status),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    const SizedBox(width: 12),
+                    Text(
+                      'Últimas Ventas',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-              ),
+                TextButton.icon(
+                  onPressed: () => context.go('/invoices'),
+                  icon: const Icon(Icons.arrow_forward, size: 18),
+                  label: const Text('Ver todas'),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            if (invoicesState.isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (recentInvoices.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('No hay ventas registradas'),
+                ),
+              )
+            else
+              ...recentInvoices.take(5).map((invoice) => 
+                _buildInvoiceRow(
+                  '${invoice.series}-${invoice.number}',
+                  invoice.customerName,
+                  invoice.total,
+                  _getStatusLabel(invoice.status),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -444,38 +719,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildQuickAction(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    bool highlighted = false,
-  }) {
-    final bgColor = highlighted 
-        ? AppTheme.successColor.withOpacity(0.15)
-        : AppTheme.primaryColor.withOpacity(0.1);
-    final iconColor = highlighted ? AppTheme.successColor : AppTheme.primaryColor;
-    
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(8),
-          border: highlighted ? Border.all(color: AppTheme.successColor.withOpacity(0.3)) : null,
-        ),
-        child: Icon(icon, color: iconColor, size: 20),
-      ),
-      title: Text(
-        label,
-        style: highlighted ? TextStyle(fontWeight: FontWeight.w600, color: AppTheme.successColor) : null,
-      ),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
-      contentPadding: EdgeInsets.zero,
-    );
-  }
-
   String _getStatusLabel(InvoiceStatus status) {
     switch (status) {
       case InvoiceStatus.draft:
@@ -522,7 +765,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          // Número de recibo - ancho fijo
           SizedBox(
             width: 130,
             child: Text(
@@ -531,7 +773,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ),
           ),
           const SizedBox(width: 16),
-          // Cliente - expandido
           Expanded(
             child: Text(
               customer,
@@ -540,7 +781,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ),
           ),
           const SizedBox(width: 16),
-          // Monto - ancho fijo alineado a la derecha
           SizedBox(
             width: 120,
             child: Text(
@@ -550,7 +790,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ),
           ),
           const SizedBox(width: 16),
-          // Estado - ancho fijo
           SizedBox(
             width: 90,
             child: Container(
@@ -576,55 +815,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 }
 
-// Widget personalizado para items del menú navegación
-class _NavItem extends StatelessWidget {
+class _NotificationItem {
   final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+  final String title;
+  final String message;
+  final String severity;
+  final String time;
+  final String? route;
 
-  const _NavItem({
+  _NotificationItem({
     required this.icon,
-    required this.label,
-    required this.onTap,
+    required this.title,
+    required this.message,
+    required this.severity,
+    required this.time,
+    this.route,
   });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            width: 64,
-            height: 70,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 28,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

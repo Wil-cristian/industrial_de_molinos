@@ -197,6 +197,7 @@ class InvoiceItem {
   final String id;
   final String invoiceId;
   final String? productId;
+  final String? materialId;
   final String productName;
   final String? productCode;
   final String? description;
@@ -213,6 +214,7 @@ class InvoiceItem {
     required this.id,
     required this.invoiceId,
     this.productId,
+    this.materialId,
     required this.productName,
     this.productCode,
     this.description,
@@ -231,6 +233,7 @@ class InvoiceItem {
       id: json['id'] ?? '',
       invoiceId: json['invoice_id'] ?? '',
       productId: json['product_id'],
+      materialId: json['material_id'],
       productName: json['product_name'] ?? '',
       productCode: json['product_code'],
       description: json['description'],
@@ -250,6 +253,7 @@ class InvoiceItem {
       'id': id,
       'invoice_id': invoiceId,
       'product_id': productId,
+      'material_id': materialId,
       'product_name': productName,
       'product_code': productCode,
       'description': description,

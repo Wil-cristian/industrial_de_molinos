@@ -7,6 +7,8 @@ import '../../data/providers/providers.dart';
 import '../../data/datasources/inventory_datasource.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/material.dart' as mat;
+import '../widgets/app_sidebar.dart';
+import '../widgets/quick_actions_button.dart';
 
 /// Página de Productos/Recetas
 /// Muestra productos que son plantillas (recetas) compuestas de materiales del inventario
@@ -66,10 +68,16 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: Column(
+      body: Stack(
         children: [
-          // Header
-          Container(
+          Row(
+            children: [
+              const AppSidebar(currentRoute: '/products'),
+              Expanded(
+                child: Column(
+                  children: [
+                    // Header
+                    Container(
             padding: const EdgeInsets.all(20),
             color: Colors.white,
             child: Column(
@@ -199,6 +207,12 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                             child: _buildProductsGrid(),
                           ),
           ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const QuickActionsButton(),
         ],
       ),
     );

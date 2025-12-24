@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/quotations_provider.dart';
+import '../widgets/app_sidebar.dart';
+import '../widgets/quick_actions_button.dart';
 
 class QuotationsPage extends ConsumerStatefulWidget {
   const QuotationsPage({super.key});
@@ -99,9 +101,15 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage> with SingleTick
     
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: Column(
+      body: Stack(
         children: [
-          // Header
+          Row(
+            children: [
+              const AppSidebar(currentRoute: '/quotations'),
+              Expanded(
+                child: Column(
+                  children: [
+                    // Header
           _buildHeader(),
           // Stats Cards
           _buildStatsCards(),
@@ -201,6 +209,12 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage> with SingleTick
               ),
             ),
           ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const QuickActionsButton(),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(

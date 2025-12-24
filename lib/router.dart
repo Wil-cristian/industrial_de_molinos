@@ -4,13 +4,16 @@ import 'presentation/pages/dashboard_page.dart';
 import 'presentation/pages/products_page.dart';
 import 'presentation/pages/customers_page.dart';
 import 'presentation/pages/invoices_page.dart';
-import 'presentation/pages/reports_page.dart';
+import 'presentation/pages/reports_analytics_page.dart';
 import 'presentation/pages/settings_page.dart';
 import 'presentation/pages/quotations_page.dart';
 import 'presentation/pages/new_quotation_page.dart';
 import 'presentation/pages/new_invoice_page.dart';
 import 'presentation/pages/materials_page.dart';
 import 'presentation/pages/daily_cash_page.dart';
+import 'presentation/pages/composite_products_page.dart';
+import 'presentation/pages/customer_history_page.dart';
+import 'presentation/pages/calendar_page.dart';
 
 // Configuración del router
 final GoRouter router = GoRouter(
@@ -38,7 +41,7 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/composite-products',
-      builder: (context, state) => const ProductsPage(), // Usa ProductsPage que tiene formulario completo
+      builder: (context, state) => const CompositeProductsPage(),
     ),
     GoRoute(
       path: '/customers',
@@ -47,6 +50,12 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/customers/new',
       builder: (context, state) => const CustomersPage(openNewDialog: true),
+    ),
+    GoRoute(
+      path: '/customers/:id/history',
+      builder: (context, state) => CustomerHistoryPage(
+        customerId: state.pathParameters['id']!,
+      ),
     ),
     GoRoute(
       path: '/invoices',
@@ -72,7 +81,11 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/reports',
-      builder: (context, state) => const ReportsPage(),
+      builder: (context, state) => const ReportsAnalyticsPage(),
+    ),
+    GoRoute(
+      path: '/calendar',
+      builder: (context, state) => const CalendarPage(),
     ),
     GoRoute(
       path: '/settings',

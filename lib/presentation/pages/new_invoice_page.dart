@@ -8,6 +8,7 @@ import '../../data/providers/providers.dart';
 import '../../data/datasources/invoices_datasource.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/entities/material.dart' as domain;
 import '../../domain/entities/invoice.dart';
 
 class NewInvoicePage extends ConsumerStatefulWidget {
@@ -52,6 +53,7 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
     Future.microtask(() {
       ref.read(customersProvider.notifier).loadCustomers();
       ref.read(productsProvider.notifier).loadProducts();
+      ref.read(inventoryProvider.notifier).loadMaterials();
     });
   }
 
@@ -190,10 +192,21 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
                     // Productos
                     _buildSection(
                       title: 'Productos / Servicios',
-                      trailing: FilledButton.icon(
-                        onPressed: () => _showAddProductDialog(productsState.products),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Agregar'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () => _showAddMaterialDialog(ref.read(inventoryProvider).materials),
+                            icon: const Icon(Icons.inventory_2_outlined, size: 18),
+                            label: const Text('Agregar Material'),
+                          ),
+                          const SizedBox(width: 12),
+                          FilledButton.icon(
+                            onPressed: () => _showAddProductDialog(productsState.products),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Agregar Producto'),
+                          ),
+                        ],
                       ),
                       child: _buildItemsTable(),
                     ),
@@ -692,6 +705,18 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
     );
   }
 
+  void _showAddMaterialDialog(List<domain.Material> materials) {
+    showDialog(
+      context: context,
+      builder: (context) => _AddMaterialDialog(
+        materials: materials,
+        onAdd: (item) {
+          setState(() => _items.add(item));
+        },
+      ),
+    );
+  }
+
   Future<void> _saveInvoice({required bool asDraft}) async {
     if (!asDraft && (_selectedCustomer == null || _items.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -717,6 +742,7 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
           id: '',
           invoiceId: '',
           productId: i.productId,
+          materialId: i.materialId,
           productCode: i.productCode,
           productName: i.productName,
           description: i.productName,
@@ -751,7 +777,7 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
             backgroundColor: Colors.green,
           ),
         );
-        context.go('/invoices');
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -772,7 +798,8 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
 
 // Clase para manejar items del recibo de caja menor
 class _InvoiceItemData {
-  final String productId;
+  final String? productId;
+  final String? materialId;
   final String productCode;
   final String productName;
   final String unit;
@@ -780,7 +807,8 @@ class _InvoiceItemData {
   double quantity;
 
   _InvoiceItemData({
-    required this.productId,
+    this.productId,
+    this.materialId,
     required this.productCode,
     required this.productName,
     required this.unit,
@@ -859,7 +887,7 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                       ),
                     ),
                     title: Text(product.name),
-                    subtitle: Text('${product.code} • Stock: ${product.stock}'),
+                    subtitle: Text('${product.code} • Receta'),
                     trailing: Text(
                       Formatters.currency(product.unitPrice),
                       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -871,44 +899,24 @@ class _AddProductDialogState extends State<_AddProductDialog> {
             ),
             if (_selectedProduct != null) ...[
               const Divider(),
-              // Mostrar stock disponible
+              // Mostrar info del producto (es receta)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   children: [
                     Icon(
-                      _selectedProduct!.stock > 0 
-                          ? Icons.inventory_2_outlined 
-                          : Icons.warning_amber_rounded,
+                      Icons.precision_manufacturing,
                       size: 16,
-                      color: _selectedProduct!.stock > 0 
-                          ? Colors.grey 
-                          : Colors.orange,
+                      color: AppTheme.primaryColor,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Stock disponible: ${_selectedProduct!.stock.toStringAsFixed(0)}',
+                      'Producto fabricado bajo pedido',
                       style: TextStyle(
-                        color: _selectedProduct!.stock > 0 
-                            ? Colors.grey[600] 
-                            : Colors.orange,
+                        color: Colors.grey[600],
                         fontSize: 13,
                       ),
                     ),
-                    if (_quantity >= _selectedProduct!.stock && _selectedProduct!.stock > 0) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade100,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'Máximo alcanzado',
-                          style: TextStyle(fontSize: 11, color: Colors.orange),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -971,6 +979,200 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                     productName: _selectedProduct!.name,
                     unit: _selectedProduct!.unit,
                     unitPrice: _selectedProduct!.unitPrice,
+                    quantity: _quantity,
+                  ));
+                  Navigator.pop(context);
+                },
+          child: const Text('Agregar'),
+        ),
+      ],
+    );
+  }
+}
+
+// Diálogo para agregar material del inventario
+class _AddMaterialDialog extends StatefulWidget {
+  final List<domain.Material> materials;
+  final Function(_InvoiceItemData) onAdd;
+
+  const _AddMaterialDialog({
+    required this.materials,
+    required this.onAdd,
+  });
+
+  @override
+  State<_AddMaterialDialog> createState() => _AddMaterialDialogState();
+}
+
+class _AddMaterialDialogState extends State<_AddMaterialDialog> {
+  final _searchController = TextEditingController();
+  String? _selectedCategory;
+  domain.Material? _selectedMaterial;
+  double _quantity = 1;
+
+  List<String> get _categories {
+    final cats = widget.materials.map((m) => m.category).toSet().toList();
+    cats.sort();
+    return cats;
+  }
+
+  List<domain.Material> get _filteredMaterials {
+    var filtered = widget.materials;
+    
+    // Filtrar por categoría
+    if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+      filtered = filtered.where((m) => m.category == _selectedCategory).toList();
+    }
+    
+    // Filtrar por búsqueda
+    if (_searchController.text.isNotEmpty) {
+      final query = _searchController.text.toLowerCase();
+      filtered = filtered.where((m) =>
+        m.name.toLowerCase().contains(query) ||
+        m.code.toLowerCase().contains(query)
+      ).toList();
+    }
+    
+    return filtered;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Agregar Material del Inventario'),
+      content: SizedBox(
+        width: 550,
+        height: 450,
+        child: Column(
+          children: [
+            // Barra de búsqueda y filtro de categoría
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      labelText: 'Buscar material',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedCategory,
+                    decoration: const InputDecoration(
+                      labelText: 'Categoría',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('Todas')),
+                      ..._categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                    ],
+                    onChanged: (value) => setState(() => _selectedCategory = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _filteredMaterials.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 8),
+                        Text('No hay materiales', style: TextStyle(color: Colors.grey[600])),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                itemCount: _filteredMaterials.length,
+                itemBuilder: (context, index) {
+                  final material = _filteredMaterials[index];
+                  final isSelected = _selectedMaterial?.id == material.id;
+                  return ListTile(
+                    selected: isSelected,
+                    selectedTileColor: Colors.orange.withValues(alpha: 0.1),
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                      child: const Icon(Icons.inventory_2, color: Colors.orange, size: 20),
+                    ),
+                    title: Text(material.name),
+                    subtitle: Text('${material.code} • Stock: ${material.stock} ${material.unit}'),
+                    trailing: Text(
+                      Formatters.currency(material.pricePerKg > 0 ? material.pricePerKg : material.unitPrice),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    onTap: () => setState(() => _selectedMaterial = material),
+                  );
+                },
+              ),
+            ),
+            if (_selectedMaterial != null) ...[
+              const Divider(),
+              Row(
+                children: [
+                  Text('Cantidad (${_selectedMaterial!.unit}):', style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: _quantity > 1 
+                        ? () => setState(() => _quantity--) 
+                        : null,
+                  ),
+                  SizedBox(
+                    width: 60,
+                    child: TextField(
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.number,
+                      controller: TextEditingController(text: _quantity.toStringAsFixed(0)),
+                      onChanged: (v) {
+                        final qty = double.tryParse(v);
+                        if (qty != null && qty > 0) {
+                          setState(() => _quantity = qty);
+                        }
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () => setState(() => _quantity++),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'Total: ${Formatters.currency((_selectedMaterial!.pricePerKg > 0 ? _selectedMaterial!.pricePerKg : _selectedMaterial!.unitPrice) * _quantity)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _selectedMaterial == null
+              ? null
+              : () {
+                  final price = _selectedMaterial!.pricePerKg > 0 
+                      ? _selectedMaterial!.pricePerKg 
+                      : _selectedMaterial!.unitPrice;
+                  widget.onAdd(_InvoiceItemData(
+                    materialId: _selectedMaterial!.id,
+                    productCode: _selectedMaterial!.code,
+                    productName: _selectedMaterial!.name,
+                    unit: _selectedMaterial!.unit,
+                    unitPrice: price,
                     quantity: _quantity,
                   ));
                   Navigator.pop(context);

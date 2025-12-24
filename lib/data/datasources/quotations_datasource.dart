@@ -150,20 +150,62 @@ class QuotationsDataSource {
     await _client.from(_table).update({'status': status}).eq('id', id);
   }
 
-  /// Aprobar cotización y crear factura automáticamente
-  static Future<String?> approveAndCreateInvoice(String quotationId, {String series = 'F001'}) async {
+  /// Aprobar cotización y crear factura automáticamente (con descuento de materiales)
+  static Future<Map<String, dynamic>?> approveAndCreateInvoice(
+    String quotationId, {
+    String series = 'F001',
+    bool deductMaterials = true,
+  }) async {
     try {
+      print('📋 Aprobando cotización: $quotationId');
       final response = await _client.rpc(
-        'approve_quotation_and_create_invoice',
+        'approve_quotation_with_materials',
         params: {
           'p_quotation_id': quotationId,
           'p_series': series,
+          'p_deduct_materials': deductMaterials,
         },
       );
-      return response as String?;
+      
+      print('✅ Respuesta de aprobación:');
+      print('   Response: $response');
+      if (response is Map<String, dynamic>) {
+        print('   Invoice: ${response['invoice_number']}');
+        print('   Items procesados: ${response['items_processed']}');
+        print('   Descuentos: ${response['deductions']}');
+      }
+      
+      return response as Map<String, dynamic>?;
     } catch (e) {
-      print('❌ Error al aprobar cotización: $e');
-      rethrow;
+      // Fallback a la función original si la nueva no existe
+      print('⚠️ Intentando función alternativa... Error: $e');
+      try {
+        final response = await _client.rpc(
+          'approve_quotation_and_create_invoice',
+          params: {
+            'p_quotation_id': quotationId,
+            'p_series': series,
+          },
+        );
+        return {'invoice_id': response};
+      } catch (e2) {
+        print('❌ Error al aprobar cotización: $e2');
+        rethrow;
+      }
+    }
+  }
+
+  /// Verificar stock de materiales antes de aprobar
+  static Future<List<Map<String, dynamic>>> checkMaterialsStock(String quotationId) async {
+    try {
+      final response = await _client.rpc(
+        'check_quotation_stock',
+        params: {'p_quotation_id': quotationId},
+      );
+      return List<Map<String, dynamic>>.from(response ?? []);
+    } catch (e) {
+      print('❌ Error al verificar stock de materiales: $e');
+      return [];
     }
   }
 
@@ -286,6 +328,8 @@ class QuotationsDataSource {
       name: json['name'],
       description: json['description'] ?? '',
       type: json['type'] ?? 'custom',
+      productId: json['product_id'],
+      materialId: json['inv_material_id'], // Leer de columna de inventario
       quantity: json['quantity'] ?? 1,
       unitWeight: (json['unit_weight'] ?? 0).toDouble(),
       pricePerKg: (json['price_per_kg'] ?? 0).toDouble(),
@@ -301,6 +345,8 @@ class QuotationsDataSource {
       'name': item.name,
       'description': item.description,
       'type': item.type,
+      'product_id': item.productId,
+      'inv_material_id': item.materialId, // Columna para inventario de materials
       'material_name': item.materialType,
       'material_type': item.materialType,
       'dimensions': item.dimensions,

@@ -6,6 +6,8 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/customers_provider.dart';
 import '../../domain/entities/customer.dart';
+import '../widgets/app_sidebar.dart';
+import '../widgets/quick_actions_button.dart';
 
 class CustomersPage extends ConsumerStatefulWidget {
   final bool openNewDialog;
@@ -56,10 +58,16 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
     
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: Column(
+      body: Stack(
         children: [
-          // Header
-          Container(
+          Row(
+            children: [
+              const AppSidebar(currentRoute: '/customers'),
+              Expanded(
+                child: Column(
+                  children: [
+                    // Header
+                    Container(
             padding: const EdgeInsets.all(24),
             color: Colors.white,
             child: Column(
@@ -219,6 +227,12 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
               ),
             ),
           ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const QuickActionsButton(),
         ],
       ),
     );

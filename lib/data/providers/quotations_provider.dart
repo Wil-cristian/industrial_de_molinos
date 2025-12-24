@@ -146,7 +146,10 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
   /// Aprobar cotización y crear factura automáticamente
   Future<Map<String, dynamic>?> approveAndCreateInvoice(String quotationId, String series) async {
     try {
-      final invoiceId = await QuotationsDataSource.approveAndCreateInvoice(quotationId, series: series);
+      print('🔄 Provider: Llamando a datasource para aprobar cotización...');
+      final result = await QuotationsDataSource.approveAndCreateInvoice(quotationId, series: series);
+      
+      print('📊 Provider: Resultado de aprobación: $result');
       
       // Actualizar estado local
       final quotations = state.quotations.map((q) =>
@@ -155,8 +158,9 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
       state = state.copyWith(quotations: quotations);
       
       // Retornar info de la factura creada
-      return invoiceId != null ? {'invoice_id': invoiceId, 'invoice_number': series} : null;
+      return result;
     } catch (e) {
+      print('❌ Provider: Error al aprobar: $e');
       state = state.copyWith(error: e.toString());
       rethrow;
     }

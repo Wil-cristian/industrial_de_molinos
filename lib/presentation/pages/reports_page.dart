@@ -6,6 +6,8 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/reports_provider.dart';
 import '../../data/datasources/reports_datasource.dart';
+import '../widgets/app_sidebar.dart';
+import '../widgets/quick_actions_button.dart';
 
 class ReportsPage extends ConsumerStatefulWidget {
   const ReportsPage({super.key});
@@ -35,76 +37,68 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: Row(
+      body: Stack(
         children: [
-          Container(
-            width: 280,
-            color: Colors.white,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+          Row(
+            children: [
+              const AppSidebar(currentRoute: '/reports'),
+              Container(
+                width: 280,
+                color: Colors.white,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor),
-                            onPressed: () => context.go('/'),
-                            tooltip: 'Volver al menu',
-                            constraints: const BoxConstraints(),
-                            padding: EdgeInsets.zero,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Reportes',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryColor,
-                              ),
+                          Text(
+                            'Reportes',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryColor,
                             ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Analisis y estadisticas',
+                            style: TextStyle(color: Colors.grey[600]),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Analisis y estadisticas',
-                        style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        children: [
+                          _buildReportCategory('Ventas', Icons.trending_up, [
+                            'Ventas por Periodo',
+                            'Ventas por Producto',
+                            'Ventas por Cliente',
+                            'Productos mas Vendidos',
+                          ]),
+                          _buildReportCategory('Inventario', Icons.inventory_2, [
+                            'Stock Actual',
+                            'Valorizacion de Inventario',
+                          ]),
+                          _buildReportCategory('Cuentas por Cobrar', Icons.account_balance_wallet, [
+                            'Cartera de Clientes',
+                            'Antiguedad de Saldos',
+                          ]),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    children: [
-                      _buildReportCategory('Ventas', Icons.trending_up, [
-                        'Ventas por Periodo',
-                        'Ventas por Producto',
-                        'Ventas por Cliente',
-                        'Productos mas Vendidos',
-                      ]),
-                      _buildReportCategory('Inventario', Icons.inventory_2, [
-                        'Stock Actual',
-                        'Valorizacion de Inventario',
-                      ]),
-                      _buildReportCategory('Cuentas por Cobrar', Icons.account_balance_wallet, [
-                        'Cartera de Clientes',
-                        'Antiguedad de Saldos',
-                      ]),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: _buildMainContent(salesState, inventoryState, receivablesState),
+              ),
+            ],
           ),
-          Expanded(
-            child: _buildMainContent(salesState, inventoryState, receivablesState),
-          ),
+          const QuickActionsButton(),
         ],
       ),
     );
@@ -707,11 +701,16 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                  Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
-                  Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  Text(subtitle, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500)),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  ),
+                  Text(subtitle, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
