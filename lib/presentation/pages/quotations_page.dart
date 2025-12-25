@@ -217,12 +217,6 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage> with SingleTick
           const QuickActionsButton(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/quotations/new'),
-        backgroundColor: AppTheme.primaryColor,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Nueva Cotización', style: TextStyle(color: Colors.white)),
-      ),
     );
   }
 
@@ -913,48 +907,6 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage> with SingleTick
     showDialog(
       context: context,
       builder: (context) => _QuotationDetailDialog(quotation: quotation),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(label, style: TextStyle(color: Colors.grey[600])),
-          ),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCostRow(String label, double value, {bool isTotal = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isTotal ? AppTheme.primaryColor : Colors.grey[700],
-                fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ),
-          Text(
-            Helpers.formatCurrency(value),
-            style: TextStyle(
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-              fontSize: isTotal ? 18 : 14,
-              color: isTotal ? AppTheme.primaryColor : Colors.grey[800],
-            ),
-          ),
-        ],
-      ),
     );
   }
 

@@ -14,6 +14,8 @@ import 'presentation/pages/daily_cash_page.dart';
 import 'presentation/pages/composite_products_page.dart';
 import 'presentation/pages/customer_history_page.dart';
 import 'presentation/pages/calendar_page.dart';
+import 'presentation/pages/assets_page.dart';
+import 'presentation/pages/employees_page.dart';
 
 // Configuración del router
 final GoRouter router = GoRouter(
@@ -35,13 +37,28 @@ final GoRouter router = GoRouter(
       path: '/products/new',
       builder: (context, state) => const ProductsPage(openNewDialog: true),
     ),
+    // Redirección: /recipe-builder ahora abre el dialog desde products page
+    GoRoute(
+      path: '/recipe-builder',
+      redirect: (context, state) => '/products/new',
+    ),
     GoRoute(
       path: '/materials',
-      builder: (context, state) => const MaterialsPage(),
+      builder: (context, state) {
+        final action = state.uri.queryParameters['action'];
+        return MaterialsPage(openNewDialog: action == 'new');
+      },
     ),
     GoRoute(
       path: '/composite-products',
       builder: (context, state) => const CompositeProductsPage(),
+    ),
+    GoRoute(
+      path: '/assets',
+      builder: (context, state) {
+        final action = state.uri.queryParameters['action'];
+        return AssetsPage(openNewDialog: action == 'new');
+      },
     ),
     GoRoute(
       path: '/customers',
@@ -85,7 +102,20 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/calendar',
-      builder: (context, state) => const CalendarPage(),
+      builder: (context, state) {
+        final action = state.uri.queryParameters['action'];
+        return CalendarPage(openNewDialog: action == 'new');
+      },
+    ),
+    GoRoute(
+      path: '/employees',
+      builder: (context, state) {
+        final action = state.uri.queryParameters['action'];
+        return EmployeesPage(
+          openNewDialog: action == 'new',
+          openNewTaskDialog: action == 'new-task',
+        );
+      },
     ),
     GoRoute(
       path: '/settings',

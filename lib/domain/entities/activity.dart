@@ -212,7 +212,6 @@ class Activity {
       case ActivityType.maintenance:
         return Icons.build;
       case ActivityType.general:
-      default:
         return Icons.event;
     }
   }
@@ -238,7 +237,6 @@ class Activity {
       case ActivityType.maintenance:
         return 'Mantenimiento';
       case ActivityType.general:
-      default:
         return 'General';
     }
   }
@@ -353,7 +351,6 @@ class Activity {
       case ActivityType.maintenance:
         return 'maintenance';
       case ActivityType.general:
-      default:
         return 'general';
     }
   }
@@ -385,7 +382,6 @@ class Activity {
       case ActivityStatus.overdue:
         return 'overdue';
       case ActivityStatus.pending:
-      default:
         return 'pending';
     }
   }
@@ -413,7 +409,6 @@ class Activity {
       case ActivityPriority.urgent:
         return 'urgent';
       case ActivityPriority.medium:
-      default:
         return 'medium';
     }
   }

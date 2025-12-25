@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
+import '../../core/utils/weight_calculator.dart';
 import '../../data/providers/providers.dart';
 import '../../data/datasources/inventory_datasource.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/material.dart' as mat;
 import '../widgets/app_sidebar.dart';
 import '../widgets/quick_actions_button.dart';
+import '../widgets/recipe_dialog.dart';
 
 /// Página de Productos/Recetas
 /// Muestra productos que son plantillas (recetas) compuestas de materiales del inventario
@@ -23,7 +25,6 @@ class ProductsPage extends ConsumerStatefulWidget {
 
 class _ProductsPageState extends ConsumerState<ProductsPage> {
   final _searchController = TextEditingController();
-  final bool _showOnlyRecipes = false;
 
   @override
   void initState() {
@@ -33,10 +34,19 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
       ref.read(inventoryProvider.notifier).loadMaterials();
       if (widget.openNewDialog) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showRecipeDialog();
+          _showNewRecipeDialog();
         });
       }
     });
+  }
+
+  /// Muestra el dialog para crear una nueva receta
+  Future<void> _showNewRecipeDialog() async {
+    final result = await RecipeDialog.show(context);
+    if (result == true && mounted) {
+      // Recargar productos si se guardó exitosamente
+      ref.read(productsProvider.notifier).loadProducts();
+    }
   }
 
   @override
@@ -116,7 +126,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                     ),
                     const SizedBox(width: 20),
                     FilledButton.icon(
-                      onPressed: _showRecipeDialog,
+                      onPressed: () => _showNewRecipeDialog(),
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Nueva Receta'),
                       style: FilledButton.styleFrom(
@@ -195,7 +205,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                 ),
                                 const SizedBox(height: 24),
                                 FilledButton.icon(
-                                  onPressed: _showRecipeDialog,
+                                  onPressed: () => _showNewRecipeDialog(),
                                   icon: const Icon(Icons.add),
                                   label: const Text('Crear Primera Receta'),
                                 ),
@@ -676,39 +686,114 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                             final materialsInCat = inventoryState.materials.where((m) => m.category == cat).toList();
                             if (materialsInCat.isEmpty) return const SizedBox.shrink();
                             
+                            final normalizedCat = _normalizeCategory(cat.toLowerCase());
+                            final isCalculable = ['tubo', 'lamina', 'eje'].contains(normalizedCat);
+                            
                             return ExpansionTile(
-                              title: Text(_getCategoryName(cat), style: const TextStyle(fontSize: 13)),
+                              title: Row(
+                                children: [
+                                  Text(_getCategoryName(cat), style: const TextStyle(fontSize: 13)),
+                                  if (isCalculable) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.shade50,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(_getShapeIcon(normalizedCat), size: 12, color: Colors.blue.shade700),
+                                          const SizedBox(width: 4),
+                                          Text('Calculable', style: TextStyle(fontSize: 9, color: Colors.blue.shade700)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                               dense: true,
                               tilePadding: EdgeInsets.zero,
-                              children: materialsInCat.map((material) => ListTile(
-                                dense: true,
-                                title: Text(material.name, style: const TextStyle(fontSize: 12)),
-                                subtitle: Text('${material.stock} ${material.unit} disponible', style: const TextStyle(fontSize: 10)),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.add_circle, color: AppTheme.primaryColor, size: 20),
-                                  onPressed: () {
-                                    setDialogState(() {
-                                      // Calcular peso inicial (1 unidad del material)
-                                      double initialWeight = 0;
-                                      if (material.unit == 'KG') {
-                                        initialWeight = 1;
-                                      } else if (material.fixedWeight != null) {
-                                        initialWeight = material.fixedWeight!;
-                                      }
-                                      
-                                      tempComponents.add(_TempComponent(
-                                        materialId: material.id,
-                                        name: material.name,
-                                        description: material.description,
-                                        unit: material.unit,
-                                        unitCost: material.effectivePrice,
-                                        quantity: 1,
-                                        calculatedWeight: initialWeight,
-                                      ));
-                                    });
-                                  },
-                                ),
-                              )).toList(),
+                              children: materialsInCat.map((material) {
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 4),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey.shade200),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: ListTile(
+                                    dense: true,
+                                    leading: isCalculable 
+                                      ? Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: _getShapeColor(normalizedCat).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Icon(
+                                            _getShapeIcon(normalizedCat), 
+                                            size: 20, 
+                                            color: _getShapeColor(normalizedCat),
+                                          ),
+                                        )
+                                      : null,
+                                    title: Text(material.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('${material.stock.toStringAsFixed(1)} ${material.unit} disponible', 
+                                          style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                                        Text('S/ ${material.effectivePrice.toStringAsFixed(2)} / ${material.unit}', 
+                                          style: TextStyle(fontSize: 10, color: Colors.green.shade700, fontWeight: FontWeight.w500)),
+                                      ],
+                                    ),
+                                    trailing: FilledButton.icon(
+                                      onPressed: () {
+                                        if (isCalculable) {
+                                          _showDimensionsDialog(
+                                            context, 
+                                            material, 
+                                            normalizedCat,
+                                            (component) {
+                                              setDialogState(() {
+                                                tempComponents.add(component);
+                                              });
+                                            },
+                                          );
+                                        } else {
+                                          setDialogState(() {
+                                            double initialWeight = 0;
+                                            if (material.unit == 'KG') {
+                                              initialWeight = 1;
+                                            } else if (material.fixedWeight != null) {
+                                              initialWeight = material.fixedWeight!;
+                                            }
+                                            
+                                            tempComponents.add(_TempComponent(
+                                              materialId: material.id,
+                                              name: material.name,
+                                              description: material.description,
+                                              unit: material.unit,
+                                              unitCost: material.effectivePrice,
+                                              quantity: 1,
+                                              calculatedWeight: initialWeight,
+                                              category: cat,
+                                            ));
+                                          });
+                                        }
+                                      },
+                                      icon: Icon(isCalculable ? Icons.calculate : Icons.add, size: 14),
+                                      label: Text(isCalculable ? 'Calcular' : 'Agregar', style: const TextStyle(fontSize: 11)),
+                                      style: FilledButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        minimumSize: Size.zero,
+                                        backgroundColor: isCalculable ? Colors.blue : AppTheme.primaryColor,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             );
                           }),
                         ],
@@ -1023,6 +1108,471 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
     );
   }
 
+  /// Fracciones de pulgada comunes para cálculos
+  static const List<String> _inchFractions = [
+    '', '1/16', '1/8', '3/16', '1/4', '5/16', '3/8', '7/16', '1/2',
+    '9/16', '5/8', '11/16', '3/4', '13/16', '7/8', '15/16',
+  ];
+  
+  /// Convertir fracción de pulgada a milímetros
+  double _fractionToMm(String fraction) {
+    if (fraction.isEmpty) return 0;
+    final parts = fraction.split('/');
+    if (parts.length == 2) {
+      final num = double.tryParse(parts[0]) ?? 0;
+      final den = double.tryParse(parts[1]) ?? 1;
+      return (num / den) * 25.4;
+    }
+    return 0;
+  }
+  
+  /// Convertir pulgadas enteras + fracción a milímetros
+  double _inchesToMm(int inches, String fraction) {
+    return (inches * 25.4) + _fractionToMm(fraction);
+  }
+
+  /// Diálogo para ingresar dimensiones y calcular peso de materiales
+  void _showDimensionsDialog(
+    BuildContext context,
+    mat.Material material,
+    String category,
+    Function(_TempComponent) onAdd,
+  ) {
+    // Controllers para mm
+    final outerDiameterCtrl = TextEditingController();
+    final thicknessCtrl = TextEditingController();
+    final lengthCtrl = TextEditingController();
+    final widthCtrl = TextEditingController();
+    final heightCtrl = TextEditingController();
+    final quantityCtrl = TextEditingController(text: '1');
+    
+    // Controllers para pulgadas (enteros)
+    final outerDiameterInchCtrl = TextEditingController();
+    final thicknessInchCtrl = TextEditingController();
+    final lengthInchCtrl = TextEditingController();
+    final widthInchCtrl = TextEditingController();
+    final heightInchCtrl = TextEditingController();
+    
+    // Fracciones seleccionadas
+    String outerDiameterFrac = '';
+    String thicknessFrac = '';
+    String lengthFrac = '';
+    String widthFrac = '';
+    String heightFrac = '';
+    
+    double calculatedWeight = 0;
+    double totalCost = 0;
+    const double density = 7.85; // Acero al carbono
+    String selectedType = category == 'tubo' ? 'cylinder' : category == 'lamina' ? 'rectangular_plate' : 'shaft';
+    bool useInches = false; // Toggle para mm/pulgadas
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          
+          /// Obtener dimensión en mm (ya sea directa o convertida de pulgadas)
+          double getDimensionMm(TextEditingController mmCtrl, TextEditingController inchCtrl, String fraction) {
+            if (useInches) {
+              final inches = int.tryParse(inchCtrl.text) ?? 0;
+              return _inchesToMm(inches, fraction);
+            } else {
+              return double.tryParse(mmCtrl.text) ?? 0;
+            }
+          }
+          
+          void recalculate() {
+            double weight = 0;
+            final quantity = double.tryParse(quantityCtrl.text) ?? 1;
+            
+            switch (selectedType) {
+              case 'cylinder':
+                final outerD = getDimensionMm(outerDiameterCtrl, outerDiameterInchCtrl, outerDiameterFrac);
+                final thickness = getDimensionMm(thicknessCtrl, thicknessInchCtrl, thicknessFrac);
+                final length = getDimensionMm(lengthCtrl, lengthInchCtrl, lengthFrac);
+                if (outerD > 0 && thickness > 0 && length > 0) {
+                  weight = WeightCalculator.calculateCylinderWeight(outerDiameter: outerD, thickness: thickness, length: length, density: density);
+                }
+                break;
+              case 'rectangular_plate':
+                final width = getDimensionMm(widthCtrl, widthInchCtrl, widthFrac);
+                final height = getDimensionMm(heightCtrl, heightInchCtrl, heightFrac);
+                final thickness = getDimensionMm(thicknessCtrl, thicknessInchCtrl, thicknessFrac);
+                if (width > 0 && height > 0 && thickness > 0) {
+                  weight = WeightCalculator.calculateRectangularPlateWeight(width: width, height: height, thickness: thickness, density: density);
+                }
+                break;
+              case 'shaft':
+                final diameter = getDimensionMm(outerDiameterCtrl, outerDiameterInchCtrl, outerDiameterFrac);
+                final length = getDimensionMm(lengthCtrl, lengthInchCtrl, lengthFrac);
+                if (diameter > 0 && length > 0) {
+                  weight = WeightCalculator.calculateShaftWeight(diameter: diameter, length: length, density: density);
+                }
+                break;
+            }
+            
+            setDialogState(() {
+              calculatedWeight = weight * quantity;
+              totalCost = calculatedWeight * material.effectivePrice;
+            });
+          }
+
+          /// Widget para input con fracciones de pulgada
+          Widget buildInchInput(String label, TextEditingController inchCtrl, String currentFrac, Function(String) onFracChanged) {
+            return Row(
+              children: [
+                // Pulgadas enteras
+                SizedBox(
+                  width: 45,
+                  child: TextField(
+                    controller: inchCtrl,
+                    decoration: const InputDecoration(
+                      hintText: '0',
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    ),
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    onChanged: (_) => recalculate(),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                // Dropdown de fracciones
+                Container(
+                  height: 38,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade400),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: currentFrac,
+                      isDense: true,
+                      items: _inchFractions.map((f) => DropdownMenuItem(
+                        value: f,
+                        child: Text(f.isEmpty ? '0' : f, style: const TextStyle(fontSize: 13)),
+                      )).toList(),
+                      onChanged: (v) {
+                        onFracChanged(v ?? '');
+                        recalculate();
+                      },
+                    ),
+                  ),
+                ),
+                const Text('"', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            );
+          }
+
+          Widget buildDimensionFields() {
+            if (useInches) {
+              // Modo pulgadas con fracciones
+              switch (selectedType) {
+                case 'cylinder':
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const SizedBox(width: 70, child: Text('Ø Ext:', style: TextStyle(fontSize: 12))),
+                        Expanded(child: buildInchInput('Ø Ext', outerDiameterInchCtrl, outerDiameterFrac, (v) => setDialogState(() => outerDiameterFrac = v))),
+                      ]),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        const SizedBox(width: 70, child: Text('Espesor:', style: TextStyle(fontSize: 12))),
+                        Expanded(child: buildInchInput('Espesor', thicknessInchCtrl, thicknessFrac, (v) => setDialogState(() => thicknessFrac = v))),
+                      ]),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        const SizedBox(width: 70, child: Text('Largo:', style: TextStyle(fontSize: 12))),
+                        Expanded(child: buildInchInput('Largo', lengthInchCtrl, lengthFrac, (v) => setDialogState(() => lengthFrac = v))),
+                      ]),
+                    ],
+                  );
+                case 'rectangular_plate':
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const SizedBox(width: 70, child: Text('Ancho:', style: TextStyle(fontSize: 12))),
+                        Expanded(child: buildInchInput('Ancho', widthInchCtrl, widthFrac, (v) => setDialogState(() => widthFrac = v))),
+                      ]),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        const SizedBox(width: 70, child: Text('Alto:', style: TextStyle(fontSize: 12))),
+                        Expanded(child: buildInchInput('Alto', heightInchCtrl, heightFrac, (v) => setDialogState(() => heightFrac = v))),
+                      ]),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        const SizedBox(width: 70, child: Text('Espesor:', style: TextStyle(fontSize: 12))),
+                        Expanded(child: buildInchInput('Espesor', thicknessInchCtrl, thicknessFrac, (v) => setDialogState(() => thicknessFrac = v))),
+                      ]),
+                    ],
+                  );
+                case 'shaft':
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const SizedBox(width: 70, child: Text('Diámetro:', style: TextStyle(fontSize: 12))),
+                        Expanded(child: buildInchInput('Diámetro', outerDiameterInchCtrl, outerDiameterFrac, (v) => setDialogState(() => outerDiameterFrac = v))),
+                      ]),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        const SizedBox(width: 70, child: Text('Largo:', style: TextStyle(fontSize: 12))),
+                        Expanded(child: buildInchInput('Largo', lengthInchCtrl, lengthFrac, (v) => setDialogState(() => lengthFrac = v))),
+                      ]),
+                    ],
+                  );
+                default:
+                  return const SizedBox.shrink();
+              }
+            } else {
+              // Modo milímetros (original)
+              switch (selectedType) {
+                case 'cylinder':
+                  return Row(children: [
+                    Expanded(child: TextField(controller: outerDiameterCtrl, decoration: const InputDecoration(labelText: 'Ø Ext', suffixText: 'mm', isDense: true), keyboardType: TextInputType.number, onChanged: (_) => recalculate())),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: thicknessCtrl, decoration: const InputDecoration(labelText: 'Espesor', suffixText: 'mm', isDense: true), keyboardType: TextInputType.number, onChanged: (_) => recalculate())),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: lengthCtrl, decoration: const InputDecoration(labelText: 'Largo', suffixText: 'mm', isDense: true), keyboardType: TextInputType.number, onChanged: (_) => recalculate())),
+                  ]);
+                case 'rectangular_plate':
+                  return Row(children: [
+                    Expanded(child: TextField(controller: widthCtrl, decoration: const InputDecoration(labelText: 'Ancho', suffixText: 'mm', isDense: true), keyboardType: TextInputType.number, onChanged: (_) => recalculate())),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: heightCtrl, decoration: const InputDecoration(labelText: 'Alto', suffixText: 'mm', isDense: true), keyboardType: TextInputType.number, onChanged: (_) => recalculate())),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: thicknessCtrl, decoration: const InputDecoration(labelText: 'Espesor', suffixText: 'mm', isDense: true), keyboardType: TextInputType.number, onChanged: (_) => recalculate())),
+                  ]);
+                case 'shaft':
+                  return Row(children: [
+                    Expanded(child: TextField(controller: outerDiameterCtrl, decoration: const InputDecoration(labelText: 'Diámetro', suffixText: 'mm', isDense: true), keyboardType: TextInputType.number, onChanged: (_) => recalculate())),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: lengthCtrl, decoration: const InputDecoration(labelText: 'Largo', suffixText: 'mm', isDense: true), keyboardType: TextInputType.number, onChanged: (_) => recalculate())),
+                  ]);
+                default:
+                  return const SizedBox.shrink();
+              }
+            }
+          }
+          
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Container(
+              width: 480,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Título
+                  Row(
+                    children: [
+                      Icon(Icons.calculate, color: AppTheme.primaryColor),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text('Calcular Peso - ${material.name}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+                      IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(context)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Selector de tipo con SegmentedButton
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'cylinder', label: Text('Tubo'), icon: Icon(Icons.circle_outlined)),
+                      ButtonSegment(value: 'rectangular_plate', label: Text('Lámina'), icon: Icon(Icons.rectangle_outlined)),
+                      ButtonSegment(value: 'shaft', label: Text('Eje'), icon: Icon(Icons.horizontal_rule)),
+                    ],
+                    selected: {selectedType},
+                    onSelectionChanged: (selection) {
+                      setDialogState(() {
+                        selectedType = selection.first;
+                        // Limpiar valores
+                        outerDiameterCtrl.clear(); thicknessCtrl.clear(); lengthCtrl.clear();
+                        widthCtrl.clear(); heightCtrl.clear();
+                        outerDiameterInchCtrl.clear(); thicknessInchCtrl.clear(); lengthInchCtrl.clear();
+                        widthInchCtrl.clear(); heightInchCtrl.clear();
+                        outerDiameterFrac = ''; thicknessFrac = ''; lengthFrac = '';
+                        widthFrac = ''; heightFrac = '';
+                        calculatedWeight = 0; totalCost = 0;
+                      });
+                    },
+                    style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Toggle mm / pulgadas
+                  Row(
+                    children: [
+                      const Text('Unidad: ', style: TextStyle(fontSize: 13)),
+                      ChoiceChip(
+                        label: const Text('mm'),
+                        selected: !useInches,
+                        onSelected: (_) => setDialogState(() {
+                          useInches = false;
+                          calculatedWeight = 0; totalCost = 0;
+                        }),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Pulgadas'),
+                        selected: useInches,
+                        onSelected: (_) => setDialogState(() {
+                          useInches = true;
+                          calculatedWeight = 0; totalCost = 0;
+                        }),
+                        avatar: useInches ? null : const Icon(Icons.straighten, size: 16),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      if (useInches) ...[
+                        const SizedBox(width: 8),
+                        Text('(fracciones)', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Campos de dimensiones
+                  buildDimensionFields(),
+                  const SizedBox(height: 12),
+                  
+                  // Cantidad
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 100,
+                        child: TextField(
+                          controller: quantityCtrl,
+                          decoration: const InputDecoration(labelText: 'Cantidad', isDense: true),
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => recalculate(),
+                        ),
+                      ),
+                      const Spacer(),
+                      Text('Precio: S/ ${material.effectivePrice.toStringAsFixed(2)}/KG', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Resultado
+                  if (calculatedWeight > 0)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text('Peso: ${calculatedWeight.toStringAsFixed(3)} KG', style: const TextStyle(fontWeight: FontWeight.w500)),
+                          ]),
+                          Text('S/ ${totalCost.toStringAsFixed(2)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green.shade700)),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  
+                  // Botones
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+                      const SizedBox(width: 8),
+                      FilledButton.icon(
+                        onPressed: calculatedWeight > 0 ? () {
+                          Navigator.pop(context);
+                          // Calcular dimensiones en mm para guardar
+                          final outerD = getDimensionMm(outerDiameterCtrl, outerDiameterInchCtrl, outerDiameterFrac);
+                          final thick = getDimensionMm(thicknessCtrl, thicknessInchCtrl, thicknessFrac);
+                          final len = getDimensionMm(lengthCtrl, lengthInchCtrl, lengthFrac);
+                          final wid = getDimensionMm(widthCtrl, widthInchCtrl, widthFrac);
+                          final hei = getDimensionMm(heightCtrl, heightInchCtrl, heightFrac);
+                          
+                          String dimDesc = '';
+                          String cat = selectedType == 'cylinder' ? 'tubo' : selectedType == 'rectangular_plate' ? 'lamina' : 'eje';
+                          
+                          // Descripción según el modo usado
+                          if (useInches) {
+                            // Formato en pulgadas
+                            String fmtInch(TextEditingController ctrl, String frac) {
+                              final i = ctrl.text.isEmpty ? '0' : ctrl.text;
+                              return frac.isEmpty ? '$i"' : '$i $frac"';
+                            }
+                            if (selectedType == 'cylinder') {
+                              dimDesc = 'Ø${fmtInch(outerDiameterInchCtrl, outerDiameterFrac)}×${fmtInch(thicknessInchCtrl, thicknessFrac)}×${fmtInch(lengthInchCtrl, lengthFrac)}';
+                            } else if (selectedType == 'rectangular_plate') {
+                              dimDesc = '${fmtInch(widthInchCtrl, widthFrac)}×${fmtInch(heightInchCtrl, heightFrac)}×${fmtInch(thicknessInchCtrl, thicknessFrac)}';
+                            } else {
+                              dimDesc = 'Ø${fmtInch(outerDiameterInchCtrl, outerDiameterFrac)}×${fmtInch(lengthInchCtrl, lengthFrac)}';
+                            }
+                          } else {
+                            // Formato en mm
+                            if (selectedType == 'cylinder') {
+                              dimDesc = 'Ø${outerDiameterCtrl.text}×${thicknessCtrl.text}×${lengthCtrl.text}mm';
+                            } else if (selectedType == 'rectangular_plate') {
+                              dimDesc = '${widthCtrl.text}×${heightCtrl.text}×${thicknessCtrl.text}mm';
+                            } else {
+                              dimDesc = 'Ø${outerDiameterCtrl.text}×${lengthCtrl.text}mm';
+                            }
+                          }
+                          
+                          onAdd(_TempComponent(
+                            materialId: material.id,
+                            name: '${material.name} ($dimDesc)',
+                            description: dimDesc,
+                            unit: 'KG',
+                            unitCost: material.effectivePrice,
+                            quantity: calculatedWeight,
+                            calculatedWeight: calculatedWeight,
+                            category: cat,
+                            outerDiameter: outerD > 0 ? outerD : null,
+                            thickness: thick > 0 ? thick : null,
+                            length: len > 0 ? len : null,
+                            width: wid > 0 ? wid : null,
+                            height: hei > 0 ? hei : null,
+                            density: density,
+                          ));
+                        } : null,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Agregar'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Normaliza la categoría a formato estándar (singular, sin acentos, minúsculas)
+  String _normalizeCategory(String category) {
+    final cat = category.toLowerCase().trim();
+    // Tubos
+    if (cat.contains('tubo')) return 'tubo';
+    // Láminas (con o sin acento)
+    if (cat.contains('lamina') || cat.contains('lámina')) return 'lamina';
+    // Ejes
+    if (cat.contains('eje')) return 'eje';
+    // Rodamientos
+    if (cat.contains('rodamiento')) return 'rodamiento';
+    // Tornillería
+    if (cat.contains('tornill')) return 'tornilleria';
+    // Consumibles
+    if (cat.contains('consumible')) return 'consumible';
+    // Pintura
+    if (cat.contains('pintura')) return 'pintura';
+    return cat;
+  }
+
   String _getCategoryName(String category) {
     switch (category) {
       case 'tubo': return 'Tubos';
@@ -1033,6 +1583,26 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
       case 'consumible': return 'Consumibles';
       case 'pintura': return 'Pintura';
       default: return category;
+    }
+  }
+
+  /// Ícono de forma según categoría
+  IconData _getShapeIcon(String category) {
+    switch (category) {
+      case 'tubo': return Icons.circle_outlined; // Tubo hueco (cilindro)
+      case 'lamina': return Icons.crop_square; // Lámina (rectángulo)
+      case 'eje': return Icons.horizontal_rule; // Eje sólido (barra)
+      default: return Icons.category;
+    }
+  }
+
+  /// Color de forma según categoría
+  Color _getShapeColor(String category) {
+    switch (category) {
+      case 'tubo': return Colors.orange;
+      case 'lamina': return Colors.blue;
+      case 'eje': return Colors.purple;
+      default: return Colors.grey;
     }
   }
 
@@ -1065,6 +1635,16 @@ class _TempComponent {
   double unitCost;
   double quantity;
   double calculatedWeight;
+  String? category; // tubo, lamina, eje, etc.
+  
+  // Dimensiones para cálculo de peso
+  double? outerDiameter; // mm - tubos, ejes, tapas
+  double? innerDiameter; // mm - tubos (diámetro interior)
+  double? thickness;     // mm - espesor de pared (tubos) o grosor (láminas)
+  double? length;        // mm - largo
+  double? width;         // mm - ancho (láminas)
+  double? height;        // mm - alto (láminas)
+  double density;        // kg/dm³ - densidad del material
 
   _TempComponent({
     this.materialId,
@@ -1074,5 +1654,12 @@ class _TempComponent {
     required this.unitCost,
     required this.quantity,
     this.calculatedWeight = 0,
+    this.category,
+    this.outerDiameter,
+    this.thickness,
+    this.length,
+    this.width,
+    this.height,
+    this.density = 7.85, // Acero por defecto
   });
 }

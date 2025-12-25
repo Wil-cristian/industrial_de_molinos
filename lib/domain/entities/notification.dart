@@ -135,7 +135,6 @@ class AppNotification {
       case NotificationType.projectUpdate:
         return Icons.work;
       case NotificationType.general:
-      default:
         return Icons.notifications;
     }
   }
@@ -149,7 +148,6 @@ class AppNotification {
       case NotificationSeverity.success:
         return Colors.green;
       case NotificationSeverity.info:
-      default:
         return Colors.blue;
     }
   }
@@ -171,7 +169,6 @@ class AppNotification {
       case NotificationType.projectUpdate:
         return 'Proyecto';
       case NotificationType.general:
-      default:
         return 'General';
     }
   }

@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/utils/helpers.dart';
 import '../../domain/entities/activity.dart';
+import '../../data/providers/activities_provider.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/quick_actions_button.dart';
 
 /// Página de Calendario/Organizador
 /// Gestión de actividades, eventos y recordatorios
 class CalendarPage extends ConsumerStatefulWidget {
-  const CalendarPage({super.key});
+  final bool openNewDialog;
+  
+  const CalendarPage({super.key, this.openNewDialog = false});
 
   @override
   ConsumerState<CalendarPage> createState() => _CalendarPageState();
@@ -21,60 +22,27 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
   DateTime _displayedMonth = DateTime.now();
   String _filterType = 'Todas';
   String _filterStatus = 'Todas';
+  bool _dialogOpened = false;
 
-  // Mock data - será reemplazado con datos reales del provider
-  final List<Activity> _mockActivities = [
-    Activity(
-      id: '1',
-      title: 'Cobro a Cliente ABC',
-      description: 'Seguimiento de pago de factura #001',
-      activityType: ActivityType.collection,
-      status: ActivityStatus.pending,
-      priority: ActivityPriority.high,
-      startDate: DateTime.now(),
-      dueDate: DateTime.now(),
-      customerName: 'Cliente ABC',
-      amount: 5000,
-      color: '#FF6B6B',
-      icon: 'payment',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-    Activity(
-      id: '2',
-      title: 'Entrega de Productos',
-      description: 'Envío a bodega principal',
-      activityType: ActivityType.delivery,
-      status: ActivityStatus.inProgress,
-      priority: ActivityPriority.medium,
-      startDate: DateTime.now().add(Duration(days: 1)),
-      dueDate: DateTime.now().add(Duration(days: 2)),
-      customerName: 'Distribuidora XYZ',
-      color: '#4ECDC4',
-      icon: 'local_shipping',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-    Activity(
-      id: '3',
-      title: 'Reunión con Proveedor',
-      description: 'Discusión sobre nuevas compras de materiales',
-      activityType: ActivityType.meeting,
-      status: ActivityStatus.pending,
-      priority: ActivityPriority.medium,
-      startDate: DateTime.now().add(Duration(days: 3)),
-      dueDate: DateTime.now().add(Duration(days: 3)),
-      color: '#95E1D3',
-      icon: 'group',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Cargar actividades al iniciar
+    Future.microtask(() {
+      ref.read(activitiesProvider.notifier).loadActivities();
+      // Abrir diálogo si viene con el parámetro
+      if (widget.openNewDialog && !_dialogOpened) {
+        _dialogOpened = true;
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) _showActivityDialog();
+        });
+      }
+    });
+  }
 
   List<Activity> get _filteredActivities {
-    var activities = _mockActivities
-        .where((a) => _isSameDay(a.dueDate ?? a.startDate, _selectedDate))
-        .toList();
+    final state = ref.watch(activitiesProvider);
+    var activities = state.getActivitiesForDay(_selectedDate);
 
     // Filtrar por tipo
     if (_filterType != 'Todas') {
@@ -100,15 +68,21 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
   }
 
   List<Activity> _getActivitiesForDay(DateTime day) {
-    return _mockActivities
-        .where((a) => _isSameDay(a.dueDate ?? a.startDate, day))
-        .toList();
+    final state = ref.watch(activitiesProvider);
+    return state.getActivitiesForDay(day);
   }
 
   void _showActivityDialog({Activity? activity}) {
     showDialog(
       context: context,
-      builder: (context) => _ActivityDialog(activity: activity),
+      builder: (context) => _ActivityDialog(
+        activity: activity,
+        selectedDate: _selectedDate,
+        onSaved: () {
+          // Recargar actividades después de guardar
+          ref.read(activitiesProvider.notifier).loadActivities();
+        },
+      ),
     );
   }
 
@@ -366,7 +340,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Color(int.parse(
-                                  '0xFF${activities[i].color?.replaceFirst('#', '') ?? 'FF6B6B'}',
+                                  '0xFF${activities[i].color.replaceFirst('#', '')}',
                                 )),
                               ),
                             ),
@@ -515,14 +489,26 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${activity.title} eliminada'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+              final success = await ref
+                  .read(activitiesProvider.notifier)
+                  .deleteActivity(activity.id);
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${activity.title} eliminada'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Error al eliminar la actividad'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Eliminar'),
@@ -565,8 +551,14 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
 /// Dialog para crear/editar actividades
 class _ActivityDialog extends ConsumerStatefulWidget {
   final Activity? activity;
+  final DateTime selectedDate;
+  final VoidCallback? onSaved;
 
-  const _ActivityDialog({this.activity});
+  const _ActivityDialog({
+    this.activity,
+    required this.selectedDate,
+    this.onSaved,
+  });
 
   @override
   ConsumerState<_ActivityDialog> createState() => _ActivityDialogState();
@@ -579,6 +571,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
   String _selectedType = 'payment';
   String _selectedStatus = 'pending';
   String _selectedPriority = 'medium';
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -586,7 +579,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
     _titleController = TextEditingController(text: widget.activity?.title ?? '');
     _descriptionController =
         TextEditingController(text: widget.activity?.description ?? '');
-    _selectedDate = widget.activity?.dueDate ?? DateTime.now();
+    _selectedDate = widget.activity?.dueDate ?? widget.selectedDate;
     _selectedType = widget.activity?.activityType.name ?? 'payment';
     _selectedStatus = widget.activity?.status.name ?? 'pending';
     _selectedPriority = widget.activity?.priority.name ?? 'medium';
@@ -743,30 +736,26 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
                     child: const Text('Cancelar'),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    onPressed: () {
-                      // Guardar actividad
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            widget.activity == null
-                                ? 'Actividad creada'
-                                : 'Actividad actualizada',
-                          ),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    },
+                    onPressed: _isSaving ? null : _saveActivity,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryColor,
                       foregroundColor: Colors.white,
                     ),
-                    child: Text(widget.activity == null ? 'Crear' : 'Actualizar'),
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(widget.activity == null ? 'Crear' : 'Actualizar'),
                   ),
                 ],
               ),
@@ -775,6 +764,112 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
         ),
       ),
     );
+  }
+
+  Future<void> _saveActivity() async {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El título es requerido'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      // Convertir strings a enums
+      final activityType = ActivityType.values.firstWhere(
+        (e) => e.name == _selectedType,
+        orElse: () => ActivityType.payment,
+      );
+      final status = ActivityStatus.values.firstWhere(
+        (e) => e.name == _selectedStatus,
+        orElse: () => ActivityStatus.pending,
+      );
+      final priority = ActivityPriority.values.firstWhere(
+        (e) => e.name == _selectedPriority,
+        orElse: () => ActivityPriority.medium,
+      );
+
+      // Obtener color basado en el tipo
+      String color;
+      switch (activityType) {
+        case ActivityType.payment:
+          color = '#FF6B6B';
+          break;
+        case ActivityType.delivery:
+          color = '#4ECDC4';
+          break;
+        case ActivityType.meeting:
+          color = '#95E1D3';
+          break;
+        case ActivityType.collection:
+          color = '#DDA0DD';
+          break;
+        default:
+          color = '#6C757D';
+      }
+
+      final activity = Activity(
+        id: widget.activity?.id ?? '',
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        activityType: activityType,
+        status: status,
+        priority: priority,
+        startDate: _selectedDate,
+        dueDate: _selectedDate,
+        color: color,
+        icon: activityType.name,
+        createdAt: widget.activity?.createdAt ?? DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      bool success;
+      if (widget.activity == null) {
+        success = await ref.read(activitiesProvider.notifier).createActivity(activity);
+      } else {
+        success = await ref.read(activitiesProvider.notifier).updateActivity(activity);
+      }
+
+      if (mounted) {
+        if (success) {
+          Navigator.pop(context);
+          widget.onSaved?.call();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.activity == null
+                    ? 'Actividad creada exitosamente'
+                    : 'Actividad actualizada exitosamente',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          setState(() => _isSaving = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al guardar: ${ref.read(activitiesProvider).error ?? "Error desconocido"}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -801,13 +896,13 @@ class _ActivityCard extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border.all(
             color: Color(int.parse(
-                  '0xFF${activity.color?.replaceFirst('#', '') ?? 'FF6B6B'}',
+                  '0xFF${activity.color.replaceFirst('#', '')}',
                 ))
                 .withOpacity(0.3),
           ),
           borderRadius: BorderRadius.circular(8),
           color: Color(int.parse(
-                '0xFF${activity.color?.replaceFirst('#', '') ?? 'FF6B6B'}',
+                '0xFF${activity.color.replaceFirst('#', '')}',
               ))
               .withOpacity(0.05),
         ),
@@ -821,7 +916,7 @@ class _ActivityCard extends StatelessWidget {
                   height: 20,
                   decoration: BoxDecoration(
                     color: Color(int.parse(
-                      '0xFF${activity.color?.replaceFirst('#', '') ?? 'FF6B6B'}',
+                      '0xFF${activity.color.replaceFirst('#', '')}',
                     )),
                     borderRadius: BorderRadius.circular(2),
                   ),
@@ -853,12 +948,12 @@ class _ActivityCard extends StatelessWidget {
                 PopupMenuButton(
                   itemBuilder: (context) => [
                     PopupMenuItem(
-                      child: const Text('Editar'),
                       onTap: onEdit,
+                      child: const Text('Editar'),
                     ),
                     PopupMenuItem(
-                      child: const Text('Eliminar'),
                       onTap: onDelete,
+                      child: const Text('Eliminar'),
                     ),
                   ],
                 ),

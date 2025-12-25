@@ -17,10 +17,31 @@ DROP POLICY IF EXISTS "Allow all for authenticated users" ON operational_costs;
 DROP POLICY IF EXISTS "Allow all for authenticated users" ON payments;
 DROP POLICY IF EXISTS "Allow all for authenticated users" ON product_templates;
 DROP POLICY IF EXISTS "Allow all for authenticated users" ON products;
+DROP POLICY IF EXISTS "Allow all for authenticated users" ON product_components;
 DROP POLICY IF EXISTS "Allow all for authenticated users" ON quotation_items;
 DROP POLICY IF EXISTS "Allow all for authenticated users" ON quotations;
 DROP POLICY IF EXISTS "Allow all for authenticated users" ON stock_movements;
 DROP POLICY IF EXISTS "Allow all for authenticated users" ON sync_log;
+
+-- Eliminar políticas nuevas si ya existen (para re-ejecutar el script)
+DROP POLICY IF EXISTS "categories_all_policy" ON categories;
+DROP POLICY IF EXISTS "chart_of_accounts_all_policy" ON chart_of_accounts;
+DROP POLICY IF EXISTS "company_settings_all_policy" ON company_settings;
+DROP POLICY IF EXISTS "customers_all_policy" ON customers;
+DROP POLICY IF EXISTS "invoice_items_all_policy" ON invoice_items;
+DROP POLICY IF EXISTS "invoices_all_policy" ON invoices;
+DROP POLICY IF EXISTS "journal_entries_all_policy" ON journal_entries;
+DROP POLICY IF EXISTS "journal_entry_lines_all_policy" ON journal_entry_lines;
+DROP POLICY IF EXISTS "material_prices_all_policy" ON material_prices;
+DROP POLICY IF EXISTS "operational_costs_all_policy" ON operational_costs;
+DROP POLICY IF EXISTS "payments_all_policy" ON payments;
+DROP POLICY IF EXISTS "product_templates_all_policy" ON product_templates;
+DROP POLICY IF EXISTS "products_all_policy" ON products;
+DROP POLICY IF EXISTS "product_components_all_policy" ON product_components;
+DROP POLICY IF EXISTS "quotation_items_all_policy" ON quotation_items;
+DROP POLICY IF EXISTS "quotations_all_policy" ON quotations;
+DROP POLICY IF EXISTS "stock_movements_all_policy" ON stock_movements;
+DROP POLICY IF EXISTS "sync_log_all_policy" ON sync_log;
 
 -- =====================================================
 -- HABILITAR RLS EN TODAS LAS TABLAS
@@ -39,6 +60,7 @@ ALTER TABLE operational_costs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_components ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quotation_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quotations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
@@ -86,6 +108,9 @@ CREATE POLICY "product_templates_all_policy" ON product_templates FOR ALL USING 
 
 -- PRODUCTS
 CREATE POLICY "products_all_policy" ON products FOR ALL USING (true) WITH CHECK (true);
+
+-- PRODUCT_COMPONENTS
+CREATE POLICY "product_components_all_policy" ON product_components FOR ALL USING (true) WITH CHECK (true);
 
 -- QUOTATION_ITEMS
 CREATE POLICY "quotation_items_all_policy" ON quotation_items FOR ALL USING (true) WITH CHECK (true);

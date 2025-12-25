@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/accounts_provider.dart';
@@ -50,233 +49,135 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                       ? const Center(child: CircularProgressIndicator())
                       : Column(
                           children: [
-                            // Header con fecha
-                            _buildHeader(context, state),
-
-                        // Contenido
-                        Expanded(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Cards de cuentas
-                                _buildAccountCards(context, state),
-                                const SizedBox(height: 24),
-
-                                // Resumen del día
-                                _buildDaySummary(context, state),
-                                const SizedBox(height: 24),
-
-                                // Lista de movimientos
-                                _buildMovementsList(context, state),
-                              ],
+                            // Header section (inline, not _buildHeader)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: const Icon(
+                                          Icons.factory,
+                                          color: AppTheme.primaryColor,
+                                          size: 28,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Caja Diaria',
+                                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                              color: AppTheme.primaryColor,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Control de ingresos, gastos y traslados',
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                                      ),
+                                    ],
+                                  ),
+                                  const Spacer(),
+                                  // Selector de fecha
+                                  InkWell(
+                                    onTap: () => _selectDate(context),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primaryColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: AppTheme.primaryColor.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.calendar_today,
+                                            color: AppTheme.primaryColor,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            Formatters.dateLong(state.selectedDate),
+                                            style: const TextStyle(
+                                              color: AppTheme.primaryColor,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  // Botón de nuevo movimiento
+                                  ElevatedButton.icon(
+                                    onPressed: () => _showAddMovementDialog(context),
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Nuevo Movimiento'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.primaryColor,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Botón de traslado
+                                  ElevatedButton.icon(
+                                    onPressed: () => _showTransferDialog(context),
+                                    icon: const Icon(Icons.swap_horiz),
+                                    label: const Text('Traslado'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+                            // Contenido
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Cards de cuentas
+                                    _buildAccountCards(context, state),
+                                    const SizedBox(height: 24),
+
+                                    // Resumen del día
+                                    _buildDaySummary(context, state),
+                                    const SizedBox(height: 24),
+
+                                    // Lista de movimientos
+                                    _buildMovementsList(context, state),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-              ),
-            ),
-          ],
-        ),
-        // QuickActions Button
-        const QuickActionsButton(),
-        // FAB para nuevo movimiento
-        Positioned(
-          bottom: 20,
-          right: 20,
-          child: FloatingActionButton.extended(
-            onPressed: () => _showAddMovementDialog(context),
-            backgroundColor: AppTheme.primaryColor,
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text(
-              'Nuevo Movimiento',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ),
-      ],
-      ),
-    );
-  }
-
-  Widget _buildNavigationRail(BuildContext context) {
-    return Container(
-      width: 80,
-      color: AppTheme.primaryColor,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.factory,
-                    color: AppTheme.primaryColor,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Molinos',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _NavItem(
-                    icon: Icons.dashboard,
-                    label: 'Inicio',
-                    onTap: () => context.go('/'),
-                  ),
-                  _NavItem(
-                    icon: Icons.account_balance_wallet,
-                    label: 'Caja',
-                    isSelected: true,
-                    onTap: () {},
-                  ),
-                  _NavItem(
-                    icon: Icons.inventory_2,
-                    label: 'Productos',
-                    onTap: () => context.go('/products'),
-                  ),
-                  _NavItem(
-                    icon: Icons.people,
-                    label: 'Clientes',
-                    onTap: () => context.go('/customers'),
-                  ),
-                  _NavItem(
-                    icon: Icons.receipt_long,
-                    label: 'Ventas',
-                    onTap: () => context.go('/invoices'),
-                  ),
-                  _NavItem(
-                    icon: Icons.request_quote,
-                    label: 'Cotizar',
-                    onTap: () => context.go('/quotations'),
-                  ),
-                  _NavItem(
-                    icon: Icons.bar_chart,
-                    label: 'Reportes',
-                    onTap: () => context.go('/reports'),
-                  ),
-                  _NavItem(
-                    icon: Icons.settings,
-                    label: 'Config',
-                    onTap: () => context.go('/settings'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, DailyCashState state) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Título
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Caja Diaria',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Control de ingresos, gastos y traslados',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          ),
-
-          // Selector de fecha
-          InkWell(
-            onTap: () => _selectDate(context),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppTheme.primaryColor.withOpacity(0.3),
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    color: AppTheme.primaryColor,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    Formatters.dateLong(state.selectedDate),
-                    style: TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
-                ],
-              ),
-            ),
+            ],
           ),
-          const SizedBox(width: 16),
-
-          // Botón de traslado
-          ElevatedButton.icon(
-            onPressed: () => _showTransferDialog(context),
-            icon: const Icon(Icons.swap_horiz),
-            label: const Text('Traslado'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-          ),
+          // QuickActions Button
+          const QuickActionsButton(),
         ],
       ),
     );
@@ -426,22 +327,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             ),
             const Divider(height: 24),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Expanded(
-                  child: _buildMiniStat(
-                    'Ingresos Hoy',
-                    '+${Formatters.currency(incomeToday)}',
-                    AppTheme.successColor,
-                  ),
-                ),
-                Container(width: 1, height: 30, color: Colors.grey[200]),
-                Expanded(
-                  child: _buildMiniStat(
-                    'Gastos Hoy',
-                    '-${Formatters.currency(expenseToday)}',
-                    AppTheme.errorColor,
-                  ),
-                ),
+                _buildMiniStat('Ingresos hoy', Formatters.currency(incomeToday), Colors.green),
+                _buildMiniStat('Gastos hoy', Formatters.currency(expenseToday), Colors.red),
               ],
             ),
           ],
@@ -1648,7 +1537,7 @@ class _NavItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    this.isSelected = false,
+    required this.isSelected,
   });
 
   @override

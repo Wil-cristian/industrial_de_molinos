@@ -205,7 +205,6 @@ class ReportsDataSource {
           .neq('invoices.status', 'cancelled');
 
       double totalRevenue = 0;
-      
       for (var item in itemsResponse) {
         final qty = (item['quantity'] ?? 0).toDouble();
         final unitPrice = (item['unit_price'] ?? 0).toDouble();

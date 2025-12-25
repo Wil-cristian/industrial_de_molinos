@@ -518,16 +518,16 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
           SnackBar(content: Text('Imprimiendo ${invoice['number']}...'), backgroundColor: Colors.blue),
         );
         break;
-      case 'email':
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Enviando ${invoice['number']} por email...'), backgroundColor: Colors.blue),
-        );
-        break;
-      case 'payment':
-        _showPaymentDialog(invoice);
-        break;
-      case 'cancel':
-        _confirmCancelInvoice(invoice);
+  InvoiceStatus getInvoiceStatus(String status) {
+    switch (status) {
+      case 'Pagada': return InvoiceStatus.paid;
+      case 'Pendiente': return InvoiceStatus.issued;
+      case 'Parcial': return InvoiceStatus.partial;
+      case 'Vencida': return InvoiceStatus.overdue;
+      case 'Anulada': return InvoiceStatus.cancelled;
+      default: return InvoiceStatus.draft;
+    }
+  }
         break;
     }
   }

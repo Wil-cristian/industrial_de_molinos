@@ -7,7 +7,9 @@ import '../../data/providers/providers.dart';
 import '../../domain/entities/material.dart' as mat;
 
 class MaterialsPage extends ConsumerStatefulWidget {
-  const MaterialsPage({super.key});
+  final bool openNewDialog;
+  
+  const MaterialsPage({super.key, this.openNewDialog = false});
 
   @override
   ConsumerState<MaterialsPage> createState() => _MaterialsPageState();
@@ -16,12 +18,20 @@ class MaterialsPage extends ConsumerStatefulWidget {
 class _MaterialsPageState extends ConsumerState<MaterialsPage> {
   String _searchQuery = '';
   String _selectedCategory = 'todos';
+  bool _dialogOpened = false;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
       ref.read(inventoryProvider.notifier).loadMaterials();
+      // Abrir diálogo si viene con el parámetro
+      if (widget.openNewDialog && !_dialogOpened) {
+        _dialogOpened = true;
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) _showAddMaterialDialog();
+        });
+      }
     });
   }
 

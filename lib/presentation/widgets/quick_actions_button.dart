@@ -47,9 +47,9 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
       color: Colors.teal,
     ),
     QuickActionItem(
-      icon: Icons.inventory_2,
-      label: 'Materiales',
-      route: '/materials',
+      icon: Icons.add_circle,
+      label: 'Nuevo Material',
+      route: '/materials?action=new',
       color: Colors.indigo,
     ),
     QuickActionItem(
@@ -57,6 +57,30 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
       label: 'Productos Compuestos',
       route: '/composite-products',
       color: Colors.deepOrange,
+    ),
+    QuickActionItem(
+      icon: Icons.badge,
+      label: 'Nuevo Empleado',
+      route: '/employees?action=new',
+      color: Colors.cyan,
+    ),
+    QuickActionItem(
+      icon: Icons.assignment,
+      label: 'Nueva Tarea',
+      route: '/employees?action=new-task',
+      color: Colors.amber,
+    ),
+    QuickActionItem(
+      icon: Icons.business_center,
+      label: 'Activos Fijos',
+      route: '/assets',
+      color: Colors.brown,
+    ),
+    QuickActionItem(
+      icon: Icons.calendar_today,
+      label: 'Nueva Actividad',
+      route: '/calendar?action=new',
+      color: Colors.pink,
     ),
   ];
 
@@ -92,6 +116,9 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final maxPanelHeight = screenHeight - 180; // Espacio para el botón y márgenes
+    
     return Stack(
       alignment: Alignment.bottomLeft,
       children: [
@@ -110,10 +137,10 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
             ),
           ),
 
-        // Panel de acciones
+        // Panel de acciones - posicionado a la izquierda del sidebar
         Positioned(
-          left: 16,
-          bottom: 80,
+          left: 90, // A la derecha del sidebar (80px) + margen
+          bottom: 20,
           child: AnimatedBuilder(
             animation: _expandAnimation,
             builder: (context, child) {
@@ -127,11 +154,11 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
               );
             },
             child: Container(
-              width: 280,
-              padding: const EdgeInsets.all(16),
+              width: 260,
+              constraints: BoxConstraints(maxHeight: maxPanelHeight),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.15),
@@ -140,64 +167,83 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                   ),
                 ],
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.flash_on,
-                          color: AppTheme.primaryColor,
-                          size: 20,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header fijo
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withOpacity(0.05),
+                        border: Border(
+                          bottom: BorderSide(color: Colors.grey.shade200),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Acciones Rápidas',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.flash_on,
+                              color: AppTheme.primaryColor,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Acciones Rápidas',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Lista de acciones con scroll
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(_actions.length, (index) {
+                            final action = _actions[index];
+                            return _buildActionItem(context, action, index);
+                          }),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(height: 1),
-                  const SizedBox(height: 8),
-                  ...List.generate(_actions.length, (index) {
-                    final action = _actions[index];
-                    return _buildActionItem(context, action, index);
-                  }),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
 
-        // Botón FAB principal
+        // Botón FAB principal - posicionado a la izquierda del sidebar
         Positioned(
-          left: 16,
-          bottom: 16,
+          left: 90, // A la derecha del sidebar (80px) + margen
+          bottom: 20,
           child: AnimatedRotation(
             duration: const Duration(milliseconds: 300),
             turns: _isExpanded ? 0.125 : 0,
             child: Material(
               elevation: 8,
               shadowColor: AppTheme.primaryColor.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               child: InkWell(
                 onTap: _toggleExpanded,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 child: Container(
-                  width: 56,
-                  height: 56,
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -207,12 +253,12 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
                     _isExpanded ? Icons.close : Icons.bolt,
                     color: Colors.white,
-                    size: 28,
+                    size: 26,
                   ),
                 ),
               ),
@@ -227,13 +273,19 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
     return AnimatedBuilder(
       animation: _expandAnimation,
       builder: (context, child) {
-        final delay = index * 0.1;
-        final animValue = (_expandAnimation.value - delay).clamp(0.0, 1.0) / (1.0 - delay);
+        // Calcular opacidad de forma segura (siempre entre 0.0 y 1.0)
+        double animValue = 0.0;
+        if (_expandAnimation.value > 0) {
+          final delay = index * 0.08; // Reducir delay para evitar problemas
+          if (_expandAnimation.value > delay) {
+            animValue = ((_expandAnimation.value - delay) / (1.0 - delay)).clamp(0.0, 1.0);
+          }
+        }
         
         return Transform.translate(
           offset: Offset(-20 * (1 - animValue), 0),
           child: Opacity(
-            opacity: animValue,
+            opacity: animValue.isNaN ? 0.0 : animValue.clamp(0.0, 1.0),
             child: child,
           ),
         );

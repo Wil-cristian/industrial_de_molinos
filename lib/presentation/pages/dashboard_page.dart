@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/providers.dart';
+import '../../data/providers/activities_provider.dart';
 import '../../domain/entities/invoice.dart';
+import '../../domain/entities/activity.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/quick_actions_button.dart';
 
@@ -29,6 +31,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       ref.read(quotationsProvider.notifier).loadQuotations();
       ref.read(inventoryProvider.notifier).loadMaterials();
       ref.read(invoicesProvider.notifier).refresh();
+      ref.read(activitiesProvider.notifier).loadActivities();
     });
   }
 
@@ -214,8 +217,64 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     List<dynamic> lowStockMaterials,
     dynamic invoicesState,
   ) {
+    // Obtener actividades
+    final activitiesState = ref.watch(activitiesProvider);
+    
     // Crear lista de notificaciones basadas en datos reales
     final notifications = <_NotificationItem>[];
+    
+    // Actividades pendientes para hoy y próximos días
+    final today = DateTime.now();
+    final todayActivities = activitiesState.activities.where((a) {
+      final activityDate = a.dueDate ?? a.startDate;
+      return activityDate.year == today.year &&
+             activityDate.month == today.month &&
+             activityDate.day == today.day &&
+             a.status != ActivityStatus.completed &&
+             a.status != ActivityStatus.cancelled;
+    }).take(3).toList();
+    
+    for (var activity in todayActivities) {
+      String severity;
+      switch (activity.priority) {
+        case ActivityPriority.urgent:
+          severity = 'error';
+          break;
+        case ActivityPriority.high:
+          severity = 'warning';
+          break;
+        default:
+          severity = 'info';
+      }
+      
+      notifications.add(_NotificationItem(
+        icon: activity.iconData,
+        title: activity.title,
+        message: activity.description ?? activity.typeLabel,
+        severity: severity,
+        time: 'Hoy',
+        route: '/calendar',
+      ));
+    }
+    
+    // Actividades vencidas
+    final overdueActivities = activitiesState.activities.where((a) {
+      final dueDate = a.dueDate ?? a.startDate;
+      return dueDate.isBefore(DateTime(today.year, today.month, today.day)) &&
+             a.status != ActivityStatus.completed &&
+             a.status != ActivityStatus.cancelled;
+    }).take(2).toList();
+    
+    for (var activity in overdueActivities) {
+      notifications.add(_NotificationItem(
+        icon: Icons.warning_amber,
+        title: 'Actividad Vencida: ${activity.title}',
+        message: activity.typeLabel,
+        severity: 'error',
+        time: 'Vencida',
+        route: '/calendar',
+      ));
+    }
     
     // Alertas de stock bajo
     for (var material in lowStockMaterials.take(3)) {
@@ -411,6 +470,23 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final firstWeekday = firstDayOfMonth.weekday;
     
+    // Obtener actividades
+    final activitiesState = ref.watch(activitiesProvider);
+    
+    // Helper para verificar si un día tiene actividades
+    bool hasActivitiesOnDay(int day) {
+      final date = DateTime(now.year, now.month, day);
+      return activitiesState.activities.any((a) {
+        final activityDate = a.dueDate ?? a.startDate;
+        return activityDate.year == date.year &&
+               activityDate.month == date.month &&
+               activityDate.day == date.day;
+      });
+    }
+    
+    // Obtener actividades del día seleccionado
+    final selectedDayActivities = activitiesState.getActivitiesForDay(_selectedDate);
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -449,6 +525,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     ),
                   ),
                 ],
+              ),
+              // Botón para ir al calendario completo
+              IconButton(
+                icon: const Icon(Icons.open_in_new, size: 18),
+                onPressed: () => context.go('/calendar'),
+                tooltip: 'Ver calendario completo',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
             ],
           ),
@@ -493,6 +577,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               final isToday = dayOffset == now.day;
               final isSelected = dayOffset == _selectedDate.day && 
                                  now.month == _selectedDate.month;
+              final hasActivities = hasActivitiesOnDay(dayOffset);
               
               return GestureDetector(
                 onTap: () {
@@ -509,21 +594,34 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                             : null,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Center(
-                    child: Text(
-                      '$dayOffset',
-                      style: TextStyle(
-                        color: isToday 
-                            ? Colors.white 
-                            : isSelected 
-                                ? AppTheme.primaryColor 
-                                : Colors.grey[700],
-                        fontSize: 12,
-                        fontWeight: isToday || isSelected 
-                            ? FontWeight.bold 
-                            : FontWeight.normal,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$dayOffset',
+                        style: TextStyle(
+                          color: isToday 
+                              ? Colors.white 
+                              : isSelected 
+                                  ? AppTheme.primaryColor 
+                                  : Colors.grey[700],
+                          fontSize: 12,
+                          fontWeight: isToday || isSelected 
+                              ? FontWeight.bold 
+                              : FontWeight.normal,
+                        ),
                       ),
-                    ),
+                      if (hasActivities)
+                        Container(
+                          margin: const EdgeInsets.only(top: 2),
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isToday ? Colors.white : AppTheme.primaryColor,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               );
@@ -534,7 +632,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           const Divider(height: 1),
           const SizedBox(height: 12),
           
-          // Actividades del día (placeholder)
+          // Actividades del día seleccionado
           Text(
             'Actividades del ${_selectedDate.day}/${_selectedDate.month}',
             style: TextStyle(
@@ -544,26 +642,112 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ),
           ),
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.event_available, color: Colors.grey[400], size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  'Sin actividades programadas',
-                  style: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 12,
+          
+          if (selectedDayActivities.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.event_available, color: Colors.grey[400], size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Sin actividades programadas',
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...selectedDayActivities.take(3).map((activity) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: GestureDetector(
+                onTap: () => context.go('/calendar'),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: activity.colorValue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: activity.colorValue.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 3,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: activity.colorValue,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              activity.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              activity.typeLabel,
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: activity.statusColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          activity.statusLabel,
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: activity.statusColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
+            )),
+          
+          if (selectedDayActivities.length > 3)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: GestureDetector(
+                onTap: () => context.go('/calendar'),
+                child: Text(
+                  '+${selectedDayActivities.length - 3} más...',
+                  style: TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );

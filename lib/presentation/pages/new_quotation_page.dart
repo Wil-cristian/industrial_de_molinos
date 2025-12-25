@@ -1191,17 +1191,6 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
     );
   }
 
-  void _showAddComponentDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => _AddComponentDialog(
-        materialPrices: _materialPrices,
-        onAdd: (component) {
-          setState(() => _items.add(component));
-        },
-      ),
-    );
-  }
 
   void _showAddMaterialDialog(List<domain.Material> materials) {
     showDialog(
