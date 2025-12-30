@@ -295,6 +295,19 @@ class AccountsDataSource {
       await updateAccountBalance(movement.accountId, newBalance);
     }
     
+    // Desvincular de tablas relacionadas antes de eliminar
+    // Desvincular de payroll
+    await _client
+        .from('payroll')
+        .update({'cash_movement_id': null})
+        .eq('cash_movement_id', id);
+    
+    // Desvincular de employee_loans
+    await _client
+        .from('employee_loans')
+        .update({'cash_movement_id': null})
+        .eq('cash_movement_id', id);
+    
     // Eliminar el movimiento
     await _client.from(_movementsTable).delete().eq('id', id);
   }

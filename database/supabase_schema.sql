@@ -83,7 +83,7 @@ EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE document_type AS ENUM ('dni', 'ruc', 'ce', 'passport');
+    CREATE TYPE document_type AS ENUM ('cc', 'nit', 'ce', 'pasaporte', 'ti');
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
@@ -91,7 +91,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS customers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     type customer_type NOT NULL DEFAULT 'business',
-    document_type document_type NOT NULL DEFAULT 'ruc',
+    document_type document_type NOT NULL DEFAULT 'nit',
     document_number VARCHAR(20) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     trade_name VARCHAR(255),
@@ -169,7 +169,7 @@ CREATE INDEX IF NOT EXISTS idx_stock_movements_date ON stock_movements(created_a
 
 -- Enum para estado de cotización
 DO $$ BEGIN
-    CREATE TYPE quotation_status AS ENUM ('Borrador', 'Enviada', 'Aprobada', 'Rechazada', 'Vencida');
+    CREATE TYPE quotation_status AS ENUM ('Borrador', 'Enviada', 'Aprobada', 'Rechazada', 'Vencida', 'Anulada');
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 

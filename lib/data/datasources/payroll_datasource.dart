@@ -681,14 +681,14 @@ class PayrollDatasource {
   static Future<String?> processPayrollPayment({
     required String payrollId,
     required String accountId,
-    required String paymentMethod,
+    required DateTime paymentDate,
   }) async {
     final response = await _client.rpc(
       'register_payroll_payment',
       params: {
         'p_payroll_id': payrollId,
         'p_account_id': accountId,
-        'p_payment_method': paymentMethod,
+        'p_payment_date': paymentDate.toIso8601String().split('T')[0],
       },
     );
 

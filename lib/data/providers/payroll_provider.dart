@@ -227,13 +227,13 @@ class PayrollNotifier extends Notifier<PayrollState> {
   Future<bool> processPayment({
     required String payrollId,
     required String accountId,
-    required String paymentMethod,
+    DateTime? paymentDate,
   }) async {
     try {
       await PayrollDatasource.processPayrollPayment(
         payrollId: payrollId,
         accountId: accountId,
-        paymentMethod: paymentMethod,
+        paymentDate: paymentDate ?? DateTime.now(),
       );
 
       // Recargar nóminas
@@ -356,10 +356,10 @@ class PayrollNotifier extends Notifier<PayrollState> {
   Future<bool> addOvertimeHours({
     required String payrollId,
     required double hours,
-    required String type, // '25', '35', '100'
+    required String type, // 'normal', '25', '35', '100'
     required double hourlyRate,
   }) async {
-    final conceptCode = 'HORA_EXTRA_$type';
+    final conceptCode = type == 'normal' ? 'HORA_EXTRA' : 'HORA_EXTRA_$type';
     final concept = state.concepts.firstWhere(
       (c) => c.code == conceptCode,
       orElse: () => state.incomeConcepts.first,
@@ -367,6 +367,9 @@ class PayrollNotifier extends Notifier<PayrollState> {
 
     double multiplier = 1.0;
     switch (type) {
+      case 'normal':
+        multiplier = 1.0;  // Sin recargo
+        break;
       case '25':
         multiplier = 1.25;
         break;
@@ -379,6 +382,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
     }
 
     final amount = hours * hourlyRate * multiplier;
+    final label = type == 'normal' ? 'al 100%' : 'al ${(multiplier * 100).toInt()}%';
 
     return addConceptToPayroll(
       payrollId: payrollId,
@@ -386,7 +390,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
       amount: amount,
       quantity: hours,
       unitValue: hourlyRate * multiplier,
-      notes: '$hours horas extra al ${(multiplier * 100).toInt()}%',
+      notes: '$hours horas extra $label',
     );
   }
 

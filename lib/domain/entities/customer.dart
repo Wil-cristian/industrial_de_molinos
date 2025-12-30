@@ -1,6 +1,78 @@
 // Entidad: Cliente
 enum CustomerType { individual, business }
-enum DocumentType { dni, ruc, ce, passport }
+
+// Tipos de documento para Colombia (incluye valores legacy para compatibilidad)
+enum DocumentType {
+  cc, // Cédula de Ciudadanía
+  nit, // NIT (empresas)
+  ce, // Cédula de Extranjería
+  pasaporte, // Pasaporte
+  ti, // Tarjeta de Identidad
+  // Valores legacy para compatibilidad con BD existente
+  ruc, // -> se mostrará como NIT
+  dni, // -> se mostrará como CC
+  passport, // -> se mostrará como Pasaporte
+}
+
+// Extensión para mostrar nombres legibles
+extension DocumentTypeExtension on DocumentType {
+  String get displayName {
+    switch (this) {
+      case DocumentType.cc:
+      case DocumentType.dni: // Legacy
+        return 'CC';
+      case DocumentType.nit:
+      case DocumentType.ruc: // Legacy
+        return 'NIT';
+      case DocumentType.ce:
+        return 'CE';
+      case DocumentType.pasaporte:
+      case DocumentType.passport: // Legacy
+        return 'Pasaporte';
+      case DocumentType.ti:
+        return 'TI';
+    }
+  }
+
+  String get fullName {
+    switch (this) {
+      case DocumentType.cc:
+      case DocumentType.dni:
+        return 'Cédula de Ciudadanía';
+      case DocumentType.nit:
+      case DocumentType.ruc:
+        return 'NIT';
+      case DocumentType.ce:
+        return 'Cédula de Extranjería';
+      case DocumentType.pasaporte:
+      case DocumentType.passport:
+        return 'Pasaporte';
+      case DocumentType.ti:
+        return 'Tarjeta de Identidad';
+    }
+  }
+
+  // Convierte valores legacy a los nuevos valores de Colombia
+  DocumentType get normalized {
+    switch (this) {
+      case DocumentType.dni:
+        return DocumentType.cc;
+      case DocumentType.ruc:
+        return DocumentType.nit;
+      case DocumentType.passport:
+        return DocumentType.pasaporte;
+      default:
+        return this;
+    }
+  }
+
+  // Verifica si es un valor legacy
+  bool get isLegacy {
+    return this == DocumentType.ruc ||
+        this == DocumentType.dni ||
+        this == DocumentType.passport;
+  }
+}
 
 class Customer {
   final String id;

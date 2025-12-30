@@ -502,7 +502,7 @@ class _CompositeProductsPageState extends State<CompositeProductsPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Para factura empresa',
+                      'Para recibo empresa',
                       style: TextStyle(fontSize: 12, color: Colors.blue[700]),
                     ),
                   ),

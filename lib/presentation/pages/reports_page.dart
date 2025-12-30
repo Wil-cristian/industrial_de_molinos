@@ -5,8 +5,6 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/reports_provider.dart';
 import '../../data/datasources/reports_datasource.dart';
-import '../widgets/app_sidebar.dart';
-import '../widgets/quick_actions_button.dart';
 
 class ReportsPage extends ConsumerStatefulWidget {
   const ReportsPage({super.key});
@@ -36,68 +34,62 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: Stack(
+      body: Row(
         children: [
-          Row(
-            children: [
-              const AppSidebar(currentRoute: '/reports'),
-              Container(
-                width: 280,
-                color: Colors.white,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Reportes',
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.primaryColor,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Analisis y estadisticas',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
+          Container(
+            width: 280,
+            color: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Reportes',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor,
+                        ),
                       ),
-                    ),
-                    const Divider(height: 1),
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        children: [
-                          _buildReportCategory('Ventas', Icons.trending_up, [
-                            'Ventas por Periodo',
-                            'Ventas por Producto',
-                            'Ventas por Cliente',
-                            'Productos mas Vendidos',
-                          ]),
-                          _buildReportCategory('Inventario', Icons.inventory_2, [
-                            'Stock Actual',
-                            'Valorizacion de Inventario',
-                          ]),
-                          _buildReportCategory('Cuentas por Cobrar', Icons.account_balance_wallet, [
-                            'Cartera de Clientes',
-                            'Antiguedad de Saldos',
-                          ]),
-                        ],
+                      const SizedBox(height: 8),
+                      Text(
+                        'Analisis y estadisticas',
+                        style: TextStyle(color: Colors.grey[600]),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: _buildMainContent(salesState, inventoryState, receivablesState),
-              ),
-            ],
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: [
+                      _buildReportCategory('Ventas', Icons.trending_up, [
+                        'Ventas por Periodo',
+                        'Ventas por Producto',
+                        'Ventas por Cliente',
+                        'Productos mas Vendidos',
+                      ]),
+                      _buildReportCategory('Inventario', Icons.inventory_2, [
+                        'Stock Actual',
+                        'Valorizacion de Inventario',
+                      ]),
+                      _buildReportCategory('Cuentas por Cobrar', Icons.account_balance_wallet, [
+                        'Cartera de Clientes',
+                        'Antiguedad de Saldos',
+                      ]),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          const QuickActionsButton(),
+          Expanded(
+            child: _buildMainContent(salesState, inventoryState, receivablesState),
+          ),
         ],
       ),
     );

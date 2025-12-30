@@ -24,6 +24,7 @@ class _AppSidebarState extends State<AppSidebar> {
   final List<NavItemData> _navItems = [
     NavItemData(icon: Icons.account_balance_wallet, label: 'Caja', route: '/daily-cash'),
     NavItemData(icon: Icons.inventory_2, label: 'Productos', route: '/products'),
+    NavItemData(icon: Icons.warehouse, label: 'Materiales', route: '/materials'),
     NavItemData(icon: Icons.people, label: 'Clientes', route: '/customers'),
     NavItemData(icon: Icons.receipt_long, label: 'Ventas', route: '/invoices'),
     NavItemData(icon: Icons.request_quote, label: 'Cotizar', route: '/quotations'),

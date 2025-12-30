@@ -5,8 +5,6 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../domain/entities/asset.dart';
 import '../../data/providers/assets_provider.dart';
-import '../widgets/app_sidebar.dart';
-import '../widgets/quick_actions_button.dart';
 
 /// Página de Activos Fijos / Inversiones
 /// Gestión de herramientas, maquinaria, equipos e inversiones
@@ -49,90 +47,73 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     final state = ref.watch(assetsProvider);
     
     return Scaffold(
-      body: Stack(
-        children: [
-          Row(
-            children: [
-              const AppSidebar(currentRoute: '/assets'),
-              Expanded(
-                child: Container(
-                  color: AppTheme.backgroundColor,
-                  child: Column(
-                    children: [
-                      // Header
-                      _buildHeader(context),
-                      
-                      // Content
-                      Expanded(
-                        child: state.isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : SingleChildScrollView(
-                                padding: const EdgeInsets.all(20),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Stats Cards
-                                    _buildStatsCards(state),
-                                    const SizedBox(height: 20),
-                                    
-                                    // Filters
-                                    _buildFilters(state),
-                                    const SizedBox(height: 20),
-                                    
-                                    // Assets Grid
-                                    _buildAssetsGrid(state),
-                                  ],
-                                ),
-                              ),
+      body: Container(
+        color: AppTheme.backgroundColor,
+        child: Column(
+          children: [
+            // Header
+            _buildHeader(context),
+            
+            // Content
+            Expanded(
+              child: state.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Stats Cards
+                          _buildStatsCards(state),
+                          const SizedBox(height: 20),
+                          
+                          // Filters
+                          _buildFilters(state),
+                          const SizedBox(height: 20),
+                          
+                          // Assets Grid
+                          _buildAssetsGrid(state),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const QuickActionsButton(),
-        ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       color: Colors.white,
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor),
+            icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor, size: 20),
             onPressed: () => context.go('/'),
             tooltip: 'Volver al menú',
+            visualDensity: VisualDensity.compact,
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Activos Fijos e Inversiones',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-                Text(
-                  'Gestión de herramientas, maquinaria y equipos',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-              ],
+          Text(
+            'Activos Fijos e Inversiones',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryColor,
             ),
           ),
+          const SizedBox(width: 8),
+          Text(
+            'Herramientas, maquinaria y equipos',
+            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+          ),
+          const Spacer(),
           FilledButton.icon(
             onPressed: _showAddAssetDialog,
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Nuevo Activo'),
             style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
           ),
         ],
@@ -145,34 +126,34 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
       children: [
         Expanded(
           child: _buildStatCard(
-            'Total Activos',
+            'Activos',
             '${state.totalAssets}',
             Icons.business_center,
             Colors.blue,
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 3),
         Expanded(
           child: _buildStatCard(
-            'Valor Actual',
+            'Valor',
             'S/ ${Helpers.formatNumber(state.totalValue)}',
             Icons.account_balance,
             Colors.green,
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 3),
         Expanded(
           child: _buildStatCard(
-            'Inversión Total',
+            'Inversión',
             'S/ ${Helpers.formatNumber(state.totalInvestment)}',
             Icons.trending_up,
             Colors.purple,
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 3),
         Expanded(
           child: _buildStatCard(
-            'En Mantenimiento',
+            'Mant.',
             '${state.inMaintenance}',
             Icons.build,
             Colors.orange,
@@ -184,25 +165,25 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(3),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(2),
             ),
             child: Icon(icon, color: color, size: 24),
           ),

@@ -109,6 +109,7 @@ class InvoicesNotifier extends Notifier<InvoicesState> {
     String invoiceId,
     double amount,
     PaymentMethod method, {
+    String? accountId,
     String paymentType = 'complete',
     int? installmentNumber,
     int? totalInstallments,
@@ -119,6 +120,7 @@ class InvoicesNotifier extends Notifier<InvoicesState> {
         invoiceId: invoiceId,
         amount: amount,
         method: method.name,
+        accountId: accountId,
         paymentType: paymentType,
         installmentNumber: installmentNumber,
         totalInstallments: totalInstallments,

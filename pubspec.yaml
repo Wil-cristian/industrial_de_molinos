@@ -31,6 +31,9 @@ dependencies:
   # Gráficos
   fl_chart: ^1.0.0
   
+  # Archivos
+  file_picker: ^8.0.0
+  
   # Serialización (para modelos)
   freezed_annotation: ^3.1.0
   json_annotation: ^4.9.0

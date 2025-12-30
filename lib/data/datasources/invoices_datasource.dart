@@ -1,8 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/customer.dart';
+import '../../domain/entities/cash_movement.dart';
 import 'supabase_datasource.dart';
 import 'products_datasource.dart';
+import 'accounts_datasource.dart';
+import 'customers_datasource.dart';
 
 class InvoicesDataSource {
   static SupabaseClient get _client => SupabaseDataSource.client;
@@ -264,6 +267,16 @@ class InvoicesDataSource {
         .from('invoices')
         .update({'status': status})
         .eq('id', id);
+    
+    // Recalcular balance del cliente después de cualquier cambio de estado
+    if (currentInvoice?.customerId != null && currentInvoice!.customerId!.isNotEmpty) {
+      try {
+        final newBalance = await CustomersDataSource.recalculateBalance(currentInvoice.customerId!);
+        print('✅ Balance del cliente recalculado después de cambio de estado: $newBalance');
+      } catch (e) {
+        print('⚠️ No se pudo recalcular balance del cliente: $e');
+      }
+    }
   }
 
   /// Actualiza el stock de productos para un recibo
@@ -319,6 +332,7 @@ class InvoicesDataSource {
     required String invoiceId,
     required double amount,
     required String method,
+    String? accountId,
     String? reference,
     String? notes,
     String paymentType = 'complete', // complete, partial, installments
@@ -326,34 +340,27 @@ class InvoicesDataSource {
     int? totalInstallments,
   }) async {
     try {
-      // Usar la función RPC para registrar pago
-      await _client.rpc('register_payment', params: {
-        'p_invoice_id': invoiceId,
-        'p_amount': amount,
-        'p_method': method,
-        'p_reference': reference,
-        'p_notes': notes,
-      });
-    } catch (e) {
-      // Fallback al método anterior si la función RPC no existe
-      print('⚠️ Usando método alternativo para registrar pago: $e');
-      
-      // Insertar pago
-      await _client.from('payments').insert({
+      // Obtener recibo para info del cliente
+      final invoice = await getById(invoiceId);
+      if (invoice == null) throw Exception('Recibo no encontrado');
+
+      // Insertar pago - solo campos básicos que seguro existen
+      final paymentData = <String, dynamic>{
         'invoice_id': invoiceId,
         'amount': amount,
         'method': method,
-        'reference': reference,
-        'notes': notes,
         'payment_date': DateTime.now().toIso8601String().split('T')[0],
-        'payment_type': paymentType,
-        'installment_number': installmentNumber,
-        'total_installments': totalInstallments,
-      });
-
-      // Obtener recibo actual
-      final invoice = await getById(invoiceId);
-      if (invoice == null) return;
+      };
+      
+      // Agregar campos opcionales si tienen valor
+      if (reference != null && reference.isNotEmpty) {
+        paymentData['reference'] = reference;
+      }
+      if (notes != null && notes.isNotEmpty) {
+        paymentData['notes'] = notes;
+      }
+      
+      await _client.from('payments').insert(paymentData);
 
       // Calcular nuevo monto pagado
       final newPaidAmount = invoice.paidAmount + amount;
@@ -372,7 +379,41 @@ class InvoicesDataSource {
       await _client.from('invoices').update({
         'paid_amount': newPaidAmount,
         'status': newStatus,
+        'payment_method': method,
       }).eq('id', invoiceId);
+
+      // Si se especificó una cuenta, crear movimiento de caja
+      if (accountId != null && accountId.isNotEmpty) {
+        final movement = CashMovement(
+          id: '',
+          accountId: accountId,
+          type: MovementType.income,
+          category: MovementCategory.collection,
+          amount: amount,
+          description: 'Cobro recibo ${invoice.series}-${invoice.number}',
+          reference: '${invoice.series}-${invoice.number}',
+          personName: invoice.customerName,
+          date: DateTime.now(),
+        );
+        
+        await AccountsDataSource.createMovementWithBalanceUpdate(movement);
+        print('✅ Movimiento de caja creado para cuenta $accountId');
+      }
+      
+      // Actualizar balance del cliente (recalcular desde facturas pendientes)
+      if (invoice.customerId != null && invoice.customerId!.isNotEmpty) {
+        try {
+          final newBalance = await CustomersDataSource.recalculateBalance(invoice.customerId!);
+          print('✅ Balance del cliente recalculado: $newBalance');
+        } catch (e) {
+          print('⚠️ No se pudo actualizar balance del cliente: $e');
+        }
+      }
+      
+      print('✅ Pago registrado: $amount en recibo ${invoice.number}');
+    } catch (e) {
+      print('❌ Error registrando pago: $e');
+      rethrow;
     }
   }
 

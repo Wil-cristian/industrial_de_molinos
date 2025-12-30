@@ -12,6 +12,9 @@ class AnalyticsState {
   final List<ProfitLossMonthly> profitLoss;
   final List<AccountReceivableAging> accountsReceivable;
   final Map<String, double> agingSummary;
+  final List<DSOMonthly> dsoTrend;
+  final CollectionKPIs? collectionKPIs;
+  final List<ProductABC> productABC;
   final bool isLoading;
   final String? error;
 
@@ -21,6 +24,9 @@ class AnalyticsState {
     this.profitLoss = const [],
     this.accountsReceivable = const [],
     this.agingSummary = const {},
+    this.dsoTrend = const [],
+    this.collectionKPIs,
+    this.productABC = const [],
     this.isLoading = false,
     this.error,
   });
@@ -31,6 +37,9 @@ class AnalyticsState {
     List<ProfitLossMonthly>? profitLoss,
     List<AccountReceivableAging>? accountsReceivable,
     Map<String, double>? agingSummary,
+    List<DSOMonthly>? dsoTrend,
+    CollectionKPIs? collectionKPIs,
+    List<ProductABC>? productABC,
     bool? isLoading,
     String? error,
   }) {
@@ -40,6 +49,9 @@ class AnalyticsState {
       profitLoss: profitLoss ?? this.profitLoss,
       accountsReceivable: accountsReceivable ?? this.accountsReceivable,
       agingSummary: agingSummary ?? this.agingSummary,
+      dsoTrend: dsoTrend ?? this.dsoTrend,
+      collectionKPIs: collectionKPIs ?? this.collectionKPIs,
+      productABC: productABC ?? this.productABC,
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -76,6 +88,9 @@ class AnalyticsNotifier extends Notifier<AnalyticsState> {
         AnalyticsDataSource.getProfitLoss(limit: 12),
         AnalyticsDataSource.getAccountsReceivable(),
         AnalyticsDataSource.getAgingSummary(),
+        AnalyticsDataSource.getDSOTrend(months: 12),
+        AnalyticsDataSource.getCollectionKPIs(),
+        AnalyticsDataSource.getProductABCAnalysis(),
       ]);
 
       state = state.copyWith(
@@ -84,6 +99,9 @@ class AnalyticsNotifier extends Notifier<AnalyticsState> {
         profitLoss: results[2] as List<ProfitLossMonthly>,
         accountsReceivable: results[3] as List<AccountReceivableAging>,
         agingSummary: results[4] as Map<String, double>,
+        dsoTrend: results[5] as List<DSOMonthly>,
+        collectionKPIs: results[6] as CollectionKPIs,
+        productABC: results[7] as List<ProductABC>,
         isLoading: false,
       );
     } catch (e) {

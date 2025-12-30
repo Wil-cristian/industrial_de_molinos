@@ -4,9 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../domain/entities/invoice.dart';
+import '../../domain/entities/account.dart';
 import '../../data/providers/invoices_provider.dart';
-import '../widgets/app_sidebar.dart';
-import '../widgets/quick_actions_button.dart';
+import '../../data/datasources/invoices_datasource.dart';
+import '../../data/datasources/accounts_datasource.dart';
 
 class InvoicesPage extends ConsumerStatefulWidget {
   const InvoicesPage({super.key});
@@ -103,176 +104,136 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: Stack(
+      body: Column(
         children: [
-          Row(
-            children: [
-              const AppSidebar(currentRoute: '/invoices'),
-              Expanded(
-                child: Column(
-                  children: [
-                    // Header
+          // Header ultra compacto
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: Colors.white,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Ventas',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.primaryColor,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${_invoices.length} documentos emitidos',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Stats rápidas
-                    _buildQuickStat('Ventas del Mes', Formatters.currency(_totalVentas), Colors.blue, Icons.trending_up),
-                    const SizedBox(width: 12),
-                    _buildQuickStat('Cobrado', Formatters.currency(_totalCobrado), Colors.green, Icons.check_circle),
-                    const SizedBox(width: 12),
-                    _buildQuickStat('Por Cobrar', Formatters.currency(_totalPendiente), Colors.orange, Icons.schedule),
-                    const SizedBox(width: 24),
-                    FilledButton.icon(
-                      onPressed: () => context.go('/invoices/new'),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Nueva Venta'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      ),
-                    ),
-                  ],
+                Text(
+                  'Recibos de Caja',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                  ),
                 ),
-                const SizedBox(height: 20),
-                // Tabs y filtros
-                Row(
-                  children: [
-                    // Tabs
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        isScrollable: true,
-                        indicator: BoxDecoration(
-                          color: AppTheme.primaryColor,
+                const SizedBox(width: 12),
+                // Stats compactas
+                _buildQuickStat('Ventas', Formatters.currency(_totalVentas), Colors.blue, Icons.trending_up),
+                const SizedBox(width: 8),
+                _buildQuickStat('Cobrado', Formatters.currency(_totalCobrado), Colors.green, Icons.check_circle),
+                const SizedBox(width: 8),
+                _buildQuickStat('Pendiente', Formatters.currency(_totalPendiente), Colors.orange, Icons.schedule),
+                const SizedBox(width: 12),
+                // Búsqueda compacta
+                Expanded(
+                  child: SizedBox(
+                    height: 36,
+                    child: TextField(
+                      onChanged: (value) => setState(() => _searchQuery = value),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar...',
+                        prefixIcon: const Icon(Icons.search, size: 18),
+                        border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
-                        labelColor: Colors.white,
-                        unselectedLabelColor: Colors.grey[600],
-                        tabs: const [
-                          Tab(text: '  Recibos de Caja Menor  '),
-                          Tab(text: '  Boletas  '),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    // Búsqueda
-                    Expanded(
-                      child: TextField(
-                        onChanged: (value) => setState(() => _searchQuery = value),
-                        decoration: InputDecoration(
-                          hintText: 'Buscar por número o cliente...',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                        isDense: true,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    // Filtro de estado
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.grey[50],
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedStatus,
-                          items: ['Todos', 'Pagada', 'Pendiente', 'Parcial', 'Vencida', 'Anulada']
-                              .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                              .toList(),
-                          onChanged: (value) => setState(() => _selectedStatus = value!),
-                        ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Filtro estado
+                SizedBox(
+                  height: 36,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey[50],
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedStatus,
+                        isDense: true,
+                        items: ['Todos', 'Pagada', 'Pendiente', 'Parcial', 'Vencida', 'Anulada']
+                            .map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13))))
+                            .toList(),
+                        onChanged: (value) => setState(() => _selectedStatus = value!),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    // Filtro de fecha
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final range = await showDateRangePicker(
-                          context: context,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                          initialDateRange: _dateRange,
-                        );
-                        if (range != null) {
-                          setState(() => _dateRange = range);
-                        }
-                      },
-                      icon: const Icon(Icons.calendar_today, size: 18),
-                      label: Text(_dateRange == null 
-                          ? 'Fecha' 
-                          : '${Formatters.date(_dateRange!.start)} - ${Formatters.date(_dateRange!.end)}'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Filtro fecha compacto
+                SizedBox(
+                  height: 36,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final range = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        initialDateRange: _dateRange,
+                      );
+                      if (range != null) {
+                        setState(() => _dateRange = range);
+                      }
+                    },
+                    icon: const Icon(Icons.calendar_today, size: 14),
+                    label: Text(
+                      _dateRange == null ? 'Fecha' : '${Formatters.date(_dateRange!.start)} - ${Formatters.date(_dateRange!.end)}',
+                      style: const TextStyle(fontSize: 12),
                     ),
-                    if (_dateRange != null) ...[
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () => setState(() => _dateRange = null),
-                        tooltip: 'Limpiar filtro de fecha',
-                      ),
-                    ],
-                  ],
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                  ),
+                ),
+                if (_dateRange != null) ...[
+                  const SizedBox(width: 4),
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: IconButton(
+                      icon: const Icon(Icons.clear, size: 14),
+                      onPressed: () => setState(() => _dateRange = null),
+                      tooltip: 'Limpiar',
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 8),
+                // Botón nueva venta
+                SizedBox(
+                  height: 36,
+                  child: FilledButton.icon(
+                    onPressed: () => context.go('/invoices/new'),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Nuevo', style: TextStyle(fontSize: 13)),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          // Lista de recibos de caja menor
+          // Lista de recibos
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildInvoicesList(_filteredInvoices.where((i) => i['number'].toString().startsWith('F')).toList()),
-                _buildInvoicesList(_filteredInvoices.where((i) => i['number'].toString().startsWith('B')).toList()),
-              ],
-            ),
+            child: _buildInvoicesList(_filteredInvoices),
           ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const QuickActionsButton(),
         ],
       ),
     );
@@ -280,20 +241,22 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
 
   Widget _buildQuickStat(String label, String value, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(2),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 8),
+          Icon(icon, color: color, size: 12),
+          const SizedBox(width: 1),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-              Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+              Text(label, style: TextStyle(fontSize: 8, color: Colors.grey[600])),
+              Text(value, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
             ],
           ),
         ],
@@ -518,6 +481,20 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
           SnackBar(content: Text('Imprimiendo ${invoice['number']}...'), backgroundColor: Colors.blue),
         );
         break;
+      case 'email':
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Enviando ${invoice['number']} por email...'), backgroundColor: Colors.blue),
+        );
+        break;
+      case 'payment':
+        _showPaymentDialog(invoice);
+        break;
+      case 'cancel':
+        _confirmCancelInvoice(invoice);
+        break;
+    }
+  }
+
   InvoiceStatus getInvoiceStatus(String status) {
     switch (status) {
       case 'Pagada': return InvoiceStatus.paid;
@@ -526,9 +503,6 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
       case 'Vencida': return InvoiceStatus.overdue;
       case 'Anulada': return InvoiceStatus.cancelled;
       default: return InvoiceStatus.draft;
-    }
-  }
-        break;
     }
   }
 
@@ -744,118 +718,360 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
   }
 
   void _showPaymentDialog(Map<String, dynamic> invoice) {
-    final pending = (invoice['total'] as double) - (invoice['paid'] as double);
+    final total = invoice['total'] as double;
+    final paid = invoice['paid'] as double;
+    final pending = total - paid;
     final amountController = TextEditingController(text: pending.toStringAsFixed(2));
     final referenceController = TextEditingController();
-    String selectedMethod = 'Efectivo';
+    Account? selectedAccount;
+    List<Account> accounts = [];
+    List<Map<String, dynamic>> paymentHistory = [];
+    bool loadingHistory = true;
+    bool loadingAccounts = true;
+    
+    // Cargar cuentas
+    AccountsDataSource.getAllAccounts(activeOnly: true).then((loadedAccounts) {
+      accounts = loadedAccounts;
+      if (accounts.isNotEmpty) {
+        // Seleccionar efectivo por defecto o la primera cuenta
+        selectedAccount = accounts.firstWhere(
+          (a) => a.type == AccountType.cash,
+          orElse: () => accounts.first,
+        );
+      }
+      loadingAccounts = false;
+    }).catchError((e) {
+      loadingAccounts = false;
+    });
+    
+    // Cargar historial de pagos
+    InvoicesDataSource.getPayments(invoice['id']).then((payments) {
+      paymentHistory = payments;
+      loadingHistory = false;
+    }).catchError((e) {
+      loadingHistory = false;
+    });
     
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Container(
-            width: 400,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.payment, color: Colors.green),
-                    const SizedBox(width: 12),
-                    const Text('Registrar Pago', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    const Spacer(),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text('Documento: ${invoice['number']}', style: TextStyle(color: Colors.grey[600])),
-                Text('Pendiente: ${Formatters.currency(pending)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Monto a pagar',
-                    border: OutlineInputBorder(),
-                    prefixText: 'S/ ',
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedMethod,
-                  decoration: const InputDecoration(
-                    labelText: 'Método de pago',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: ['Efectivo', 'Transferencia', 'Yape', 'Plin', 'Tarjeta']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (value) => setDialogState(() => selectedMethod = value ?? 'Efectivo'),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: referenceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Referencia (opcional)',
-                    border: OutlineInputBorder(),
-                    hintText: 'Ej: Nro. de operación',
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-                    const SizedBox(width: 12),
-                    FilledButton.icon(
-                      onPressed: () async {
-                        final amount = double.tryParse(amountController.text) ?? 0;
-                        if (amount <= 0 || amount > pending) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Monto inválido'), backgroundColor: Colors.red),
-                          );
-                          return;
-                        }
-                        
-                        Navigator.pop(context);
-                        
-                        // Convertir método de pago
-                        PaymentMethod method;
-                        switch (selectedMethod) {
-                          case 'Transferencia': method = PaymentMethod.transfer; break;
-                          case 'Yape': method = PaymentMethod.yape; break;
-                          case 'Plin': method = PaymentMethod.plin; break;
-                          case 'Tarjeta': method = PaymentMethod.card; break;
-                          default: method = PaymentMethod.cash;
-                        }
-                        
-                        final success = await ref.read(invoicesProvider.notifier).registerPayment(
-                          invoice['id'],
-                          amount,
-                          method,
-                        );
-                        
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(success ? 'Pago registrado exitosamente' : 'Error al registrar pago'),
-                              backgroundColor: success ? Colors.green : Colors.red,
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.check),
-                      label: const Text('Confirmar'),
+        builder: (context, setDialogState) {
+          // Refresh history
+          if (loadingHistory) {
+            InvoicesDataSource.getPayments(invoice['id']).then((payments) {
+              setDialogState(() {
+                paymentHistory = payments;
+                loadingHistory = false;
+              });
+            }).catchError((e) {
+              setDialogState(() => loadingHistory = false);
+            });
+          }
+          
+          // Cargar cuentas
+          if (loadingAccounts) {
+            AccountsDataSource.getAllAccounts(activeOnly: true).then((loadedAccounts) {
+              setDialogState(() {
+                accounts = loadedAccounts;
+                if (accounts.isNotEmpty && selectedAccount == null) {
+                  selectedAccount = accounts.firstWhere(
+                    (a) => a.type == AccountType.cash,
+                    orElse: () => accounts.first,
+                  );
+                }
+                loadingAccounts = false;
+              });
+            }).catchError((e) {
+              setDialogState(() => loadingAccounts = false);
+            });
+          }
+          
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Container(
+              width: 480,
+              constraints: const BoxConstraints(maxHeight: 600),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                     ),
-                  ],
-                ),
-              ],
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.green[100],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.payment, color: Colors.green[700], size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Registrar Pago / Abono', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              Text(invoice['number'], style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                      ],
+                    ),
+                  ),
+                  
+                  // Scrollable content
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Resumen de cuenta
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Total del recibo:', style: TextStyle(fontSize: 14)),
+                                    Text(Formatters.currency(total), style: const TextStyle(fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Pagado:', style: TextStyle(color: Colors.green[700], fontSize: 14)),
+                                    Text(Formatters.currency(paid), style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8),
+                                  child: Divider(),
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('PENDIENTE:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      Formatters.currency(pending),
+                                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange[700]),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          
+                          // Historial de pagos (si hay)
+                          if (!loadingHistory && paymentHistory.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('HISTORIAL DE PAGOS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[500], letterSpacing: 0.5)),
+                                  const SizedBox(height: 8),
+                                  ...paymentHistory.map((payment) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.check_circle, color: Colors.green[400], size: 16),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            payment['payment_date']?.toString().split('T')[0] ?? '',
+                                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                          ),
+                                        ),
+                                        Text(
+                                          payment['method']?.toString().toUpperCase() ?? '',
+                                          style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          Formatters.currency(payment['amount'] ?? 0),
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.green[700]),
+                                        ),
+                                      ],
+                                    ),
+                                  )),
+                                ],
+                              ),
+                            ),
+                          
+                          // Formulario de pago
+                          Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('NUEVO ABONO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[500], letterSpacing: 0.5)),
+                                const SizedBox(height: 12),
+                                TextFormField(
+                                  controller: amountController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Monto a pagar',
+                                    border: const OutlineInputBorder(),
+                                    prefixText: 'S/ ',
+                                    suffixIcon: TextButton(
+                                      onPressed: () => setDialogState(() => amountController.text = pending.toStringAsFixed(2)),
+                                      child: const Text('Pagar todo'),
+                                    ),
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                ),
+                                const SizedBox(height: 12),
+                                if (loadingAccounts)
+                                  const Center(child: CircularProgressIndicator())
+                                else if (accounts.isEmpty)
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange[50],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.orange[200]!),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.warning, color: Colors.orange[700], size: 20),
+                                        const SizedBox(width: 8),
+                                        const Expanded(child: Text('No hay cuentas configuradas')),
+                                      ],
+                                    ),
+                                  )
+                                else
+                                  DropdownButtonFormField<String>(
+                                    value: selectedAccount?.id,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Cuenta destino',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    items: accounts.map((account) => DropdownMenuItem(
+                                      value: account.id,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            account.type == AccountType.cash ? Icons.payments : Icons.account_balance,
+                                            size: 18,
+                                            color: account.type == AccountType.cash ? Colors.green : Colors.blue,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(account.name),
+                                        ],
+                                      ),
+                                    )).toList(),
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        setDialogState(() {
+                                          selectedAccount = accounts.firstWhere((a) => a.id == value);
+                                        });
+                                      }
+                                    },
+                                  ),
+                                const SizedBox(height: 12),
+                                TextFormField(
+                                  controller: referenceController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Referencia (opcional)',
+                                    border: OutlineInputBorder(),
+                                    hintText: 'Ej: Nro. de operación',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  // Botones (fixed at bottom)
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+                        const SizedBox(width: 12),
+                        FilledButton.icon(
+                          onPressed: () async {
+                            final amount = double.tryParse(amountController.text) ?? 0;
+                            if (amount <= 0 || amount > pending) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Monto inválido'), backgroundColor: Colors.red),
+                              );
+                              return;
+                            }
+                            
+                            if (selectedAccount == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Seleccione una cuenta destino'), backgroundColor: Colors.red),
+                              );
+                              return;
+                            }
+                            
+                            // Guardar referencia al ScaffoldMessenger antes de cerrar el diálogo
+                            final scaffoldMessenger = ScaffoldMessenger.of(context);
+                            final accountId = selectedAccount!.id;
+                            final accountType = selectedAccount!.type;
+                            
+                            Navigator.pop(context);
+                            
+                            // Convertir tipo de cuenta a método de pago
+                            PaymentMethod method = accountType == AccountType.cash 
+                                ? PaymentMethod.cash 
+                                : PaymentMethod.transfer;
+                            
+                            final success = await ref.read(invoicesProvider.notifier).registerPayment(
+                              invoice['id'],
+                              amount,
+                              method,
+                              accountId: accountId,
+                            );
+                            
+                            // Forzar refresh de la lista
+                            if (success) {
+                              await ref.read(invoicesProvider.notifier).refresh();
+                            }
+                            
+                            scaffoldMessenger.showSnackBar(
+                              SnackBar(
+                                content: Text(success ? 'Pago registrado exitosamente' : 'Error al registrar pago'),
+                                backgroundColor: success ? Colors.green : Colors.red,
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.check),
+                          label: const Text('Confirmar Abono'),
+                          style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -889,21 +1105,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
       builder: (context) => _InvoicePreviewDialog(invoice: invoice, initialTab: isClientVersion ? 0 : 1),
     );
   }
-
-  InvoiceStatus _getInvoiceStatus(String status) {
-    switch (status) {
-      case 'Pagada': return InvoiceStatus.paid;
-      case 'Pendiente': return InvoiceStatus.issued;
-      case 'Parcial': return InvoiceStatus.partial;
-      case 'Vencida': return InvoiceStatus.overdue;
-      case 'Anulada': return InvoiceStatus.cancelled;
-      default: return InvoiceStatus.draft;
-    }
-  }
 }
 
 // ============================================
-// DIÁLOGO DE PREVISUALIZACIÓN DE FACTURA
+// DIÁLOGO DE PREVISUALIZACIÓN DE RECIBO DE CAJA MENOR
 // ============================================
 class _InvoicePreviewDialog extends StatefulWidget {
   final Map<String, dynamic> invoice;
@@ -944,96 +1149,59 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
   @override
   Widget build(BuildContext context) {
     final inv = widget.invoice;
-    final statusColor = _getStatusColor(inv['status']);
+    final screenHeight = MediaQuery.of(context).size.height;
+    const headerColor = Color(0xFF1e293b);
     
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
-        width: 950,
-        height: 750,
+        width: 1100,
+        height: screenHeight * 0.9,
         child: Column(
           children: [
-            // Header con tabs
+            // Header compacto con fondo oscuro
             Container(
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: const BoxDecoration(
+                color: headerColor,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
-              child: Column(
+              child: Row(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.receipt_long, color: Colors.white, size: 28),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    inv['number'],
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: statusColor,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      inv['status'],
-                                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                inv['customer'],
-                                style: const TextStyle(color: Colors.white70, fontSize: 13),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              Helpers.formatCurrency(inv['total']),
-                              style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              '${inv['items']} items',
-                              style: const TextStyle(color: Colors.white70, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 16),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close, color: Colors.white),
-                        ),
-                      ],
+                  const Icon(Icons.receipt_long, color: Colors.white, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Vista Previa del Recibo',
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  TabBar(
-                    controller: _tabController,
-                    indicatorColor: Colors.white,
-                    indicatorWeight: 3,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white70,
-                    tabs: const [
-                      Tab(icon: Icon(Icons.person), text: 'Recibo Cliente'),
-                      Tab(icon: Icon(Icons.business), text: 'Recibo Empresa'),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(inv['status']),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(inv['status'], style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    splashRadius: 20,
+                  ),
+                ],
+              ),
+            ),
+            // Tabs
+            Container(
+              color: headerColor,
+              child: Row(
+                children: [
+                  const SizedBox(width: 24),
+                  _buildTab('Recibo Cliente', Icons.person, 0),
+                  const SizedBox(width: 8),
+                  _buildTab('Recibo Empresa', Icons.business, 1),
                 ],
               ),
             ),
@@ -1049,7 +1217,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
             ),
             // Footer
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
@@ -1062,40 +1230,33 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                       Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 8),
                       Text(
-                        'Fecha: ${Helpers.formatDate(inv['date'])}  |  Vence: ${Helpers.formatDate(inv['dueDate'])}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        'Fecha: ${Helpers.formatDate(inv['date'])}  •  Vence: ${Helpers.formatDate(inv['dueDate'])}',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       ),
                     ],
                   ),
                   Row(
                     children: [
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Preparando impresión...'), backgroundColor: Colors.blue),
-                          );
-                        },
-                        icon: const Icon(Icons.print),
-                        label: const Text('Imprimir'),
-                      ),
+                      _buildFooterButton('Imprimir', Icons.print, Colors.blue[600]!, () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Preparando impresión...'), backgroundColor: Colors.blue),
+                        );
+                      }),
                       const SizedBox(width: 12),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Enviando por correo...'), backgroundColor: Colors.green),
-                          );
-                        },
-                        icon: const Icon(Icons.email),
-                        label: const Text('Enviar'),
-                      ),
+                      _buildFooterButton('Enviar', Icons.email, Colors.green[600]!, () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Enviando por correo...'), backgroundColor: Colors.green),
+                        );
+                      }),
                       const SizedBox(width: 12),
                       ElevatedButton.icon(
                         onPressed: () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
+                          backgroundColor: const Color(0xFF1e293b),
                           foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         ),
-                        icon: const Icon(Icons.check),
+                        icon: const Icon(Icons.check, size: 18),
                         label: const Text('Cerrar'),
                       ),
                     ],
@@ -1109,557 +1270,675 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
     );
   }
 
+  Widget _buildTab(String label, IconData icon, int index) {
+    final isSelected = _tabController.index == index;
+    return GestureDetector(
+      onTap: () => setState(() => _tabController.animateTo(index)),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: isSelected ? Colors.white : Colors.transparent,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? Colors.white : Colors.white60, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white60,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterButton(String label, IconData icon, Color color, VoidCallback onTap) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color,
+        side: BorderSide(color: color.withOpacity(0.5)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+    );
+  }
+
   // ==========================================
-  // RECIBO CLIENTE - Simple
+  // RECIBO CLIENTE - Diseño espacioso moderno
   // ==========================================
   Widget _buildClientView(Map<String, dynamic> inv) {
     final products = inv['products'] as List<dynamic>? ?? [];
+    const headerColor = Color(0xFF1e293b);
     
     return Container(
-      color: Colors.grey[200],
-      padding: const EdgeInsets.all(24),
+      color: const Color(0xFFF8FAFC),
       child: Center(
         child: Container(
-          width: 700,
+          constraints: const BoxConstraints(maxWidth: 900),
+          margin: const EdgeInsets.all(32),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header empresa con logo
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Logo
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          'lib/photo/logo_empresa.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [AppTheme.primaryColor, AppTheme.primaryColor.withValues(alpha: 0.7)],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.precision_manufacturing, size: 50, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('INDUSTRIAL DE MOLINOS', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1a365d))),
-                          Text('E IMPORTACIONES S.A.S.', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1a365d))),
-                          SizedBox(height: 4),
-                          Text('NIT: 901946675-1', style: TextStyle(color: Colors.grey)),
-                          Text('Vrd la playita - Supía, Caldas', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                          Text('Tel: 3217551145 - 3136446632', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text('RECIBO DE CAJA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(inv['number'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text('Fecha: ${Helpers.formatDate(inv['date'])}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                      ],
-                    ),
-                  ],
+          child: Column(
+            children: [
+              // Barra de acento superior
+              Container(
+                width: double.infinity,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: headerColor,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 16),
-                // Cliente
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.person, color: Colors.grey[600]),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('CLIENTE', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                          Text(inv['customer'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                          Text('NIT/CC: ${inv['customerRuc'] ?? 'N/A'}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                        ],
-                      ),
-                      const Spacer(),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text('MÉTODO DE PAGO', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                          Text(inv['paymentMethod'] ?? 'Pendiente', style: const TextStyle(fontWeight: FontWeight.w500)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Tabla de productos simple
-                const Text('PRODUCTOS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                        ),
-                        child: const Row(
-                          children: [
-                            SizedBox(width: 40, child: Text('Cant.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                            Expanded(child: Text('Descripción', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                            SizedBox(width: 90, child: Text('P.Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                            SizedBox(width: 90, child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                          ],
-                        ),
-                      ),
-                      ...products.map((prod) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          border: Border(top: BorderSide(color: Colors.grey[200]!)),
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(width: 40, child: Text('${prod['quantity']}', style: const TextStyle(fontSize: 13))),
-                            Expanded(child: Text(prod['name'], style: const TextStyle(fontSize: 13))),
-                            SizedBox(width: 90, child: Text('S/ ${Helpers.formatNumber(prod['unitPrice'])}', style: const TextStyle(fontSize: 13), textAlign: TextAlign.right)),
-                            SizedBox(width: 90, child: Text('S/ ${Helpers.formatNumber(prod['total'])}', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13), textAlign: TextAlign.right)),
-                          ],
-                        ),
-                      )),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Totales
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    SizedBox(
-                      width: 250,
-                      child: Column(
-                        children: [
-                          _buildTotalRow('Subtotal', inv['subtotal']),
-                          _buildTotalRow('IGV (18%)', inv['tax']),
-                          const Divider(),
-                          _buildTotalRow('TOTAL', inv['total'], isTotal: true),
-                          if ((inv['paid'] as double) > 0)
-                            _buildTotalRow('Pagado', inv['paid'], color: Colors.green),
-                          if ((inv['total'] as double) - (inv['paid'] as double) > 0)
-                            _buildTotalRow('Pendiente', (inv['total'] as double) - (inv['paid'] as double), color: Colors.orange),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                // Footer
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.email, size: 16, color: Colors.blue[700]),
-                      const SizedBox(width: 8),
-                      Text('industriasdemolinosasfact@gmail.com', style: TextStyle(fontSize: 12, color: Colors.blue[700])),
-                      const Spacer(),
-                      Text('GRACIAS POR SU COMPRA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ==========================================
-  // RECIBO EMPRESA - Detallado con materiales
-  // ==========================================
-  Widget _buildEnterpriseView(Map<String, dynamic> inv) {
-    final products = inv['products'] as List<dynamic>? ?? [];
-    
-    return Container(
-      color: Colors.grey[200],
-      padding: const EdgeInsets.all(24),
-      child: Center(
-        child: Container(
-          width: 800,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
               ),
-            ],
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header documento interno
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        // Logo
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.asset(
-                              'lib/photo/logo_empresa.png',
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.orange[100],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(Icons.business, color: Colors.orange[800]),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('DOCUMENTO INTERNO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                            Text('${inv['number']} - Detalle completo', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.orange[100],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text('USO INTERNO', style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text('Cliente: ${inv['customer']}  |  NIT: ${inv['customerRuc'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 16),
-                // Desglose de productos con materiales
-                const Text('DETALLE DE PRODUCTOS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 12),
-                ...products.map((prod) => _buildProductBreakdown(prod)),
-                const SizedBox(height: 24),
-                const Divider(thickness: 2),
-                const SizedBox(height: 16),
-                // Resumen de costos
-                const Text('RESUMEN FINANCIERO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildCostDetailRow('Subtotal productos', inv['subtotal'], Icons.inventory_2),
-                      _buildCostDetailRow('IGV (18%)', inv['tax'], Icons.receipt),
-                      const Divider(thickness: 2),
-                      _buildCostDetailRow('TOTAL FACTURA', inv['total'], Icons.payments, isBold: true),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: (inv['paid'] as double) >= (inv['total'] as double) ? Colors.green[50] : Colors.orange[50],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  (inv['paid'] as double) >= (inv['total'] as double) ? Icons.check_circle : Icons.warning,
-                                  color: (inv['paid'] as double) >= (inv['total'] as double) ? Colors.green[700] : Colors.orange[700],
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Pagado: S/ ${Helpers.formatNumber(inv['paid'])}',
-                                  style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                            if ((inv['total'] as double) - (inv['paid'] as double) > 0)
-                              Text(
-                                'Pendiente: S/ ${Helpers.formatNumber((inv['total'] as double) - (inv['paid'] as double))}',
-                                style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.bold),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Notas
-                if ((inv['notes'] as String?)?.isNotEmpty == true) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.amber[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.amber[200]!),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.note, color: Colors.amber[700], size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('NOTAS:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber[800], fontSize: 12)),
-                              const SizedBox(height: 4),
-                              Text(inv['notes'], style: TextStyle(fontSize: 12, color: Colors.grey[700])),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProductBreakdown(Map<String, dynamic> prod) {
-    final components = prod['components'] as List<dynamic>? ?? [];
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          // Header del producto
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text('${prod['quantity']}×', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
+              // Contenido con scroll
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(48),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(prod['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      if (prod['type'] != null)
-                        Text('Tipo: ${prod['type']}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                      // Header: Título + Logo
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.verified, color: headerColor, size: 48),
+                                    const SizedBox(width: 16),
+                                    const Text(
+                                      'RECIBO DE CAJA',
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFF111418),
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  inv['number'],
+                                  style: TextStyle(color: Colors.grey[500], fontSize: 16, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Logo empresa
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                width: 70,
+                                height: 70,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 12)],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.asset(
+                                    'lib/photo/logo_empresa.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(colors: [headerColor, headerColor.withOpacity(0.8)]),
+                                      ),
+                                      child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 36),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              const Text('Industrial de Molinos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              const Text('NIT: 901946675-1', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 40),
+                      // Sección Cliente
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[200]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('CLIENTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400], letterSpacing: 1.5)),
+                                  const SizedBox(height: 10),
+                                  Text(inv['customer'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF111418))),
+                                  const SizedBox(height: 4),
+                                  Text('NIT/CC: ${inv['customerRuc'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                _buildDateRow('Fecha:', Helpers.formatDate(inv['date'])),
+                                const SizedBox(height: 8),
+                                _buildDateRow('Vence:', Helpers.formatDate(inv['dueDate'])),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      // Tabla de productos
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[200]!),
+                        ),
+                        child: Column(
+                          children: [
+                            // Header de tabla
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Expanded(flex: 3, child: Text('Descripción', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey))),
+                                  SizedBox(width: 80, child: Text('Cant.', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.center)),
+                                  SizedBox(width: 120, child: Text('Total', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.right)),
+                                ],
+                              ),
+                            ),
+                            // Filas de productos
+                            ...products.map((prod) => Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                              decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey[100]!))),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: Text(prod['name'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                                  ),
+                                  SizedBox(
+                                    width: 80,
+                                    child: Text('${prod['quantity']}', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey[700], fontSize: 15), textAlign: TextAlign.center),
+                                  ),
+                                  SizedBox(
+                                    width: 120,
+                                    child: Text('\$${Helpers.formatNumber(prod['total'])}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), textAlign: TextAlign.right),
+                                  ),
+                                ],
+                              ),
+                            )),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      // Totales
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          SizedBox(
+                            width: 320,
+                            child: Column(
+                              children: [
+                                _buildTotalRow('Subtotal', inv['subtotal']),
+                                _buildTotalRow('IVA (19%)', inv['tax']),
+                                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(thickness: 1)),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('TOTAL', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                    Text('\$${Helpers.formatNumber(inv['total'])}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: headerColor)),
+                                  ],
+                                ),
+                                if ((inv['paid'] as double) > 0) ...[
+                                  const SizedBox(height: 16),
+                                  _buildTotalRow('Pagado', inv['paid'], color: Colors.green[600]),
+                                ],
+                                if ((inv['total'] as double) - (inv['paid'] as double) > 0) ...[
+                                  const SizedBox(height: 8),
+                                  _buildTotalRow('Pendiente', (inv['total'] as double) - (inv['paid'] as double), color: Colors.orange[600]),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 40),
+                      // Nota de agradecimiento
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.email, size: 20, color: Colors.blue[700]),
+                            const SizedBox(width: 12),
+                            Text('industriasdemolinosasfact@gmail.com', style: TextStyle(fontSize: 13, color: Colors.blue[700])),
+                            const Spacer(),
+                            Text('¡GRACIAS POR SU COMPRA!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 13)),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text('S/ ${Helpers.formatNumber(prod['total'])}', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor, fontSize: 16)),
-                    Text('P.U: S/ ${Helpers.formatNumber(prod['unitPrice'])}', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          // Detalles del producto
-          Container(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                if (prod['material'] != null)
-                  _buildDetailItem(Icons.layers, 'Material', prod['material']),
-                if (prod['dimensions'] != null)
-                  _buildDetailItem(Icons.straighten, 'Dimensiones', prod['dimensions']),
-                if (prod['weight'] != null)
-                  _buildDetailItem(Icons.scale, 'Peso', prod['weight']),
-                if (components.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateRow(String label, String value) {
+    return Row(
+      children: [
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+        const SizedBox(width: 8),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+      ],
+    );
+  }
+
+  Widget _buildTotalRow(String label, double value, {Color? color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey[100]!))),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: color ?? Colors.grey[600], fontSize: 14)),
+          Text('\$${Helpers.formatNumber(value)}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: color)),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // RECIBO EMPRESA - ERP Style con detalles
+  // ==========================================
+  Widget _buildEnterpriseView(Map<String, dynamic> inv) {
+    final products = inv['products'] as List<dynamic>? ?? [];
+    final subtotal = inv['subtotal'] as double;
+    final tax = inv['tax'] as double;
+    final total = inv['total'] as double;
+    final paid = inv['paid'] as double;
+    
+    return Container(
+      color: const Color(0xFFF1F4F8),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header con información y badges
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+              ),
+              child: Row(
+                children: [
                   Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
                     ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'lib/photo/logo_empresa.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: [Colors.orange.shade400, Colors.deepOrange]),
+                          ),
+                          child: const Icon(Icons.business, color: Colors.white, size: 30),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Icon(Icons.account_tree, size: 16, color: Colors.grey[600]),
-                            const SizedBox(width: 6),
-                            Text('Componentes:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey[700])),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        ...components.map((comp) => Padding(
-                          padding: const EdgeInsets.only(left: 22, top: 2),
-                          child: Text('• $comp', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-                        )),
+                        const Text('DOCUMENTO INTERNO', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF111418))),
+                        Text(inv['number'], style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[100],
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.lock_outline, size: 14, color: Colors.orange[800]),
+                        const SizedBox(width: 6),
+                        Text('USO INTERNO', style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.bold, fontSize: 11)),
                       ],
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Tarjetas de resumen rápido
+            Row(
+              children: [
+                _buildStatCard('Subtotal', '\$${Helpers.formatNumber(subtotal)}', Icons.inventory_2, Colors.blue),
+                const SizedBox(width: 12),
+                _buildStatCard('IVA (19%)', '\$${Helpers.formatNumber(tax)}', Icons.receipt, Colors.purple),
+                const SizedBox(width: 12),
+                _buildStatCard('Total', '\$${Helpers.formatNumber(total)}', Icons.payments, AppTheme.primaryColor),
+                const SizedBox(width: 12),
+                _buildStatCard('Pagado', '\$${Helpers.formatNumber(paid)}', Icons.check_circle, Colors.green),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Información del cliente
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.person, color: Colors.grey[400]),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('CLIENTE', style: TextStyle(fontSize: 10, color: Colors.grey[400], fontWeight: FontWeight.bold, letterSpacing: 1)),
+                        const SizedBox(height: 4),
+                        Text(inv['customer'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        Text('NIT: ${inv['customerRuc'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(inv['status']).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(inv['status'], style: TextStyle(color: _getStatusColor(inv['status']), fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Detalle de productos
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.list_alt, color: AppTheme.primaryColor),
+                        const SizedBox(width: 10),
+                        const Text('Detalle de Productos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        const Spacer(),
+                        Text('${products.length} producto(s)', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                  // Items
+                  ...products.map((prod) => _buildProductDetailRow(prod)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Resumen financiero moderno
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.analytics_outlined),
+                      const SizedBox(width: 10),
+                      const Text('Resumen Financiero', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // Detalle de costos
+                  _buildCostLine('Subtotal productos', subtotal, Colors.blue),
+                  _buildCostLine('IVA (19%)', tax, Colors.purple),
+                  const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider()),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [AppTheme.primaryColor.withOpacity(0.1), AppTheme.primaryColor.withOpacity(0.05)]),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.payments, size: 28),
+                            SizedBox(width: 12),
+                            Text('TOTAL RECIBO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          ],
+                        ),
+                        Text('\$${Helpers.formatNumber(total)}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.primaryColor)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Estado de pago
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: paid >= total ? Colors.green[50] : Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              paid >= total ? Icons.check_circle : Icons.warning,
+                              color: paid >= total ? Colors.green[700] : Colors.orange[700],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text('Pagado: \$${Helpers.formatNumber(paid)}', style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        if (total - paid > 0)
+                          Text('Pendiente: \$${Helpers.formatNumber(total - paid)}', style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Notas
+            if ((inv['notes'] as String?)?.isNotEmpty == true) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber[200]!),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.note, color: Colors.amber[700], size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('NOTAS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber[800], fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Text(inv['notes'], style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(height: 12),
+            Text(title, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+            const SizedBox(height: 4),
+            Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductDetailRow(Map<String, dynamic> prod) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text('${prod['quantity']}×', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor, fontSize: 13)),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(prod['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                if (prod['type'] != null)
+                  Text('Tipo: ${prod['type']}', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailItem(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: Colors.grey[500]),
-          const SizedBox(width: 8),
-          Text('$label: ', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTotalRow(String label, double value, {bool isTotal = false, Color? color}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            fontSize: isTotal ? 16 : 13,
-            color: color,
-          )),
-          Text(
-            'S/ ${Helpers.formatNumber(value)}',
-            style: TextStyle(
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              fontSize: isTotal ? 18 : 13,
-              color: color ?? (isTotal ? AppTheme.primaryColor : Colors.black),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCostDetailRow(String label, double value, IconData icon, {bool isBold = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Icon(icon, size: 18, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+              Text('\$${Helpers.formatNumber(prod['total'])}', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor, fontSize: 16)),
+              Text('P.U: \$${Helpers.formatNumber(prod['unitPrice'])}', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
             ],
           ),
-          Text(
-            'S/ ${Helpers.formatNumber(value)}',
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              fontSize: isBold ? 18 : 14,
-              color: isBold ? AppTheme.primaryColor : null,
-            ),
-          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCostLine(String label, double value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 13))),
+          Text('\$${Helpers.formatNumber(value)}', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
         ],
       ),
     );

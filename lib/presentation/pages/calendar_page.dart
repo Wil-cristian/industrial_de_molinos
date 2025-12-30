@@ -3,14 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/entities/activity.dart';
 import '../../data/providers/activities_provider.dart';
-import '../widgets/app_sidebar.dart';
-import '../widgets/quick_actions_button.dart';
 
 /// Página de Calendario/Organizador
 /// Gestión de actividades, eventos y recordatorios
 class CalendarPage extends ConsumerStatefulWidget {
   final bool openNewDialog;
-  
+
   const CalendarPage({super.key, this.openNewDialog = false});
 
   @override
@@ -46,9 +44,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
 
     // Filtrar por tipo
     if (_filterType != 'Todas') {
-      activities = activities
-          .where((a) => a.typeLabel == _filterType)
-          .toList();
+      activities = activities.where((a) => a.typeLabel == _filterType).toList();
     }
 
     // Filtrar por estado
@@ -90,55 +86,89 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: Stack(
+      body: Column(
         children: [
-          const QuickActionsButton(),
-          Row(
-            children: [
-              const AppSidebar(currentRoute: '/calendar'),
-              Expanded(
-                child: Column(
-                  children: [
-                    // Header
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      color: Colors.white,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Calendario & Organizador',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Gestiona actividades, eventos y recordatorios',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(color: Colors.grey[600]),
-                              ),
-                            ],
+          // Header ultra compacto
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 4,
+            ),
+            color: Colors.white,
+            child: Row(
+              children: [
+                Text(
+                  'Calendario',
+                  style: Theme.of(context).textTheme.titleSmall
+                      ?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
+                ),
+                const SizedBox(width: 8),
+                // Navegador de mes inline
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _displayedMonth = DateTime(
+                        _displayedMonth.year,
+                        _displayedMonth.month - 1,
+                      );
+                    });
+                  },
+                  icon: const Icon(Icons.chevron_left, size: 18),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
+                ),
+                Text(
+                  '${_monthNames[_displayedMonth.month - 1]} ${_displayedMonth.year}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          ElevatedButton.icon(
-                            onPressed: () => _showActivityDialog(),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Nueva Actividad'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryColor,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
+                          IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _displayedMonth = DateTime(
+                                  _displayedMonth.year,
+                                  _displayedMonth.month + 1,
+                                );
+                              });
+                            },
+                            icon: const Icon(Icons.chevron_right, size: 18),
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 28,
+                              minHeight: 28,
+                            ),
+                          ),
+                          const Spacer(),
+                          // Filtros inline
+                          _buildCompactFilter('type', _filterType),
+                          const SizedBox(width: 4),
+                          _buildCompactFilter('status', _filterStatus),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            height: 28,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _showActivityDialog(),
+                              icon: const Icon(Icons.add, size: 14),
+                              label: const Text(
+                                'Nueva',
+                                style: TextStyle(fontSize: 11),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
                               ),
                             ),
                           ),
@@ -154,28 +184,59 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                             flex: 1,
                             child: Container(
                               color: Colors.white,
-                              child: Column(
-                                children: [
-                                  _buildMonthNavigator(),
-                                  Expanded(
-                                    child: _buildCalendarGrid(),
-                                  ),
-                                ],
-                              ),
+                              margin: const EdgeInsets.all(2),
+                              child: _buildCalendarGrid(),
                             ),
                           ),
-                          const SizedBox(width: 1),
                           // Lista de Actividades
                           Expanded(
                             flex: 1,
                             child: Container(
                               color: Colors.white,
+                              margin: const EdgeInsets.fromLTRB(0, 2, 2, 2),
                               child: Column(
                                 children: [
-                                  _buildActivityFilters(),
-                                  Expanded(
-                                    child: _buildActivityList(),
+                                  // Título de la fecha seleccionada
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        bottom: BorderSide(
+                                          color: Colors.grey[200]!,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.event,
+                                          size: 14,
+                                          color: AppTheme.primaryColor,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          _dateFormat(_selectedDate),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.primaryColor,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          '${_filteredActivities.length} actividades',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.grey[500],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
+                                  Expanded(child: _buildActivityList()),
                                 ],
                               ),
                             ),
@@ -185,56 +246,58 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _buildMonthNavigator() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _displayedMonth =
-                    DateTime(_displayedMonth.year, _displayedMonth.month - 1);
-              });
-            },
-            icon: const Icon(Icons.chevron_left),
-          ),
-          Text(
-            '${_monthNames[_displayedMonth.month - 1]} ${_displayedMonth.year}',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+  Widget _buildCompactFilter(String filterType, String currentValue) {
+    return PopupMenuButton<String>(
+      initialValue: currentValue,
+      onSelected: (value) {
+        setState(() {
+          if (filterType == 'type') {
+            _filterType = value;
+          } else {
+            _filterStatus = value;
+          }
+        });
+      },
+      itemBuilder: (context) {
+        final options = filterType == 'type'
+            ? ['Todas', 'Pago', 'Entrega', 'Reunión', 'Colección', 'Proyecto']
+            : ['Todas', 'Pendiente', 'En Progreso', 'Completada', 'Vencida'];
+        return options
+            .map(
+              (option) => PopupMenuItem(
+                value: option,
+                child: Text(option, style: const TextStyle(fontSize: 12)),
+              ),
+            )
+            .toList();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              currentValue,
+              style: TextStyle(fontSize: 10, color: Colors.grey[700]),
             ),
-          ),
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _displayedMonth =
-                    DateTime(_displayedMonth.year, _displayedMonth.month + 1);
-              });
-            },
-            icon: const Icon(Icons.chevron_right),
-          ),
-        ],
+            const SizedBox(width: 2),
+            Icon(Icons.arrow_drop_down, size: 14, color: Colors.grey[600]),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildCalendarGrid() {
-    final firstDay =
-        DateTime(_displayedMonth.year, _displayedMonth.month, 1);
+    final firstDay = DateTime(_displayedMonth.year, _displayedMonth.month, 1);
     final lastDay = DateTime(
       _displayedMonth.year,
       _displayedMonth.month + 1,
@@ -244,12 +307,12 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     final totalCells = prevMonthDays + lastDay.day + (7 - lastDay.weekday % 7);
 
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(4),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        childAspectRatio: 1,
-        crossAxisSpacing: 4,
-        mainAxisSpacing: 4,
+        childAspectRatio: 1.2,
+        crossAxisSpacing: 2,
+        mainAxisSpacing: 2,
       ),
       itemCount: totalCells,
       itemBuilder: (context, index) {
@@ -292,114 +355,60 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               color: isSelected
                   ? AppTheme.primaryColor
                   : isToday
-                      ? Colors.blue[50]
-                      : isCurrentMonth
-                          ? Colors.white
-                          : Colors.grey[50],
+                  ? Colors.blue[50]
+                  : isCurrentMonth
+                  ? Colors.white
+                  : Colors.grey[50],
               border: Border.all(
                 color: isSelected
                     ? AppTheme.primaryColor
                     : isToday
-                        ? Colors.blue
-                        : Colors.grey[300]!,
+                    ? Colors.blue
+                    : Colors.grey[300]!,
                 width: isSelected ? 2 : 1,
               ),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(4),
             ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    '${cellDate.day}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isSelected
-                          ? Colors.white
-                          : isCurrentMonth
-                              ? Colors.black87
-                              : Colors.grey[400],
-                    ),
+                Text(
+                  '${cellDate.day}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected
+                        ? Colors.white
+                        : isCurrentMonth
+                        ? Colors.black87
+                        : Colors.grey[400],
                   ),
                 ),
                 if (activities.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (int i = 0; i < activities.length && i < 3; i++)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 1),
-                            child: Container(
-                              width: 4,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color(int.parse(
-                                  '0xFF${activities[i].color.replaceFirst('#', '')}',
-                                )),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (int i = 0; i < activities.length && i < 3; i++)
+                        Container(
+                          width: 3,
+                          height: 3,
+                          margin: const EdgeInsets.symmetric(horizontal: 0.5),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(
+                              int.parse(
+                                '0xFF${activities[i].color.replaceFirst('#', '')}',
                               ),
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildActivityFilters() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Filtros',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              // Filtro de Tipo
-              FilterChip(
-                label: Text(_filterType),
-                onSelected: (_) => _showFilterMenu('type'),
-                backgroundColor: Colors.grey[200],
-                selectedColor: AppTheme.primaryColor.withOpacity(0.3),
-                labelStyle: TextStyle(
-                  color: _filterType == 'Todas' ? Colors.grey[600] : Colors.black87,
-                ),
-              ),
-              // Filtro de Estado
-              FilterChip(
-                label: Text(_filterStatus),
-                onSelected: (_) => _showFilterMenu('status'),
-                backgroundColor: Colors.grey[200],
-                selectedColor: AppTheme.primaryColor.withOpacity(0.3),
-                labelStyle: TextStyle(
-                  color: _filterStatus == 'Todas' ? Colors.grey[600] : Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -411,24 +420,11 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.event_note,
-              size: 48,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Sin actividades',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-            ),
+            Icon(Icons.event_note, size: 32, color: Colors.grey[400]),
             const SizedBox(height: 8),
             Text(
-              'para ${_dateFormat(_selectedDate)}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[500],
-                  ),
+              'Sin actividades',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -436,9 +432,9 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(4),
       itemCount: activities.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, __) => const SizedBox(height: 4),
       itemBuilder: (context, index) {
         final activity = activities[index];
         return _ActivityCard(
@@ -448,32 +444,6 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
           onDelete: () => _showDeleteConfirmation(activity),
         );
       },
-    );
-  }
-
-  void _showFilterMenu(String filterType) {
-    final options = filterType == 'type'
-        ? ['Todas', 'Pago', 'Entrega', 'Reunión', 'Colección', 'Proyecto']
-        : ['Todas', 'Pendiente', 'En Progreso', 'Completada', 'Vencida'];
-
-    showMenu(
-      context: context,
-      position: RelativeRect.fromLTRB(0, 0, 0, 0),
-      items: options
-          .map((option) => PopupMenuItem(
-                value: option,
-                child: Text(option),
-                onTap: () {
-                  setState(() {
-                    if (filterType == 'type') {
-                      _filterType = option;
-                    } else {
-                      _filterStatus = option;
-                    }
-                  });
-                },
-              ))
-          .toList(),
     );
   }
 
@@ -573,16 +543,28 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
   String _selectedPriority = 'medium';
   bool _isSaving = false;
 
+  // Campos de recurrencia
+  bool _isRecurring = false;
+  String _recurrenceType = 'weekly'; // weekly, biweekly, monthly, yearly
+  // ignore: unused_field - Reserved for advanced recurrence
+  DateTime? _recurrenceEndDate;
+  int _recurrenceCount = 4; // Número de repeticiones por defecto
+
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.activity?.title ?? '');
-    _descriptionController =
-        TextEditingController(text: widget.activity?.description ?? '');
+    _titleController = TextEditingController(
+      text: widget.activity?.title ?? '',
+    );
+    _descriptionController = TextEditingController(
+      text: widget.activity?.description ?? '',
+    );
     _selectedDate = widget.activity?.dueDate ?? widget.selectedDate;
     _selectedType = widget.activity?.activityType.name ?? 'payment';
     _selectedStatus = widget.activity?.status.name ?? 'pending';
     _selectedPriority = widget.activity?.priority.name ?? 'medium';
+    // Calcular fecha de fin por defecto (3 meses)
+    _recurrenceEndDate = _selectedDate.add(const Duration(days: 90));
   }
 
   @override
@@ -590,6 +572,66 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
     _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  String _getRecurrencePreview() {
+    if (!_isRecurring) return '';
+
+    final lastDate = _calculateRecurrenceDates().last;
+    // ignore: unused_local_variable - Reserved for extended recurrence label
+    final frequencyText =
+        {
+          'weekly': 'semana',
+          'biweekly': 'quincena',
+          'monthly': 'mes',
+          'yearly': 'año',
+        }[_recurrenceType] ??
+        'período';
+
+    return 'Última fecha: ${lastDate.day}/${lastDate.month}/${lastDate.year}';
+  }
+
+  List<DateTime> _calculateRecurrenceDates() {
+    final dates = <DateTime>[_selectedDate];
+    var currentDate = _selectedDate;
+
+    for (int i = 1; i < _recurrenceCount; i++) {
+      switch (_recurrenceType) {
+        case 'weekly':
+          currentDate = currentDate.add(const Duration(days: 7));
+          break;
+        case 'biweekly':
+          currentDate = currentDate.add(const Duration(days: 14));
+          break;
+        case 'monthly':
+          currentDate = DateTime(
+            currentDate.year,
+            currentDate.month + 1,
+            currentDate.day,
+          );
+          break;
+        case 'yearly':
+          currentDate = DateTime(
+            currentDate.year + 1,
+            currentDate.month,
+            currentDate.day,
+          );
+          break;
+      }
+      dates.add(currentDate);
+    }
+
+    return dates;
+  }
+
+  String _getRecurrenceLabel() {
+    return {
+          'weekly': 'Semanal',
+          'biweekly': 'Quincenal',
+          'monthly': 'Mensual',
+          'yearly': 'Anual',
+        }[_recurrenceType] ??
+        'Recurrente';
   }
 
   @override
@@ -605,10 +647,12 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.activity == null ? 'Nueva Actividad' : 'Editar Actividad',
+                widget.activity == null
+                    ? 'Nueva Actividad'
+                    : 'Editar Actividad',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 24),
               // Título
@@ -677,13 +721,17 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                         ),
                       ),
                       items: ['payment', 'delivery', 'meeting', 'collection']
-                          .map((type) => DropdownMenuItem(
-                                value: type,
-                                child: Text(type),
-                              ))
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            ),
+                          )
                           .toList(),
                       onChanged: (value) {
-                        if (value != null) setState(() => _selectedType = value);
+                        if (value != null) {
+                          setState(() => _selectedType = value);
+                        }
                       },
                     ),
                   ),
@@ -698,13 +746,17 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                         ),
                       ),
                       items: ['low', 'medium', 'high', 'urgent']
-                          .map((priority) => DropdownMenuItem(
-                                value: priority,
-                                child: Text(priority),
-                              ))
+                          .map(
+                            (priority) => DropdownMenuItem(
+                              value: priority,
+                              child: Text(priority),
+                            ),
+                          )
                           .toList(),
                       onChanged: (value) {
-                        if (value != null) setState(() => _selectedPriority = value);
+                        if (value != null) {
+                          setState(() => _selectedPriority = value);
+                        }
                       },
                     ),
                   ),
@@ -721,15 +773,123 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                   ),
                 ),
                 items: ['pending', 'inProgress', 'completed', 'cancelled']
-                    .map((status) => DropdownMenuItem(
-                          value: status,
-                          child: Text(status),
-                        ))
+                    .map(
+                      (status) =>
+                          DropdownMenuItem(value: status, child: Text(status)),
+                    )
                     .toList(),
                 onChanged: (value) {
                   if (value != null) setState(() => _selectedStatus = value);
                 },
               ),
+              // Sección de Recurrencia (solo para nuevas actividades)
+              if (widget.activity == null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      CheckboxListTile(
+                        title: const Text('Evento Repetitivo'),
+                        subtitle: Text(
+                          _isRecurring
+                              ? 'Se crearán múltiples eventos'
+                              : 'Evento único',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        value: _isRecurring,
+                        onChanged: (value) {
+                          setState(() => _isRecurring = value ?? false);
+                        },
+                        activeColor: AppTheme.primaryColor,
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
+                      if (_isRecurring) ...[
+                        const Divider(height: 1),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              // Tipo de recurrencia
+                              DropdownButtonFormField<String>(
+                                value: _recurrenceType,
+                                decoration: InputDecoration(
+                                  labelText: 'Frecuencia',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  prefixIcon: const Icon(Icons.repeat),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 'weekly',
+                                    child: Text('Semanal'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'biweekly',
+                                    child: Text('Quincenal'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'monthly',
+                                    child: Text('Mensual'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'yearly',
+                                    child: Text('Anual'),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() => _recurrenceType = value);
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              // Número de repeticiones
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      initialValue: _recurrenceCount.toString(),
+                                      decoration: InputDecoration(
+                                        labelText: 'Repeticiones',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        prefixIcon: const Icon(Icons.numbers),
+                                        helperText: _getRecurrencePreview(),
+                                      ),
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (value) {
+                                        final count = int.tryParse(value);
+                                        if (count != null &&
+                                            count > 0 &&
+                                            count <= 52) {
+                                          setState(
+                                            () => _recurrenceCount = count,
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               // Botones
               Row(
@@ -755,7 +915,9 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                               color: Colors.white,
                             ),
                           )
-                        : Text(widget.activity == null ? 'Crear' : 'Actualizar'),
+                        : Text(
+                            widget.activity == null ? 'Crear' : 'Actualizar',
+                          ),
                   ),
                 ],
               ),
@@ -830,9 +992,80 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
 
       bool success;
       if (widget.activity == null) {
-        success = await ref.read(activitiesProvider.notifier).createActivity(activity);
+        // Para nuevas actividades, verificar si es recurrente
+        if (_isRecurring && _recurrenceCount > 1) {
+          // Crear múltiples actividades
+          final dates = _calculateRecurrenceDates();
+          int createdCount = 0;
+          int failedCount = 0;
+
+          for (int i = 0; i < dates.length; i++) {
+            final recurringActivity = Activity(
+              id: '',
+              title: _titleController.text.trim(),
+              description:
+                  '${_descriptionController.text.trim()}${_descriptionController.text.isNotEmpty ? '\n' : ''}[Evento ${i + 1}/$_recurrenceCount - ${_getRecurrenceLabel()}]',
+              activityType: activityType,
+              status: status,
+              priority: priority,
+              startDate: dates[i],
+              dueDate: dates[i],
+              color: color,
+              icon: activityType.name,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            );
+
+            final result = await ref
+                .read(activitiesProvider.notifier)
+                .createActivity(recurringActivity);
+            if (result) {
+              createdCount++;
+            } else {
+              failedCount++;
+            }
+          }
+
+          success = createdCount > 0;
+
+          if (mounted) {
+            if (success) {
+              Navigator.pop(context);
+              widget.onSaved?.call();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    failedCount > 0
+                        ? '$createdCount eventos creados ($failedCount fallaron)'
+                        : '$createdCount eventos recurrentes creados exitosamente',
+                  ),
+                  backgroundColor: failedCount > 0
+                      ? Colors.orange
+                      : Colors.green,
+                ),
+              );
+            } else {
+              setState(() => _isSaving = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Error al crear eventos: ${ref.read(activitiesProvider).error ?? "Error desconocido"}',
+                  ),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+          return;
+        } else {
+          success = await ref
+              .read(activitiesProvider.notifier)
+              .createActivity(activity);
+        }
       } else {
-        success = await ref.read(activitiesProvider.notifier).updateActivity(activity);
+        success = await ref
+            .read(activitiesProvider.notifier)
+            .updateActivity(activity);
       }
 
       if (mounted) {
@@ -853,7 +1086,9 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
           setState(() => _isSaving = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error al guardar: ${ref.read(activitiesProvider).error ?? "Error desconocido"}'),
+              content: Text(
+                'Error al guardar: ${ref.read(activitiesProvider).error ?? "Error desconocido"}',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -863,10 +1098,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -895,16 +1127,14 @@ class _ActivityCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           border: Border.all(
-            color: Color(int.parse(
-                  '0xFF${activity.color.replaceFirst('#', '')}',
-                ))
-                .withOpacity(0.3),
+            color: Color(
+              int.parse('0xFF${activity.color.replaceFirst('#', '')}'),
+            ).withOpacity(0.3),
           ),
           borderRadius: BorderRadius.circular(8),
-          color: Color(int.parse(
-                '0xFF${activity.color.replaceFirst('#', '')}',
-              ))
-              .withOpacity(0.05),
+          color: Color(
+            int.parse('0xFF${activity.color.replaceFirst('#', '')}'),
+          ).withOpacity(0.05),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -915,9 +1145,9 @@ class _ActivityCard extends StatelessWidget {
                   width: 4,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: Color(int.parse(
-                      '0xFF${activity.color.replaceFirst('#', '')}',
-                    )),
+                    color: Color(
+                      int.parse('0xFF${activity.color.replaceFirst('#', '')}'),
+                    ),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -937,20 +1167,14 @@ class _ActivityCard extends StatelessWidget {
                       ),
                       Text(
                         activity.typeLabel,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                       ),
                     ],
                   ),
                 ),
                 PopupMenuButton(
                   itemBuilder: (context) => [
-                    PopupMenuItem(
-                      onTap: onEdit,
-                      child: const Text('Editar'),
-                    ),
+                    PopupMenuItem(onTap: onEdit, child: const Text('Editar')),
                     PopupMenuItem(
                       onTap: onDelete,
                       child: const Text('Eliminar'),
@@ -960,13 +1184,11 @@ class _ActivityCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            if (activity.description != null && activity.description!.isNotEmpty)
+            if (activity.description != null &&
+                activity.description!.isNotEmpty)
               Text(
                 activity.description!,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[700],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

@@ -54,9 +54,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
       backgroundColor: Colors.grey[100],
       body: Column(
         children: [
-          // Header
+          // Header compacto
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             color: Colors.white,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,54 +64,49 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor),
+                      icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor, size: 20),
                       onPressed: () => context.go('/'),
                       tooltip: 'Volver al menú',
+                      visualDensity: VisualDensity.compact,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Inventario de Materiales',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.primaryColor,
-                            ),
-                          ),
-                          Text(
-                            '${state.materials.length} materiales en inventario',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _buildQuickStat(
-                      'Valor Total',
-                      '\$${Helpers.formatNumber(state.totalInventoryValue)}',
-                      Colors.green,
-                      Icons.attach_money,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildQuickStat(
-                      'Stock Bajo',
-                      '${state.lowStockMaterials.length}',
-                      Colors.orange,
-                      Icons.warning,
-                    ),
-                    const SizedBox(width: 20),
-                    FilledButton.icon(
-                      onPressed: _showAddMaterialDialog,
+                    Text(
+                                'Inventario de Materiales',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primaryColor,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${state.materials.length} materiales',
+                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                              ),
+                              const Spacer(),
+                              _buildQuickStat(
+                                'Valor Total',
+                                '\$${Helpers.formatNumber(state.totalInventoryValue)}',
+                                Colors.green,
+                                Icons.attach_money,
+                              ),
+                              const SizedBox(width: 10),
+                              _buildQuickStat(
+                                'Stock Bajo',
+                                '${state.lowStockMaterials.length}',
+                                Colors.orange,
+                                Icons.warning,
+                              ),
+                              const SizedBox(width: 16),
+                              FilledButton.icon(
+                                onPressed: _showAddMaterialDialog,
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Nuevo Material'),
                       style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 // Filtros
                 Row(
                   children: [
@@ -195,12 +190,12 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             ),
                           )
                         : Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(3),
                             child: _buildMaterialsTable(),
                           ),
-          ),
-        ],
-      ),
+                  ),
+                ],
+              ),
     );
   }
 

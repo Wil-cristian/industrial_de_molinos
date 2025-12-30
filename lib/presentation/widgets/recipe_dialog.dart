@@ -113,6 +113,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
   }
 
   // Getters para totales
+  // ignore: unused_element - Reserved for weight display
   double get _totalWeight =>
       _items.fold(0.0, (sum, item) => sum + item.totalWeight);
   double get _totalMaterialCost =>
@@ -699,21 +700,21 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                     ),
                     const SizedBox(width: 4),
                     SizedBox(
-                      width: 60,
+                      width: 80,
                       child: TextField(
                         controller: _directQuantityController,
                         decoration: const InputDecoration(
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 8,
-                            vertical: 6,
+                            vertical: 8,
                           ),
                           border: OutlineInputBorder(),
                         ),
                         textAlign: TextAlign.center,
                         keyboardType: TextInputType.number,
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                         onChanged: (_) => setState(() {}),
@@ -1317,6 +1318,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                 border: OutlineInputBorder(),
               ),
               style: const TextStyle(fontSize: 12),
+              onChanged: (_) => setState(() {}),
             ),
           ),
           const SizedBox(width: 8),
@@ -1584,6 +1586,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
   void _calculateWeight() {
     if (_selectedMaterial == null) return;
 
+    // ignore: unused_local_variable - Reserved for extended calculations
     final category =
         _selectedCalculationType ?? _selectedMaterial!.category.toLowerCase();
     final cantidad = int.tryParse(_cantidadController.text) ?? 1;
@@ -1787,6 +1790,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
     }
   }
 
+  // ignore: unused_element - Reserved for category display
   String _capitalizeCategory(String category) {
     if (category.isEmpty) return category;
     return category[0].toUpperCase() + category.substring(1).toLowerCase();

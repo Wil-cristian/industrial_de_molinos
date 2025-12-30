@@ -54,7 +54,22 @@ class CustomersNotifier extends Notifier<CustomersState> {
       print('🔄 Cargando clientes desde Supabase...');
       final customers = await CustomersDataSource.getAll(activeOnly: activeOnly);
       print('✅ Clientes cargados: ${customers.length}');
-      state = state.copyWith(customers: customers, isLoading: false);
+      
+      // Calcular deuda real desde facturas para cada cliente
+      final customersWithRealDebt = <Customer>[];
+      for (final customer in customers) {
+        final realDebt = await CustomersDataSource.getCalculatedDebt(customer.id);
+        // Crear una copia del cliente con la deuda real
+        customersWithRealDebt.add(customer.copyWith(currentBalance: realDebt));
+        
+        // Si la deuda en BD es diferente, actualizar
+        if ((customer.currentBalance - realDebt).abs() > 0.01) {
+          print('📊 Cliente ${customer.name}: Deuda BD=${customer.currentBalance}, Real=$realDebt');
+          await CustomersDataSource.updateBalance(customer.id, realDebt);
+        }
+      }
+      
+      state = state.copyWith(customers: customersWithRealDebt, isLoading: false);
     } catch (e) {
       print('❌ Error cargando clientes: $e');
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -67,12 +82,16 @@ class CustomersNotifier extends Notifier<CustomersState> {
 
   Future<Customer?> createCustomer(Customer customer) async {
     try {
+      print('🔄 Provider: Creando cliente ${customer.name}...');
       final created = await CustomersDataSource.create(customer);
+      print('✅ Provider: Cliente creado con ID: ${created.id}');
       state = state.copyWith(
         customers: [...state.customers, created],
       );
       return created;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ Provider: Error creando cliente: $e');
+      print('📋 Stack trace: $stackTrace');
       state = state.copyWith(error: e.toString());
       return null;
     }

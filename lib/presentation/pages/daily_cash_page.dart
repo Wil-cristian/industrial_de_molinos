@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/accounts_provider.dart';
@@ -8,8 +9,6 @@ import '../../data/providers/customers_provider.dart';
 import '../../data/providers/suppliers_provider.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
-import '../widgets/app_sidebar.dart';
-import '../widgets/quick_actions_button.dart';
 
 class DailyCashPage extends ConsumerStatefulWidget {
   const DailyCashPage({super.key});
@@ -36,148 +35,138 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     return Scaffold(
       body: Stack(
         children: [
-          Row(
-            children: [
-              // Sidebar unificado
-              const AppSidebar(currentRoute: '/daily-cash'),
-
-              // Contenido principal
-              Expanded(
-                child: Container(
-                  color: AppTheme.backgroundColor,
-                  child: state.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : Column(
+          // Contenido principal (sin sidebar - el router lo maneja)
+          Container(
+            color: AppTheme.backgroundColor,
+            child: state.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    children: [
+                      // Header section compacto
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        child: Row(
                           children: [
-                            // Header section (inline, not _buildHeader)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        width: 48,
-                                        height: 48,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: const Icon(
-                                          Icons.factory,
-                                          color: AppTheme.primaryColor,
-                                          size: 28,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Caja Diaria',
-                                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                              color: AppTheme.primaryColor,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Control de ingresos, gastos y traslados',
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                                      ),
-                                    ],
-                                  ),
-                                  const Spacer(),
-                                  // Selector de fecha
-                                  InkWell(
-                                    onTap: () => _selectDate(context),
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryColor.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: AppTheme.primaryColor.withOpacity(0.3),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.calendar_today,
-                                            color: AppTheme.primaryColor,
-                                            size: 20,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            Formatters.dateLong(state.selectedDate),
-                                            style: const TextStyle(
-                                              color: AppTheme.primaryColor,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  // Botón de nuevo movimiento
-                                  ElevatedButton.icon(
-                                    onPressed: () => _showAddMovementDialog(context),
-                                    icon: const Icon(Icons.add),
-                                    label: const Text('Nuevo Movimiento'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppTheme.primaryColor,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // Botón de traslado
-                                  ElevatedButton.icon(
-                                    onPressed: () => _showTransferDialog(context),
-                                    icon: const Icon(Icons.swap_horiz),
-                                    label: const Text('Traslado'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.orange,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                    ),
-                                  ),
-                                ],
+                            // Ícono y título en línea
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.factory,
+                                color: AppTheme.primaryColor,
+                                size: 20,
                               ),
                             ),
-                            // Contenido
-                            Expanded(
-                              child: SingleChildScrollView(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Caja Diaria',
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        color: AppTheme.primaryColor,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                                Text(
+                                  'Control de ingresos, gastos y traslados',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            // Selector de fecha
+                            InkWell(
+                              onTap: () => _selectDate(context),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: AppTheme.primaryColor.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    // Cards de cuentas
-                                    _buildAccountCards(context, state),
-                                    const SizedBox(height: 24),
-
-                                    // Resumen del día
-                                    _buildDaySummary(context, state),
-                                    const SizedBox(height: 24),
-
-                                    // Lista de movimientos
-                                    _buildMovementsList(context, state),
+                                    Icon(
+                                      Icons.calendar_today,
+                                      color: AppTheme.primaryColor,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      Formatters.dateLong(state.selectedDate),
+                                      style: const TextStyle(
+                                        color: AppTheme.primaryColor,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor, size: 20),
                                   ],
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 12),
+                            // Botón de nuevo movimiento
+                            ElevatedButton.icon(
+                              onPressed: () => _showAddMovementDialog(context),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Nuevo Movimiento'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Botón de traslado
+                            ElevatedButton.icon(
+                              onPressed: () => _showTransferDialog(context),
+                              icon: const Icon(Icons.swap_horiz, size: 18),
+                              label: const Text('Traslado'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              ),
+                            ),
                           ],
                         ),
-                ),
-              ),
-            ],
+                      ),
+                      // Contenido
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(4),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Cards de cuentas
+                              _buildAccountCards(context, state),
+                              const SizedBox(height: 4),
+
+                              // Resumen del día
+                              _buildDaySummary(context, state),
+                              const SizedBox(height: 4),
+
+                              // Lista de movimientos
+                              _buildMovementsList(context, state),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
           ),
-          // QuickActions Button
-          const QuickActionsButton(),
         ],
       ),
     );
@@ -197,10 +186,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
               decoration: BoxDecoration(
                 color: AppTheme.successColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(4),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -208,15 +197,15 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                   Icon(
                     Icons.account_balance,
                     color: AppTheme.successColor,
-                    size: 18,
+                    size: 14,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 2),
                   Text(
                     'Total: ${Formatters.currency(state.totalBalance)}',
                     style: TextStyle(
                       color: AppTheme.successColor,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -224,7 +213,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 3),
         Row(
           children: state.accounts.asMap().entries.map((entry) {
             final index = entry.key;
@@ -232,7 +221,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             final isLast = index == state.accounts.length - 1;
             return Expanded(
               child: Padding(
-                padding: EdgeInsets.only(right: isLast ? 0 : 16),
+                padding: EdgeInsets.only(right: isLast ? 0 : 3),
                 child: _buildAccountCard(context, account, state),
               ),
             );
@@ -255,35 +244,35 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     final expenseToday = state.expenseByAccount[account.id] ?? 0.0;
 
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(4),
           color: Colors.white,
           border: Border.all(color: Colors.grey.shade200),
         ),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
                     color: accountColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(3),
                   ),
                   child: Icon(
                     account.type == AccountType.cash
                         ? Icons.account_balance_wallet
                         : Icons.account_balance,
                     color: accountColor,
-                    size: 24,
+                    size: 16,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 3),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,21 +300,21 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 2),
             Text(
               Formatters.currency(account.balance),
               style: TextStyle(
                 color: accountColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 26,
+                fontSize: 18,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 1),
             Text(
               'Saldo actual',
-              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              style: TextStyle(color: Colors.grey[500], fontSize: 10),
             ),
-            const Divider(height: 24),
+            const Divider(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -359,7 +348,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
   Widget _buildDaySummary(BuildContext context, DailyCashState state) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -367,9 +356,9 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               'Resumen del Día',
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 3),
             Row(
               children: [
                 Expanded(
@@ -789,9 +778,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
   }
 
   void _confirmDeleteMovement(BuildContext context, CashMovement movement) {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Eliminar Movimiento'),
           content: Text(
@@ -800,15 +790,31 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
-                ref
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                final success = await ref
                     .read(dailyCashProvider.notifier)
                     .deleteMovement(movement.id);
-                Navigator.pop(context);
+                if (!success) {
+                  final error = ref.read(dailyCashProvider).error;
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Error al eliminar: $error'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } else {
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Movimiento eliminado correctamente'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text(
@@ -842,6 +848,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
   final _descriptionController = TextEditingController();
   final _personController = TextEditingController();
   final _referenceController = TextEditingController();
+  final List<PlatformFile> _attachedFiles = [];
 
   @override
   void initState() {
@@ -1111,6 +1118,99 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                     hintText: 'Número de factura, recibo...',
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                // Archivos adjuntos
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.attach_file, color: Colors.grey[600], size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Archivos adjuntos',
+                            style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500),
+                          ),
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: _pickFiles,
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Agregar'),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_attachedFiles.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _attachedFiles.map((file) {
+                            final isImage = file.extension?.toLowerCase() == 'jpg' ||
+                                file.extension?.toLowerCase() == 'jpeg' ||
+                                file.extension?.toLowerCase() == 'png';
+                            final isPdf = file.extension?.toLowerCase() == 'pdf';
+                            
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isImage ? Colors.blue[50] : (isPdf ? Colors.red[50] : Colors.grey[100]),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isImage ? Colors.blue[200]! : (isPdf ? Colors.red[200]! : Colors.grey[300]!),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isImage ? Icons.image : (isPdf ? Icons.picture_as_pdf : Icons.insert_drive_file),
+                                    size: 16,
+                                    color: isImage ? Colors.blue : (isPdf ? Colors.red : Colors.grey[600]),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(maxWidth: 120),
+                                    child: Text(
+                                      file.name,
+                                      style: const TextStyle(fontSize: 12),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        _attachedFiles.remove(file);
+                                      });
+                                    },
+                                    child: Icon(Icons.close, size: 16, color: Colors.grey[600]),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ] else
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'Sin archivos adjuntos',
+                            style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 16),
                   Text(
@@ -1142,6 +1242,28 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
         ),
       ],
     );
+  }
+
+  Future<void> _pickFiles() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx'],
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          _attachedFiles.addAll(result.files);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al seleccionar archivos: $e')),
+        );
+      }
+    }
   }
 
   String _getCategoryLabel(MovementCategory category) {
@@ -1526,7 +1648,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
 }
 
 // ===================== NAV ITEM =====================
-
+// ignore: unused_element - Reserved for sidebar navigation
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;

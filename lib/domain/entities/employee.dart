@@ -87,6 +87,14 @@ class Employee {
   }
 
   factory Employee.fromJson(Map<String, dynamic> json) {
+    // Determinar status basado en is_active o status string
+    EmployeeStatus employeeStatus;
+    if (json.containsKey('is_active')) {
+      employeeStatus = (json['is_active'] == true) ? EmployeeStatus.activo : EmployeeStatus.inactivo;
+    } else {
+      employeeStatus = _parseStatus(json['status'] as String?);
+    }
+    
     return Employee(
       id: json['id'] as String,
       firstName: json['first_name'] as String,
@@ -96,9 +104,11 @@ class Employee {
       email: json['email'] as String?,
       phone: json['phone'] as String?,
       address: json['address'] as String?,
-      position: json['position'] as String,
+      position: json['position'] as String? ?? 'Sin cargo',
       department: json['department'] as String?,
-      hireDate: DateTime.parse(json['hire_date'] as String),
+      hireDate: json['hire_date'] != null 
+          ? DateTime.parse(json['hire_date'] as String)
+          : DateTime.now(),
       terminationDate: json['termination_date'] != null
           ? DateTime.parse(json['termination_date'] as String)
           : null,
@@ -106,15 +116,19 @@ class Employee {
           ? (json['salary'] as num).toDouble()
           : null,
       salaryType: json['salary_type'] as String? ?? 'mensual',
-      status: _parseStatus(json['status'] as String?),
+      status: employeeStatus,
       workSchedule: json['work_schedule'] as String? ?? 'tiempo_completo',
       emergencyContact: json['emergency_contact'] as String?,
       emergencyPhone: json['emergency_phone'] as String?,
       bloodType: json['blood_type'] as String?,
       photoUrl: json['photo_url'] as String?,
       notes: json['notes'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null 
+          ? DateTime.parse(json['updated_at'] as String)
+          : DateTime.now(),
     );
   }
 
@@ -132,13 +146,7 @@ class Employee {
       'hire_date': hireDate.toIso8601String().split('T')[0],
       'termination_date': terminationDate?.toIso8601String().split('T')[0],
       'salary': salary,
-      'salary_type': salaryType,
-      'status': _statusToString(status),
-      'work_schedule': workSchedule,
-      'emergency_contact': emergencyContact,
-      'emergency_phone': emergencyPhone,
-      'blood_type': bloodType,
-      'photo_url': photoUrl,
+      'is_active': status == EmployeeStatus.activo,
       'notes': notes,
     };
   }
@@ -156,6 +164,7 @@ class Employee {
     }
   }
 
+  // ignore: unused_element - Reserved for serialization
   static String _statusToString(EmployeeStatus status) {
     switch (status) {
       case EmployeeStatus.activo:
@@ -170,12 +179,7 @@ class Employee {
   }
 }
 
-enum EmployeeStatus {
-  activo,
-  inactivo,
-  vacaciones,
-  licencia,
-}
+enum EmployeeStatus { activo, inactivo, vacaciones, licencia }
 
 /// Entidad de Tarea de Empleado
 class EmployeeTask {
@@ -335,22 +339,26 @@ class EmployeeTask {
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final json = <String, dynamic>{
       'employee_id': employeeId,
       'title': title,
-      'description': description,
       'assigned_date': assignedDate.toIso8601String().split('T')[0],
-      'due_date': dueDate?.toIso8601String().split('T')[0],
-      'completed_date': completedDate?.toIso8601String(),
       'status': _taskStatusToString(status),
       'priority': _taskPriorityToString(priority),
       'category': category,
-      'estimated_time': estimatedTime,
-      'actual_time': actualTime,
-      'activity_id': activityId,
-      'notes': notes,
-      'assigned_by': assignedBy,
     };
+    
+    // Solo incluir campos opcionales si tienen valor
+    if (description != null) json['description'] = description;
+    if (dueDate != null) json['due_date'] = dueDate!.toIso8601String().split('T')[0];
+    if (completedDate != null) json['completed_date'] = completedDate!.toIso8601String();
+    if (estimatedTime != null) json['estimated_time'] = estimatedTime;
+    if (actualTime != null) json['actual_time'] = actualTime;
+    if (notes != null) json['notes'] = notes;
+    if (assignedBy != null) json['assigned_by'] = assignedBy;
+    if (activityId != null) json['activity_id'] = activityId;
+    
+    return json;
   }
 
   static TaskStatus _parseTaskStatus(String? status) {
@@ -406,16 +414,391 @@ class EmployeeTask {
   }
 }
 
-enum TaskStatus {
-  pendiente,
-  enProgreso,
-  completada,
-  cancelada,
+enum TaskStatus { pendiente, enProgreso, completada, cancelada }
+
+enum TaskPriority { baja, media, alta, urgente }
+
+/// Registro individual de tiempo de un empleado
+class EmployeeTimeEntry {
+  final String id;
+  final String employeeId;
+  final DateTime entryDate;
+  final String? scheduledStart;
+  final String? scheduledEnd;
+  final int scheduledMinutes;
+  final DateTime? checkIn;
+  final DateTime? checkOut;
+  final int breakMinutes;
+  final int workedMinutes;
+  final int overtimeMinutes;
+  final int deficitMinutes;
+  final String status;
+  final String source;
+  final String? notes;
+  final String? approvalNotes;
+  final String? approvedBy;
+  final DateTime? approvedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const EmployeeTimeEntry({
+    required this.id,
+    required this.employeeId,
+    required this.entryDate,
+    this.scheduledStart,
+    this.scheduledEnd,
+    this.scheduledMinutes = 0,
+    this.checkIn,
+    this.checkOut,
+    this.breakMinutes = 0,
+    this.workedMinutes = 0,
+    this.overtimeMinutes = 0,
+    this.deficitMinutes = 0,
+    this.status = 'registrado',
+    this.source = 'manual',
+    this.notes,
+    this.approvalNotes,
+    this.approvedBy,
+    this.approvedAt,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  bool get isApproved => approvedAt != null;
+
+  Duration get workedDuration => Duration(minutes: workedMinutes);
+
+  Duration get overtimeDuration => Duration(minutes: overtimeMinutes);
+
+  Duration get deficitDuration => Duration(minutes: deficitMinutes);
+
+  factory EmployeeTimeEntry.fromJson(Map<String, dynamic> json) {
+    return EmployeeTimeEntry(
+      id: json['id'] as String,
+      employeeId: json['employee_id'] as String,
+      entryDate: DateTime.parse(json['entry_date'] as String),
+      scheduledStart: json['scheduled_start'] as String?,
+      scheduledEnd: json['scheduled_end'] as String?,
+      scheduledMinutes: (json['scheduled_minutes'] as int?) ?? 0,
+      checkIn: json['check_in'] != null
+          ? DateTime.parse(json['check_in'] as String)
+          : null,
+      checkOut: json['check_out'] != null
+          ? DateTime.parse(json['check_out'] as String)
+          : null,
+      breakMinutes: (json['break_minutes'] as int?) ?? 0,
+      workedMinutes: (json['worked_minutes'] as int?) ?? 0,
+      overtimeMinutes: (json['overtime_minutes'] as int?) ?? 0,
+      deficitMinutes: (json['deficit_minutes'] as int?) ?? 0,
+      status: json['status'] as String? ?? 'registrado',
+      source: json['source'] as String? ?? 'manual',
+      notes: json['notes'] as String?,
+      approvalNotes: json['approval_notes'] as String?,
+      approvedBy: json['approved_by'] as String?,
+      approvedAt: json['approved_at'] != null
+          ? DateTime.parse(json['approved_at'] as String)
+          : null,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'employee_id': employeeId,
+      'entry_date': entryDate.toIso8601String().split('T')[0],
+      'scheduled_start': scheduledStart,
+      'scheduled_end': scheduledEnd,
+      'scheduled_minutes': scheduledMinutes,
+      'check_in': checkIn?.toIso8601String(),
+      'check_out': checkOut?.toIso8601String(),
+      'break_minutes': breakMinutes,
+      'worked_minutes': workedMinutes,
+      'overtime_minutes': overtimeMinutes,
+      'deficit_minutes': deficitMinutes,
+      'status': status,
+      'source': source,
+      'notes': notes,
+      'approval_notes': approvalNotes,
+      'approved_by': approvedBy,
+      'approved_at': approvedAt?.toIso8601String(),
+    };
+  }
 }
 
-enum TaskPriority {
-  baja,
-  media,
-  alta,
-  urgente,
+/// Resumen semanal de horas trabajadas
+class EmployeeTimeSheet {
+  final String id;
+  final String employeeId;
+  final String? periodId;
+  final DateTime weekStart;
+  final DateTime weekEnd;
+  final int scheduledMinutes;
+  final int workedMinutes;
+  final int overtimeMinutes;
+  final int deficitMinutes;
+  final String status;
+  final String? notes;
+  final String? lockedBy;
+  final DateTime? lockedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const EmployeeTimeSheet({
+    required this.id,
+    required this.employeeId,
+    this.periodId,
+    required this.weekStart,
+    required this.weekEnd,
+    // Horario: L-V 7:30-12 y 1-4:30 (-14min) + Sáb 7:30-1 = 2660 min semanales (44.33h)
+    this.scheduledMinutes = 2660,
+    this.workedMinutes = 0,
+    this.overtimeMinutes = 0,
+    this.deficitMinutes = 0,
+    this.status = 'abierto',
+    this.notes,
+    this.lockedBy,
+    this.lockedAt,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  Duration get scheduledDuration => Duration(minutes: scheduledMinutes);
+
+  Duration get workedDuration => Duration(minutes: workedMinutes);
+
+  Duration get overtimeDuration => Duration(minutes: overtimeMinutes);
+
+  Duration get deficitDuration => Duration(minutes: deficitMinutes);
+
+  factory EmployeeTimeSheet.fromJson(Map<String, dynamic> json) {
+    return EmployeeTimeSheet(
+      id: json['id'] as String,
+      employeeId: json['employee_id'] as String,
+      periodId: json['period_id'] as String?,
+      weekStart: DateTime.parse(json['week_start'] as String),
+      weekEnd: DateTime.parse(json['week_end'] as String),
+      scheduledMinutes: (json['scheduled_minutes'] as int?) ?? 2660,
+      workedMinutes: (json['worked_minutes'] as int?) ?? 0,
+      overtimeMinutes: (json['overtime_minutes'] as int?) ?? 0,
+      deficitMinutes: (json['deficit_minutes'] as int?) ?? 0,
+      status: json['status'] as String? ?? 'abierto',
+      notes: json['notes'] as String?,
+      lockedBy: json['locked_by'] as String?,
+      lockedAt: json['locked_at'] != null
+          ? DateTime.parse(json['locked_at'] as String)
+          : null,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'employee_id': employeeId,
+      'period_id': periodId,
+      'week_start': weekStart.toIso8601String().split('T')[0],
+      'week_end': weekEnd.toIso8601String().split('T')[0],
+      'scheduled_minutes': scheduledMinutes,
+      'worked_minutes': workedMinutes,
+      'overtime_minutes': overtimeMinutes,
+      'deficit_minutes': deficitMinutes,
+      'status': status,
+      'notes': notes,
+      'locked_by': lockedBy,
+      'locked_at': lockedAt?.toIso8601String(),
+    };
+  }
+}
+
+/// Ajuste manual de horas
+class EmployeeTimeAdjustment {
+  final String id;
+  final String employeeId;
+  final String? timesheetId;
+  final String? entryId;
+  final String? periodId;
+  final DateTime adjustmentDate;
+  final int minutes;
+  final String type;
+  final String? reason;
+  final String status;
+  final String? notes;
+  final String? approvedBy;
+  final DateTime? approvedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const EmployeeTimeAdjustment({
+    required this.id,
+    required this.employeeId,
+    this.timesheetId,
+    this.entryId,
+    this.periodId,
+    required this.adjustmentDate,
+    required this.minutes,
+    required this.type,
+    this.reason,
+    this.status = 'pendiente',
+    this.notes,
+    this.approvedBy,
+    this.approvedAt,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  bool get isPositive => minutes > 0;
+
+  Duration get duration => Duration(minutes: minutes.abs());
+
+  factory EmployeeTimeAdjustment.fromJson(Map<String, dynamic> json) {
+    return EmployeeTimeAdjustment(
+      id: json['id'] as String,
+      employeeId: json['employee_id'] as String,
+      timesheetId: json['timesheet_id'] as String?,
+      entryId: json['entry_id'] as String?,
+      periodId: json['period_id'] as String?,
+      adjustmentDate: DateTime.parse(json['adjustment_date'] as String),
+      minutes: json['minutes'] as int,
+      type: json['type'] as String,
+      reason: json['reason'] as String?,
+      status: json['status'] as String? ?? 'pendiente',
+      notes: json['notes'] as String?,
+      approvedBy: json['approved_by'] as String?,
+      approvedAt: json['approved_at'] != null
+          ? DateTime.parse(json['approved_at'] as String)
+          : null,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'employee_id': employeeId,
+      'timesheet_id': timesheetId,
+      'entry_id': entryId,
+      'period_id': periodId,
+      'adjustment_date': adjustmentDate.toIso8601String().split('T')[0],
+      'minutes': minutes,
+      'type': type,
+      'reason': reason,
+      'status': status,
+      'notes': notes,
+      'approved_by': approvedBy,
+      'approved_at': approvedAt?.toIso8601String(),
+    };
+  }
+}
+
+/// Tiempo registrado para una tarea específica
+class EmployeeTaskTimeLog {
+  final String id;
+  final String taskId;
+  final String employeeId;
+  final DateTime startTime;
+  final DateTime? endTime;
+  final int minutes;
+  final String status;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const EmployeeTaskTimeLog({
+    required this.id,
+    required this.taskId,
+    required this.employeeId,
+    required this.startTime,
+    this.endTime,
+    required this.minutes,
+    this.status = 'registrado',
+    this.notes,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  Duration get duration => Duration(minutes: minutes);
+
+  factory EmployeeTaskTimeLog.fromJson(Map<String, dynamic> json) {
+    return EmployeeTaskTimeLog(
+      id: json['id'] as String,
+      taskId: json['task_id'] as String,
+      employeeId: json['employee_id'] as String,
+      startTime: DateTime.parse(json['start_time'] as String),
+      endTime: json['end_time'] != null
+          ? DateTime.parse(json['end_time'] as String)
+          : null,
+      minutes: json['minutes'] as int,
+      status: json['status'] as String? ?? 'registrado',
+      notes: json['notes'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'task_id': taskId,
+      'employee_id': employeeId,
+      'start_time': startTime.toIso8601String(),
+      'end_time': endTime?.toIso8601String(),
+      'minutes': minutes,
+      'status': status,
+      'notes': notes,
+    };
+  }
+}
+
+/// Vista consolidada de horas por semana destinada a nómina
+class EmployeeTimeSummary {
+  final String timesheetId;
+  final String employeeId;
+  final DateTime weekStart;
+  final DateTime weekEnd;
+  final int scheduledMinutes;
+  final int workedMinutes;
+  final int overtimeMinutes;
+  final int deficitMinutes;
+  final int approvedAdjustmentMinutes;
+  final int totalEffectiveMinutes;
+
+  const EmployeeTimeSummary({
+    required this.timesheetId,
+    required this.employeeId,
+    required this.weekStart,
+    required this.weekEnd,
+    required this.scheduledMinutes,
+    required this.workedMinutes,
+    required this.overtimeMinutes,
+    required this.deficitMinutes,
+    required this.approvedAdjustmentMinutes,
+    required this.totalEffectiveMinutes,
+  });
+
+  double get progressRatio =>
+      scheduledMinutes == 0 ? 0 : totalEffectiveMinutes / scheduledMinutes;
+
+  Duration get scheduledDuration => Duration(minutes: scheduledMinutes);
+
+  Duration get effectiveDuration => Duration(minutes: totalEffectiveMinutes);
+
+  Duration get overtimeDuration => Duration(minutes: overtimeMinutes);
+
+  Duration get deficitDuration => Duration(minutes: deficitMinutes);
+
+  factory EmployeeTimeSummary.fromJson(Map<String, dynamic> json) {
+    return EmployeeTimeSummary(
+      timesheetId: json['timesheet_id'] as String,
+      employeeId: json['employee_id'] as String,
+      weekStart: DateTime.parse(json['week_start'] as String),
+      weekEnd: DateTime.parse(json['week_end'] as String),
+      scheduledMinutes: (json['scheduled_minutes'] as int?) ?? 0,
+      workedMinutes: (json['worked_minutes'] as int?) ?? 0,
+      overtimeMinutes: (json['overtime_minutes'] as int?) ?? 0,
+      deficitMinutes: (json['deficit_minutes'] as int?) ?? 0,
+      approvedAdjustmentMinutes:
+          (json['approved_adjustment_minutes'] as int?) ?? 0,
+      totalEffectiveMinutes: (json['total_effective_minutes'] as int?) ?? 0,
+    );
+  }
 }

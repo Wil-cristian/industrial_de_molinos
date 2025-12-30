@@ -8,8 +8,6 @@ import '../../data/providers/providers.dart';
 import '../../data/datasources/inventory_datasource.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/material.dart' as mat;
-import '../widgets/app_sidebar.dart';
-import '../widgets/quick_actions_button.dart';
 import '../widgets/recipe_dialog.dart';
 
 /// Página de Productos/Recetas
@@ -80,79 +78,71 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
       backgroundColor: Colors.grey[100],
       body: Stack(
         children: [
-          Row(
+          // Contenido principal (sin sidebar - el router lo maneja)
+          Column(
             children: [
-              const AppSidebar(currentRoute: '/products'),
-              Expanded(
+              // Header compacto
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                color: Colors.white,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header
-                    Container(
-            padding: const EdgeInsets.all(20),
-            color: Colors.white,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor),
-                      onPressed: () => context.go('/'),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Productos / Recetas',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.primaryColor,
-                            ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor, size: 20),
+                          onPressed: () => context.go('/'),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        Text(
+                          'Productos / Recetas',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryColor,
                           ),
-                          Text(
-                            '${state.products.length} productos registrados',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${state.products.length} productos',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                        const Spacer(),
+                        _buildQuickStat(
+                          'Recetas',
+                          '${state.products.length}',
+                          Colors.blue,
+                          Icons.receipt_long,
+                        ),
+                        const SizedBox(width: 16),
+                        FilledButton.icon(
+                          onPressed: () => _showNewRecipeDialog(),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Nueva Receta'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    _buildQuickStat(
-                      'Recetas',
-                      '${state.products.length}',
-                      Colors.blue,
-                      Icons.receipt_long,
-                    ),
-                    const SizedBox(width: 20),
-                    FilledButton.icon(
-                      onPressed: () => _showNewRecipeDialog(),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Nueva Receta'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Búsqueda
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Buscar por código o nombre...',
-                          prefixIcon: const Icon(Icons.search, size: 20),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear, size: 18),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() {});
-                                  },
-                                )
+                    const SizedBox(height: 12),
+                    // Búsqueda
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Buscar por código o nombre...',
+                              prefixIcon: const Icon(Icons.search, size: 20),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, size: 18),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        setState(() {});
+                                      },
+                                    )
                               : null,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -219,10 +209,6 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
           ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const QuickActionsButton(),
         ],
       ),
     );
@@ -230,16 +216,16 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
 
   Widget _buildQuickStat(String label, String value, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(2),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 8),
+          Icon(icon, color: color, size: 12),
+          const SizedBox(width: 1),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -256,10 +242,11 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        childAspectRatio: 1.5,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+        childAspectRatio: 1.1,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
+      padding: const EdgeInsets.all(8),
       itemCount: _filteredProducts.length,
       itemBuilder: (context, index) {
         final product = _filteredProducts[index];
@@ -271,11 +258,12 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
   Widget _buildProductCard(Product product) {
     return Card(
       elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () => _showRecipeDetail(product),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -319,22 +307,124 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                   ),
                 ],
               ),
-              const Spacer(),
-              if (product.description != null)
-                Text(
-                  product.description!,
-                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 8),
+              // Mostrar materiales/componentes
+              Expanded(
+                child: FutureBuilder<List<mat.ProductComponent>>(
+                  future: InventoryDataSource.getProductComponents(product.id),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    }
+                    
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'Sin materiales',
+                          style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                        ),
+                      );
+                    }
+                    
+                    final components = snapshot.data!;
+                    return Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.inventory_2, size: 14, color: Colors.grey[600]),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Materiales (${components.length})',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Expanded(
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              itemCount: components.length > 4 ? 4 : components.length,
+                              itemBuilder: (context, index) {
+                                final comp = components[index];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 3),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primaryColor,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          comp.name,
+                                          style: const TextStyle(fontSize: 11),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${comp.quantity.toStringAsFixed(1)} ${comp.unit}',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          if (components.length > 4)
+                            Text(
+                              '+${components.length - 4} más...',
+                              style: TextStyle(fontSize: 10, color: Colors.blue[600]),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-              const Spacer(),
-              const Divider(),
+              ),
+              const Divider(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Precio: \$${Helpers.formatNumber(product.unitPrice)}',
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Precio: \$${Helpers.formatNumber(product.unitPrice)}',
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      if (product.totalWeight > 0)
+                        Text(
+                          'Peso: ${product.totalWeight.toStringAsFixed(1)} KG',
+                          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                        ),
+                    ],
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

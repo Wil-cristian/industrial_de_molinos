@@ -76,23 +76,31 @@ class InventoryReport {
   final String productId;
   final String productCode;
   final String productName;
+  final String category;
+  final String unit;
+  final String itemType; // 'product' o 'material'
   final double currentStock;
   final double minStock;
   final double unitPrice;
   final double costPrice;
   final double totalValue;
   final bool isLowStock;
+  final bool isOutOfStock;
 
   InventoryReport({
     required this.productId,
     required this.productCode,
     required this.productName,
+    this.category = '',
+    this.unit = 'UND',
+    this.itemType = 'product',
     required this.currentStock,
     required this.minStock,
     required this.unitPrice,
     required this.costPrice,
     required this.totalValue,
     required this.isLowStock,
+    this.isOutOfStock = false,
   });
 }
 
@@ -138,12 +146,14 @@ class ReportsDataSource {
 
       double totalSales = 0;
       int transactionCount = currentResponse.length;
-      
+
       for (var invoice in currentResponse) {
         totalSales += (invoice['total'] ?? 0).toDouble();
       }
 
-      double averageTicket = transactionCount > 0 ? totalSales / transactionCount : 0;
+      double averageTicket = transactionCount > 0
+          ? totalSales / transactionCount
+          : 0;
 
       // Período anterior (misma duración)
       final duration = endDate.difference(startDate);
@@ -164,10 +174,16 @@ class ReportsDataSource {
 
       double growthPercentage = previousPeriodSales > 0
           ? ((totalSales - previousPeriodSales) / previousPeriodSales) * 100
-          : (totalSales > 0 ? 100 : 0); // Si no hay período anterior pero hay ventas, 100% de crecimiento
+          : (totalSales > 0
+                ? 100
+                : 0); // Si no hay período anterior pero hay ventas, 100% de crecimiento
 
       // Calcular margen bruto real basado en costos de items
-      double grossMargin = await _calculateGrossMargin(startDate, endDate, totalSales);
+      double grossMargin = await _calculateGrossMargin(
+        startDate,
+        endDate,
+        totalSales,
+      );
 
       return SalesStats(
         totalSales: totalSales,
@@ -191,19 +207,26 @@ class ReportsDataSource {
   }
 
   /// Calcular margen bruto real
-  static Future<double> _calculateGrossMargin(DateTime startDate, DateTime endDate, double totalSales) async {
+  static Future<double> _calculateGrossMargin(
+    DateTime startDate,
+    DateTime endDate,
+    double totalSales,
+  ) async {
     if (totalSales <= 0) return 0;
-    
+
     try {
       // Obtener items de facturas del período
       // Nota: cost_price puede no existir en invoice_items, usamos un margen estimado
       final itemsResponse = await _client
           .from('invoice_items')
-          .select('quantity, unit_price, invoice_id, invoices!inner(issue_date, status)')
+          .select(
+            'quantity, unit_price, invoice_id, invoices!inner(issue_date, status)',
+          )
           .gte('invoices.issue_date', startDate.toIso8601String())
           .lte('invoices.issue_date', endDate.toIso8601String())
           .neq('invoices.status', 'cancelled');
 
+      // ignore: unused_local_variable - Reservado para cálculo futuro de margen real
       double totalRevenue = 0;
       for (var item in itemsResponse) {
         final qty = (item['quantity'] ?? 0).toDouble();
@@ -213,7 +236,7 @@ class ReportsDataSource {
 
       // Si no tenemos datos de costos reales, usamos un margen estimado
       // basado en el tipo de negocio industrial (30-40% típico)
-      // En el futuro, podemos agregar cost_price a invoice_items o 
+      // En el futuro, podemos agregar cost_price a invoice_items o
       // calcular desde materials/products
       return 35.0; // Margen estimado para negocio industrial
     } catch (e) {
@@ -228,12 +251,25 @@ class ReportsDataSource {
   }) async {
     try {
       final List<SalesChartData> chartData = [];
-      final months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      final months = [
+        'Ene',
+        'Feb',
+        'Mar',
+        'Abr',
+        'May',
+        'Jun',
+        'Jul',
+        'Ago',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dic',
+      ];
 
       for (int month = 1; month <= 12; month++) {
         final startDate = DateTime(year, month, 1);
         final endDate = DateTime(year, month + 1, 0);
-        
+
         final prevStartDate = DateTime(year - 1, month, 1);
         final prevEndDate = DateTime(year - 1, month + 1, 0);
 
@@ -263,11 +299,13 @@ class ReportsDataSource {
           previousValue += (invoice['total'] ?? 0).toDouble();
         }
 
-        chartData.add(SalesChartData(
-          label: months[month - 1],
-          currentValue: currentValue,
-          previousValue: previousValue,
-        ));
+        chartData.add(
+          SalesChartData(
+            label: months[month - 1],
+            currentValue: currentValue,
+            previousValue: previousValue,
+          ),
+        );
       }
 
       return chartData;
@@ -284,56 +322,68 @@ class ReportsDataSource {
     int limit = 10,
   }) async {
     try {
-      // Obtener items de facturas con productos
+      // Usar la vista v_top_selling_products que ya tiene la lógica correcta
+      // Pero como necesitamos filtrar por fecha, hacemos la consulta directa
       final response = await _client
           .from('invoice_items')
           .select('''
-            product_id,
+            product_name,
+            product_code,
             quantity,
-            subtotal,
-            products(id, code, name)
+            total,
+            invoice_id,
+            invoices!inner(issue_date, status)
           ''')
-          .gte('created_at', startDate.toIso8601String())
-          .lte('created_at', endDate.toIso8601String());
+          .gte('invoices.issue_date', startDate.toIso8601String())
+          .lte('invoices.issue_date', endDate.toIso8601String())
+          .neq('invoices.status', 'cancelled');
 
-      // Agrupar por producto
+      print('📊 Items encontrados para top productos: ${response.length}');
+
+      // Agrupar por nombre de producto (ya que puede no tener product_id)
       final Map<String, TopProduct> productMap = {};
-      
+
       for (var item in response) {
-        final productId = item['product_id'] ?? '';
-        final product = item['products'];
-        
-        if (product != null && productId.isNotEmpty) {
-          final quantity = (item['quantity'] ?? 0).toDouble();
-          final subtotal = (item['subtotal'] ?? 0).toDouble();
-          
-          if (productMap.containsKey(productId)) {
-            final existing = productMap[productId]!;
-            productMap[productId] = TopProduct(
-              productId: productId,
-              productName: existing.productName,
-              productCode: existing.productCode,
-              quantity: existing.quantity + quantity,
-              totalSales: existing.totalSales + subtotal,
-              transactionCount: existing.transactionCount + 1,
-            );
-          } else {
-            productMap[productId] = TopProduct(
-              productId: productId,
-              productName: product['name'] ?? '',
-              productCode: product['code'] ?? '',
-              quantity: quantity,
-              totalSales: subtotal,
-              transactionCount: 1,
-            );
-          }
+        final productName = item['product_name']?.toString() ?? '';
+        final productCode = item['product_code']?.toString() ?? '';
+
+        if (productName.isEmpty) continue;
+
+        final key = productCode.isNotEmpty ? productCode : productName;
+        final quantity = (item['quantity'] ?? 0).toDouble();
+        final total = (item['total'] ?? 0).toDouble();
+
+        if (productMap.containsKey(key)) {
+          final existing = productMap[key]!;
+          productMap[key] = TopProduct(
+            productId: key,
+            productName: existing.productName,
+            productCode: existing.productCode,
+            quantity: existing.quantity + quantity,
+            totalSales: existing.totalSales + total,
+            transactionCount: existing.transactionCount + 1,
+          );
+        } else {
+          productMap[key] = TopProduct(
+            productId: key,
+            productName: productName,
+            productCode: productCode,
+            quantity: quantity,
+            totalSales: total,
+            transactionCount: 1,
+          );
         }
       }
 
       // Ordenar por ventas totales y limitar
       final sorted = productMap.values.toList()
         ..sort((a, b) => b.totalSales.compareTo(a.totalSales));
-      
+
+      print('📊 Productos agrupados: ${sorted.length}');
+      for (var p in sorted.take(3)) {
+        print('   - ${p.productName}: ${p.totalSales}');
+      }
+
       return sorted.take(limit).toList();
     } catch (e) {
       print('❌ Error obteniendo productos más vendidos: $e');
@@ -361,16 +411,16 @@ class ReportsDataSource {
 
       // Agrupar por cliente
       final Map<String, CustomerSales> customerMap = {};
-      
+
       for (var invoice in response) {
         final customerId = invoice['customer_id'] ?? '';
         final customer = invoice['customers'];
-        
+
         if (customer != null && customerId.isNotEmpty) {
           final totalAmount = (invoice['total'] ?? 0).toDouble();
           final paidAmount = (invoice['paid_amount'] ?? 0).toDouble();
           final pending = totalAmount - paidAmount;
-          
+
           if (customerMap.containsKey(customerId)) {
             final existing = customerMap[customerId]!;
             customerMap[customerId] = CustomerSales(
@@ -378,7 +428,9 @@ class ReportsDataSource {
               customerName: existing.customerName,
               totalSales: existing.totalSales + totalAmount,
               transactionCount: existing.transactionCount + 1,
-              averageTicket: (existing.totalSales + totalAmount) / (existing.transactionCount + 1),
+              averageTicket:
+                  (existing.totalSales + totalAmount) /
+                  (existing.transactionCount + 1),
               pendingBalance: existing.pendingBalance + pending,
             );
           } else {
@@ -397,7 +449,7 @@ class ReportsDataSource {
       // Ordenar por ventas totales
       final sorted = customerMap.values.toList()
         ..sort((a, b) => b.totalSales.compareTo(a.totalSales));
-      
+
       return sorted;
     } catch (e) {
       print('❌ Error obteniendo ventas por cliente: $e');
@@ -405,38 +457,100 @@ class ReportsDataSource {
     }
   }
 
-  /// Obtener reporte de inventario
-  static Future<List<InventoryReport>> getInventoryReport({bool lowStockOnly = false}) async {
+  /// Obtener reporte de inventario (productos y materiales)
+  static Future<List<InventoryReport>> getInventoryReport({
+    bool lowStockOnly = false,
+  }) async {
     try {
-      final response = await _client
+      final List<InventoryReport> reports = [];
+
+      // 1. Obtener productos
+      final productsResponse = await _client
           .from('products')
           .select()
           .eq('is_active', true)
           .order('code');
 
-      final List<InventoryReport> reports = [];
-      
-      for (var product in response) {
+      for (var product in productsResponse) {
         final stock = (product['stock'] ?? 0).toDouble();
         final minStock = (product['min_stock'] ?? 0).toDouble();
         final unitPrice = (product['unit_price'] ?? 0).toDouble();
         final costPrice = (product['cost_price'] ?? 0).toDouble();
-        final isLowStock = stock <= minStock;
+        final isLowStock = stock <= minStock && stock > 0;
+        final isOutOfStock = stock <= 0;
 
-        if (lowStockOnly && !isLowStock) continue;
+        if (lowStockOnly && !isLowStock && !isOutOfStock) continue;
 
-        reports.add(InventoryReport(
-          productId: product['id'] ?? '',
-          productCode: product['code'] ?? '',
-          productName: product['name'] ?? '',
-          currentStock: stock,
-          minStock: minStock,
-          unitPrice: unitPrice,
-          costPrice: costPrice,
-          totalValue: stock * costPrice,
-          isLowStock: isLowStock,
-        ));
+        reports.add(
+          InventoryReport(
+            productId: product['id'] ?? '',
+            productCode: product['code'] ?? '',
+            productName: product['name'] ?? '',
+            category: product['category'] ?? 'Producto',
+            unit: product['unit'] ?? 'UND',
+            itemType: 'product',
+            currentStock: stock,
+            minStock: minStock,
+            unitPrice: unitPrice,
+            costPrice: costPrice,
+            totalValue: stock * (costPrice > 0 ? costPrice : unitPrice),
+            isLowStock: isLowStock,
+            isOutOfStock: isOutOfStock,
+          ),
+        );
       }
+
+      // 2. Obtener materiales (materia prima)
+      final materialsResponse = await _client
+          .from('materials')
+          .select()
+          .eq('is_active', true)
+          .order('category')
+          .order('name');
+
+      for (var material in materialsResponse) {
+        final stock = (material['stock'] ?? 0).toDouble();
+        final minStock = (material['min_stock'] ?? 0).toDouble();
+        final pricePerKg = (material['price_per_kg'] ?? 0).toDouble();
+        final unitPrice = (material['unit_price'] ?? 0).toDouble();
+        final costPrice = (material['cost_price'] ?? 0).toDouble();
+        final isLowStock = stock <= minStock && stock > 0;
+        final isOutOfStock = stock <= 0;
+
+        if (lowStockOnly && !isLowStock && !isOutOfStock) continue;
+
+        // Usar el precio más relevante disponible
+        final price = costPrice > 0
+            ? costPrice
+            : (unitPrice > 0 ? unitPrice : pricePerKg);
+
+        reports.add(
+          InventoryReport(
+            productId: material['id'] ?? '',
+            productCode: material['code'] ?? '',
+            productName: material['name'] ?? '',
+            category: material['category'] ?? 'Material',
+            unit: material['unit'] ?? 'KG',
+            itemType: 'material',
+            currentStock: stock,
+            minStock: minStock,
+            unitPrice: pricePerKg > 0 ? pricePerKg : unitPrice,
+            costPrice: price,
+            totalValue: stock * price,
+            isLowStock: isLowStock,
+            isOutOfStock: isOutOfStock,
+          ),
+        );
+      }
+
+      // Ordenar: primero los críticos (sin stock), luego bajo stock, luego el resto
+      reports.sort((a, b) {
+        if (a.isOutOfStock && !b.isOutOfStock) return -1;
+        if (!a.isOutOfStock && b.isOutOfStock) return 1;
+        if (a.isLowStock && !b.isLowStock) return -1;
+        if (!a.isLowStock && b.isLowStock) return 1;
+        return a.productName.compareTo(b.productName);
+      });
 
       return reports;
     } catch (e) {
@@ -449,7 +563,7 @@ class ReportsDataSource {
   static Future<Map<String, dynamic>> getInventorySummary() async {
     try {
       final products = await getInventoryReport();
-      
+
       int totalProducts = products.length;
       int lowStockCount = products.where((p) => p.isLowStock).length;
       double totalValue = products.fold(0, (sum, p) => sum + p.totalValue);
@@ -476,7 +590,7 @@ class ReportsDataSource {
   static Future<List<ReceivableReport>> getReceivablesReport() async {
     try {
       final now = DateTime.now();
-      
+
       final response = await _client
           .from('invoices')
           .select('''
@@ -492,16 +606,18 @@ class ReportsDataSource {
 
       // Agrupar por cliente
       final Map<String, ReceivableReport> customerMap = {};
-      
+
       for (var invoice in response) {
         final customerId = invoice['customer_id'] ?? '';
         final customer = invoice['customers'];
-        
+
         if (customer != null && customerId.isNotEmpty) {
           final total = (invoice['total'] ?? 0).toDouble();
           final paid = (invoice['paid_amount'] ?? 0).toDouble();
           final pending = total - paid;
-          final dueDate = DateTime.parse(invoice['due_date'] ?? now.toIso8601String());
+          final dueDate = DateTime.parse(
+            invoice['due_date'] ?? now.toIso8601String(),
+          );
           final daysOverdue = now.difference(dueDate).inDays;
 
           double current = 0, overdue30 = 0, overdue60 = 0, overdue90 = 0;
@@ -550,7 +666,7 @@ class ReportsDataSource {
       // Ordenar por deuda total
       final sorted = customerMap.values.toList()
         ..sort((a, b) => b.totalDebt.compareTo(a.totalDebt));
-      
+
       return sorted;
     } catch (e) {
       print('❌ Error obteniendo cuentas por cobrar: $e');
@@ -562,8 +678,12 @@ class ReportsDataSource {
   static Future<Map<String, dynamic>> getReceivablesSummary() async {
     try {
       final receivables = await getReceivablesReport();
-      
-      double totalDebt = 0, current = 0, overdue30 = 0, overdue60 = 0, overdue90 = 0;
+
+      double totalDebt = 0,
+          current = 0,
+          overdue30 = 0,
+          overdue60 = 0,
+          overdue90 = 0;
       int totalCustomers = receivables.length;
       int overdueCustomers = 0;
 

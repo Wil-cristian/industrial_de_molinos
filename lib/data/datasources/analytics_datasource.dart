@@ -56,14 +56,94 @@ class AnalyticsDataSource {
   /// Obtener métricas de todos los clientes
   static Future<List<CustomerMetrics>> getAllCustomerMetrics() async {
     try {
-      final response = await _client
-          .from('v_customer_metrics')
-          .select()
-          .order('total_spent', ascending: false);
+      // Intentar usar la vista si existe
+      try {
+        final response = await _client
+            .from('v_customer_metrics')
+            .select()
+            .order('total_spent', ascending: false);
 
-      return (response as List)
-          .map((json) => CustomerMetrics.fromJson(json))
-          .toList();
+        return (response as List)
+            .map((json) => CustomerMetrics.fromJson(json))
+            .toList();
+      } catch (_) {
+        // Si la vista no existe, calcular manualmente desde customers e invoices
+        print('⚠️ Vista v_customer_metrics no existe, calculando manualmente...');
+        
+        final customersResponse = await _client
+            .from('customers')
+            .select('id, name, document_number, type, current_balance, credit_limit, is_active, created_at')
+            .eq('is_active', true);
+        
+        final List<CustomerMetrics> metrics = [];
+        
+        for (final customer in customersResponse) {
+          final customerId = customer['id'] as String;
+          
+          // Obtener facturas del cliente
+          final invoicesResponse = await _client
+              .from('invoices')
+              .select('total, paid_amount, status, issue_date')
+              .eq('customer_id', customerId);
+          
+          double totalSpent = 0.0;
+          int invoiceCount = 0;
+          DateTime? lastPurchase;
+          DateTime? firstPurchase;
+          
+          for (final inv in invoicesResponse) {
+            final status = inv['status']?.toString() ?? '';
+            if (status != 'cancelled' && status != 'anulada') {
+              totalSpent += (inv['total'] as num?)?.toDouble() ?? 0.0;
+              invoiceCount++;
+              
+              final issueDate = inv['issue_date'] != null 
+                  ? DateTime.tryParse(inv['issue_date'].toString())
+                  : null;
+              if (issueDate != null) {
+                if (lastPurchase == null || issueDate.isAfter(lastPurchase)) {
+                  lastPurchase = issueDate;
+                }
+                if (firstPurchase == null || issueDate.isBefore(firstPurchase)) {
+                  firstPurchase = issueDate;
+                }
+              }
+            }
+          }
+          
+          // Calcular días desde última compra
+          int? daysSinceLastPurchase;
+          if (lastPurchase != null) {
+            daysSinceLastPurchase = DateTime.now().difference(lastPurchase).inDays;
+          }
+          
+          final createdAt = customer['created_at'] != null 
+              ? DateTime.tryParse(customer['created_at'].toString())
+              : null;
+          
+          metrics.add(CustomerMetrics(
+            id: customerId,
+            name: customer['name'] as String? ?? '',
+            documentNumber: customer['document_number'] as String?,
+            type: customer['type'] as String?,
+            debt: (customer['current_balance'] as num?)?.toDouble() ?? 0.0,
+            creditLimit: (customer['credit_limit'] as num?)?.toDouble() ?? 0.0,
+            customerSince: createdAt,
+            totalPurchases: invoiceCount,
+            totalSpent: totalSpent,
+            averageTicket: invoiceCount > 0 ? totalSpent / invoiceCount : 0.0,
+            lastPurchaseDate: lastPurchase,
+            firstPurchaseDate: firstPurchase,
+            daysSinceLastPurchase: daysSinceLastPurchase,
+          ));
+        }
+        
+        // Ordenar por gasto total
+        metrics.sort((a, b) => b.totalSpent.compareTo(a.totalSpent));
+        print('✅ Métricas calculadas para ${metrics.length} clientes');
+        
+        return metrics;
+      }
     } catch (e) {
       print('❌ Error obteniendo métricas de clientes: $e');
       return [];
@@ -421,4 +501,192 @@ class AnalyticsDataSource {
       return {};
     }
   }
-}
+
+  // ============================================================
+  // KPIs AVANZADOS DE COBRANZAS
+  // ============================================================
+
+  /// Obtener DSO mensual de los últimos N meses
+  static Future<List<DSOMonthly>> getDSOTrend({int months = 12}) async {
+    try {
+      final now = DateTime.now();
+      List<DSOMonthly> dsoList = [];
+
+      for (int i = 0; i < months; i++) {
+        final targetDate = DateTime(now.year, now.month - i, 1);
+        final endOfMonth = DateTime(targetDate.year, targetDate.month + 1, 0);
+        
+        // Ventas del mes - sin paid_date que no existe
+        final salesResponse = await _client
+            .from('invoices')
+            .select('total, paid_amount, issue_date, due_date, status')
+            .gte('issue_date', targetDate.toIso8601String())
+            .lte('issue_date', endOfMonth.toIso8601String())
+            .neq('status', 'cancelled');
+
+        double totalSales = 0;
+        double totalCollected = 0;
+        double totalReceivables = 0;
+
+        for (var inv in salesResponse) {
+          final total = (inv['total'] as num).toDouble();
+          final paidAmount = (inv['paid_amount'] as num?)?.toDouble() ?? 0;
+          totalSales += total;
+          totalCollected += paidAmount;
+          totalReceivables += (total - paidAmount);
+        }
+
+        // Cuentas por cobrar al final del mes
+        final receivablesResponse = await _client
+            .from('invoices')
+            .select('total, paid_amount')
+            .lte('issue_date', endOfMonth.toIso8601String())
+            .neq('status', 'paid')
+            .neq('status', 'cancelled');
+
+        // Recalcular receivables desde todas las facturas pendientes
+        totalReceivables = 0;
+        for (var inv in receivablesResponse) {
+          totalReceivables += (inv['total'] as num).toDouble() - 
+              ((inv['paid_amount'] as num?)?.toDouble() ?? 0);
+        }
+
+        // Calcular DSO: (Cuentas por Cobrar / Ventas Diarias)
+        final daysInMonth = endOfMonth.day;
+        final dailySales = totalSales / daysInMonth;
+        final dso = dailySales > 0 ? totalReceivables / dailySales : 0.0;
+        
+        // Collection rate
+        final collectionRate = totalSales > 0 ? (totalCollected / totalSales * 100) : 0.0;
+
+        dsoList.add(DSOMonthly(
+          year: targetDate.year,
+          month: targetDate.month,
+          dso: dso.toDouble(),
+          totalReceivables: totalReceivables,
+          totalSales: totalSales,
+          collectionRate: collectionRate.toDouble(),
+        ));
+      }
+
+      return dsoList.reversed.toList(); // Orden cronológico
+    } catch (e) {
+      print('❌ Error obteniendo DSO trend: $e');
+      return [];
+    }
+  }
+
+  /// Calcular KPIs completos de cobranzas
+  static Future<CollectionKPIs> getCollectionKPIs() async {
+    try {
+      final now = DateTime.now();
+      final last12Months = DateTime(now.year, now.month - 12, 1);
+
+      // Todas las facturas de los últimos 12 meses - sin paid_date
+      final allInvoices = await _client
+          .from('invoices')
+          .select('id, total, paid_amount, issue_date, due_date, status')
+          .gte('issue_date', last12Months.toIso8601String())
+          .neq('status', 'cancelled');
+
+      double totalSales = 0;
+      double totalCollected = 0;
+      double totalReceivables = 0;
+      double overdueAmount = 0;
+      int overdueInvoices = 0;
+      int totalDaysToCollect = 0;
+      int paidInvoicesCount = 0;
+
+      for (var inv in allInvoices) {
+        final total = (inv['total'] as num).toDouble();
+        final paid = (inv['paid_amount'] as num?)?.toDouble() ?? 0;
+        final pending = total - paid;
+        
+        totalSales += total;
+        totalCollected += paid;
+        
+        if (pending > 0) {
+          totalReceivables += pending;
+          
+          // Verificar si está vencida
+          if (inv['due_date'] != null) {
+            final dueDate = DateTime.tryParse(inv['due_date']);
+            if (dueDate != null && now.isAfter(dueDate)) {
+              overdueAmount += pending;
+              overdueInvoices++;
+            }
+          }
+        }
+
+        // Contar facturas pagadas para cálculo de DSO
+        final status = inv['status']?.toString() ?? '';
+        if (status == 'paid' && inv['issue_date'] != null && inv['due_date'] != null) {
+          final issueDate = DateTime.tryParse(inv['issue_date']);
+          final dueDate = DateTime.tryParse(inv['due_date']);
+          if (issueDate != null && dueDate != null) {
+            // Usar la diferencia entre issue_date y due_date como estimación
+            totalDaysToCollect += dueDate.difference(issueDate).inDays ~/ 2; // Estimación media
+            paidInvoicesCount++;
+          }
+        }
+      }
+
+      // DSO = Días promedio de cobro
+      final dso = paidInvoicesCount > 0 
+          ? (totalDaysToCollect / paidInvoicesCount).toDouble()
+          : (totalReceivables > 0 && totalSales > 0 
+              ? (totalReceivables / (totalSales / 365)).toDouble()
+              : 0.0);
+
+      // CEI = (Cobrado / (Inicial + Ventas - Vigente)) * 100
+      // Simplificado: CEI = (Cobrado / Ventas) * 100
+      final cei = totalSales > 0 ? (totalCollected / totalSales * 100) : 0.0;
+
+      // AR Turnover = Ventas a Crédito / Promedio de Cuentas por Cobrar
+      final arTurnover = totalReceivables > 0 ? (totalSales / totalReceivables) : 0.0;
+
+      // Bad Debt Ratio (estimado con +90 días como incobrable)
+      final badDebtRatio = totalSales > 0 ? (overdueAmount * 0.5 / totalSales * 100) : 0.0;
+
+      return CollectionKPIs(
+        dso: dso.toDouble(),
+        cei: cei.clamp(0.0, 100.0).toDouble(),
+        arTurnover: arTurnover.toDouble(),
+        badDebtRatio: badDebtRatio.toDouble(),
+        totalReceivables: totalReceivables,
+        totalCollected: totalCollected,
+        overdueAmount: overdueAmount,
+        overdueInvoices: overdueInvoices,
+        totalInvoices: allInvoices.length,
+      );
+    } catch (e) {
+      print('❌ Error calculando KPIs de cobranzas: $e');
+      return CollectionKPIs();
+    }
+  }
+
+  /// Generar análisis ABC (Pareto) de productos
+  static Future<List<ProductABC>> getProductABCAnalysis() async {
+    try {
+      final products = await getTopSellingProducts(limit: 100);
+      
+      if (products.isEmpty) return [];
+
+      // Calcular total de ingresos
+      final totalRevenue = products.fold(0.0, (sum, p) => sum + p.totalRevenue);
+      
+      // Generar análisis ABC con acumulados
+      List<ProductABC> abcList = [];
+      double cumulativeRevenue = 0;
+
+      for (var product in products) {
+        cumulativeRevenue += product.totalRevenue;
+        abcList.add(ProductABC.fromTopSellingProduct(product, cumulativeRevenue, totalRevenue));
+      }
+
+      return abcList;
+    } catch (e) {
+      print('❌ Error generando análisis ABC: $e');
+      return [];
+    }
+  }}

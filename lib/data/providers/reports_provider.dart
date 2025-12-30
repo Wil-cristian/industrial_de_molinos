@@ -146,7 +146,7 @@ class InventoryReportState {
     this.summary = const {},
     this.isLoading = false,
     this.error,
-    this.showLowStockOnly = false,
+    this.showLowStockOnly = true, // Por defecto solo muestra críticos en Analytics
   });
 
   InventoryReportState copyWith({

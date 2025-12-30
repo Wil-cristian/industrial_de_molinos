@@ -8,8 +8,6 @@ import '../../data/providers/providers.dart';
 import '../../data/providers/activities_provider.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/activity.dart';
-import '../widgets/app_sidebar.dart';
-import '../widgets/quick_actions_button.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -49,67 +47,50 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         .toList();
     
     return Scaffold(
-      body: Stack(
-        children: [
-          Row(
+      body: Container(
+        color: AppTheme.backgroundColor,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Sidebar con navegación
-              const AppSidebar(currentRoute: '/'),
-              
-              // Contenido principal
-              Expanded(
-                child: Container(
-                  color: AppTheme.backgroundColor,
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header
-                        _buildHeader(context),
-                        const SizedBox(height: 24),
+              // Header
+              _buildHeader(context),
+              const SizedBox(height: 3),
 
-                        // Cards de resumen
-                        _buildSummaryCards(context, invoicesState, productsState, customersState),
-                        const SizedBox(height: 24),
+              // Cards de resumen
+              _buildSummaryCards(context, invoicesState, productsState, customersState),
+              const SizedBox(height: 3),
 
-                        // Notificaciones y Mini Calendario
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Panel de Notificaciones
-                            Expanded(
-                              flex: 2,
-                              child: _buildNotificationsPanel(
-                                context, 
-                                lowStockMaterials, 
-                                invoicesState,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            
-                            // Mini Calendario
-                            Expanded(
-                              flex: 1,
-                              child: _buildMiniCalendar(context),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Últimas ventas
-                        _buildRecentSalesCard(context, invoicesState, recentInvoices),
-                      ],
+              // Notificaciones y Mini Calendario
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Panel de Notificaciones
+                  Expanded(
+                    flex: 2,
+                    child: _buildNotificationsPanel(
+                      context, 
+                      lowStockMaterials, 
+                      invoicesState,
                     ),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  
+                  // Mini Calendario
+                  Expanded(
+                    flex: 1,
+                    child: _buildMiniCalendar(context),
+                  ),
+                ],
               ),
+              const SizedBox(height: 24),
+
+              // Últimas ventas
+              _buildRecentSalesCard(context, invoicesState, recentInvoices),
             ],
           ),
-          
-          // Botón de acciones rápidas
-          const QuickActionsButton(),
-        ],
+        ),
       ),
     );
   }
@@ -118,20 +99,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
           children: [
             Text(
               '¡Bienvenido!',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppTheme.primaryColor,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(width: 12),
             Text(
               Formatters.dateLong(DateTime.now()),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.grey[600],
               ),
             ),
@@ -141,13 +121,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           children: [
             _buildStatusChip(
               icon: Icons.cloud_done,
-              label: 'Conectado a Supabase',
+              label: 'Conectado',
               color: AppTheme.successColor,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             CircleAvatar(
+              radius: 16,
               backgroundColor: AppTheme.primaryColor,
-              child: const Icon(Icons.person, color: Colors.white),
+              child: const Icon(Icons.person, color: Colors.white, size: 18),
             ),
           ],
         ),
@@ -166,25 +147,25 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         Expanded(
           child: _buildSummaryCard(
             context,
-            title: 'Ventas del Mes',
+            title: 'Ventas',
             value: Formatters.currency(invoicesState.totalVentas),
             icon: Icons.attach_money,
             color: AppTheme.successColor,
-            subtitle: '${invoicesState.invoices.length} recibos',
+            subtitle: '${invoicesState.invoices.length} rec',
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 3),
         Expanded(
           child: _buildSummaryCard(
             context,
-            title: 'Pendiente de Cobro',
+            title: 'Pendiente',
             value: Formatters.currency(invoicesState.totalPendiente),
             icon: Icons.pending_actions,
             color: AppTheme.warningColor,
-            subtitle: '${invoicesState.countPendientes} recibos',
+            subtitle: '${invoicesState.countPendientes} rec',
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 3),
         Expanded(
           child: _buildSummaryCard(
             context,
@@ -194,18 +175,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             color: productsState.lowStockProducts.isNotEmpty 
                 ? AppTheme.errorColor 
                 : AppTheme.successColor,
-            subtitle: '${productsState.lowStockProducts.length} stock bajo',
+            subtitle: '${productsState.lowStockProducts.length} bajo',
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 3),
         Expanded(
           child: _buildSummaryCard(
             context,
-            title: 'Clientes Activos',
+            title: 'Clientes',
             value: customersState.customers.length.toString(),
             icon: Icons.people,
             color: AppTheme.accentColor,
-            subtitle: 'En la base de datos',
+            subtitle: 'Activos',
           ),
         ),
       ],
@@ -301,7 +282,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     for (var invoice in overdueInvoices) {
       notifications.add(_NotificationItem(
         icon: Icons.receipt_long,
-        title: 'Factura Vencida: ${invoice.fullNumber}',
+        title: 'Recibo Vencido: ${invoice.fullNumber}',
         message: 'Cliente: ${invoice.customerName}, Pendiente: ${Formatters.currency(invoice.pendingAmount)}',
         severity: 'error',
         time: 'Vencida',
@@ -321,15 +302,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(4),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
           ),
         ],
       ),

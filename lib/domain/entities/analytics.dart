@@ -440,3 +440,138 @@ class RelatedProduct {
     );
   }
 }
+/// DSO (Days Sales Outstanding) mensual para tendencia
+class DSOMonthly {
+  final int year;
+  final int month;
+  final double dso; // Días promedio de cobro
+  final double totalReceivables;
+  final double totalSales;
+  final double collectionRate; // Tasa de cobro %
+
+  DSOMonthly({
+    required this.year,
+    required this.month,
+    this.dso = 0,
+    this.totalReceivables = 0,
+    this.totalSales = 0,
+    this.collectionRate = 0,
+  });
+
+  factory DSOMonthly.fromJson(Map<String, dynamic> json) {
+    return DSOMonthly(
+      year: (json['year'] as num?)?.toInt() ?? DateTime.now().year,
+      month: (json['month'] as num?)?.toInt() ?? 1,
+      dso: (json['dso'] as num?)?.toDouble() ?? 0,
+      totalReceivables: (json['total_receivables'] as num?)?.toDouble() ?? 0,
+      totalSales: (json['total_sales'] as num?)?.toDouble() ?? 0,
+      collectionRate: (json['collection_rate'] as num?)?.toDouble() ?? 0,
+    );
+  }
+  
+  String get monthName {
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return months[(month - 1).clamp(0, 11)];
+  }
+}
+
+/// KPIs de Cobranzas completos
+class CollectionKPIs {
+  final double dso; // Days Sales Outstanding
+  final double cei; // Collection Effectiveness Index (0-100)
+  final double arTurnover; // Rotación de cartera (veces/año)
+  final double badDebtRatio; // Tasa de deuda incobrable %
+  final double totalReceivables;
+  final double totalCollected;
+  final double overdueAmount;
+  final int overdueInvoices;
+  final int totalInvoices;
+
+  CollectionKPIs({
+    this.dso = 0,
+    this.cei = 0,
+    this.arTurnover = 0,
+    this.badDebtRatio = 0,
+    this.totalReceivables = 0,
+    this.totalCollected = 0,
+    this.overdueAmount = 0,
+    this.overdueInvoices = 0,
+    this.totalInvoices = 0,
+  });
+
+  factory CollectionKPIs.fromJson(Map<String, dynamic> json) {
+    return CollectionKPIs(
+      dso: (json['dso'] as num?)?.toDouble() ?? 0,
+      cei: (json['cei'] as num?)?.toDouble() ?? 0,
+      arTurnover: (json['ar_turnover'] as num?)?.toDouble() ?? 0,
+      badDebtRatio: (json['bad_debt_ratio'] as num?)?.toDouble() ?? 0,
+      totalReceivables: (json['total_receivables'] as num?)?.toDouble() ?? 0,
+      totalCollected: (json['total_collected'] as num?)?.toDouble() ?? 0,
+      overdueAmount: (json['overdue_amount'] as num?)?.toDouble() ?? 0,
+      overdueInvoices: (json['overdue_invoices'] as num?)?.toInt() ?? 0,
+      totalInvoices: (json['total_invoices'] as num?)?.toInt() ?? 0,
+    );
+  }
+  
+  // Estado del CEI
+  String get ceiStatus {
+    if (cei >= 90) return 'Excelente';
+    if (cei >= 80) return 'Bueno';
+    if (cei >= 70) return 'Regular';
+    return 'Crítico';
+  }
+  
+  // Color del CEI
+  String get ceiColor {
+    if (cei >= 90) return 'green';
+    if (cei >= 80) return 'blue';
+    if (cei >= 70) return 'orange';
+    return 'red';
+  }
+}
+
+/// Producto con análisis ABC (Pareto)
+class ProductABC {
+  final String productName;
+  final String? productCode;
+  final double totalRevenue;
+  final double cumulativeRevenue;
+  final double cumulativePercentage;
+  final String abcCategory; // A, B, C
+  final int timesSold;
+  final double totalQuantity;
+
+  ProductABC({
+    required this.productName,
+    this.productCode,
+    this.totalRevenue = 0,
+    this.cumulativeRevenue = 0,
+    this.cumulativePercentage = 0,
+    this.abcCategory = 'C',
+    this.timesSold = 0,
+    this.totalQuantity = 0,
+  });
+
+  factory ProductABC.fromTopSellingProduct(TopSellingProduct product, double cumRevenue, double total) {
+    final cumPct = total > 0 ? (cumRevenue / total * 100) : 0.0;
+    String category;
+    if (cumPct <= 80) {
+      category = 'A';
+    } else if (cumPct <= 95) {
+      category = 'B';
+    } else {
+      category = 'C';
+    }
+    
+    return ProductABC(
+      productName: product.productName ?? 'Sin nombre',
+      productCode: product.productCode,
+      totalRevenue: product.totalRevenue,
+      cumulativeRevenue: cumRevenue,
+      cumulativePercentage: cumPct.toDouble(),
+      abcCategory: category,
+      timesSold: product.timesSold,
+      totalQuantity: product.totalQuantity,
+    );
+  }
+}
