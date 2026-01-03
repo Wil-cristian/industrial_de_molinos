@@ -153,8 +153,10 @@ class QuotationItem {
   final String? materialId; // ID del material si es directo del inventario
   final int quantity;
   final double unitWeight; // Peso unitario en kg
-  final double pricePerKg; // Precio por kg del material
+  final double pricePerKg; // Precio por kg del material (VENTA)
+  final double costPerKg; // Precio por kg del material (COMPRA)
   final double unitPrice; // Precio unitario (para productos que no se calculan por peso)
+  final double unitCost; // Costo unitario (para productos)
   final Map<String, dynamic> dimensions; // Dimensiones específicas según el tipo
   final String materialType; // Tipo de material/lámina
 
@@ -168,7 +170,9 @@ class QuotationItem {
     this.quantity = 1,
     this.unitWeight = 0,
     this.pricePerKg = 0,
+    this.costPerKg = 0,
     this.unitPrice = 0,
+    this.unitCost = 0,
     this.dimensions = const {},
     this.materialType = '',
   });
@@ -176,13 +180,27 @@ class QuotationItem {
   /// Peso total del item
   double get totalWeight => unitWeight * quantity;
 
-  /// Precio total del item
+  /// Precio total del item (VENTA)
   double get totalPrice {
     if (unitPrice > 0) {
       return unitPrice * quantity;
     }
     return totalWeight * pricePerKg;
   }
+
+  /// Costo total del item (COMPRA)
+  double get totalCost {
+    if (unitCost > 0) {
+      return unitCost * quantity;
+    }
+    return totalWeight * costPerKg;
+  }
+
+  /// Ganancia total del item
+  double get totalProfit => totalPrice - totalCost;
+
+  /// Margen de ganancia (%)
+  double get profitMargin => totalCost > 0 ? ((totalProfit / totalCost) * 100) : 0;
 
   QuotationItem copyWith({
     String? id,
@@ -194,7 +212,9 @@ class QuotationItem {
     int? quantity,
     double? unitWeight,
     double? pricePerKg,
+    double? costPerKg,
     double? unitPrice,
+    double? unitCost,
     Map<String, dynamic>? dimensions,
     String? materialType,
   }) {
@@ -208,7 +228,9 @@ class QuotationItem {
       quantity: quantity ?? this.quantity,
       unitWeight: unitWeight ?? this.unitWeight,
       pricePerKg: pricePerKg ?? this.pricePerKg,
+      costPerKg: costPerKg ?? this.costPerKg,
       unitPrice: unitPrice ?? this.unitPrice,
+      unitCost: unitCost ?? this.unitCost,
       dimensions: dimensions ?? this.dimensions,
       materialType: materialType ?? this.materialType,
     );
@@ -224,7 +246,9 @@ class QuotationItem {
     'quantity': quantity,
     'unit_weight': unitWeight,
     'price_per_kg': pricePerKg,
+    'cost_per_kg': costPerKg,
     'unit_price': unitPrice,
+    'unit_cost': unitCost,
     'dimensions': dimensions,
     'material_type': materialType,
   };
@@ -239,7 +263,9 @@ class QuotationItem {
     quantity: json['quantity'] ?? 1,
     unitWeight: (json['unit_weight'] ?? 0).toDouble(),
     pricePerKg: (json['price_per_kg'] ?? 0).toDouble(),
+    costPerKg: (json['cost_per_kg'] ?? 0).toDouble(),
     unitPrice: (json['unit_price'] ?? 0).toDouble(),
+    unitCost: (json['unit_cost'] ?? 0).toDouble(),
     dimensions: json['dimensions'] ?? {},
     materialType: json['material_type'] ?? '',
   );

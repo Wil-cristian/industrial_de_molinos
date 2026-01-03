@@ -96,8 +96,12 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
     }).toList();
   }
 
-  double get _totalVentas => _invoices.fold(0.0, (sum, inv) => sum + (inv['total'] as double));
-  double get _totalCobrado => _invoices.fold(0.0, (sum, inv) => sum + (inv['paid'] as double));
+  // Filtrar facturas activas (excluir anuladas) para estadísticas
+  List<Map<String, dynamic>> get _activeInvoices => 
+      _invoices.where((inv) => inv['status'] != 'Anulada').toList();
+
+  double get _totalVentas => _activeInvoices.fold(0.0, (sum, inv) => sum + (inv['total'] as double));
+  double get _totalCobrado => _activeInvoices.fold(0.0, (sum, inv) => sum + (inv['paid'] as double));
   double get _totalPendiente => _totalVentas - _totalCobrado;
 
   @override
@@ -927,7 +931,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                                   decoration: InputDecoration(
                                     labelText: 'Monto a pagar',
                                     border: const OutlineInputBorder(),
-                                    prefixText: 'S/ ',
+                                    prefixText: '\$ ',
                                     suffixIcon: TextButton(
                                       onPressed: () => setDialogState(() => amountController.text = pending.toStringAsFixed(2)),
                                       child: const Text('Pagar todo'),
@@ -1085,11 +1089,25 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Documento ${invoice['number']} anulado'), backgroundColor: Colors.red),
-              );
+              try {
+                // Anular la factura en la base de datos
+                await InvoicesDataSource.updateStatus(invoice['id'], 'cancelled');
+                // Refrescar la lista
+                ref.read(invoicesProvider.notifier).refresh();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Documento ${invoice['number']} anulado correctamente'), backgroundColor: Colors.green),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al anular: $e'), backgroundColor: Colors.red),
+                  );
+                }
+              }
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Anular'),
@@ -1317,7 +1335,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
   }
 
   // ==========================================
-  // RECIBO CLIENTE - Diseño espacioso moderno
+  // RECIBO CLIENTE - Diseño compacto moderno
   // ==========================================
   Widget _buildClientView(Map<String, dynamic> inv) {
     final products = inv['products'] as List<dynamic>? ?? [];
@@ -1328,15 +1346,15 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
       child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 900),
-          margin: const EdgeInsets.all(32),
+          margin: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.08),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -1345,16 +1363,16 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
               // Barra de acento superior
               Container(
                 width: double.infinity,
-                height: 8,
+                height: 4,
                 decoration: const BoxDecoration(
                   color: headerColor,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                 ),
               ),
               // Contenido con scroll
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(48),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1368,12 +1386,12 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.verified, color: headerColor, size: 48),
-                                    const SizedBox(width: 16),
+                                    Icon(Icons.verified, color: headerColor, size: 28),
+                                    const SizedBox(width: 10),
                                     const Text(
                                       'RECIBO DE CAJA',
                                       style: TextStyle(
-                                        fontSize: 28,
+                                        fontSize: 20,
                                         fontWeight: FontWeight.w900,
                                         color: Color(0xFF111418),
                                         letterSpacing: -0.5,
@@ -1381,10 +1399,10 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 4),
                                 Text(
                                   inv['number'],
-                                  style: TextStyle(color: Colors.grey[500], fontSize: 16, fontWeight: FontWeight.w500),
+                                  style: TextStyle(color: Colors.grey[500], fontSize: 12, fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
@@ -1394,14 +1412,14 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Container(
-                                width: 70,
-                                height: 70,
+                                width: 50,
+                                height: 50,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 12)],
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
                                 ),
                                 child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(8),
                                   child: Image.asset(
                                     'lib/photo/logo_empresa.png',
                                     fit: BoxFit.contain,
@@ -1409,14 +1427,14 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(colors: [headerColor, headerColor.withOpacity(0.8)]),
                                       ),
-                                      child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 36),
+                                      child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 24),
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              const Text('Industrial de Molinos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              const Text('NIT: 901946675-1', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              const SizedBox(height: 6),
+                              const Text('Industrial de Molinos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                              const Text('NIT: 901946675-1', style: TextStyle(fontSize: 10, color: Colors.grey)),
                             ],
                           ),
                         ],
@@ -1595,10 +1613,20 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
   // ==========================================
   Widget _buildEnterpriseView(Map<String, dynamic> inv) {
     final products = inv['products'] as List<dynamic>? ?? [];
-    final subtotal = inv['subtotal'] as double;
-    final tax = inv['tax'] as double;
-    final total = inv['total'] as double;
-    final paid = inv['paid'] as double;
+    final subtotal = (inv['subtotal'] as num?)?.toDouble() ?? 0;
+    final tax = (inv['tax'] as num?)?.toDouble() ?? 0;
+    final total = (inv['total'] as num?)?.toDouble() ?? 0;
+    final paid = (inv['paid'] as num?)?.toDouble() ?? 0;
+    
+    // Calcular costo total de productos
+    double totalCost = 0;
+    for (var prod in products) {
+      final qty = (prod['quantity'] as num?)?.toDouble() ?? 1;
+      final costPrice = (prod['costPrice'] as num?)?.toDouble() ?? (prod['unitCostPrice'] as num?)?.toDouble() ?? 0;
+      totalCost += costPrice * qty;
+    }
+    final totalProfit = subtotal - totalCost;
+    final profitMargin = totalCost > 0 ? ((totalProfit / totalCost) * 100) : 0;
     
     return Container(
       color: const Color(0xFFF1F4F8),
@@ -1748,7 +1776,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
               ),
             ),
             const SizedBox(height: 20),
-            // Resumen financiero moderno
+            // Resumen financiero moderno con análisis de ganancias
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -1762,14 +1790,112 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                     children: [
                       const Icon(Icons.analytics_outlined),
                       const SizedBox(width: 10),
-                      const Text('Resumen Financiero', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const Text('Análisis Financiero', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  // Detalle de costos
-                  _buildCostLine('Subtotal productos', subtotal, Colors.blue),
-                  _buildCostLine('IVA (19%)', tax, Colors.purple),
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider()),
+                  // Sección de Costos
+                  if (totalCost > 0) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.shopping_cart, size: 18, color: Colors.red[700]),
+                              const SizedBox(width: 8),
+                              Text('COSTOS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700], fontSize: 13)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          _buildCostLine('Costo de productos', totalCost, Colors.red),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  // Sección de Ventas
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.sell, size: 18, color: Colors.green[700]),
+                            const SizedBox(width: 8),
+                            Text('VENTAS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 13)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        _buildCostLine('Subtotal productos', subtotal, Colors.green),
+                        _buildCostLine('IVA (19%)', tax, Colors.purple),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Sección de Ganancias
+                  if (totalCost > 0) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.trending_up, size: 18, color: Colors.blue[700]),
+                              const SizedBox(width: 8),
+                              Text('GANANCIAS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 13)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Ganancia Neta'),
+                              Text(
+                                Helpers.formatCurrency(totalProfit),
+                                style: TextStyle(fontWeight: FontWeight.bold, color: totalProfit >= 0 ? Colors.blue[700] : Colors.red[700], fontSize: 16),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Markup'),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: profitMargin >= 0 ? Colors.purple[100] : Colors.red[100],
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '${profitMargin.toStringAsFixed(1)}%',
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: profitMargin >= 0 ? Colors.purple[700] : Colors.red[700]),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  // Total
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -1787,7 +1913,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                             Text('TOTAL RECIBO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           ],
                         ),
-                        Text('\$${Helpers.formatNumber(total)}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.primaryColor)),
+                        Text(Helpers.formatCurrency(total), style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.primaryColor)),
                       ],
                     ),
                   ),
@@ -1810,11 +1936,11 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                               size: 20,
                             ),
                             const SizedBox(width: 8),
-                            Text('Pagado: \$${Helpers.formatNumber(paid)}', style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold)),
+                            Text('Pagado: ${Helpers.formatCurrency(paid)}', style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold)),
                           ],
                         ),
                         if (total - paid > 0)
-                          Text('Pendiente: \$${Helpers.formatNumber(total - paid)}', style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.bold)),
+                          Text('Pendiente: ${Helpers.formatCurrency(total - paid)}', style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -1889,41 +2015,137 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
   }
 
   Widget _buildProductDetailRow(Map<String, dynamic> prod) {
+    // Obtener precios de costo y venta
+    final quantity = (prod['quantity'] as num?)?.toDouble() ?? 1;
+    final total = (prod['total'] as num?)?.toDouble() ?? 0;
+    final unitPrice = (prod['unitPrice'] as num?)?.toDouble() ?? (total / quantity);
+    final costPrice = (prod['costPrice'] as num?)?.toDouble() ?? (prod['unitCostPrice'] as num?)?.toDouble() ?? 0;
+    final totalWeight = (prod['totalWeight'] as num?)?.toDouble() ?? quantity;
+    
+    // Calcular precios por kg si hay peso
+    final salePerKg = totalWeight > 0 ? total / totalWeight : unitPrice;
+    final costPerKg = totalWeight > 0 && costPrice > 0 ? (costPrice * quantity) / totalWeight : costPrice;
+    
+    // Calcular ganancia
+    final totalCost = costPrice * quantity;
+    final profit = total - totalCost;
+    final profitMargin = totalCost > 0 ? ((profit / totalCost) * 100) : 0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
       ),
-      child: Row(
+      child: Column(
         children: [
+          // Fila principal: nombre y total
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text('${prod['quantity']}×', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor, fontSize: 14)),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(prod['name'] ?? 'Producto', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    if (prod['type'] != null || totalWeight > 0)
+                      Text(
+                        '${prod['type'] ?? ''} ${totalWeight > 0 ? '• ${Helpers.formatNumber(totalWeight)} kg' : ''}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(Helpers.formatCurrency(total), style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor, fontSize: 18)),
+                  Text('Total Venta', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                ],
+              ),
+            ],
+          ),
+          // Fila de métricas detalladas
+          const SizedBox(height: 12),
           Container(
-            width: 40,
-            height: 40,
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
+              color: Colors.grey[50],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Center(
-              child: Text('${prod['quantity']}×', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor, fontSize: 13)),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(prod['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                if (prod['type'] != null)
-                  Text('Tipo: ${prod['type']}', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                // Compra/kg
+                Expanded(
+                  child: Column(
+                    children: [
+                      Icon(Icons.shopping_cart_outlined, size: 16, color: Colors.orange[700]),
+                      const SizedBox(height: 4),
+                      Text(
+                        costPerKg > 0 ? Helpers.formatCurrency(costPerKg) : '-',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[700], fontSize: 12),
+                      ),
+                      Text('Compra/kg', style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 35, color: Colors.grey[300]),
+                // Venta/kg
+                Expanded(
+                  child: Column(
+                    children: [
+                      Icon(Icons.sell_outlined, size: 16, color: Colors.green[700]),
+                      const SizedBox(height: 4),
+                      Text(
+                        Helpers.formatCurrency(salePerKg),
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 12),
+                      ),
+                      Text('Venta/kg', style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 35, color: Colors.grey[300]),
+                // Ganancia
+                Expanded(
+                  child: Column(
+                    children: [
+                      Icon(Icons.trending_up, size: 16, color: profit >= 0 ? Colors.blue[700] : Colors.red[700]),
+                      const SizedBox(height: 4),
+                      Text(
+                        costPrice > 0 ? '${Helpers.formatCurrency(profit)} (${profitMargin.toStringAsFixed(1)}%)' : '-',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: profit >= 0 ? Colors.blue[700] : Colors.red[700], fontSize: 12),
+                      ),
+                      Text('Ganancia', style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 35, color: Colors.grey[300]),
+                // Costo Total
+                Expanded(
+                  child: Column(
+                    children: [
+                      Icon(Icons.account_balance_wallet_outlined, size: 16, color: Colors.red[700]),
+                      const SizedBox(height: 4),
+                      Text(
+                        costPrice > 0 ? Helpers.formatCurrency(totalCost) : '-',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700], fontSize: 12),
+                      ),
+                      Text('Costo Total', style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('\$${Helpers.formatNumber(prod['total'])}', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor, fontSize: 16)),
-              Text('P.U: \$${Helpers.formatNumber(prod['unitPrice'])}', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-            ],
           ),
         ],
       ),

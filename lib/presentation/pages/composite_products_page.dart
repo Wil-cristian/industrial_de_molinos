@@ -383,7 +383,7 @@ class _CompositeProductsPageState extends State<CompositeProductsPage> {
                     Container(width: 1, height: 30, color: Colors.grey[300]),
                     _buildStatColumn('Peso', '${Helpers.formatNumber(product.totalWeight)} kg'),
                     Container(width: 1, height: 30, color: Colors.grey[300]),
-                    _buildStatColumn('Precio', 'S/ ${Helpers.formatNumber(product.totalPrice)}'),
+                    _buildStatColumn('Precio', '\$ ${Helpers.formatNumber(product.totalPrice)}'),
                   ],
                 ),
               ),
@@ -471,7 +471,7 @@ class _CompositeProductsPageState extends State<CompositeProductsPage> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'S/ ${Helpers.formatNumber(product.totalPrice)}',
+                        '\$ ${Helpers.formatNumber(product.totalPrice)}',
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
                       ),
                       Text('${Helpers.formatNumber(product.totalWeight)} kg', style: TextStyle(color: Colors.grey[600])),
@@ -533,7 +533,7 @@ class _CompositeProductsPageState extends State<CompositeProductsPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('S/ ${Helpers.formatNumber(comp.totalPrice)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text('\$ ${Helpers.formatNumber(comp.totalPrice)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                           Text('${Helpers.formatNumber(comp.totalWeight)} kg', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                         ],
                       ),
@@ -552,14 +552,14 @@ class _CompositeProductsPageState extends State<CompositeProductsPage> {
                 ),
                 child: Column(
                   children: [
-                    _buildCostRow('Materiales', 'S/ ${Helpers.formatNumber(product.materialsCost)}'),
-                    _buildCostRow('Mano de obra (${product.laborHours}h × S/${product.laborRate})', 'S/ ${Helpers.formatNumber(product.laborCost)}'),
-                    _buildCostRow('Costos indirectos', 'S/ ${Helpers.formatNumber(product.indirectCosts)}'),
+                    _buildCostRow('Materiales', '\$ ${Helpers.formatNumber(product.materialsCost)}'),
+                    _buildCostRow('Mano de obra (${product.laborHours}h × \$${product.laborRate})', '\$ ${Helpers.formatNumber(product.laborCost)}'),
+                    _buildCostRow('Costos indirectos', '\$ ${Helpers.formatNumber(product.indirectCosts)}'),
                     const Divider(),
-                    _buildCostRow('Subtotal', 'S/ ${Helpers.formatNumber(product.subtotal)}'),
-                    _buildCostRow('Margen (${product.profitMargin.toStringAsFixed(0)}%)', 'S/ ${Helpers.formatNumber(product.profitAmount)}'),
+                    _buildCostRow('Subtotal', '\$ ${Helpers.formatNumber(product.subtotal)}'),
+                    _buildCostRow('Margen (${product.profitMargin.toStringAsFixed(0)}%)', '\$ ${Helpers.formatNumber(product.profitAmount)}'),
                     const Divider(),
-                    _buildCostRow('TOTAL', 'S/ ${Helpers.formatNumber(product.totalPrice)}', isBold: true),
+                    _buildCostRow('TOTAL', '\$ ${Helpers.formatNumber(product.totalPrice)}', isBold: true),
                   ],
                 ),
               ),

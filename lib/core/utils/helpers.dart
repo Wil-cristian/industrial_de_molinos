@@ -2,9 +2,9 @@ import 'package:intl/intl.dart';
 
 class Formatters {
   // Formato de moneda
-  static String currency(double amount, {String symbol = 'S/'}) {
+  static String currency(double amount, {String symbol = '\$'}) {
     final formatter = NumberFormat.currency(
-      locale: 'es_PE',
+      locale: 'es_CO',
       symbol: symbol,
       decimalDigits: 2,
     );
@@ -122,7 +122,7 @@ class Validators {
 
 /// Alias para Formatters - compatibilidad con código existente
 class Helpers {
-  static String formatCurrency(double amount, {String symbol = 'S/'}) =>
+  static String formatCurrency(double amount, {String symbol = '\$'}) =>
       Formatters.currency(amount, symbol: symbol);
 
   static String formatNumber(double value, {int decimals = 2}) =>

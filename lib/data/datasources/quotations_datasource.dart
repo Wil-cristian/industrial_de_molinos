@@ -333,7 +333,9 @@ class QuotationsDataSource {
       quantity: json['quantity'] ?? 1,
       unitWeight: (json['unit_weight'] ?? 0).toDouble(),
       pricePerKg: (json['price_per_kg'] ?? 0).toDouble(),
+      costPerKg: (json['cost_per_kg'] ?? 0).toDouble(),
       unitPrice: (json['unit_price'] ?? 0).toDouble(),
+      unitCost: (json['unit_cost'] ?? 0).toDouble(),
       dimensions: json['dimensions'] ?? {},
       materialType: json['material_type'] ?? json['material_name'] ?? '',
     );
@@ -355,8 +357,11 @@ class QuotationsDataSource {
       'unit_weight': item.unitWeight,
       'total_weight': item.totalWeight,
       'price_per_kg': item.pricePerKg,
+      'cost_per_kg': item.costPerKg,
       'unit_price': item.unitPrice,
+      'unit_cost': item.unitCost,
       'total_price': item.totalPrice,
+      'total_cost': item.totalCost,
     };
   }
 

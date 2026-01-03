@@ -568,6 +568,14 @@ ALTER TABLE employee_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE material_price_history ENABLE ROW LEVEL SECURITY;
 
 -- Políticas permisivas (ajustar según necesidades de seguridad)
+DROP POLICY IF EXISTS "Allow all on employees" ON employees;
+DROP POLICY IF EXISTS "Allow all on monthly_expenses" ON monthly_expenses;
+DROP POLICY IF EXISTS "Allow all on suppliers" ON suppliers;
+DROP POLICY IF EXISTS "Allow all on purchases" ON purchases;
+DROP POLICY IF EXISTS "Allow all on purchase_items" ON purchase_items;
+DROP POLICY IF EXISTS "Allow all on employee_payments" ON employee_payments;
+DROP POLICY IF EXISTS "Allow all on material_price_history" ON material_price_history;
+
 CREATE POLICY "Allow all on employees" ON employees FOR ALL USING (true);
 CREATE POLICY "Allow all on monthly_expenses" ON monthly_expenses FOR ALL USING (true);
 CREATE POLICY "Allow all on suppliers" ON suppliers FOR ALL USING (true);

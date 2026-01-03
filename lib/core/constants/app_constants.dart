@@ -12,6 +12,6 @@ class AppConstants {
   static const int dbVersion = 1;
   
   // Configuración
-  static const String defaultCurrency = 'PEN';
-  static const double defaultTaxRate = 18.0;
+  static const String defaultCurrency = 'USD';
+  static const double defaultTaxRate = 0.0;
 }

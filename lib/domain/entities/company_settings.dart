@@ -22,8 +22,8 @@ class CompanySettings {
     this.phone,
     this.email,
     this.logoUrl,
-    this.currency = 'PEN',
-    this.taxRate = 18.0,
+    this.currency = 'USD',
+    this.taxRate = 0.0,
     this.createdAt,
     this.updatedAt,
   });
@@ -80,8 +80,8 @@ class CompanySettings {
     phone: json['phone'],
     email: json['email'],
     logoUrl: json['logo_url'],
-    currency: json['currency'] ?? 'PEN',
-    taxRate: (json['tax_rate'] ?? 18.0).toDouble(),
+    currency: json['currency'] ?? 'USD',
+    taxRate: (json['tax_rate'] ?? 0.0).toDouble(),
     createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
     updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
   );

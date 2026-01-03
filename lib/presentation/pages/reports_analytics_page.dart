@@ -799,7 +799,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                         return const SizedBox();
                                       }
                                       return Text(
-                                        'S/${(value / 1000).toStringAsFixed(0)}K',
+                                        '\$${(value / 1000).toStringAsFixed(0)}K',
                                         style: TextStyle(
                                           fontSize: 9,
                                           color: Colors.grey[600],
@@ -996,56 +996,57 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
     bool isWarning = false,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            blurRadius: 6,
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: Icon(icon, color: color, size: 20),
+                child: Icon(icon, color: color, size: 18),
               ),
               const Spacer(),
               if (change != null)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 6,
+                    vertical: 2,
                   ),
                   decoration: BoxDecoration(
                     color: change >= 0
                         ? Colors.green.withValues(alpha: 0.1)
                         : Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         change >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                        size: 12,
+                        size: 10,
                         color: change >= 0 ? Colors.green : Colors.red,
                       ),
                       const SizedBox(width: 2),
                       Text(
                         '${change.abs().toStringAsFixed(1)}%',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: change >= 0 ? Colors.green : Colors.red,
                         ),
@@ -1055,19 +1056,19 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
+          Text(title, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+          const SizedBox(height: 2),
           Text(
             value,
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: isWarning ? Colors.orange[700] : Colors.grey[800],
             ),
           ),
           if (subtitle != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               subtitle,
               style: TextStyle(
@@ -1165,7 +1166,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 return const SizedBox();
                               }
                               return Text(
-                                'S/${(value / 1000).toStringAsFixed(0)}K',
+                                '\$${(value / 1000).toStringAsFixed(0)}K',
                                 style: TextStyle(
                                   fontSize: 10,
                                   color: Colors.grey[600],
@@ -2039,7 +2040,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 return const SizedBox();
                               }
                               return Text(
-                                'S/${(value / 1000).toStringAsFixed(0)}K',
+                                '\$${(value / 1000).toStringAsFixed(0)}K',
                                 style: TextStyle(
                                   fontSize: 10,
                                   color: Colors.grey[600],
@@ -2344,7 +2345,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                   return const SizedBox();
                                 }
                                 return Text(
-                                  'S/ ${(value / 1000).toStringAsFixed(0)}K',
+                                  '\$ ${(value / 1000).toStringAsFixed(0)}K',
                                   style: TextStyle(
                                     color: Colors.grey[600],
                                     fontSize: 11,
@@ -2558,8 +2559,14 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         .where((p) => p.itemType == 'material')
         .length;
     final productsCount = state.products
-        .where((p) => p.itemType == 'product')
+        .where((p) => p.itemType == 'product' || p.itemType == 'recipe')
         .length;
+    
+    // Usar valores del summary (que incluye TODOS los productos)
+    final totalStockCost = (state.summary['totalStockCost'] ?? 0.0) as double;
+    final totalStockValue = (state.summary['totalStockSaleValue'] ?? 0.0) as double;
+    final totalPotentialProfit = (state.summary['totalPotentialProfit'] ?? 0.0) as double;
+    final avgMargin = (state.summary['avgMargin'] ?? 0.0) as double;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -2574,7 +2581,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Inventario Crítico',
+                    'Análisis de Inventario y Márgenes',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   Text(
@@ -2596,8 +2603,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          // KPIs
+          const SizedBox(height: 16),
+          // KPIs - Primera fila (Stock)
           Row(
             children: [
               Expanded(
@@ -2610,7 +2617,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       '$productsCount productos, $materialsCount materiales',
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildKPICard(
                   'Stock Bajo',
@@ -2620,7 +2627,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   subtitle: 'por debajo del mínimo',
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildKPICard(
                   'Sin Stock',
@@ -2632,7 +2639,42 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+          // KPIs - Segunda fila (Márgenes)
+          Row(
+            children: [
+              Expanded(
+                child: _buildKPICard(
+                  'Valor Stock (Costo)',
+                  Helpers.formatCurrency(totalStockCost),
+                  Icons.inventory_2,
+                  Colors.blue,
+                  subtitle: 'inversión en inventario',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildKPICard(
+                  'Valor Stock (Venta)',
+                  Helpers.formatCurrency(totalStockValue),
+                  Icons.sell,
+                  Colors.green,
+                  subtitle: 'valor de venta potencial',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildKPICard(
+                  'Ganancia Potencial',
+                  Helpers.formatCurrency(totalPotentialProfit),
+                  Icons.trending_up,
+                  totalPotentialProfit >= 0 ? Colors.teal : Colors.red,
+                  subtitle: 'margen promedio: ${avgMargin.toStringAsFixed(1)}%',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           // Mensaje si no hay críticos
           if (state.products.isEmpty)
             Container(
@@ -2738,7 +2780,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              columnSpacing: 20,
+              columnSpacing: 16,
               columns: const [
                 DataColumn(
                   label: Text(
@@ -2767,21 +2809,35 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 ),
                 DataColumn(
                   label: Text(
-                    'Mínimo',
+                    'P. Compra',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   numeric: true,
                 ),
                 DataColumn(
                   label: Text(
-                    'Precio',
+                    'P. Venta',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   numeric: true,
                 ),
                 DataColumn(
                   label: Text(
-                    'Valor',
+                    'Margen',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text(
+                    'Ganancia/U',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text(
+                    'Valor Stock',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   numeric: true,
@@ -2794,11 +2850,16 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 ),
               ],
               rows: state.products.map((product) {
+                final marginColor = product.marginPercent > 30 
+                    ? Colors.green 
+                    : product.marginPercent > 15 
+                        ? Colors.orange 
+                        : Colors.red;
                 return DataRow(
                   cells: [
                     DataCell(
                       SizedBox(
-                        width: 200,
+                        width: 180,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -2813,7 +2874,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             Text(
                               product.productCode,
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 11,
                                 color: Colors.grey[600],
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -2825,19 +2886,19 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                     DataCell(
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                          horizontal: 6,
+                          vertical: 2,
                         ),
                         decoration: BoxDecoration(
                           color: product.itemType == 'material'
                               ? Colors.orange.withValues(alpha: 0.1)
                               : Colors.blue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           product.category,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             color: product.itemType == 'material'
                                 ? Colors.orange[700]
                                 : Colors.blue[700],
@@ -2849,15 +2910,18 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       Text(
                         product.itemType == 'material'
                             ? 'Material'
-                            : 'Producto',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            : product.itemType == 'recipe'
+                                ? 'Receta'
+                                : 'Producto',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                       ),
                     ),
                     DataCell(
                       Text(
-                        '${product.currentStock.toStringAsFixed(2)} ${product.unit}',
+                        '${product.currentStock.toStringAsFixed(1)} ${product.unit}',
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
+                          fontSize: 12,
                           color: product.isOutOfStock
                               ? Colors.red
                               : product.isLowStock
@@ -2866,13 +2930,81 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         ),
                       ),
                     ),
+                    // Precio de compra/costo
                     DataCell(
                       Text(
-                        '${product.minStock.toStringAsFixed(2)} ${product.unit}',
+                        Helpers.formatCurrency(product.costPrice),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                       ),
                     ),
-                    DataCell(Text(Helpers.formatCurrency(product.unitPrice))),
-                    DataCell(Text(Helpers.formatCurrency(product.totalValue))),
+                    // Precio de venta
+                    DataCell(
+                      Text(
+                        Helpers.formatCurrency(product.unitPrice),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    // Margen %
+                    DataCell(
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: marginColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              product.marginPercent > 30 
+                                  ? Icons.trending_up 
+                                  : product.marginPercent > 15 
+                                      ? Icons.trending_flat 
+                                      : Icons.trending_down,
+                              size: 14,
+                              color: marginColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${product.marginPercent.toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: marginColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Ganancia por unidad
+                    DataCell(
+                      Text(
+                        Helpers.formatCurrency(product.profitPerUnit),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: product.profitPerUnit > 0 ? Colors.green[700] : Colors.red,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    // Valor del stock
+                    DataCell(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            Helpers.formatCurrency(product.stockSaleValue),
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                          ),
+                          Text(
+                            'Costo: ${Helpers.formatCurrency(product.stockCostValue)}',
+                            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                          ),
+                        ],
+                      ),
+                    ),
                     DataCell(
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -2891,7 +3023,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           product.isOutOfStock
                               ? 'Sin Stock'
                               : product.isLowStock
-                              ? 'Stock Bajo'
+                              ? 'Bajo'
                               : 'OK',
                           style: TextStyle(
                             color: product.isOutOfStock
@@ -2899,7 +3031,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 : product.isLowStock
                                 ? Colors.orange
                                 : Colors.green,
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w500,
                           ),
                         ),

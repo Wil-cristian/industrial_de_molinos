@@ -17,7 +17,7 @@ class CustomerHistoryPage extends ConsumerStatefulWidget {
 class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final _currencyFormat = NumberFormat.currency(symbol: 'S/ ', decimalDigits: 2);
+  final _currencyFormat = NumberFormat.currency(symbol: '\$ ', decimalDigits: 2);
   final _dateFormat = DateFormat('dd/MM/yyyy');
 
   @override

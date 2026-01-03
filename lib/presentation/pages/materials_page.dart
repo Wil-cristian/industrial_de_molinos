@@ -243,13 +243,15 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             ),
             child: Row(
               children: [
-                _tableHeader('Código', 80),
+                _tableHeader('Código', 70),
                 _tableHeader('Nombre', null, 2),
-                _tableHeader('Categoría', 100),
-                _tableHeader('Unidad', 60),
-                _tableHeader('Precio', 80, 0, TextAlign.right),
-                _tableHeader('Stock', 80, 0, TextAlign.right),
-                _tableHeader('Estado', 80),
+                _tableHeader('Categoría', 80),
+                _tableHeader('Unidad', 50),
+                _tableHeader('P.Compra', 70, 0, TextAlign.right),
+                _tableHeader('P.Venta', 70, 0, TextAlign.right),
+                _tableHeader('Margen', 70, 0, TextAlign.center),
+                _tableHeader('Stock', 70, 0, TextAlign.right),
+                _tableHeader('Estado', 70),
                 const SizedBox(width: 40),
               ],
             ),
@@ -284,6 +286,11 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
 
   Widget _buildMaterialRow(mat.Material material) {
     final isLowStock = material.isLowStock;
+    // Calcular margen de ganancia
+    final costPrice = material.costPrice;
+    final salePrice = material.effectivePrice;
+    final margin = costPrice > 0 ? ((salePrice - costPrice) / costPrice * 100) : 0.0;
+    final marginColor = margin > 30 ? Colors.green : margin > 15 ? Colors.orange : Colors.red;
 
     return InkWell(
       onTap: () => _showMaterialDetail(material),
@@ -293,10 +300,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
         child: Row(
           children: [
             SizedBox(
-              width: 80,
+              width: 70,
               child: Text(
                 material.code,
-                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 10),
               ),
             ),
             Expanded(
@@ -304,11 +311,11 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(material.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12)),
+                  Text(material.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11)),
                   if (material.description != null)
                     Text(
                       material.description!,
-                      style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 9, color: Colors.grey[500]),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -316,17 +323,17 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
               ),
             ),
             SizedBox(
-              width: 100,
+              width: 80,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
                   color: _getCategoryColor(material.category).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   _getCategoryName(material.category),
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 9,
                     color: _getCategoryColor(material.category),
                     fontWeight: FontWeight.w500,
                   ),
@@ -335,41 +342,82 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
               ),
             ),
             SizedBox(
-              width: 60,
-              child: Text(material.unit, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+              width: 50,
+              child: Text(material.unit, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
             ),
+            // Precio de compra (costo)
             SizedBox(
-              width: 80,
+              width: 70,
               child: Text(
-                '\$${material.effectivePrice.toStringAsFixed(2)}',
-                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
+                '\$${costPrice.toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                 textAlign: TextAlign.right,
               ),
             ),
+            // Precio de venta
             SizedBox(
-              width: 80,
+              width: 70,
               child: Text(
-                '${material.stock.toStringAsFixed(material.stock % 1 == 0 ? 0 : 2)} ${material.unit}',
+                '\$${salePrice.toStringAsFixed(2)}',
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 10),
+                textAlign: TextAlign.right,
+              ),
+            ),
+            // Margen de ganancia
+            SizedBox(
+              width: 70,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: marginColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      margin > 30 ? Icons.trending_up : margin > 15 ? Icons.trending_flat : Icons.trending_down,
+                      size: 10,
+                      color: marginColor,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${margin.toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: marginColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 70,
+              child: Text(
+                '${material.stock.toStringAsFixed(material.stock % 1 == 0 ? 0 : 1)} ${material.unit}',
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
-                  fontSize: 11,
+                  fontSize: 10,
                   color: isLowStock ? Colors.orange[700] : null,
                 ),
                 textAlign: TextAlign.right,
               ),
             ),
             SizedBox(
-              width: 80,
+              width: 70,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
                   color: isLowStock ? Colors.orange.withOpacity(0.1) : Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  isLowStock ? 'Stock Bajo' : 'OK',
+                  isLowStock ? 'Bajo' : 'OK',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 9,
                     color: isLowStock ? Colors.orange[700] : Colors.green[700],
                     fontWeight: FontWeight.w500,
                   ),
@@ -486,6 +534,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
     final codeCtrl = TextEditingController(text: material?.code ?? '');
     final nameCtrl = TextEditingController(text: material?.name ?? '');
     final descCtrl = TextEditingController(text: material?.description ?? '');
+    final costPriceCtrl = TextEditingController(text: material?.costPrice.toString() ?? '0');
     final priceKgCtrl = TextEditingController(text: material?.pricePerKg.toString() ?? '0');
     final priceUnitCtrl = TextEditingController(text: material?.unitPrice.toString() ?? '0');
     final stockCtrl = TextEditingController(text: material?.stock.toString() ?? '0');
@@ -547,33 +596,181 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     maxLines: 2,
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: unit,
-                          decoration: const InputDecoration(labelText: 'Unidad'),
-                          items: const [
-                            DropdownMenuItem(value: 'KG', child: Text('Kilogramos (KG)')),
-                            DropdownMenuItem(value: 'UND', child: Text('Unidades (UND)')),
-                            DropdownMenuItem(value: 'M', child: Text('Metros (M)')),
-                            DropdownMenuItem(value: 'L', child: Text('Litros (L)')),
-                          ],
-                          onChanged: (v) => setDialogState(() => unit = v!),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextField(
-                          controller: unit == 'KG' ? priceKgCtrl : priceUnitCtrl,
-                          decoration: InputDecoration(
-                            labelText: unit == 'KG' ? 'Precio/kg' : 'Precio/unidad',
-                            prefixText: '\$ ',
-                          ),
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
+                  // Unidad
+                  DropdownButtonFormField<String>(
+                    initialValue: unit,
+                    decoration: const InputDecoration(labelText: 'Unidad de Medida'),
+                    items: const [
+                      DropdownMenuItem(value: 'KG', child: Text('Kilogramos (KG)')),
+                      DropdownMenuItem(value: 'UND', child: Text('Unidades (UND)')),
+                      DropdownMenuItem(value: 'M', child: Text('Metros (M)')),
+                      DropdownMenuItem(value: 'L', child: Text('Litros (L)')),
                     ],
+                    onChanged: (v) => setDialogState(() => unit = v!),
+                  ),
+                  const SizedBox(height: 16),
+                  // SECCIÓN DE PRECIOS
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.attach_money, size: 18, color: Colors.blue[700]),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Precios y Margen de Ganancia',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: costPriceCtrl,
+                                decoration: InputDecoration(
+                                  labelText: 'Precio de COMPRA (Costo)',
+                                  helperText: 'Lo que pagaste al proveedor',
+                                  helperStyle: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                  prefixText: '\$ ',
+                                  prefixIcon: Icon(Icons.shopping_cart, color: Colors.orange[700], size: 20),
+                                  filled: true,
+                                  fillColor: Colors.orange.withOpacity(0.05),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                onChanged: (_) => setDialogState(() {}),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: unit == 'KG' ? priceKgCtrl : priceUnitCtrl,
+                                decoration: InputDecoration(
+                                  labelText: 'Precio de VENTA',
+                                  helperText: 'Lo que cobras al cliente',
+                                  helperStyle: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                  prefixText: '\$ ',
+                                  prefixIcon: Icon(Icons.sell, color: Colors.green[700], size: 20),
+                                  filled: true,
+                                  fillColor: Colors.green.withOpacity(0.05),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                onChanged: (_) => setDialogState(() {}),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Indicador de margen calculado EN TIEMPO REAL
+                        Builder(
+                          builder: (context) {
+                            final costPrice = double.tryParse(costPriceCtrl.text) ?? 0;
+                            final salePrice = double.tryParse(unit == 'KG' ? priceKgCtrl.text : priceUnitCtrl.text) ?? 0;
+                            final margin = costPrice > 0 ? ((salePrice - costPrice) / costPrice * 100) : 0.0;
+                            final profit = salePrice - costPrice;
+                            
+                            if (costPrice > 0 && salePrice > 0) {
+                              final marginColor = margin > 30 ? Colors.green : margin > 15 ? Colors.orange : Colors.red;
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: marginColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: marginColor.withOpacity(0.3)),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            margin > 30 ? Icons.trending_up : margin > 15 ? Icons.trending_flat : Icons.trending_down,
+                                            size: 20,
+                                            color: marginColor,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'MARGEN',
+                                                style: TextStyle(fontSize: 9, color: marginColor.withOpacity(0.8)),
+                                              ),
+                                              Text(
+                                                '${margin.toStringAsFixed(1)}%',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: marginColor,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      Container(width: 1, height: 30, color: marginColor.withOpacity(0.3)),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'GANANCIA POR ${unit.toUpperCase()}',
+                                            style: TextStyle(fontSize: 9, color: marginColor.withOpacity(0.8)),
+                                          ),
+                                          Text(
+                                            '\$${profit.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: marginColor,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                            // Mensaje guía cuando no hay precios
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Ingresa ambos precios para ver el margen de ganancia',
+                                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -638,6 +835,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   description: descCtrl.text.isEmpty ? null : descCtrl.text,
                   category: category,
                   unit: unit,
+                  costPrice: double.tryParse(costPriceCtrl.text) ?? 0,
                   pricePerKg: double.tryParse(priceKgCtrl.text) ?? 0,
                   unitPrice: double.tryParse(priceUnitCtrl.text) ?? 0,
                   stock: double.tryParse(stockCtrl.text) ?? 0,

@@ -136,7 +136,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
         Expanded(
           child: _buildStatCard(
             'Valor',
-            'S/ ${Helpers.formatNumber(state.totalValue)}',
+            '\$ ${Helpers.formatNumber(state.totalValue)}',
             Icons.account_balance,
             Colors.green,
           ),
@@ -145,7 +145,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
         Expanded(
           child: _buildStatCard(
             'Inversión',
-            'S/ ${Helpers.formatNumber(state.totalInvestment)}',
+            '\$ ${Helpers.formatNumber(state.totalInvestment)}',
             Icons.trending_up,
             Colors.purple,
           ),
@@ -449,7 +449,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               ),
               const Spacer(),
               Text(
-                'S/ ${Helpers.formatNumber(asset.currentValue)}',
+                '\$ ${Helpers.formatNumber(asset.currentValue)}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
@@ -571,7 +571,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                           decoration: const InputDecoration(
                             labelText: 'Precio de compra *',
                             border: OutlineInputBorder(),
-                            prefixText: 'S/ ',
+                            prefixText: '\$ ',
                           ),
                           keyboardType: TextInputType.number,
                           onChanged: (value) {
@@ -588,7 +588,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                           decoration: const InputDecoration(
                             labelText: 'Valor actual *',
                             border: OutlineInputBorder(),
-                            prefixText: 'S/ ',
+                            prefixText: '\$ ',
                           ),
                           keyboardType: TextInputType.number,
                         ),
@@ -814,7 +814,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                           decoration: const InputDecoration(
                             labelText: 'Costo',
                             border: OutlineInputBorder(),
-                            prefixText: 'S/ ',
+                            prefixText: '\$ ',
                           ),
                           keyboardType: TextInputType.number,
                         ),

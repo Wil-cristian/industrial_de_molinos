@@ -122,7 +122,7 @@ class InvoicesDataSource {
     required DateTime issueDate,
     DateTime? dueDate,
     required double subtotal,
-    double taxRate = 18.0,
+    double taxRate = 0.0,
     double discount = 0.0,
     String? quotationId,
     String? notes,
@@ -172,7 +172,7 @@ class InvoicesDataSource {
     required DateTime issueDate,
     DateTime? dueDate,
     required List<InvoiceItem> items,
-    double taxRate = 18.0,
+    double taxRate = 0.0,
     double discount = 0.0,
     String? quotationId,
     String? notes,
@@ -253,13 +253,18 @@ class InvoicesDataSource {
       await _updateStockForInvoice(id, decrease: true);
     }
     
-    // Si se cancela un recibo que estaba emitido/parcial/pagado, restaurar stock
+    // Si se cancela un recibo que estaba emitido/parcial/pagado, restaurar stock y revertir pagos
     if (status == 'cancelled' && currentInvoice != null) {
       final currentStatus = currentInvoice.status;
       if (currentStatus == InvoiceStatus.issued || 
           currentStatus == InvoiceStatus.partial ||
           currentStatus == InvoiceStatus.paid) {
         await _updateStockForInvoice(id, decrease: false); // Restaurar stock
+      }
+      
+      // Revertir pagos si había alguno
+      if (currentInvoice.paidAmount > 0) {
+        await _revertPayments(id, currentInvoice);
       }
     }
     
@@ -276,6 +281,50 @@ class InvoicesDataSource {
       } catch (e) {
         print('⚠️ No se pudo recalcular balance del cliente: $e');
       }
+    }
+  }
+
+  /// Revierte los pagos de una factura anulada
+  static Future<void> _revertPayments(String invoiceId, Invoice invoice) async {
+    try {
+      // Buscar los movimientos de caja asociados a esta factura
+      final movements = await _client
+          .from('cash_movements')
+          .select()
+          .eq('reference', '${invoice.series}-${invoice.number}');
+      
+      for (var movement in movements) {
+        final accountId = movement['account_id'] as String?;
+        final amount = (movement['amount'] as num).toDouble();
+        final type = movement['type'] as String?;
+        
+        if (accountId != null && type == 'income') {
+          // Crear movimiento de reversión (egreso)
+          final reverseMovement = CashMovement(
+            id: '',
+            accountId: accountId,
+            type: MovementType.expense,
+            category: MovementCategory.otherExpense,
+            amount: amount,
+            description: 'Reversión por anulación - ${invoice.series}-${invoice.number}',
+            reference: 'ANULACION-${invoice.series}-${invoice.number}',
+            personName: invoice.customerName,
+            date: DateTime.now(),
+          );
+          
+          await AccountsDataSource.createMovementWithBalanceUpdate(reverseMovement);
+          print('✅ Pago revertido: $amount de cuenta $accountId');
+        }
+      }
+      
+      // También resetear el monto pagado en la factura
+      await _client.from('invoices').update({
+        'paid_amount': 0,
+      }).eq('id', invoiceId);
+      
+      print('✅ Pagos revertidos para factura $invoiceId');
+    } catch (e) {
+      print('⚠️ Error al revertir pagos: $e');
     }
   }
 

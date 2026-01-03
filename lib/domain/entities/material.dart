@@ -57,8 +57,12 @@ class Material {
   // Stock bajo
   bool get isLowStock => stock <= minStock;
 
-  // Precio efectivo (según tipo)
+  // Precio efectivo de VENTA (según tipo)
   double get effectivePrice => unit == 'KG' ? pricePerKg : unitPrice;
+
+  // Precio efectivo de COMPRA/COSTO (según tipo)
+  // Si costPrice > 0, usar ese; sino usar effectivePrice como fallback
+  double get effectiveCostPrice => costPrice > 0 ? costPrice : effectivePrice;
 
   // Nombre formateado con stock
   String get displayName => '$name (${stock.toStringAsFixed(stock % 1 == 0 ? 0 : 2)} $unit)';

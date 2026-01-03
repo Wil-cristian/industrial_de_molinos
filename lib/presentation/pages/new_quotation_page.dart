@@ -35,6 +35,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
   final _laborPercentController = TextEditingController(text: '15');
   final _indirectCostsController = TextEditingController(text: '0');
   final _profitMarginController = TextEditingController(text: '20');
+  final _discountController = TextEditingController(text: '0'); // Descuento
   final _notesController = TextEditingController();
   final _validDaysController = TextEditingController(text: '15');
 
@@ -57,8 +58,8 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
             'name': m.name,
             'code': m.code,
             'category': m.category,
-            'pricePerKg': m.pricePerKg > 0 ? m.pricePerKg : m.unitPrice,
-            'costPrice': m.costPrice,
+            'pricePerKg': m.effectivePrice, // Precio de VENTA
+            'costPrice': m.effectiveCostPrice, // Precio de COMPRA
             'density': m.density,
             'stock': m.stock,
             'unit': m.unit,
@@ -81,9 +82,9 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
 
   // Cálculos
   double get _materialsCost =>
-      _items.fold(0.0, (sum, item) => sum + (item['totalPrice'] as double));
+      _items.fold(0.0, (sum, item) => sum + (item['totalPrice'] as double? ?? 0));
   double get _totalWeight =>
-      _items.fold(0.0, (sum, item) => sum + (item['totalWeight'] as double));
+      _items.fold(0.0, (sum, item) => sum + (item['totalWeight'] as double? ?? 0));
   double get _laborCost {
     final percent = double.tryParse(_laborPercentController.text) ?? 0;
     return _materialsCost * (percent / 100);
@@ -96,8 +97,27 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
     final margin = double.tryParse(_profitMarginController.text) ?? 0;
     return _subtotal * (margin / 100);
   }
+  
+  double get _discountAmount {
+    final discount = double.tryParse(_discountController.text) ?? 0;
+    return (_subtotal + _profitAmount) * (discount / 100);
+  }
 
-  double get _total => _subtotal + _profitAmount;
+  double get _total => _subtotal + _profitAmount - _discountAmount;
+
+  // Precio de venta de materiales (suma de totalPrice de items)
+  double get _materialSalePrice => _items.fold(0.0, (sum, item) => sum + (item['totalPrice'] as double? ?? 0));
+  
+  // Costo de compra de materiales (suma de totalCost de items)
+  double get _materialCostPrice => _items.fold(0.0, (sum, item) {
+    final totalCost = item['totalCost'] as double? ?? 0.0;
+    if (totalCost > 0) return sum + totalCost;
+    
+    // Fallback para items manuales
+    final costPrice = item['unitCostPrice'] as double? ?? item['costPrice'] as double? ?? 0.0;
+    final qty = item['quantity'] as int? ?? 1;
+    return sum + (costPrice * qty);
+  });
 
   @override
   void initState() {
@@ -116,6 +136,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
     _laborPercentController.dispose();
     _indirectCostsController.dispose();
     _profitMarginController.dispose();
+    _discountController.dispose();
     _notesController.dispose();
     _validDaysController.dispose();
     super.dispose();
@@ -400,6 +421,12 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                 'Margen (${_profitMarginController.text}%)',
                 _profitAmount,
               ),
+              if (_discountAmount > 0)
+                _buildCostLine(
+                  'Descuento (${_discountController.text}%)',
+                  -_discountAmount,
+                  color: Colors.red,
+                ),
               const Divider(thickness: 2),
               const SizedBox(height: 8),
               // Total
@@ -447,10 +474,244 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                   ],
                 ),
               ),
+              const SizedBox(height: 12),
+              // Análisis de rentabilidad
+              _buildProfitAnalysisCard(),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildProfitAnalysisCard() {
+    // Sumar datos de cada item (vienen de la receta)
+    double totalSalePrice = 0;
+    double totalCostPrice = 0;
+    double totalItemProfit = 0;
+    
+    for (final item in _items) {
+      totalSalePrice += (item['totalPrice'] as double? ?? 0);
+      totalCostPrice += (item['totalCost'] as double? ?? 0);
+      totalItemProfit += (item['totalProfit'] as double? ?? 0);
+    }
+    
+    // Si no hay totalCost, calcular desde costPrice
+    if (totalCostPrice == 0) {
+      totalCostPrice = _items.fold(0.0, (sum, item) {
+        final costPrice = item['unitCostPrice'] as double? ?? item['costPrice'] as double? ?? 0.0;
+        final qty = item['quantity'] as int? ?? 1;
+        return sum + (costPrice * qty);
+      });
+    }
+    
+    // Mano de obra ES UN COSTO real
+    final laborCostReal = _laborCost;
+    
+    // COSTO TOTAL = Materiales + Mano de Obra + Costos Indirectos
+    final totalCost = totalCostPrice + laborCostReal + _indirectCosts;
+    
+    // Ganancia de productos (ya viene de las recetas)
+    final productMarkup = totalCostPrice > 0 ? (totalItemProfit / totalCostPrice * 100) : 0.0;
+    
+    // GANANCIA NETA = Total cotización - Costo Total
+    final netProfit = _total - totalCost;
+    final netMarkup = totalCost > 0 ? (netProfit / totalCost * 100) : 0.0;
+    
+    // Color según ganancia neta
+    Color marginColor;
+    IconData marginIcon;
+    String marginLabel;
+    if (netMarkup >= 40) {
+      marginColor = Colors.green;
+      marginIcon = Icons.trending_up;
+      marginLabel = 'Excelente';
+    } else if (netMarkup >= 20) {
+      marginColor = Colors.orange;
+      marginIcon = Icons.trending_flat;
+      marginLabel = 'Bueno';
+    } else {
+      marginColor = Colors.red;
+      marginIcon = Icons.trending_down;
+      marginLabel = 'Bajo';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            marginColor.withValues(alpha: 0.1),
+            marginColor.withValues(alpha: 0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: marginColor.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics, color: marginColor, size: 16),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  'Análisis de Rentabilidad',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    color: marginColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: marginColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(marginIcon, size: 10, color: marginColor),
+                    const SizedBox(width: 2),
+                    Text(
+                      marginLabel,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: marginColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Fila 1: Costos
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricBox(
+                  'Costo Mat.',
+                  Helpers.formatCurrency(totalCostPrice),
+                  Colors.grey[700]!,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _buildMetricBox(
+                  'Costo Total',
+                  Helpers.formatCurrency(totalCost),
+                  Colors.blueGrey,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Fila 2: Ganancias
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricBox(
+                  'Gan. Productos',
+                  Helpers.formatCurrency(totalItemProfit),
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _buildMetricBox(
+                  'Ganancia Neta',
+                  Helpers.formatCurrency(netProfit),
+                  netProfit >= 0 ? Colors.green[700]! : Colors.red,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Fila 3: Markup
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        '${productMarkup.toStringAsFixed(1)}%',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue),
+                      ),
+                      Text('Markup Prod.', style: TextStyle(fontSize: 8, color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: marginColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(marginIcon, size: 12, color: marginColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${netMarkup.toStringAsFixed(1)}%',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: marginColor),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricBox(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
@@ -482,16 +743,16 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
     );
   }
 
-  Widget _buildCostLine(String label, double value) {
+  Widget _buildCostLine(String label, double value, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 12)),
+          Text(label, style: TextStyle(color: color ?? Colors.grey[700], fontSize: 12)),
           Text(
             Helpers.formatCurrency(value),
-            style: const TextStyle(fontSize: 12),
+            style: TextStyle(fontSize: 12, color: color),
           ),
         ],
       ),
@@ -797,21 +1058,21 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                         ),
                         Expanded(
                           child: Text(
-                            Helpers.formatNumber(item['totalWeight']),
+                            Helpers.formatNumber(item['totalWeight'] as double? ?? 0),
                             textAlign: TextAlign.right,
                             style: const TextStyle(fontSize: 11),
                           ),
                         ),
                         Expanded(
                           child: Text(
-                            Helpers.formatCurrency(item['pricePerKg']),
+                            Helpers.formatCurrency(item['pricePerKg'] as double? ?? item['unitSalePrice'] as double? ?? 0),
                             textAlign: TextAlign.right,
                             style: const TextStyle(fontSize: 11),
                           ),
                         ),
                         Expanded(
                           child: Text(
-                            Helpers.formatCurrency(item['totalPrice']),
+                            Helpers.formatCurrency(item['totalPrice'] as double? ?? 0),
                             textAlign: TextAlign.right,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
@@ -1005,7 +1266,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                 decoration: InputDecoration(
                   labelText: 'Total costos indirectos',
                   hintText: 'Energía, gas, insumos, etc.',
-                  prefixText: 'S/ ',
+                  prefixText: '\$ ',
                   prefixIcon: const Icon(Icons.receipt_long),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -1087,6 +1348,91 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.blue[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Descuento
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.discount, color: Colors.red[700]),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Descuento',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '(Opcional)',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _discountController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Porcentaje de descuento',
+                        suffixText: '%',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Slider(
+                      value:
+                          double.tryParse(_discountController.text) ?? 0,
+                      min: 0,
+                      max: 30,
+                      divisions: 30,
+                      label: '${_discountController.text}%',
+                      activeColor: Colors.red[400],
+                      onChanged: (value) {
+                        setState(() {
+                          _discountController.text = value.toStringAsFixed(0);
+                        });
+                      },
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text('Descuento', style: TextStyle(fontSize: 12)),
+                        Text(
+                          '- ${Helpers.formatCurrency(_discountAmount)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red[700],
                           ),
                         ),
                       ],
@@ -1320,9 +1666,13 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                   item['inv_material_id'], // Buscar en ambas claves
               quantity: (item['quantity'] ?? 1).toInt(),
               unitWeight: (item['unitWeight'] ?? 0).toDouble(),
-              pricePerKg: (item['pricePerKg'] ?? 0).toDouble(),
+              pricePerKg: (item['pricePerKg'] ?? item['unitSalePrice'] ?? 0).toDouble(),
+              costPerKg: (item['costPrice'] ?? item['unitCostPrice'] ?? 0).toDouble(),
               unitPrice:
                   (item['totalPrice'] ?? 0).toDouble() /
+                  (item['quantity'] ?? 1),
+              unitCost:
+                  (item['totalCost'] ?? 0).toDouble() /
                   (item['quantity'] ?? 1),
               materialType: item['material'] ?? '',
             ),
@@ -1446,10 +1796,13 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
         subtotal: _subtotal,
         profitMargin: double.tryParse(_profitMarginController.text) ?? 0,
         profitAmount: _profitAmount,
+        discount: _discountAmount,
         total: _total,
         totalWeight: _totalWeight,
         notes: _notesController.text,
         validDays: int.tryParse(_validDaysController.text) ?? 15,
+        materialSalePrice: _materialSalePrice,
+        materialCostPrice: _materialCostPrice,
       ),
     );
   }
@@ -1490,6 +1843,15 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
               'hasStock': c['has_stock'] ?? true,
             }).toList() ?? [];
 
+            // Costo del producto (totalCost si es receta, costPrice si no)
+            final productCost = product.totalCost > 0 
+                ? product.totalCost 
+                : product.costPrice;
+            
+            // Ganancia del producto (ya calculada en la receta)
+            final productProfit = product.unitPrice - productCost;
+            final productMargin = product.profitMargin; // Viene de la receta
+
             // Agregar producto del inventario como item
             _items.add({
               'id': DateTime.now().millisecondsSinceEpoch.toString(),
@@ -1502,8 +1864,17 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
               'quantity': quantity,
               'unitWeight': unitWeight,
               'totalWeight': totalWeight,
-              'pricePerKg': product.unitPrice,
-              'totalPrice': product.unitPrice * quantity,
+              // Precios del producto
+              'pricePerKg': product.unitPrice, // Mantener para compatibilidad
+              'unitSalePrice': product.unitPrice, // Precio venta unitario
+              'unitCostPrice': productCost, // Precio costo unitario
+              'totalPrice': product.unitPrice * quantity, // Precio venta total
+              'totalCost': productCost * quantity, // Costo total
+              // Ganancia del item
+              'unitProfit': productProfit, // Ganancia unitaria
+              'totalProfit': productProfit * quantity, // Ganancia total del item
+              'profitMargin': productMargin, // % de margen de la receta
+              // Info adicional
               'productCode': product.code,
               'stock': product.stock,
               'unit': product.unit,
@@ -1743,7 +2114,7 @@ class _AddComponentDialogState extends State<_AddComponentDialog> {
                     .map(
                       (m) => DropdownMenuItem(
                         value: m['id'] as String,
-                        child: Text('${m['name']} - S/ ${m['pricePerKg']}/kg'),
+                        child: Text('${m['name']} - \$ ${m['pricePerKg']}/kg'),
                       ),
                     )
                     .toList(),
@@ -2085,6 +2456,15 @@ class _AddComponentDialogState extends State<_AddComponentDialog> {
           )
         : null;
 
+    // Obtener costPrice del material (precio de compra)
+    final costPrice = material != null ? (material['costPrice'] as num?)?.toDouble() ?? 0.0 : 0.0;
+    
+    // Calcular ganancia
+    final totalSale = totalWeight * _pricePerKg;
+    final totalCost = totalWeight * costPrice;
+    final totalProfit = totalSale - totalCost;
+    final profitMargin = totalCost > 0 ? ((totalProfit / totalCost) * 100) : 0.0;
+
     final component = {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'name': _nameController.text.isNotEmpty
@@ -2097,8 +2477,17 @@ class _AddComponentDialogState extends State<_AddComponentDialog> {
       'quantity': quantity,
       'unitWeight': _calculatedWeight,
       'totalWeight': totalWeight,
-      'pricePerKg': _pricePerKg,
-      'totalPrice': totalWeight * _pricePerKg,
+      // Precios
+      'pricePerKg': _pricePerKg, // Precio venta por kg
+      'costPrice': costPrice, // Precio compra por kg
+      'unitSalePrice': _pricePerKg, // Alias para compatibilidad
+      'unitCostPrice': costPrice, // Alias para compatibilidad
+      'totalPrice': totalSale, // Total venta
+      'totalCost': totalCost, // Total costo
+      // Ganancia
+      'unitProfit': _pricePerKg - costPrice, // Ganancia por kg
+      'totalProfit': totalProfit, // Ganancia total
+      'profitMargin': profitMargin, // % de margen
     };
 
     widget.onAdd(component);
@@ -2402,7 +2791,7 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                                     ],
                                   ),
                                   trailing: Text(
-                                    'S/ ${Helpers.formatNumber(product.unitPrice)}',
+                                    '\$ ${Helpers.formatNumber(product.unitPrice)}',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: AppTheme.primaryColor,
@@ -2617,7 +3006,7 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                         style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                       ),
                       Text(
-                        'S/ ${Helpers.formatNumber(product.unitPrice)}',
+                        '\$ ${Helpers.formatNumber(product.unitPrice)}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primaryColor,
@@ -2845,7 +3234,7 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                           ),
                         ),
                         Text(
-                          'S/ ${Helpers.formatNumber(product.unitPrice * (double.tryParse(_quantityController.text) ?? 1))}',
+                          '\$ ${Helpers.formatNumber(product.unitPrice * (double.tryParse(_quantityController.text) ?? 1))}',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -2877,10 +3266,13 @@ class _QuotationPreviewDialog extends StatefulWidget {
   final double subtotal;
   final double profitMargin;
   final double profitAmount;
+  final double discount;
   final double total;
   final double totalWeight;
   final String notes;
   final int validDays;
+  final double materialSalePrice;
+  final double materialCostPrice;
 
   const _QuotationPreviewDialog({
     required this.customer,
@@ -2891,10 +3283,13 @@ class _QuotationPreviewDialog extends StatefulWidget {
     required this.subtotal,
     required this.profitMargin,
     required this.profitAmount,
+    required this.discount,
     required this.total,
     required this.totalWeight,
     required this.notes,
     required this.validDays,
+    required this.materialSalePrice,
+    required this.materialCostPrice,
   });
 
   @override
@@ -3556,8 +3951,20 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                   Icons.trending_up,
                   Colors.green,
                 ),
+                if (widget.discount > 0) ...[
+                  const SizedBox(width: 12),
+                  _buildStatCard(
+                    'Descuento',
+                    '-\$${Helpers.formatNumber(widget.discount)}',
+                    Icons.discount,
+                    Colors.red,
+                  ),
+                ],
               ],
             ),
+            const SizedBox(height: 16),
+            // Análisis de Rentabilidad
+            _buildProfitAnalysisSection(),
             const SizedBox(height: 20),
             // Bill of Materials (BOM)
             Container(
@@ -3609,50 +4016,69 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                   ),
                   // Tabla BOM Header
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
                     ),
-                    color: Colors.grey[100],
-                    child: const Row(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         SizedBox(
-                          width: 200,
+                          width: 220,
                           child: Text(
-                            'Producto',
+                            'Producto (Kilos)',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
+                              color: Colors.grey[700],
                             ),
                           ),
                         ),
                         Expanded(
                           child: Text(
-                            'Componentes',
+                            'Compra/kg',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          width: 80,
-                          child: Text(
-                            'Peso',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
+                              color: Colors.grey[700],
                             ),
                             textAlign: TextAlign.right,
                           ),
                         ),
-                        SizedBox(
-                          width: 100,
+                        const SizedBox(width: 16),
+                        Expanded(
                           child: Text(
-                            'Costo Mat.',
+                            'Venta/kg',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
+                              color: Colors.grey[700],
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            'Ganancia Total (% y /kg)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        SizedBox(
+                          width: 100,
+                          child: Text(
+                            'Total Venta',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              color: Colors.grey[700],
                             ),
                             textAlign: TextAlign.right,
                           ),
@@ -3964,125 +4390,340 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
     );
   }
 
+  Widget _buildProfitAnalysisSection() {
+    final grossProfit = widget.materialSalePrice - widget.materialCostPrice;
+    final grossMarginPercent = widget.materialCostPrice > 0 
+        ? (grossProfit / widget.materialCostPrice * 100) 
+        : 0.0;
+    final netProfit = widget.total - widget.subtotal;
+    final netMarginPercent = widget.subtotal > 0 
+        ? (netProfit / widget.subtotal * 100) 
+        : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics, color: Colors.indigo, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Análisis de Rentabilidad',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildProfitItem(
+                  'Ganancia Bruta',
+                  '(Precio Venta - Costo Material)',
+                  grossProfit,
+                  grossMarginPercent,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildProfitItem(
+                  'Ganancia Neta',
+                  '(Total - Subtotal)',
+                  netProfit,
+                  netMarginPercent,
+                  Colors.green,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfitItem(String title, String subtitle, double value, double percent, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+          Text(subtitle, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '\$${Helpers.formatNumber(value)}',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: value >= 0 ? color : Colors.red),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: percent >= 0 ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${percent >= 0 ? '+' : ''}${percent.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: percent >= 0 ? Colors.green[700] : Colors.red[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBOMRow(Map<String, dynamic> item) {
     final components = item['components'] as List<dynamic>? ?? [];
+    final unitCostPrice = item['unitCostPrice'] as double? ?? 0;
+    final unitSalePrice = item['unitSalePrice'] as double? ?? item['pricePerKg'] as double? ?? 0;
+    final totalProfit = item['totalProfit'] as double? ?? 0;
+    final profitMargin = item['profitMargin'] as double? ?? 0;
+    final qty = item['quantity'] as int? ?? 1;
+    final totalWeight = item['totalWeight'] as double? ?? 0;
+    final unitProfit = totalProfit > 0 && totalWeight > 0 ? (totalProfit / totalWeight) : 0;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 200,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          // Fila principal con nombre y datos
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Nombre del producto
+              SizedBox(
+                width: 220,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.precision_manufacturing,
-                      size: 16,
-                      color: AppTheme.primaryColor,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        item['name'],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.precision_manufacturing,
+                          size: 16,
+                          color: AppTheme.primaryColor,
                         ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item['name'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Código: ${item['productCode'] ?? 'N/A'} | Cant: $qty',
+                      style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Peso: ${Helpers.formatNumber(totalWeight)} kg',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.blue[700]),
+                    ),
+                  ],
+                ),
+              ),
+              // Precio de Compra (por kg)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Compra/kg',
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                    ),
+                    Text(
+                      '\$${Helpers.formatNumber(unitCostPrice)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange,
                       ),
                     ),
                   ],
                 ),
-                Text(
-                  'Código: ${item['productCode'] ?? 'N/A'}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                ),
-                Text(
-                  'Cant: ${item['quantity']}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: components.isEmpty
-                ? Text(
-                    'Sin desglose',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[400],
-                      fontStyle: FontStyle.italic,
+              ),
+              const SizedBox(width: 16),
+              // Precio de Venta (por kg)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Venta/kg',
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                     ),
-                  )
-                : Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children:
-                        components
-                            .take(5)
-                            .map(
-                              (c) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '${c['quantity']}× ${c['name']}',
-                                  style: const TextStyle(fontSize: 11),
-                                ),
-                              ),
-                            )
-                            .toList()
-                          ..addAll(
-                            components.length > 5
-                                ? [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue[50],
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        '+${components.length - 5} más',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.blue[700],
-                                        ),
-                                      ),
-                                    ),
-                                  ]
-                                : [],
-                          ),
+                    Text(
+                      '\$${Helpers.formatNumber(unitSalePrice)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Ganancia
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Ganancia Total',
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                    ),
+                    Text(
+                      '\$${Helpers.formatNumber(totalProfit)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: totalProfit >= 0 ? Colors.blue : Colors.red,
+                      ),
+                    ),
+                    if (profitMargin > 0)
+                      Text(
+                        '${profitMargin.toStringAsFixed(1)}% | \$${Helpers.formatNumber(unitProfit as double)}/kg',
+                        style: TextStyle(fontSize: 9, color: Colors.grey[600]),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Total
+              SizedBox(
+                width: 100,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Total Venta',
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                    ),
+                    Text(
+                      '\$${Helpers.formatNumber(item['totalPrice'] as double? ?? 0)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // Componentes si existen
+          if (components.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Componentes (${components.length})',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      color: Colors.blue[900],
+                    ),
                   ),
-          ),
-          SizedBox(
-            width: 80,
-            child: Text(
-              '${Helpers.formatNumber(item['totalWeight'] ?? 0)} kg',
-              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-              textAlign: TextAlign.right,
+                  const SizedBox(height: 8),
+                  ...components.take(3).map((c) {
+                    if (c == null) return const SizedBox.shrink();
+                    
+                    final compQty = (c['quantity'] ?? c['required_qty'] ?? 0) as num? ?? 0;
+                    final compName = c['component_name'] ?? c['name'] ?? 'Componente';
+                    final compUnit = c['unit'] ?? '';
+                    final hasStock = c['has_stock'] ?? c['hasStock'] ?? true;
+                    
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '$compQty× $compName ($compUnit)',
+                              style: const TextStyle(fontSize: 10),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: hasStock ? Colors.green[100] : Colors.red[100],
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(
+                              hasStock ? 'OK' : 'Sin stock',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                color: hasStock ? Colors.green[700] : Colors.red[700],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  if (components.length > 3)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        '+${components.length - 3} componentes más',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.blue[700],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          SizedBox(
-            width: 100,
-            child: Text(
-              '\$${Helpers.formatNumber(item['materialsCost'] ?? item['totalPrice'] ?? 0)}',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              textAlign: TextAlign.right,
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -4370,6 +5011,13 @@ class _AddMaterialFromInventoryDialogState
                       ? _selectedMaterial!.pricePerKg
                       : _selectedMaterial!.unitPrice;
                   final totalPrice = price * _quantity;
+                  // Usar effectiveCostPrice para obtener el precio de compra correcto
+                  final costPrice = _selectedMaterial!.effectiveCostPrice;
+                  final totalCost = costPrice * _quantity;
+                  
+                  // Calcular ganancia
+                  final totalProfit = totalPrice - totalCost;
+                  final profitMargin = totalCost > 0 ? ((totalProfit / totalCost) * 100) : 0.0;
 
                   // Crear item compatible con la estructura de cotización
                   widget.onAdd({
@@ -4386,8 +5034,18 @@ class _AddMaterialFromInventoryDialogState
                     'quantity': _quantity.toInt(),
                     'unitWeight': 1.0,
                     'totalWeight': _quantity,
-                    'pricePerKg': price,
-                    'totalPrice': totalPrice,
+                    // Precios
+                    'pricePerKg': price, // Precio venta por kg/unidad
+                    'costPrice': costPrice, // Precio compra por kg/unidad
+                    'unitSalePrice': price, // Alias para compatibilidad
+                    'unitCostPrice': costPrice, // Alias para compatibilidad
+                    'totalPrice': totalPrice, // Total venta
+                    'totalCost': totalCost, // Total costo
+                    // Ganancia
+                    'unitProfit': price - costPrice, // Ganancia por unidad
+                    'totalProfit': totalProfit, // Ganancia total
+                    'profitMargin': profitMargin, // % margen
+                    // Info del material
                     'productCode': _selectedMaterial!.code,
                     'stock': _selectedMaterial!.stock,
                     'unit': _selectedMaterial!.unit,

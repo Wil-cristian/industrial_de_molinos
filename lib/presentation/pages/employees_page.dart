@@ -4738,10 +4738,16 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
         builder: (context, setDialogState) => Consumer(
           builder: (context, ref, child) {
             final state = ref.watch(employeesProvider);
+            final payrollState = ref.watch(payrollProvider);
             final allTasks = state.selectedEmployeeTasks;
             final theme = Theme.of(context);
             final isDark = theme.brightness == Brightness.dark;
             final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+            
+            // Préstamos activos del empleado
+            final employeeLoans = payrollState.loans
+                .where((l) => l.employeeId == employee.id && l.status == 'activo')
+                .toList();
             
             final now = DateTime.now();
             final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
@@ -4924,6 +4930,59 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                       },
                                     ),
                             ),
+                            // Sección de préstamos activos
+                            if (employeeLoans.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                'Préstamos Activos (${employeeLoans.length})',
+                                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade700, fontSize: 12),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                                ),
+                                child: Column(
+                                  children: employeeLoans.map((loan) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              Helpers.formatCurrency(loan.totalAmount),
+                                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            ),
+                                            Text(
+                                              'Cuota ${loan.paidInstallments + 1}/${loan.installments} • ${Helpers.formatCurrency(loan.installmentAmount)}/mes',
+                                              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                            ),
+                                          ],
+                                        ),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              'Pendiente',
+                                              style: TextStyle(fontSize: 10, color: Colors.grey),
+                                            ),
+                                            Text(
+                                              Helpers.formatCurrency(loan.remainingAmount),
+                                              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.orange[700], fontSize: 12),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  )).toList(),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -6758,21 +6817,96 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     String? selectedEmployeeId;
     Employee? selectedEmployee;
     double baseSalary = 0;
-    double hoursWorked = 0;
-    double overtimeHours = 0;
-    int daysWorked = 26; // 6 días x ~4.33 semanas
+    double totalHoursWorked = 0; // Horas totales trabajadas en la quincena
+    double overtimeHours = 0;    // Horas extra (si > 88)
+    double underHours = 0;       // Horas faltantes (si < 88)
+    String overtimeType = 'normal'; // Tipo de hora extra: 'normal', '25', '75', '100', '150'
+    int daysWorked = 12; // 6 días x 2 semanas = 12 días en quincena
     int daysAbsent = 0;
     bool includeActiveLoans = true;
+    
+    // Constantes para cálculo quincenal
+    const double baseHoursPerFortnight = 88.0; // 44h x 2 semanas
+    const double hoursPerMonth = 191.0; // Para cálculo de tarifa por hora
+    
+    // Multiplicadores de horas extra según tipo
+    double getOvertimeMultiplier(String type) {
+      switch (type) {
+        case 'normal': return 1.0;  // Sin recargo
+        case '25': return 1.25;     // Diurna (6am-9pm)
+        case '75': return 1.75;     // Nocturna (9pm-6am)
+        case '100': return 2.0;     // Dominical/Festivo diurna
+        case '150': return 2.5;     // Dominical/Festivo nocturna
+        default: return 1.0;
+      }
+    }
+    
+    String getOvertimeLabel(String type) {
+      switch (type) {
+        case 'normal': return 'Normal (sin recargo)';
+        case '25': return 'Diurna (+25%)';
+        case '75': return 'Nocturna (+75%)';
+        case '100': return 'Dom/Fest Diurna (+100%)';
+        case '150': return 'Dom/Fest Nocturna (+150%)';
+        default: return 'Normal (sin recargo)';
+      }
+    }
+    
+    // Función para cargar horas del empleado de las últimas 2 semanas
+    Future<double> loadEmployeeHours(String employeeId) async {
+      final employeesState = ref.read(employeesProvider);
+      final now = DateTime.now();
+      
+      // Calcular inicio de la quincena (últimos 14 días desde el lunes de hace 2 semanas)
+      final startOfCurrentWeek = now.subtract(Duration(days: now.weekday - 1));
+      final startOfFortnight = startOfCurrentWeek.subtract(const Duration(days: 7));
+      
+      // Base: 6 días por semana x 2 semanas
+      // L-V: 7.77h/día, Sábado: 5.5h = (5 x 7.77 + 5.5) x 2 = 88.7h ≈ 88h base
+      double totalHours = 0;
+      
+      for (int week = 0; week < 2; week++) {
+        for (int day = 0; day < 6; day++) { // L-S (sin domingo)
+          final dayDate = startOfFortnight.add(Duration(days: (week * 7) + day));
+          
+          // Horas base del día
+          final baseHours = (day == 5) ? 5.5 : 7.77; // Sábado = 5.5h, otros = 7.77h
+          
+          // Buscar ajustes de tiempo para este día
+          final dayAdjustments = employeesState.timeAdjustments
+              .where((a) => a.employeeId == employeeId)
+              .where((a) => a.adjustmentDate.year == dayDate.year && 
+                           a.adjustmentDate.month == dayDate.month && 
+                           a.adjustmentDate.day == dayDate.day)
+              .toList();
+          
+          double dayHours = baseHours;
+          for (var adj in dayAdjustments) {
+            if (adj.type == 'overtime') {
+              dayHours += adj.minutes / 60.0;
+            } else {
+              dayHours -= adj.minutes / 60.0;
+            }
+          }
+          
+          totalHours += dayHours.clamp(0.0, 24.0);
+        }
+      }
+      
+      return totalHours;
+    }
     
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           // Calcular valores
-          final hourlyRate = baseSalary > 0 ? baseSalary / 191 : 0.0; // 191 horas = 44h x 4.33 semanas
+          final hourlyRate = baseSalary > 0 ? baseSalary / hoursPerMonth : 0.0;
           final dailyRate = baseSalary > 0 ? baseSalary / 26 : 0.0;
-          final overtimePay = overtimeHours * hourlyRate; // Pago normal sin recargo
-          final absenceDiscount = daysAbsent * dailyRate;
+          final fortnightSalary = baseSalary / 2; // Salario quincenal
+          final overtimeMultiplier = getOvertimeMultiplier(overtimeType);
+          final overtimePay = overtimeHours * hourlyRate * overtimeMultiplier; // Con recargo
+          final underHoursDiscount = underHours * hourlyRate; // Descuento por horas faltantes
           
           // Buscar préstamos activos del empleado
           final activeLoans = selectedEmployeeId != null
@@ -6782,8 +6916,8 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
               ? activeLoans.fold(0.0, (sum, l) => sum + l.installmentAmount)
               : 0.0;
           
-          final totalEarnings = baseSalary + overtimePay;
-          final totalDeductions = absenceDiscount + loanDeduction;
+          final totalEarnings = fortnightSalary + overtimePay;
+          final totalDeductions = underHoursDiscount + loanDeduction;
           final netPay = totalEarnings - totalDeductions;
 
           return AlertDialog(
@@ -6831,15 +6965,27 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         value: e.id,
                         child: Text('${e.fullName} - ${e.position}'),
                       )).toList(),
-                      onChanged: (value) {
+                      onChanged: (value) async {
                         if (value != null) {
                           final emp = availableEmployees.firstWhere((e) => e.id == value);
+                          
+                          // Cargar horas trabajadas de la quincena
+                          final hours = await loadEmployeeHours(value);
+                          
                           setState(() {
                             selectedEmployeeId = value;
                             selectedEmployee = emp;
                             baseSalary = emp.salary ?? 0;
-                            // 44 horas semanales estándar * 4.33 semanas = 191 horas/mes
-                            hoursWorked = 191;
+                            totalHoursWorked = hours;
+                            
+                            // Calcular horas extra o faltantes
+                            if (hours > baseHoursPerFortnight) {
+                              overtimeHours = hours - baseHoursPerFortnight;
+                              underHours = 0;
+                            } else {
+                              overtimeHours = 0;
+                              underHours = baseHoursPerFortnight - hours;
+                            }
                           });
                         }
                       },
@@ -6865,24 +7011,115 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               ],
                             ),
                             const SizedBox(height: 4),
-                            Text('Salario Base: ${Helpers.formatCurrency(baseSalary)}',
-                              style: const TextStyle(fontWeight: FontWeight.bold)),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Salario Mensual: ${Helpers.formatCurrency(baseSalary)}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold)),
+                                Text('Quincenal: ${Helpers.formatCurrency(baseSalary / 2)}',
+                                  style: TextStyle(color: Colors.grey[600])),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Resumen de horas de la quincena
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: totalHoursWorked >= baseHoursPerFortnight 
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: totalHoursWorked >= baseHoursPerFortnight 
+                                ? Colors.green.withValues(alpha: 0.3)
+                                : Colors.orange.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time,
+                                  color: totalHoursWorked >= baseHoursPerFortnight ? Colors.green[700] : Colors.orange[700],
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Horas Quincena (últimas 2 semanas)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: totalHoursWorked >= baseHoursPerFortnight ? Colors.green[800] : Colors.orange[800],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Column(
+                                  children: [
+                                    Text('Trabajadas', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                    Text(
+                                      '${totalHoursWorked.toStringAsFixed(1)}h',
+                                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                Container(width: 1, height: 30, color: Colors.grey[300]),
+                                Column(
+                                  children: [
+                                    Text('Base', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                    Text(
+                                      '${baseHoursPerFortnight.toStringAsFixed(0)}h',
+                                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.grey[700]),
+                                    ),
+                                  ],
+                                ),
+                                Container(width: 1, height: 30, color: Colors.grey[300]),
+                                Column(
+                                  children: [
+                                    Text(
+                                      overtimeHours > 0 ? 'Extras' : 'Faltan',
+                                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                    ),
+                                    Text(
+                                      overtimeHours > 0 
+                                          ? '+${overtimeHours.toStringAsFixed(1)}h'
+                                          : '-${underHours.toStringAsFixed(1)}h',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: overtimeHours > 0 ? Colors.green[700] : Colors.orange[700],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 16),
                     ],
 
-                    // Días trabajados y ausentes
+                    // Días trabajados (solo informativo ahora)
+                    if (selectedEmployee != null)
                     Row(
                       children: [
                         Expanded(
                           child: TextFormField(
                             initialValue: daysWorked.toString(),
                             decoration: const InputDecoration(
-                              labelText: 'Días Trabajados',
+                              labelText: 'Días Quincena',
                               prefixIcon: Icon(Icons.check_circle_outline),
                               border: OutlineInputBorder(),
+                              helperText: '12 días = 2 semanas (L-S)',
                             ),
                             keyboardType: TextInputType.number,
                             onChanged: (v) => setState(() => daysWorked = int.tryParse(v) ?? 26),
@@ -6905,19 +7142,123 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     ),
                     const SizedBox(height: 16),
 
-                    // Horas extras
-                    TextFormField(
-                      initialValue: overtimeHours.toString(),
-                      decoration: const InputDecoration(
-                        labelText: 'Horas Extra',
-                        prefixIcon: Icon(Icons.more_time),
-                        border: OutlineInputBorder(),
-                        helperText: 'Horas adicionales a la jornada normal',
+                    // Horas extras con selector de tipo (solo si hay horas extra)
+                    if (selectedEmployee != null && overtimeHours > 0)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
                       ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (v) => setState(() => overtimeHours = double.tryParse(v) ?? 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.more_time, color: Colors.green[700], size: 20),
+                              const SizedBox(width: 8),
+                              Text('Horas Extra Detectadas', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.green[800])),
+                              const Spacer(),
+                              Text(
+                                '+${overtimeHours.toStringAsFixed(1)}h',
+                                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 16),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text('Tipo de recargo:', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            value: overtimeType,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 'normal', child: Text('Normal (sin recargo)', style: TextStyle(fontSize: 13))),
+                              DropdownMenuItem(value: '25', child: Text('Diurna +25%', style: TextStyle(fontSize: 13))),
+                              DropdownMenuItem(value: '75', child: Text('Nocturna +75%', style: TextStyle(fontSize: 13))),
+                              DropdownMenuItem(value: '100', child: Text('Dom/Fest Diurna +100%', style: TextStyle(fontSize: 13))),
+                              DropdownMenuItem(value: '150', child: Text('Dom/Fest Nocturna +150%', style: TextStyle(fontSize: 13))),
+                            ],
+                            onChanged: (v) => setState(() => overtimeType = v ?? 'normal'),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${overtimeHours.toStringAsFixed(1)}h × ${Helpers.formatCurrency(hourlyRate)} × ${overtimeMultiplier}x',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                                ),
+                                Text(
+                                  '+ ${Helpers.formatCurrency(overtimePay)}',
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700]),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    
+                    // Descuento por horas faltantes (solo si faltan horas)
+                    if (selectedEmployee != null && underHours > 0)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.schedule, color: Colors.orange[700], size: 20),
+                              const SizedBox(width: 8),
+                              Text('Horas Faltantes', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.orange[800])),
+                              const Spacer(),
+                              Text(
+                                '-${underHours.toStringAsFixed(1)}h',
+                                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[700], fontSize: 16),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${underHours.toStringAsFixed(1)}h × ${Helpers.formatCurrency(hourlyRate)}',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                                ),
+                                Text(
+                                  '- ${Helpers.formatCurrency(underHoursDiscount)}',
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[700]),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (selectedEmployee != null) const SizedBox(height: 16),
 
                     // Préstamos activos
                     if (activeLoans.isNotEmpty) ...[
@@ -6975,29 +7316,31 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       const SizedBox(height: 8),
                     ],
 
-                    const Divider(height: 24),
+                    if (selectedEmployee != null) ...[
+                      const Divider(height: 24),
 
-                    // Resumen de cálculos
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                      // Resumen de cálculos
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildPayrollSummaryRow('Salario Quincenal (${totalHoursWorked.toStringAsFixed(0)}h)', fortnightSalary, false),
+                            if (overtimePay > 0) _buildPayrollSummaryRow('Horas Extra (${overtimeHours.toStringAsFixed(1)}h ${getOvertimeLabel(overtimeType)})', overtimePay, false),
+                            const Divider(height: 16),
+                            _buildPayrollSummaryRow('Total Ingresos', totalEarnings, false),
+                            if (underHoursDiscount > 0) _buildPayrollSummaryRow('Horas Faltantes (${underHours.toStringAsFixed(1)}h)', -underHoursDiscount, true),
+                            if (loanDeduction > 0) _buildPayrollSummaryRow('Cuotas Préstamos', -loanDeduction, true),
+                            const Divider(height: 16),
+                            _buildPayrollSummaryRow('NETO A PAGAR', netPay, false, isTotal: true),
+                          ],
+                        ),
                       ),
-                      child: Column(
-                        children: [
-                          _buildPayrollSummaryRow('Salario Base', baseSalary, false),
-                          if (overtimePay > 0) _buildPayrollSummaryRow('Horas Extra (${overtimeHours.toStringAsFixed(1)}h)', overtimePay, false),
-                          const Divider(height: 16),
-                          _buildPayrollSummaryRow('Total Ingresos', totalEarnings, false),
-                          if (absenceDiscount > 0) _buildPayrollSummaryRow('Descuento Faltas ($daysAbsent días)', -absenceDiscount, true),
-                          if (loanDeduction > 0) _buildPayrollSummaryRow('Cuotas Préstamos', -loanDeduction, true),
-                          const Divider(height: 16),
-                          _buildPayrollSummaryRow('NETO A PAGAR', netPay, false, isTotal: true),
-                        ],
-                      ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -7014,7 +7357,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   final payroll = await ref.read(payrollProvider.notifier).createPayroll(
                     employeeId: selectedEmployeeId!,
                     periodId: currentPayrollState.currentPeriod!.id,
-                    baseSalary: baseSalary,
+                    baseSalary: baseSalary / 2, // Salario quincenal
                     daysWorked: daysWorked,
                   );
 
@@ -7026,17 +7369,17 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       await ref.read(payrollProvider.notifier).addOvertimeHours(
                         payrollId: payroll.id,
                         hours: overtimeHours,
-                        type: 'normal',
-                        hourlyRate: baseSalary / 191,
+                        type: overtimeType, // Usar tipo con recargo seleccionado
+                        hourlyRate: baseSalary / hoursPerMonth,
                       );
                     }
 
-                    // Agregar descuento por faltas si hay
-                    if (daysAbsent > 0) {
-                      await ref.read(payrollProvider.notifier).addAbsenceDiscount(
+                    // Agregar descuento por horas faltantes si hay
+                    if (underHours > 0) {
+                      await ref.read(payrollProvider.notifier).addUnderHoursDiscount(
                         payrollId: payroll.id,
-                        days: daysAbsent,
-                        dailyRate: baseSalary / 26,
+                        hours: underHours,
+                        hourlyRate: baseSalary / hoursPerMonth,
                       );
                     }
 
@@ -7052,7 +7395,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
 
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('✅ Nómina creada exitosamente'), backgroundColor: Colors.green),
+                        SnackBar(
+                          content: Text('✅ Nómina creada: ${Helpers.formatCurrency(netPay)}'),
+                          backgroundColor: Colors.green,
+                        ),
                       );
                     }
                   }
@@ -7158,7 +7504,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     decoration: const InputDecoration(
                       labelText: 'Monto',
                       prefixIcon: Icon(Icons.attach_money),
-                      prefixText: 'S/ ',
+                      prefixText: '\$ ',
                     ),
                     keyboardType: TextInputType.number,
                   ),
@@ -7533,7 +7879,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             decoration: const InputDecoration(
                               labelText: 'Monto del Préstamo',
                               prefixIcon: Icon(Icons.attach_money),
-                              prefixText: 'S/ ',
+                              prefixText: '\$ ',
                               border: OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,

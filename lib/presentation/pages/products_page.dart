@@ -412,30 +412,77 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Precio: \$${Helpers.formatNumber(product.unitPrice)}',
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                      ),
-                      if (product.totalWeight > 0)
-                        Text(
-                          'Peso: ${product.totalWeight.toStringAsFixed(1)} KG',
-                          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Costo de fabricación
+                        Row(
+                          children: [
+                            Icon(Icons.shopping_cart, size: 12, color: Colors.orange[700]),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Costo: \$${Helpers.formatNumber(product.costPrice > 0 ? product.costPrice : product.totalCost)}',
+                              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                            ),
+                          ],
                         ),
-                    ],
+                        const SizedBox(height: 2),
+                        // Precio de venta
+                        Row(
+                          children: [
+                            Icon(Icons.sell, size: 12, color: Colors.green[700]),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Venta: \$${Helpers.formatNumber(product.unitPrice)}',
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                        if (product.totalWeight > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              'Peso: ${product.totalWeight.toStringAsFixed(1)} KG',
+                              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      'Receta',
-                      style: TextStyle(fontSize: 10, color: Colors.green[700], fontWeight: FontWeight.w500),
-                    ),
+                  // Indicador de margen
+                  Builder(
+                    builder: (context) {
+                      final cost = product.costPrice > 0 ? product.costPrice : product.totalCost;
+                      final margin = cost > 0 ? ((product.unitPrice - cost) / cost * 100) : 0.0;
+                      final marginColor = margin > 30 ? Colors.green : margin > 15 ? Colors.orange : Colors.red;
+                      
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: marginColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: marginColor.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              margin > 30 ? Icons.trending_up : margin > 15 ? Icons.trending_flat : Icons.trending_down,
+                              size: 14,
+                              color: marginColor,
+                            ),
+                            Text(
+                              '${margin.toStringAsFixed(0)}%',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: marginColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -713,7 +760,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                 TextField(
                                   controller: laborCtrl,
                                   decoration: const InputDecoration(
-                                    prefixText: 'S/ ',
+                                    prefixText: '\$ ',
                                     isDense: true,
                                     hintText: '0.00',
                                   ),
@@ -834,7 +881,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                       children: [
                                         Text('${material.stock.toStringAsFixed(1)} ${material.unit} disponible', 
                                           style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-                                        Text('S/ ${material.effectivePrice.toStringAsFixed(2)} / ${material.unit}', 
+                                        Text('\$ ${material.effectiveCostPrice.toStringAsFixed(2)} / ${material.unit}', 
                                           style: TextStyle(fontSize: 10, color: Colors.green.shade700, fontWeight: FontWeight.w500)),
                                       ],
                                     ),
@@ -865,7 +912,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                               name: material.name,
                                               description: material.description,
                                               unit: material.unit,
-                                              unitCost: material.effectivePrice,
+                                              unitCost: material.effectiveCostPrice,
                                               quantity: 1,
                                               calculatedWeight: initialWeight,
                                               category: cat,
@@ -1032,7 +1079,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                         ],
                                       ),
                                       Text(
-                                        'S/ ${totalPrice.toStringAsFixed(2)}',
+                                        '\$ ${totalPrice.toStringAsFixed(2)}',
                                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green[700]),
                                       ),
                                     ],
@@ -1303,7 +1350,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
             
             setDialogState(() {
               calculatedWeight = weight * quantity;
-              totalCost = calculatedWeight * material.effectivePrice;
+              totalCost = calculatedWeight * material.effectiveCostPrice;
             });
           }
 
@@ -1542,7 +1589,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                         ),
                       ),
                       const Spacer(),
-                      Text('Precio: S/ ${material.effectivePrice.toStringAsFixed(2)}/KG', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                      Text('Costo: \$ ${material.effectiveCostPrice.toStringAsFixed(2)}/KG', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -1562,7 +1609,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text('Peso: ${calculatedWeight.toStringAsFixed(3)} KG', style: const TextStyle(fontWeight: FontWeight.w500)),
                           ]),
-                          Text('S/ ${totalCost.toStringAsFixed(2)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green.shade700)),
+                          Text('\$ ${totalCost.toStringAsFixed(2)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green.shade700)),
                         ],
                       ),
                     ),
@@ -1617,7 +1664,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                             name: '${material.name} ($dimDesc)',
                             description: dimDesc,
                             unit: 'KG',
-                            unitCost: material.effectivePrice,
+                            unitCost: material.effectiveCostPrice,
                             quantity: calculatedWeight,
                             calculatedWeight: calculatedWeight,
                             category: cat,
@@ -1708,7 +1755,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
           ],
         ),
         Text(
-          'S/ ${amount.toStringAsFixed(2)}',
+          '\$ ${amount.toStringAsFixed(2)}',
           style: TextStyle(fontWeight: FontWeight.w500, fontSize: 12, color: color),
         ),
       ],

@@ -72,8 +72,11 @@ class RecipesNotifier extends Notifier<RecipesState> {
         (sum, c) => sum + (c.weight * c.pricePerKg),
       );
       
-      // Agregar margen de ganancia (ejemplo: 30%)
-      final unitPrice = totalCost * 1.3;
+      // Calcular precio de venta usando el precio de venta real de cada material
+      final unitPrice = components.fold<double>(
+        0.0,
+        (sum, c) => sum + (c.weight * c.salePricePerKg),
+      );
 
       // Convertir componentes al formato del datasource
       final componentData = components.map((c) {
@@ -135,7 +138,11 @@ class RecipesNotifier extends Notifier<RecipesState> {
         0.0,
         (sum, c) => sum + (c.weight * c.pricePerKg),
       );
-      final unitPrice = totalCost * 1.3;
+      // Calcular precio de venta usando el precio de venta real de cada material
+      final unitPrice = components.fold<double>(
+        0.0,
+        (sum, c) => sum + (c.weight * c.salePricePerKg),
+      );
 
       // Convertir componentes
       final componentData = components.map((c) {
@@ -225,7 +232,8 @@ class RecipeComponent {
   final String? description;
   final String category;
   final double weight;
-  final double pricePerKg;
+  final double pricePerKg; // Precio de costo por kg
+  final double salePricePerKg; // Precio de venta por kg
 
   RecipeComponent({
     this.materialId,
@@ -234,5 +242,6 @@ class RecipeComponent {
     required this.category,
     required this.weight,
     required this.pricePerKg,
+    required this.salePricePerKg,
   });
 }

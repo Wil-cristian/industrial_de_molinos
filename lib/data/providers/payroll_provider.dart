@@ -356,7 +356,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
   Future<bool> addOvertimeHours({
     required String payrollId,
     required double hours,
-    required String type, // 'normal', '25', '35', '100'
+    required String type, // 'normal', '25' (diurna), '75' (nocturna), '100' (dom/fest), '150' (dom/fest noct)
     required double hourlyRate,
   }) async {
     final conceptCode = type == 'normal' ? 'HORA_EXTRA' : 'HORA_EXTRA_$type';
@@ -366,23 +366,35 @@ class PayrollNotifier extends Notifier<PayrollState> {
     );
 
     double multiplier = 1.0;
+    String typeLabel = '';
     switch (type) {
       case 'normal':
-        multiplier = 1.0;  // Sin recargo
+        multiplier = 1.0;   // Sin recargo
+        typeLabel = 'Normal';
         break;
       case '25':
-        multiplier = 1.25;
+        multiplier = 1.25;  // Diurna (6am-9pm)
+        typeLabel = 'Diurna';
         break;
-      case '35':
-        multiplier = 1.35;
+      case '75':
+        multiplier = 1.75;  // Nocturna (9pm-6am)
+        typeLabel = 'Nocturna';
         break;
       case '100':
-        multiplier = 2.0;
+        multiplier = 2.0;   // Dominical/Festivo diurna
+        typeLabel = 'Dom/Fest Diurna';
         break;
+      case '150':
+        multiplier = 2.5;   // Dominical/Festivo nocturna
+        typeLabel = 'Dom/Fest Nocturna';
+        break;
+      default:
+        multiplier = 1.0;
+        typeLabel = 'Normal';
     }
 
     final amount = hours * hourlyRate * multiplier;
-    final label = type == 'normal' ? 'al 100%' : 'al ${(multiplier * 100).toInt()}%';
+    final recargoText = multiplier > 1.0 ? ' (+${((multiplier - 1) * 100).toInt()}%)' : ' (sin recargo)';
 
     return addConceptToPayroll(
       payrollId: payrollId,
@@ -390,13 +402,36 @@ class PayrollNotifier extends Notifier<PayrollState> {
       amount: amount,
       quantity: hours,
       unitValue: hourlyRate * multiplier,
-      notes: '$hours horas extra $label',
+      notes: '${hours.toStringAsFixed(1)} hrs $typeLabel$recargoText',
     );
   }
 
   // ==========================================
   // DESCUENTOS RÁPIDOS
   // ==========================================
+  
+  /// Descuento por horas faltantes (trabajó menos de 88h en la quincena)
+  Future<bool> addUnderHoursDiscount({
+    required String payrollId,
+    required double hours,
+    required double hourlyRate,
+    String? notes,
+  }) async {
+    final concept = state.deductionConcepts.firstWhere(
+      (c) => c.code == 'DESC_FALTAS',
+      orElse: () => state.deductionConcepts.first,
+    );
+
+    return addConceptToPayroll(
+      payrollId: payrollId,
+      conceptId: concept.id,
+      amount: hours * hourlyRate,
+      quantity: hours,
+      unitValue: hourlyRate,
+      notes: notes ?? '${hours.toStringAsFixed(1)} horas faltantes',
+    );
+  }
+  
   Future<bool> addAbsenceDiscount({
     required String payrollId,
     required int days,

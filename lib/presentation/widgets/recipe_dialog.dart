@@ -5,7 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../domain/entities/material.dart' as mat;
 import '../../data/providers/providers.dart';
-import '../../data/providers/recipes_provider.dart';
+import 'weight_calculator_dialog.dart';
 
 /// Dialog moderno para crear recetas con calculadora de peso integrada
 /// El flujo es: Seleccionar Material → Calcular Dimensiones → Agregar a Receta
@@ -118,6 +118,8 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
       _items.fold(0.0, (sum, item) => sum + item.totalWeight);
   double get _totalMaterialCost =>
       _items.fold(0.0, (sum, item) => sum + item.totalCost);
+  double get _totalSalePrice =>
+      _items.fold(0.0, (sum, item) => sum + (item.totalWeight * item.salePricePerKg));
   double get _laborCost => double.tryParse(_laborCostController.text) ?? 0;
   // El total ya incluye las pérdidas porque se añaden a cada item calculado
   double get _grandTotal => _totalMaterialCost + _laborCost;
@@ -478,7 +480,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
     final materials = inventoryState.materials;
     final cantidad = double.tryParse(_directQuantityController.text) ?? 0;
     final totalDirecto = _selectedDirectMaterial != null
-        ? cantidad * _selectedDirectMaterial!.pricePerKg
+        ? cantidad * _selectedDirectMaterial!.effectiveCostPrice
         : 0.0;
 
     return Column(
@@ -782,9 +784,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           category: material.category,
           description:
               '${cantidad.toStringAsFixed(cantidad == cantidad.roundToDouble() ? 0 : 1)} ${material.unit}',
-          pricePerKg: material.pricePerKg,
+          pricePerKg: material.effectiveCostPrice,
+          salePricePerKg: material.effectivePrice, // Precio de venta real
           totalWeight: cantidad,
-          totalCost: cantidad * material.pricePerKg,
+          totalCost: cantidad * material.effectiveCostPrice,
         ),
       );
       // Reset
@@ -922,7 +925,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                         ),
                         Text(
                           Helpers.formatCurrency(
-                            _calculatedWeight * _selectedMaterial!.pricePerKg,
+                            _calculatedWeight * _selectedMaterial!.effectiveCostPrice,
                           ),
                           style: const TextStyle(
                             fontSize: 18,
@@ -1005,7 +1008,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                               ),
                             ),
                             Text(
-                              '${(_calculatedWeight * (1 + _wastePercentage / 100)).toStringAsFixed(2)} kg → ${Helpers.formatCurrency(_calculatedWeight * _selectedMaterial!.pricePerKg * (1 + _wastePercentage / 100))}',
+                              '${(_calculatedWeight * (1 + _wastePercentage / 100)).toStringAsFixed(2)} kg → ${Helpers.formatCurrency(_calculatedWeight * _selectedMaterial!.effectiveCostPrice * (1 + _wastePercentage / 100))}',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -1456,6 +1459,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
   }
 
   Widget _buildCompactCostSummary() {
+    // Calcular margen real
+    final margin = _grandTotal > 0 ? ((_totalSalePrice - _grandTotal) / _grandTotal * 100) : 0.0;
+    final marginColor = margin > 30 ? Colors.green : margin > 15 ? Colors.orange : Colors.red;
+    
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1476,7 +1483,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                 child: TextField(
                   controller: _laborCostController,
                   decoration: const InputDecoration(
-                    prefixText: 'S/ ',
+                    prefixText: '\$ ',
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 8,
@@ -1499,33 +1506,113 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
             ],
           ),
           const Divider(height: 12),
-          // Total
+          // Resumen con Costo y Venta
           Row(
             children: [
-              Icon(Icons.inventory, size: 14, color: Colors.grey[600]),
-              const SizedBox(width: 4),
-              Text(
-                '${_items.length} componentes',
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-              ),
-              const Spacer(),
-              const Text(
-                'TOTAL:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                Helpers.formatCurrency(_grandTotal),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: AppTheme.primaryColor,
+              // Costo de fabricación
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.shopping_cart, size: 14, color: Colors.orange[700]),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Costo:',
+                          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      Helpers.formatCurrency(_grandTotal),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.orange[800],
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              // Precio de venta real
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.sell, size: 14, color: Colors.green[700]),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Venta:',
+                          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      Helpers.formatCurrency(_totalSalePrice),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Indicador de margen
+              if (_grandTotal > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: marginColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: marginColor.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        margin > 30 ? Icons.trending_up : margin > 15 ? Icons.trending_flat : Icons.trending_down,
+                        size: 16,
+                        color: marginColor,
+                      ),
+                      Text(
+                        '${margin.toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: marginColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
+          // Info del peso
+          if (_totalWeight > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Peso total: ${_totalWeight.toStringAsFixed(1)} KG',
+              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildPriceSuggestion(String label, double price, Color color) {
+    return Column(
+      children: [
+        Text(label, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
+        Text(
+          Helpers.formatCurrency(price),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color),
+        ),
+      ],
     );
   }
 
@@ -1568,7 +1655,36 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
 
   // ===================== FUNCIONES AUXILIARES =====================
 
-  void _selectMaterial(mat.Material material) {
+  void _selectMaterial(mat.Material material) async {
+    // Abrir el diálogo de calculador de peso moderno
+    final result = await WeightCalculatorDialog.show(
+      context,
+      material: material,
+      category: _selectedCalculationType ?? 'tubo',
+    );
+
+    if (result != null && mounted) {
+      // Agregar el componente con los datos calculados
+      setState(() {
+        _items.add(_RecipeItem(
+          materialId: material.id,
+          name: material.name,
+          category: _selectedCalculationType ?? 'tubo',
+          description: result.dimensionDescription,
+          pricePerKg: material.effectiveCostPrice,
+          salePricePerKg: material.effectivePrice, // Precio de venta real
+          totalWeight: result.weight,
+          totalCost: result.cost,
+        ));
+        
+        // Limpiar selección
+        _selectedMaterial = null;
+        _selectedCalculationType = null;
+      });
+    }
+  }
+
+  void _selectMaterialOld(mat.Material material) {
     setState(() {
       _selectedMaterial = material;
       // Limpiar campos
@@ -1706,7 +1822,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
 
     // Peso total incluyendo pérdidas
     final pesoConPerdidas = _calculatedWeight * (1 + _wastePercentage / 100);
-    final costoConPerdidas = pesoConPerdidas * _selectedMaterial!.pricePerKg;
+    final costoConPerdidas = pesoConPerdidas * _selectedMaterial!.effectiveCostPrice;
 
     setState(() {
       _items.add(
@@ -1715,7 +1831,8 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           name: _selectedMaterial!.name,
           category: _selectedMaterial!.category,
           description: description,
-          pricePerKg: _selectedMaterial!.pricePerKg,
+          pricePerKg: _selectedMaterial!.effectiveCostPrice,
+          salePricePerKg: _selectedMaterial!.effectivePrice, // Precio de venta real
           totalWeight: pesoConPerdidas,
           totalCost: costoConPerdidas,
         ),
@@ -1744,6 +1861,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
               category: item.category,
               weight: item.totalWeight,
               pricePerKg: item.pricePerKg,
+              salePricePerKg: item.salePricePerKg,
             ),
           )
           .toList();
@@ -1837,7 +1955,8 @@ class _RecipeItem {
   final String name;
   final String category;
   final String description;
-  final double pricePerKg;
+  final double pricePerKg; // Precio de costo
+  final double salePricePerKg; // Precio de venta
   final double totalWeight;
   final double totalCost;
 
@@ -1847,6 +1966,7 @@ class _RecipeItem {
     required this.category,
     required this.description,
     required this.pricePerKg,
+    required this.salePricePerKg,
     required this.totalWeight,
     required this.totalCost,
   });

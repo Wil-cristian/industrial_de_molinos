@@ -71,18 +71,18 @@ class CustomerSales {
   });
 }
 
-/// Modelo para reporte de inventario
+/// Modelo para reporte de inventario con análisis de márgenes
 class InventoryReport {
   final String productId;
   final String productCode;
   final String productName;
   final String category;
   final String unit;
-  final String itemType; // 'product' o 'material'
+  final String itemType; // 'product', 'material' o 'recipe'
   final double currentStock;
   final double minStock;
-  final double unitPrice;
-  final double costPrice;
+  final double unitPrice;      // Precio de venta
+  final double costPrice;      // Precio de compra/fabricación
   final double totalValue;
   final bool isLowStock;
   final bool isOutOfStock;
@@ -102,6 +102,30 @@ class InventoryReport {
     required this.isLowStock,
     this.isOutOfStock = false,
   });
+
+  /// Ganancia por unidad
+  double get profitPerUnit => unitPrice - costPrice;
+
+  /// Margen de ganancia (markup sobre costo)
+  /// Fórmula: (Precio Venta - Costo) / Costo * 100
+  double get marginPercent => costPrice > 0 
+      ? ((unitPrice - costPrice) / costPrice * 100) 
+      : 0;
+
+  /// Margen bruto (sobre precio de venta)
+  /// Fórmula: (Precio Venta - Costo) / Precio Venta * 100
+  double get grossMarginPercent => unitPrice > 0 
+      ? ((unitPrice - costPrice) / unitPrice * 100) 
+      : 0;
+
+  /// Valor del stock al costo
+  double get stockCostValue => currentStock * costPrice;
+
+  /// Valor del stock a precio de venta
+  double get stockSaleValue => currentStock * unitPrice;
+
+  /// Ganancia potencial del stock actual
+  double get potentialProfit => currentStock * profitPerUnit;
 }
 
 /// Modelo para cuentas por cobrar
@@ -562,26 +586,46 @@ class ReportsDataSource {
   /// Obtener resumen de inventario
   static Future<Map<String, dynamic>> getInventorySummary() async {
     try {
-      final products = await getInventoryReport();
+      // Obtener TODOS los productos (sin filtro de stock bajo)
+      final products = await getInventoryReport(lowStockOnly: false);
 
       int totalProducts = products.length;
       int lowStockCount = products.where((p) => p.isLowStock).length;
-      double totalValue = products.fold(0, (sum, p) => sum + p.totalValue);
-      double totalStock = products.fold(0, (sum, p) => sum + p.currentStock);
+      int outOfStockCount = products.where((p) => p.isOutOfStock).length;
+      double totalValue = products.fold(0.0, (sum, p) => sum + p.totalValue);
+      double totalStock = products.fold(0.0, (sum, p) => sum + p.currentStock);
+      
+      // Cálculos de márgenes (sobre TODOS los productos)
+      double totalStockCost = products.fold(0.0, (sum, p) => sum + p.stockCostValue);
+      double totalStockSaleValue = products.fold(0.0, (sum, p) => sum + p.stockSaleValue);
+      double totalPotentialProfit = products.fold(0.0, (sum, p) => sum + p.potentialProfit);
+      double avgMargin = products.isNotEmpty 
+          ? products.fold(0.0, (sum, p) => sum + p.marginPercent) / products.length 
+          : 0.0;
 
       return {
         'totalProducts': totalProducts,
         'lowStockCount': lowStockCount,
+        'outOfStockCount': outOfStockCount,
         'totalValue': totalValue,
         'totalStock': totalStock,
+        'totalStockCost': totalStockCost,
+        'totalStockSaleValue': totalStockSaleValue,
+        'totalPotentialProfit': totalPotentialProfit,
+        'avgMargin': avgMargin,
       };
     } catch (e) {
       print('❌ Error obteniendo resumen de inventario: $e');
       return {
         'totalProducts': 0,
         'lowStockCount': 0,
+        'outOfStockCount': 0,
         'totalValue': 0.0,
         'totalStock': 0.0,
+        'totalStockCost': 0.0,
+        'totalStockSaleValue': 0.0,
+        'totalPotentialProfit': 0.0,
+        'avgMargin': 0.0,
       };
     }
   }

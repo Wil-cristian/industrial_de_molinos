@@ -6,7 +6,6 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart' as helpers;
 import '../../domain/entities/material.dart' as mat;
 import '../../data/providers/providers.dart';
-import '../../data/providers/recipes_provider.dart' show RecipeComponent;
 
 /// Pantalla moderna para crear recetas con calculadora de peso integrada
 class RecipeBuilderPage extends ConsumerStatefulWidget {
@@ -293,6 +292,10 @@ class _RecipeBuilderPageState extends ConsumerState<RecipeBuilderPage> {
   }
 
   Widget _buildCostSummary() {
+    // Precio de venta sugerido con margen del 30%
+    final suggestedPriceMargin30 = _grandTotal * 1.30;
+    final suggestedPriceMargin50 = _grandTotal * 1.50;
+    
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -302,12 +305,40 @@ class _RecipeBuilderPageState extends ConsumerState<RecipeBuilderPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Resumen de Costos',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              const Text(
+                'Resumen de Costos',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              // Indicador de costo de fabricación
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.precision_manufacturing, size: 16, color: Colors.blue),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Costo Fabricación: ${helpers.Helpers.formatCurrency(_grandTotal)}',
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           _buildSummaryRow('Materiales:', _totalWeight, helpers.Helpers.formatCurrency(_totalCost)),
@@ -356,7 +387,7 @@ class _RecipeBuilderPageState extends ConsumerState<RecipeBuilderPage> {
                   textAlign: TextAlign.right,
                   decoration: const InputDecoration(
                     isDense: true,
-                    prefixText: 'S/ ',
+                    prefixText: '\$ ',
                     border: OutlineInputBorder(),
                   ),
                   onChanged: (value) {
@@ -369,14 +400,74 @@ class _RecipeBuilderPageState extends ConsumerState<RecipeBuilderPage> {
             ],
           ),
           const Divider(height: 24),
-          _buildSummaryRow(
-            'PRECIO DE VENTA',
-            _totalWeight,
-            helpers.Helpers.formatCurrency(_grandTotal),
-            isTotal: true,
+          // Precio de venta sugerido con márgenes
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.trending_up, color: Colors.green, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'PRECIO DE VENTA SUGERIDO',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildMarginOption('30% margen', suggestedPriceMargin30, Colors.orange),
+                    _buildMarginOption('50% margen', suggestedPriceMargin50, Colors.green),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Costo base: ${helpers.Helpers.formatCurrency(_grandTotal)} • Peso total: ${_totalWeight.toStringAsFixed(2)} kg',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                ),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMarginOption(String label, double price, Color color) {
+    final profit = price - _grandTotal;
+    return Column(
+      children: [
+        Text(
+          helpers.Helpers.formatCurrency(price),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        ),
+        Text(
+          'Ganancia: ${helpers.Helpers.formatCurrency(profit)}',
+          style: TextStyle(fontSize: 11, color: color),
+        ),
+      ],
     );
   }
 
@@ -605,10 +696,10 @@ class _WeightCalculatorWidgetState extends State<_WeightCalculatorWidget> {
           controller: _precioKgController,
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(
-            labelText: 'Precio por Kilo (S/)',
+            labelText: 'Precio por Kilo (\$)',
             border: OutlineInputBorder(),
             isDense: true,
-            prefixText: 'S/ ',
+            prefixText: '\$ ',
           ),
           onChanged: (_) => _calculateWeight(),
         ),

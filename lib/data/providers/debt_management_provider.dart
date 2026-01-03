@@ -224,7 +224,7 @@ class DebtManagementNotifier extends Notifier<DebtManagementState> {
           .update({
             'total': debt.originalAmount + debt.interestAmount,
             'notes':
-                'Interés por mora aplicado: S/ ${debt.interestAmount.toStringAsFixed(2)}',
+                'Interés por mora aplicado: \$ ${debt.interestAmount.toStringAsFixed(2)}',
           })
           .eq('id', debt.invoiceId);
 
@@ -264,9 +264,9 @@ class DebtManagementNotifier extends Notifier<DebtManagementState> {
         title: '⚠️ Deuda vencida: ${debt.customerName}',
         description:
             'Factura ${debt.invoiceNumber} vencida hace ${debt.daysOverdue} días. '
-            'Monto pendiente: S/ ${debt.pendingAmount.toStringAsFixed(2)} + '
-            'Intereses: S/ ${debt.interestAmount.toStringAsFixed(2)} = '
-            'Total: S/ ${debt.totalWithInterest.toStringAsFixed(2)}',
+            'Monto pendiente: \$ ${debt.pendingAmount.toStringAsFixed(2)} + '
+            'Intereses: \$ ${debt.interestAmount.toStringAsFixed(2)} = '
+            'Total: \$ ${debt.totalWithInterest.toStringAsFixed(2)}',
         activityType: ActivityType.collection,
         startDate: now,
         dueDate: debt.dueDate,
@@ -303,7 +303,7 @@ class DebtManagementNotifier extends Notifier<DebtManagementState> {
         title: '📨 Recordatorio de pago enviado',
         description:
             'Se envió recordatorio a ${debt.customerName} por factura ${debt.invoiceNumber}. '
-            'Deuda: S/ ${debt.totalWithInterest.toStringAsFixed(2)} (incluye intereses)',
+            'Deuda: \$ ${debt.totalWithInterest.toStringAsFixed(2)} (incluye intereses)',
         activityType: ActivityType.reminder,
         startDate: now,
         status: ActivityStatus.completed,

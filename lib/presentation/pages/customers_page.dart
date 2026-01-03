@@ -679,12 +679,24 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: documentController,
+                      keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: 'Número de Documento',
                         border: OutlineInputBorder(),
+                        helperText: 'Ingresa un número de documento válido',
                       ),
-                      validator: (value) =>
-                          value?.isEmpty ?? true ? 'Campo requerido' : null,
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) {
+                          return 'Campo requerido';
+                        }
+                        if (value == '0') {
+                          return 'Ingresa un número de documento válido (no puede ser 0)';
+                        }
+                        if (int.tryParse(value!) == null) {
+                          return 'Debe ser un número válido';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

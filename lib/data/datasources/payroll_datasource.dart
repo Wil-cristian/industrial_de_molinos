@@ -605,7 +605,26 @@ class PayrollDatasource {
         ''')
         .single();
 
-    return EmployeePayroll.fromJson(response);
+    final payrollId = response['id'] as String;
+
+    // Calcular totales iniciales (salario base como ingreso inicial)
+    await _client.rpc(
+      'calculate_payroll_totals',
+      params: {'p_payroll_id': payrollId},
+    );
+
+    // Recargar con totales actualizados
+    final updatedResponse = await _client
+        .from('payroll')
+        .select('''
+          *,
+          employees(first_name, last_name, position),
+          payroll_periods(period_type, period_number, year)
+        ''')
+        .eq('id', payrollId)
+        .single();
+
+    return EmployeePayroll.fromJson(updatedResponse);
   }
 
   static Future<void> updatePayroll(

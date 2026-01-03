@@ -7,10 +7,12 @@ import '../../core/utils/helpers.dart';
 import '../../data/providers/providers.dart';
 import '../../data/datasources/invoices_datasource.dart';
 import '../../data/datasources/inventory_datasource.dart';
+import '../../data/datasources/accounts_datasource.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/material.dart' as domain;
 import '../../domain/entities/invoice.dart';
+import '../../domain/entities/account.dart';
 
 class NewInvoicePage extends ConsumerStatefulWidget {
   const NewInvoicePage({super.key});
@@ -23,7 +25,7 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
   final _formKey = GlobalKey<FormState>();
 
   // Serie para Recibo de Caja Menor
-  String _series = 'F001';
+  final String _series = 'F001';
 
   // Cliente seleccionado
   Customer? _selectedCustomer;
@@ -41,6 +43,10 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
   // Tipo de pago
   String _paymentType = 'credit'; // 'credit' o 'cash'
 
+  // Cuenta para pago en efectivo/contado
+  Account? _selectedAccount;
+  List<Account> _accounts = [];
+
   // Estado
   bool _isSaving = false;
 
@@ -55,6 +61,23 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
       ref.read(productsProvider.notifier).loadProducts();
       ref.read(inventoryProvider.notifier).loadMaterials();
     });
+    
+    // Cargar cuentas
+    _loadAccounts();
+  }
+
+  Future<void> _loadAccounts() async {
+    final accounts = await AccountsDataSource.getAllAccounts(activeOnly: true);
+    if (mounted) {
+      setState(() {
+        _accounts = accounts;
+        // Seleccionar "Caja" por defecto si existe
+        _selectedAccount = accounts.firstWhere(
+          (a) => a.name.toLowerCase().contains('caja'),
+          orElse: () => accounts.isNotEmpty ? accounts.first : Account(id: '', name: '', type: AccountType.cash, balance: 0),
+        );
+      });
+    }
   }
 
   @override
@@ -342,6 +365,45 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
                                 onChanged: (value) => setState(() => _paymentType = value!),
                               ),
                             ),
+                            
+                            // Selector de cuenta (solo para Contado)
+                            if (_paymentType == 'cash') ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.green.withOpacity(0.5)),
+                                  color: Colors.green.withOpacity(0.05),
+                                ),
+                                child: DropdownButtonFormField<Account>(
+                                  value: _selectedAccount,
+                                  decoration: InputDecoration(
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    prefixIcon: Icon(Icons.account_balance_wallet, color: Colors.green[700], size: 18),
+                                    isDense: true,
+                                    labelText: 'Destino del pago',
+                                    labelStyle: TextStyle(color: Colors.green[700], fontSize: 11),
+                                  ),
+                                  style: const TextStyle(color: Color(0xFF111418), fontSize: 13),
+                                  items: _accounts.map((account) => DropdownMenuItem(
+                                    value: account,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          account.type == AccountType.cash ? Icons.point_of_sale : Icons.account_balance,
+                                          size: 16,
+                                          color: Colors.green[700],
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(account.name),
+                                      ],
+                                    ),
+                                  )).toList(),
+                                  onChanged: (value) => setState(() => _selectedAccount = value),
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 14),
                             
                             // Items resumidos
@@ -841,6 +903,7 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
         'name': item.productName,
         'quantity': item.quantity,
         'unitPrice': item.unitPrice,
+        'costPrice': item.costPrice, // Precio de costo para cálculo de margen
         'total': item.subtotal,
         'isRecipe': item.isRecipe,
         'productId': item.productId,
@@ -915,6 +978,7 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
         customer: _selectedCustomer!,
         issueDate: _issueDate,
         dueDate: _dueDate,
+        taxRate: 0, // Sin IVA
         items: _items
             .map(
               (i) => InvoiceItem(
@@ -929,10 +993,10 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
                 unit: i.unit,
                 unitPrice: i.unitPrice,
                 discount: 0,
-                taxRate: 18,
+                taxRate: 0,
                 subtotal: i.subtotal,
-                taxAmount: i.subtotal * 0.18,
-                total: i.subtotal * 1.18,
+                taxAmount: 0,
+                total: i.subtotal,
               ),
             )
             .toList(),
@@ -942,6 +1006,17 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
       // Actualizar estado si no es borrador
       if (!asDraft) {
         await InvoicesDataSource.updateStatus(invoice.id, 'issued');
+        
+        // Si es pago de contado, registrar el pago automáticamente
+        if (_paymentType == 'cash' && _selectedAccount != null) {
+          await InvoicesDataSource.registerPayment(
+            invoiceId: invoice.id,
+            amount: invoice.total,
+            method: 'cash',
+            accountId: _selectedAccount!.id,
+            reference: 'Pago de contado - ${invoice.fullNumber}',
+          );
+        }
       }
 
       // Refrescar listas (recibos y productos para actualizar stock)
@@ -960,7 +1035,7 @@ class _NewInvoicePageState extends ConsumerState<NewInvoicePage> {
           ),
         );
         // Navegar a la página de ventas
-        context.go('/ventas');
+        context.go('/invoices');
       }
     } catch (e) {
       if (mounted) {
@@ -984,6 +1059,7 @@ class _InvoiceItemData {
   final String productName;
   final String unit;
   final double unitPrice;
+  final double costPrice; // Precio de costo
   final bool isRecipe;
   double quantity;
 
@@ -994,11 +1070,13 @@ class _InvoiceItemData {
     required this.productName,
     required this.unit,
     required this.unitPrice,
+    this.costPrice = 0,
     this.isRecipe = false,
     this.quantity = 1,
   });
 
   double get subtotal => unitPrice * quantity;
+  double get totalCost => costPrice * quantity;
 }
 
 // Diálogo para agregar producto
@@ -1188,6 +1266,9 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                       productName: _selectedProduct!.name,
                       unit: _selectedProduct!.unit,
                       unitPrice: _selectedProduct!.unitPrice,
+                      costPrice: _selectedProduct!.costPrice > 0 
+                          ? _selectedProduct!.costPrice 
+                          : _selectedProduct!.totalCost, // Usar costPrice o totalCost
                       isRecipe: _selectedProduct!.isRecipe,
                       quantity: _quantity,
                     ),
@@ -1437,16 +1518,18 @@ class _AddMaterialDialogState extends State<_AddMaterialDialog> {
           onPressed: _selectedMaterial == null
               ? null
               : () {
-                  final price = _selectedMaterial!.pricePerKg > 0
-                      ? _selectedMaterial!.pricePerKg
-                      : _selectedMaterial!.unitPrice;
+                  // Precio de venta
+                  final salePrice = _selectedMaterial!.effectivePrice;
+                  // Precio de costo
+                  final costPrice = _selectedMaterial!.effectiveCostPrice;
                   widget.onAdd(
                     _InvoiceItemData(
                       materialId: _selectedMaterial!.id,
                       productCode: _selectedMaterial!.code,
                       productName: _selectedMaterial!.name,
                       unit: _selectedMaterial!.unit,
-                      unitPrice: price,
+                      unitPrice: salePrice,
+                      costPrice: costPrice,
                       quantity: _quantity,
                     ),
                   );
@@ -1647,7 +1730,7 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
   }
 
   // ==========================================
-  // VISTA CLIENTE - Diseño espacioso moderno
+  // VISTA CLIENTE - Diseño compacto moderno
   // ==========================================
   Widget _buildClientView(Map<String, dynamic> inv) {
     final products = inv['products'] as List<dynamic>? ?? [];
@@ -1658,15 +1741,15 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
       child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 900),
-          margin: const EdgeInsets.all(32),
+          margin: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.08),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -1675,16 +1758,16 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
               // Barra de acento superior
               Container(
                 width: double.infinity,
-                height: 8,
+                height: 4,
                 decoration: const BoxDecoration(
                   color: headerColor,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                 ),
               ),
               // Contenido con scroll
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(48),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1698,12 +1781,12 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.verified, color: headerColor, size: 48),
-                                    const SizedBox(width: 16),
+                                    Icon(Icons.verified, color: headerColor, size: 28),
+                                    const SizedBox(width: 10),
                                     const Text(
                                       'RECIBO DE CAJA',
                                       style: TextStyle(
-                                        fontSize: 28,
+                                        fontSize: 20,
                                         fontWeight: FontWeight.w900,
                                         color: Color(0xFF111418),
                                         letterSpacing: -0.5,
@@ -1711,10 +1794,10 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 4),
                                 Text(
                                   inv['number'],
-                                  style: TextStyle(color: Colors.grey[500], fontSize: 16, fontWeight: FontWeight.w500),
+                                  style: TextStyle(color: Colors.grey[500], fontSize: 12, fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
@@ -1724,14 +1807,14 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Container(
-                                width: 70,
-                                height: 70,
+                                width: 50,
+                                height: 50,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 12)],
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
                                 ),
                                 child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(8),
                                   child: Image.asset(
                                     'lib/photo/logo_empresa.png',
                                     fit: BoxFit.contain,
@@ -1739,25 +1822,25 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(colors: [headerColor, headerColor.withOpacity(0.8)]),
                                       ),
-                                      child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 36),
+                                      child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 24),
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              const Text('Industrial de Molinos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              const Text('NIT: 901946675-1', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              const SizedBox(height: 6),
+                              const Text('Industrial de Molinos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                              const Text('NIT: 901946675-1', style: TextStyle(fontSize: 10, color: Colors.grey)),
                             ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 16),
                       // Sección Cliente
                       Container(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.grey[200]!),
                         ),
                         child: Row(
@@ -1766,11 +1849,10 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('CLIENTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400], letterSpacing: 1.5)),
-                                  const SizedBox(height: 10),
-                                  Text(inv['customer'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF111418))),
+                                  Text('CLIENTE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey[400], letterSpacing: 1)),
                                   const SizedBox(height: 4),
-                                  Text('NIT/CC: ${inv['customerRuc'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                                  Text(inv['customer'], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF111418))),
+                                  Text('NIT/CC: ${inv['customerRuc'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[600], fontSize: 11)),
                                 ],
                               ),
                             ),
@@ -1783,47 +1865,47 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                           ],
                         ),
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 16),
                       // Tabla de productos
                       Container(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.grey[200]!),
                         ),
                         child: Column(
                           children: [
                             // Header de tabla
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: const BoxDecoration(
                                 color: Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
                               ),
                               child: Row(
                                 children: [
-                                  const Expanded(flex: 3, child: Text('Descripción', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey))),
-                                  SizedBox(width: 80, child: Text('Cant.', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.center)),
-                                  SizedBox(width: 120, child: Text('Total', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.right)),
+                                  const Expanded(flex: 3, child: Text('Descripción', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey))),
+                                  SizedBox(width: 50, child: Text('Cant.', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.center)),
+                                  SizedBox(width: 90, child: Text('Total', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.right)),
                                 ],
                               ),
                             ),
                             // Filas de productos
                             ...products.map((prod) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey[100]!))),
                               child: Row(
                                 children: [
                                   Expanded(
                                     flex: 3,
-                                    child: Text(prod['name'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                                    child: Text(prod['name'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
                                   ),
                                   SizedBox(
-                                    width: 80,
-                                    child: Text('${prod['quantity']}', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey[700], fontSize: 15), textAlign: TextAlign.center),
+                                    width: 50,
+                                    child: Text('${prod['quantity']}', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey[700], fontSize: 12), textAlign: TextAlign.center),
                                   ),
                                   SizedBox(
-                                    width: 120,
-                                    child: Text(Formatters.currency(prod['total']), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), textAlign: TextAlign.right),
+                                    width: 90,
+                                    child: Text(Formatters.currency(prod['total']), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right),
                                   ),
                                 ],
                               ),
@@ -1831,22 +1913,22 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                           ],
                         ),
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 16),
                       // Totales
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           SizedBox(
-                            width: 320,
+                            width: 220,
                             child: Column(
                               children: [
                                 _buildTotalRow('Subtotal', inv['subtotal']),
-                                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(thickness: 1)),
+                                const Padding(padding: EdgeInsets.symmetric(vertical: 6), child: Divider(thickness: 1)),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('TOTAL', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                    Text(Formatters.currency(inv['total']), style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: headerColor)),
+                                    const Text('TOTAL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                    Text(Formatters.currency(inv['total']), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: headerColor)),
                                   ],
                                 ),
                               ],
@@ -1854,23 +1936,23 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                           ),
                         ],
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 12),
                       // Nota de agradecimiento
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: const Color(0xFFEFF6FF),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0xFFBFDBFE)),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.email, size: 20, color: Colors.blue[700]),
-                            const SizedBox(width: 12),
-                            Text('industriasdemolinosasfact@gmail.com', style: TextStyle(fontSize: 13, color: Colors.blue[700])),
+                            Icon(Icons.email, size: 14, color: Colors.blue[700]),
+                            const SizedBox(width: 8),
+                            Text('industriasdemolinosasfact@gmail.com', style: TextStyle(fontSize: 10, color: Colors.blue[700])),
                             const Spacer(),
-                            Text('¡GRACIAS POR SU COMPRA!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 13)),
+                            Text('¡GRACIAS POR SU COMPRA!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 10)),
                           ],
                         ),
                       ),
@@ -1910,38 +1992,50 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
   }
 
   // ==========================================
-  // VISTA EMPRESA - ERP Style
+  // VISTA EMPRESA - ERP Style Compacto
   // ==========================================
   Widget _buildEnterpriseView(Map<String, dynamic> inv) {
     final products = inv['products'] as List<dynamic>? ?? [];
     const headerColor = Color(0xFF1e293b);
+    
+    // Calcular totales y márgenes
+    double totalCost = 0;
+    double totalSale = inv['total'] ?? 0;
+    for (var prod in products) {
+      final qty = (prod['quantity'] ?? 1).toDouble();
+      final costPrice = (prod['costPrice'] ?? prod['unitPrice'] ?? 0).toDouble();
+      totalCost += costPrice * qty;
+    }
+    final profit = totalSale - totalCost;
+    final marginPercent = totalSale > 0 ? (profit / totalSale * 100) : 0.0;
+    final marginColor = marginPercent >= 30 ? Colors.green : marginPercent >= 15 ? Colors.orange : Colors.red;
 
     return Container(
       color: const Color(0xFFF1F4F8),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header documento interno
+            // Header documento interno compacto
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 60,
-                    height: 60,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 6)],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                       child: Image.asset(
                         'lib/photo/logo_empresa.png',
                         fit: BoxFit.contain,
@@ -1949,66 +2043,63 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                           decoration: BoxDecoration(
                             gradient: LinearGradient(colors: [headerColor, headerColor.withOpacity(0.8)]),
                           ),
-                          child: const Icon(Icons.business, color: Colors.white, size: 30),
+                          child: const Icon(Icons.business, color: Colors.white, size: 20),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('DOCUMENTO INTERNO', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF111418))),
-                        const SizedBox(height: 4),
-                        Text('${inv['number']} - Desglose de materiales', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-                        const SizedBox(height: 4),
-                        Text('Cliente: ${inv['customer']}', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                        const Text('DOCUMENTO INTERNO', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF111418))),
+                        Text('${inv['number']} • ${inv['customer']}', style: TextStyle(color: Colors.grey[600], fontSize: 11)),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.orange[100],
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.lock_outline, size: 16, color: Colors.orange[800]),
-                        const SizedBox(width: 8),
-                        Text('USO INTERNO', style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.bold, fontSize: 12)),
+                        Icon(Icons.lock_outline, size: 12, color: Colors.orange[800]),
+                        const SizedBox(width: 4),
+                        Text('USO INTERNO', style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.bold, fontSize: 9)),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
             // Tabla de productos con componentes
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
               ),
               child: Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.grey[50],
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                       border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.list_alt, color: headerColor),
-                        const SizedBox(width: 12),
-                        const Text('Detalle de Productos y Componentes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Icon(Icons.list_alt, color: headerColor, size: 18),
+                        const SizedBox(width: 8),
+                        const Text('Detalle de Productos', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                         const Spacer(),
-                        Text('${products.length} producto(s)', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                        Text('${products.length} item(s)', style: TextStyle(color: Colors.grey[600], fontSize: 11)),
                       ],
                     ),
                   ),
@@ -2016,12 +2107,17 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                   ...products.map((prod) {
                     final components = prod['components'] as List<dynamic>? ?? [];
                     final isRecipe = prod['isRecipe'] == true;
+                    final costPrice = (prod['costPrice'] ?? prod['unitPrice'] ?? 0).toDouble();
+                    final salePrice = (prod['unitPrice'] ?? 0).toDouble();
+                    final qty = (prod['quantity'] ?? 1).toDouble();
+                    final itemMargin = salePrice > 0 ? ((salePrice - costPrice) / salePrice * 100) : 0.0;
+                    final itemProfit = (salePrice - costPrice) * qty;
                     
                     return Column(
                       children: [
                         // Producto principal
                         Container(
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
                             color: isRecipe ? Colors.blue[50] : Colors.white,
                             border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
@@ -2029,62 +2125,84 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                           child: Row(
                             children: [
                               Container(
-                                width: 50,
-                                height: 50,
+                                width: 36,
+                                height: 36,
                                 decoration: BoxDecoration(
                                   color: isRecipe ? Colors.blue[100] : headerColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Center(
                                   child: isRecipe
-                                      ? Icon(Icons.precision_manufacturing, color: Colors.blue[700], size: 24)
-                                      : Text('${prod['quantity']}×', style: TextStyle(fontWeight: FontWeight.bold, color: headerColor, fontSize: 14)),
+                                      ? Icon(Icons.precision_manufacturing, color: Colors.blue[700], size: 18)
+                                      : Text('${prod['quantity']}×', style: TextStyle(fontWeight: FontWeight.bold, color: headerColor, fontSize: 11)),
                                 ),
                               ),
-                              const SizedBox(width: 20),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
                                       children: [
-                                        Text(prod['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                        Flexible(child: Text(prod['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                        const SizedBox(width: 6),
+                                        // Indicador de margen por item
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: (itemMargin >= 30 ? Colors.green : itemMargin >= 15 ? Colors.orange : Colors.red).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            '${itemMargin.toStringAsFixed(0)}%',
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: itemMargin >= 30 ? Colors.green[700] : itemMargin >= 15 ? Colors.orange[700] : Colors.red[700],
+                                            ),
+                                          ),
+                                        ),
                                         if (isRecipe) ...[
                                           const SizedBox(width: 8),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
                                               color: Colors.blue[100],
                                               borderRadius: BorderRadius.circular(4),
                                             ),
-                                            child: Text('RECETA', style: TextStyle(color: Colors.blue[700], fontSize: 10, fontWeight: FontWeight.bold)),
+                                            child: Text('RECETA', style: TextStyle(color: Colors.blue[700], fontSize: 8, fontWeight: FontWeight.bold)),
                                           ),
                                         ],
                                       ],
                                     ),
-                                    const SizedBox(height: 4),
                                     Text(
-                                      'Cantidad: ${prod['quantity']} × ${Formatters.currency(prod['unitPrice'])}',
-                                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                      '${prod['quantity']} × ${Formatters.currency(prod['unitPrice'])} • Costo: ${Formatters.currency(costPrice)}',
+                                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                                     ),
                                   ],
                                 ),
                               ),
-                              Text(Formatters.currency(prod['total']), style: TextStyle(fontWeight: FontWeight.bold, color: headerColor, fontSize: 18)),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(Formatters.currency(prod['total']), style: TextStyle(fontWeight: FontWeight.bold, color: headerColor, fontSize: 14)),
+                                  Text('Gan: ${Formatters.currency(itemProfit)}', style: TextStyle(fontSize: 9, color: itemProfit >= 0 ? Colors.green[700] : Colors.red[700])),
+                                ],
+                              ),
                             ],
                           ),
                         ),
-                        // Componentes de la receta
+                        // Componentes de la receta (compacto)
                         if (isRecipe && components.isNotEmpty) ...[
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             color: const Color(0xFFFAFAFA),
                             child: Row(
                               children: [
-                                const SizedBox(width: 70),
-                                Icon(Icons.subdirectory_arrow_right, color: Colors.grey[400], size: 20),
-                                const SizedBox(width: 8),
-                                Text('COMPONENTES DE LA RECETA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[500], letterSpacing: 0.5)),
+                                const SizedBox(width: 46),
+                                Icon(Icons.subdirectory_arrow_right, color: Colors.grey[400], size: 14),
+                                const SizedBox(width: 4),
+                                Text('COMPONENTES', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey[500], letterSpacing: 0.5)),
                               ],
                             ),
                           ),
@@ -2096,46 +2214,40 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                             final hasStock = comp['has_stock'] ?? true;
                             
                             return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFAFAFA),
                                 border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
                               ),
                               child: Row(
                                 children: [
-                                  const SizedBox(width: 70),
+                                  const SizedBox(width: 46),
                                   Container(
-                                    width: 8,
-                                    height: 8,
+                                    width: 6,
+                                    height: 6,
                                     decoration: BoxDecoration(
                                       color: hasStock ? Colors.green[400] : Colors.red[400],
                                       shape: BoxShape.circle,
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 8),
                                   Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(compName.toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                                        Text(
-                                          'Necesario: $requiredQty $unit  •  Stock: $currentStock',
-                                          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                                        ),
-                                      ],
+                                    child: Text(
+                                      '$compName ($requiredQty $unit)',
+                                      style: const TextStyle(fontSize: 10),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: hasStock ? Colors.green[50] : Colors.red[50],
                                       borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: hasStock ? Colors.green[200]! : Colors.red[200]!),
                                     ),
                                     child: Text(
-                                      hasStock ? 'OK' : 'FALTANTE',
+                                      hasStock ? 'OK' : 'FALTA',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 8,
                                         fontWeight: FontWeight.bold,
                                         color: hasStock ? Colors.green[700] : Colors.red[700],
                                       ),
@@ -2152,51 +2264,90 @@ class _NewInvoicePreviewDialogState extends State<_NewInvoicePreviewDialog> with
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            // Resumen financiero
+            const SizedBox(height: 12),
+            // Resumen financiero CON MARGEN DE GANANCIA
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
               ),
               child: Column(
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.analytics_outlined),
-                      const SizedBox(width: 12),
-                      const Text('Resumen Financiero', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Icon(Icons.analytics_outlined, size: 18, color: headerColor),
+                      const SizedBox(width: 8),
+                      const Text('Resumen Financiero', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [headerColor.withOpacity(0.1), headerColor.withOpacity(0.05)]),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: headerColor.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.payments, size: 32, color: headerColor),
-                            const SizedBox(width: 16),
-                            const Text('TOTAL RECIBO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                          ],
+                  const SizedBox(height: 12),
+                  // Grid de métricas
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetricCard('Costo Total', Formatters.currency(totalCost), Colors.grey[700]!, Icons.shopping_cart),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildMetricCard('Venta Total', Formatters.currency(totalSale), headerColor, Icons.point_of_sale),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildMetricCard('Ganancia', Formatters.currency(profit), profit >= 0 ? Colors.green[700]! : Colors.red[700]!, Icons.trending_up),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: marginColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: marginColor.withOpacity(0.3)),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                marginPercent >= 30 ? Icons.trending_up : marginPercent >= 15 ? Icons.trending_flat : Icons.trending_down,
+                                color: marginColor,
+                                size: 20,
+                              ),
+                              const SizedBox(height: 4),
+                              Text('MARGEN', style: TextStyle(fontSize: 8, color: Colors.grey[600])),
+                              Text(
+                                '${marginPercent.toStringAsFixed(1)}%',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: marginColor),
+                              ),
+                            ],
+                          ),
                         ),
-                        Text(Formatters.currency(inv['total']), style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: headerColor)),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMetricCard(String label, String value, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(fontSize: 8, color: Colors.grey[600])),
+          Text(value, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+        ],
       ),
     );
   }

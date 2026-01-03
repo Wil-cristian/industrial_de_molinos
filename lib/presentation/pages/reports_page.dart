@@ -258,7 +258,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                           sideTitles: SideTitles(
                             showTitles: true,
                             reservedSize: 60,
-                            getTitlesWidget: (value, meta) => Text('S/ ${(value / 1000).toStringAsFixed(0)}K', style: TextStyle(color: Colors.grey[600], fontSize: 11)),
+                            getTitlesWidget: (value, meta) => Text('\$ ${(value / 1000).toStringAsFixed(0)}K', style: TextStyle(color: Colors.grey[600], fontSize: 11)),
                           ),
                         ),
                         bottomTitles: AxisTitles(

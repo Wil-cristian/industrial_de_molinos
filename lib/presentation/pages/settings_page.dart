@@ -17,7 +17,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _stockAlerts = true;
   bool _overdueAlerts = true;
   String _language = 'Español';
-  String _currency = 'PEN (S/)';
+  String _currency = 'USD (\$)';
 
   // Controladores para edición de perfil
   final _nameController = TextEditingController(text: 'Administrador');
@@ -644,7 +644,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               _buildSettingRow(
                 'Moneda',
                 'Moneda predeterminada para precios y totales.',
-                trailing: _buildDropdown(_currency, ['PEN (S/)', 'USD (\$)', 'EUR (€)'], (v) => setState(() => _currency = v!)),
+                trailing: _buildDropdown(_currency, ['USD (\$)', 'PEN (S/)', 'EUR (€)'], (v) => setState(() => _currency = v!)),
               ),
             ],
           ),

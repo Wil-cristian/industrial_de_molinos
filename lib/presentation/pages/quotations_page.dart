@@ -50,6 +50,13 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                     'quantity': item.quantity,
                     'totalWeight': item.totalWeight,
                     'totalPrice': item.totalPrice,
+                    'totalCost': item.totalCost,
+                    'pricePerKg': item.pricePerKg,
+                    'costPerKg': item.costPerKg,
+                    'unitSalePrice': item.pricePerKg,
+                    'unitCostPrice': item.costPerKg,
+                    'totalProfit': item.totalProfit,
+                    'profitMargin': item.profitMargin,
                   },
                 )
                 .toList(),
@@ -1720,7 +1727,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                   ),
                                   SizedBox(
                                     width: 120,
-                                    child: Text('S/ ${Helpers.formatNumber((item['totalPrice'] ?? 0) * (item['quantity'] ?? 1))}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), textAlign: TextAlign.right),
+                                    child: Text('\$ ${Helpers.formatNumber((item['totalPrice'] ?? 0) * (item['quantity'] ?? 1))}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), textAlign: TextAlign.right),
                                   ),
                                 ],
                               ),
@@ -1745,7 +1752,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     const Text('TOTAL', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                    Text('S/ ${Helpers.formatNumber(q['total'] ?? 0)}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: headerColor)),
+                                    Text('\$ ${Helpers.formatNumber(q['total'] ?? 0)}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: headerColor)),
                                   ],
                                 ),
                               ],
@@ -1889,13 +1896,13 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                 const Divider(),
                 const SizedBox(height: 16),
                 // Desglose por producto
-                ...items.map((item) => _buildProductBreakdown(item)),
+                ...items.map((item) => _buildProductBreakdown(item, q['profitMargin'] ?? 0)),
                 const SizedBox(height: 24),
                 const Divider(thickness: 2),
                 const SizedBox(height: 16),
-                // Resumen de costos
+                // Resumen de costos y análisis de ganancias
                 const Text(
-                  'RESUMEN DE COSTOS',
+                  'ANÁLISIS FINANCIERO',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 const SizedBox(height: 16),
@@ -1908,91 +1915,154 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                   ),
                   child: Column(
                     children: [
-                      _buildCostDetailRow(
-                        'Materiales',
-                        q['materialsCost'],
-                        Icons.inventory_2,
-                      ),
-                      _buildCostDetailRow(
-                        'Mano de Obra',
-                        q['laborCost'],
-                        Icons.engineering,
-                      ),
-                      _buildCostDetailRow(
-                        'Costos Indirectos',
-                        q['indirectCosts'],
-                        Icons.receipt_long,
-                      ),
-                      const Divider(thickness: 2),
-                      _buildCostDetailRow(
-                        'Subtotal',
-                        q['materialsCost'] +
-                            q['laborCost'] +
-                            q['indirectCosts'],
-                        Icons.calculate,
-                        isBold: true,
-                      ),
+                      // Sección de Costos
                       Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.shopping_cart, size: 18, color: Colors.red[700]),
+                                const SizedBox(width: 8),
+                                Text('COSTOS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700], fontSize: 13)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            _buildCostDetailRow('Costo Materiales', q['materialCostPrice'] ?? (q['materialsCost'] ?? 0) * 0.6, Icons.inventory_2),
+                            _buildCostDetailRow('Mano de Obra', q['laborCost'] ?? 0, Icons.engineering),
+                            _buildCostDetailRow('Costos Indirectos', q['indirectCosts'] ?? 0, Icons.receipt_long),
+                            const Divider(),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Costo Total', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Text(
+                                  Helpers.formatCurrency((q['materialCostPrice'] ?? (q['materialsCost'] ?? 0) * 0.6) + (q['laborCost'] ?? 0) + (q['indirectCosts'] ?? 0)),
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700]),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Sección de Ventas
+                      Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.green[50],
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                Icon(
-                                  Icons.trending_up,
-                                  color: Colors.green[700],
-                                  size: 20,
-                                ),
+                                Icon(Icons.sell, size: 18, color: Colors.green[700]),
                                 const SizedBox(width: 8),
-                                Text(
-                                  'Margen (${q['profitMargin']}%)',
-                                  style: TextStyle(color: Colors.green[700]),
-                                ),
+                                Text('VENTAS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 13)),
                               ],
                             ),
-                            Text(
-                              'S/ ${Helpers.formatNumber((q['materialsCost'] + q['laborCost'] + q['indirectCosts']) * q['profitMargin'] / 100)}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green[700],
-                              ),
+                            const SizedBox(height: 8),
+                            _buildCostDetailRow('Venta Materiales', q['materialsCost'] ?? 0, Icons.inventory_2),
+                            if ((q['discount'] ?? 0) > 0)
+                              _buildCostDetailRow('Descuento', -(q['discount'] ?? 0), Icons.discount),
+                            const Divider(),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Total Cotización', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Text(
+                                  Helpers.formatCurrency(q['total'] ?? 0),
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 16),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                      const Divider(thickness: 2),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      const SizedBox(height: 12),
+                      // Sección de Ganancias
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.payments, size: 24),
-                                SizedBox(width: 8),
-                                Text(
-                                  'TOTAL COTIZACIÓN',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
+                                Icon(Icons.trending_up, size: 18, color: Colors.blue[700]),
+                                const SizedBox(width: 8),
+                                Text('GANANCIAS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 13)),
                               ],
                             ),
-                            Text(
-                              Helpers.formatCurrency(q['total']),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 24,
-                                color: AppTheme.primaryColor,
-                              ),
-                            ),
+                            const SizedBox(height: 8),
+                            Builder(builder: (context) {
+                              final totalCost = (q['materialCostPrice'] ?? (q['materialsCost'] ?? 0) * 0.6) + (q['laborCost'] ?? 0) + (q['indirectCosts'] ?? 0);
+                              final totalSale = q['total'] ?? 0;
+                              final netProfit = totalSale - totalCost;
+                              final markup = totalCost > 0 ? (netProfit / totalCost * 100) : 0;
+                              
+                              return Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(Icons.payments, size: 16, color: Colors.blue[600]),
+                                          const SizedBox(width: 8),
+                                          const Text('Ganancia Neta'),
+                                        ],
+                                      ),
+                                      Text(
+                                        Helpers.formatCurrency(netProfit),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: netProfit >= 0 ? Colors.blue[700] : Colors.red[700],
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(Icons.percent, size: 16, color: Colors.purple[600]),
+                                          const SizedBox(width: 8),
+                                          const Text('Markup Total'),
+                                        ],
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: markup >= 0 ? Colors.purple[100] : Colors.red[100],
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          '${markup.toStringAsFixed(1)}%',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: markup >= 0 ? Colors.purple[700] : Colors.red[700],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              );
+                            }),
                           ],
                         ),
                       ),
@@ -2030,148 +2100,196 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
     );
   }
 
-  Widget _buildProductBreakdown(Map<String, dynamic> item) {
+  Widget _buildProductBreakdown(Map<String, dynamic> item, double quotationProfitMargin) {
     final components = item['components'] as List<dynamic>? ?? [];
+    final qty = item['quantity'] as int? ?? 1;
+    final totalWeight = (item['totalWeight'] as num?)?.toDouble() ?? 0;
+    final totalSalePrice = (item['totalPrice'] as num?)?.toDouble() ?? 0;
+    
+    // Calcular precios por kg basándose en los datos disponibles
+    // Si no hay unitCostPrice/unitSalePrice, los calculamos del totalPrice y margen
+    double unitSalePrice = (item['unitSalePrice'] as num?)?.toDouble() ?? 
+                           (item['pricePerKg'] as num?)?.toDouble() ?? 
+                           (totalWeight > 0 ? totalSalePrice / totalWeight : 0);
+    
+    // Calcular costo usando el margen de la cotización si no está disponible
+    // Fórmula: Costo = Venta / (1 + margen/100)
+    double unitCostPrice = (item['unitCostPrice'] as num?)?.toDouble() ?? 
+                           (item['costPrice'] as num?)?.toDouble() ?? 0;
+    
+    // Si no tenemos costo pero tenemos margen, calcularlo
+    if (unitCostPrice == 0 && quotationProfitMargin > 0 && unitSalePrice > 0) {
+      unitCostPrice = unitSalePrice / (1 + quotationProfitMargin / 100);
+    }
+    
+    // Calcular totales y ganancia
+    final totalCost = unitCostPrice * totalWeight;
+    final totalProfit = (item['totalProfit'] as num?)?.toDouble() ?? (totalSalePrice - totalCost);
+    final profitMargin = totalCost > 0 ? ((totalProfit / totalCost) * 100) : quotationProfitMargin;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
-          // Header del producto
+          // Header del producto - Información principal
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppTheme.primaryColor.withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(8),
-              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             ),
-            child: Row(
+            child: Column(
               children: [
-                Icon(
-                  Icons.precision_manufacturing,
-                  color: AppTheme.primaryColor,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.precision_manufacturing, color: AppTheme.primaryColor, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['name'] ?? 'Producto',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          Text(
+                            'Código: ${item['productCode'] ?? 'N/A'} | Cantidad: $qty | Peso: ${Helpers.formatNumber(totalWeight)} kg',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          Helpers.formatCurrency(totalSalePrice),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryColor),
+                        ),
+                        Text('Total Venta', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 12),
+                // Fila de métricas de precios
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
                     children: [
-                      Text(
-                        item['name'],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                      // Compra/kg
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Icon(Icons.shopping_cart_outlined, size: 16, color: Colors.orange[700]),
+                            const SizedBox(height: 4),
+                            Text(
+                              Helpers.formatCurrency(unitCostPrice),
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[700], fontSize: 13),
+                            ),
+                            Text('Compra/kg', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                          ],
                         ),
                       ),
-                      Text(
-                        'Código: ${item['productCode']} | Cantidad: ${item['quantity']}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      Container(width: 1, height: 40, color: Colors.grey[300]),
+                      // Venta/kg
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Icon(Icons.sell_outlined, size: 16, color: Colors.green[700]),
+                            const SizedBox(height: 4),
+                            Text(
+                              Helpers.formatCurrency(unitSalePrice),
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 13),
+                            ),
+                            Text('Venta/kg', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                          ],
+                        ),
+                      ),
+                      Container(width: 1, height: 40, color: Colors.grey[300]),
+                      // Ganancia Total
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Icon(Icons.trending_up, size: 16, color: Colors.blue[700]),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${Helpers.formatCurrency(totalProfit)} (${profitMargin.toStringAsFixed(1)}%)',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 13),
+                            ),
+                            Text('Ganancia Total', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                          ],
+                        ),
+                      ),
+                      Container(width: 1, height: 40, color: Colors.grey[300]),
+                      // Costo Total
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Icon(Icons.account_balance_wallet_outlined, size: 16, color: Colors.red[700]),
+                            const SizedBox(height: 4),
+                            Text(
+                              Helpers.formatCurrency(totalCost),
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700], fontSize: 13),
+                            ),
+                            Text('Costo Total', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'S/ ${Helpers.formatNumber(item['totalPrice'])}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                    Text(
-                      '${Helpers.formatNumber(item['totalWeight'])} kg',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
-          // Componentes
+          // Componentes del producto
           if (components.isNotEmpty) ...[
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               color: Colors.grey[100],
-              child: const Row(
+              child: Row(
                 children: [
-                  SizedBox(
-                    width: 30,
-                    child: Text(
-                      'Qty',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Componente',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Material',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Dimensiones',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 60,
-                    child: Text(
-                      'Peso',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 80,
-                    child: Text(
-                      'Precio',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
+                  const SizedBox(width: 30, child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                  const Expanded(flex: 2, child: Text('Componente', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                  const Expanded(flex: 2, child: Text('Material', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                  SizedBox(width: 70, child: Text('Compra/kg', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.orange[700]), textAlign: TextAlign.right)),
+                  SizedBox(width: 70, child: Text('Venta/kg', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green[700]), textAlign: TextAlign.right)),
+                  SizedBox(width: 70, child: Text('Ganancia', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.blue[700]), textAlign: TextAlign.right)),
+                  const SizedBox(width: 80, child: Text('Total Venta', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
                 ],
               ),
             ),
-            ...components.map(
-              (comp) => Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+            ...components.take(10).map((comp) {
+              final compWeight = (comp['totalWeight'] ?? comp['weight'] ?? 0) as num;
+              final compTotalSale = (comp['totalPrice'] ?? comp['price'] ?? 0) as num;
+              final compSalePrice = (comp['unitSalePrice'] ?? comp['pricePerKg'] ?? (compWeight > 0 ? compTotalSale / compWeight : 0)) as num;
+              
+              // Calcular costo del componente usando el margen
+              var compCostPrice = (comp['unitCostPrice'] ?? comp['costPrice'] ?? 0) as num;
+              if (compCostPrice == 0 && quotationProfitMargin > 0 && compSalePrice > 0) {
+                compCostPrice = compSalePrice / (1 + quotationProfitMargin / 100);
+              }
+              
+              final compTotalCost = compCostPrice * compWeight;
+              final compTotalProfit = (comp['totalProfit'] ?? (compTotalSale - compTotalCost)) as num;
+              
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   border: Border(top: BorderSide(color: Colors.grey[200]!)),
                 ),
@@ -2179,55 +2297,63 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                   children: [
                     SizedBox(
                       width: 30,
-                      child: Text(
-                        '${comp['quantity']}×',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
+                      child: Text('${comp['quantity']}×', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                     ),
                     Expanded(
                       flex: 2,
-                      child: Text(
-                        comp['name'],
-                        style: const TextStyle(fontSize: 12),
-                      ),
+                      child: Text(comp['name'] ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
                     ),
                     Expanded(
                       flex: 2,
-                      child: Text(
-                        comp['material'],
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                      ),
+                      child: Text(comp['material'] ?? '', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
                     ),
-                    Expanded(
-                      flex: 2,
+                    SizedBox(
+                      width: 70,
                       child: Text(
-                        comp['dimensions'],
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        Helpers.formatCurrency(compCostPrice.toDouble()),
+                        style: TextStyle(fontSize: 11, color: Colors.orange[700]),
+                        textAlign: TextAlign.right,
                       ),
                     ),
                     SizedBox(
-                      width: 60,
+                      width: 70,
                       child: Text(
-                        '${Helpers.formatNumber(comp['weight'])} kg',
-                        style: const TextStyle(fontSize: 12),
+                        Helpers.formatCurrency(compSalePrice.toDouble()),
+                        style: TextStyle(fontSize: 11, color: Colors.green[700]),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 70,
+                      child: Text(
+                        Helpers.formatCurrency(compTotalProfit.toDouble()),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.blue[700]),
                         textAlign: TextAlign.right,
                       ),
                     ),
                     SizedBox(
                       width: 80,
                       child: Text(
-                        'S/ ${Helpers.formatNumber(comp['price'])}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        Helpers.formatCurrency(compTotalSale.toDouble()),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.right,
                       ),
                     ),
                   ],
                 ),
+              );
+            }),
+            if (components.length > 10)
+              Container(
+                padding: const EdgeInsets.all(8),
+                color: Colors.grey[100],
+                child: Center(
+                  child: Text(
+                    '... y ${components.length - 10} componentes más',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600], fontStyle: FontStyle.italic),
+                  ),
+                ),
               ),
-            ),
           ],
         ],
       ),
@@ -2248,7 +2374,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             ),
           ),
           Text(
-            'S/ ${Helpers.formatNumber(value)}',
+            '\$ ${Helpers.formatNumber(value)}',
             style: TextStyle(
               fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
               fontSize: isTotal ? 18 : 13,
@@ -2284,7 +2410,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             ],
           ),
           Text(
-            'S/ ${Helpers.formatNumber(value)}',
+            '\$ ${Helpers.formatNumber(value)}',
             style: TextStyle(
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             ),
