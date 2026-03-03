@@ -635,7 +635,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                   ),
                 ),
               ],
-              if (invoice['status'] != 'Anulada') ...[
+              if (invoice['status'] != 'Anulada' &&
+                  invoice['status'] != 'Pagada' &&
+                  invoice['status'] != 'Parcial') ...[
                 const PopupMenuDivider(),
                 const PopupMenuItem(
                   value: 'cancel',
@@ -1299,51 +1301,249 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
   }
 
   void _confirmCancelInvoice(Map<String, dynamic> invoice) {
-    // Capturar ScaffoldMessenger ANTES de abrir el diálogo
-    // para evitar usar context del diálogo después de cerrarlo
     final messenger = ScaffoldMessenger.of(context);
+    final invoiceId = invoice['id'] as String;
+    final invoiceNumber = invoice['number'] ?? '';
+    final status = invoice['status'] ?? 'Borrador';
+    final paidAmount = (invoice['paid'] as num?)?.toDouble() ?? 0.0;
+    final total = (invoice['total'] as num?)?.toDouble() ?? 0.0;
+
+    // ═══════════════════════════════════════════════
+    // BLINDAJE 1: Bloquear facturas pagadas/parciales
+    // ═══════════════════════════════════════════════
+    if (status == 'Pagada' || status == 'Parcial' || paidAmount > 0) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.shield, color: Colors.red[700], size: 28),
+              const SizedBox(width: 8),
+              const Text('Anulación Bloqueada'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red[300]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.lock, color: Colors.red[700], size: 24),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'No se puede anular esta factura',
+                            style: TextStyle(
+                              color: Colors.red[800],
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'La factura $invoiceNumber tiene pagos registrados '
+                      'por \$${paidAmount.toStringAsFixed(2)} de un total de \$${total.toStringAsFixed(2)}.',
+                      style: TextStyle(color: Colors.red[700], fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Las facturas con pagos no pueden ser anuladas para '
+                      'proteger la integridad contable del sistema.',
+                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Si necesita corregir esta factura, contacte al administrador del sistema.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // ═══════════════════════════════════════════════
+    // BLINDAJE 2: Factura ya está anulada
+    // ═══════════════════════════════════════════════
+    if (status == 'Anulada' || status == 'cancelled') {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Esta factura ya está anulada'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // ═══════════════════════════════════════════════
+    // ANULACIÓN PERMITIDA: Mostrar diálogo con motivo
+    // ═══════════════════════════════════════════════
+    final reasonController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Anular documento'),
-        content: Text(
-          '¿Está seguro de anular el documento ${invoice['number']}?\n\nEsta acción no se puede deshacer.',
+        title: Row(
+          children: [
+            Icon(Icons.block, color: Colors.red, size: 28),
+            const SizedBox(width: 12),
+            const Text('Anular Factura'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange[300]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber, color: Colors.orange[700]),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Esta acción anulará la factura $invoiceNumber de forma permanente '
+                      'y se registrará en el historial de auditoría.',
+                      style: TextStyle(color: Colors.orange[800], fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Estado actual: $status  |  Total: \$${total.toStringAsFixed(2)}',
+              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Motivo de anulación *',
+                hintText:
+                    'Ej: Error en los datos, duplicada, solicitud del cliente...',
+                prefixIcon: Icon(Icons.comment),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
-          FilledButton(
+          FilledButton.icon(
             onPressed: () async {
-              Navigator.pop(dialogContext);
-              try {
-                // Anular la factura en la base de datos
-                await InvoicesDataSource.updateStatus(
-                  invoice['id'],
-                  'cancelled',
-                );
-                // Refrescar la lista
-                ref.read(invoicesProvider.notifier).refresh();
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Documento ${invoice['number']} anulado correctamente',
-                    ),
-                    backgroundColor: Colors.green,
+              if (reasonController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('Debe ingresar un motivo de anulación'),
+                    backgroundColor: Colors.orange,
                   ),
                 );
+                return;
+              }
+              Navigator.pop(dialogContext);
+
+              try {
+                // Usar anulación segura server-side
+                final result = await InvoicesDataSource.secureCancelInvoice(
+                  invoiceId,
+                  reason: reasonController.text.trim(),
+                );
+
+                if (result['success'] == true) {
+                  // Refrescar la lista
+                  ref.read(invoicesProvider.notifier).refresh();
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Factura ${result['invoice_number']} anulada correctamente ✓',
+                          ),
+                          if (result['inventory_reverted'] == true)
+                            Text(
+                              '✓ Inventario restaurado (${result['inventory_items']} items)',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
+                } else if (result['blocked'] == true) {
+                  // Fue bloqueada por el servidor
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('🚫 ${result['reason']}'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 6),
+                    ),
+                  );
+                }
               } catch (e) {
                 messenger.showSnackBar(
                   SnackBar(
                     content: Text('Error al anular: $e'),
                     backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 5),
                   ),
                 );
               }
             },
+            icon: const Icon(Icons.block, color: Colors.white),
+            label: const Text('Anular', style: TextStyle(color: Colors.white)),
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Anular'),
           ),
         ],
       ),
@@ -1674,7 +1874,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                     ),
                   if (inv['status'] != 'Pagada' && inv['status'] != 'Anulada')
                     const SizedBox(width: 8),
-                  if (inv['status'] != 'Anulada')
+                  if (inv['status'] != 'Anulada' &&
+                      inv['status'] != 'Pagada' &&
+                      inv['status'] != 'Parcial')
                     OutlinedButton.icon(
                       onPressed: () {
                         Navigator.pop(context);

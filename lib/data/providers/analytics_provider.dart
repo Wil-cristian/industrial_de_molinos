@@ -15,6 +15,10 @@ class AnalyticsState {
   final List<DSOMonthly> dsoTrend;
   final CollectionKPIs? collectionKPIs;
   final List<ProductABC> productABC;
+  final List<BusinessHealthMonthly> businessHealthTrend;
+  final BusinessHealthSnapshot? healthSnapshot;
+  final List<InventoryTurnover> inventoryTurnover;
+  final List<MaterialEfficiency> materialEfficiency;
   final bool isLoading;
   final String? error;
 
@@ -27,6 +31,10 @@ class AnalyticsState {
     this.dsoTrend = const [],
     this.collectionKPIs,
     this.productABC = const [],
+    this.businessHealthTrend = const [],
+    this.healthSnapshot,
+    this.inventoryTurnover = const [],
+    this.materialEfficiency = const [],
     this.isLoading = false,
     this.error,
   });
@@ -40,6 +48,10 @@ class AnalyticsState {
     List<DSOMonthly>? dsoTrend,
     CollectionKPIs? collectionKPIs,
     List<ProductABC>? productABC,
+    List<BusinessHealthMonthly>? businessHealthTrend,
+    BusinessHealthSnapshot? healthSnapshot,
+    List<InventoryTurnover>? inventoryTurnover,
+    List<MaterialEfficiency>? materialEfficiency,
     bool? isLoading,
     String? error,
   }) {
@@ -52,6 +64,10 @@ class AnalyticsState {
       dsoTrend: dsoTrend ?? this.dsoTrend,
       collectionKPIs: collectionKPIs ?? this.collectionKPIs,
       productABC: productABC ?? this.productABC,
+      businessHealthTrend: businessHealthTrend ?? this.businessHealthTrend,
+      healthSnapshot: healthSnapshot ?? this.healthSnapshot,
+      inventoryTurnover: inventoryTurnover ?? this.inventoryTurnover,
+      materialEfficiency: materialEfficiency ?? this.materialEfficiency,
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -91,6 +107,10 @@ class AnalyticsNotifier extends Notifier<AnalyticsState> {
         AnalyticsDataSource.getDSOTrend(months: 12),
         AnalyticsDataSource.getCollectionKPIs(),
         AnalyticsDataSource.getProductABCAnalysis(),
+        AnalyticsDataSource.getBusinessHealthMonthly(),
+        AnalyticsDataSource.getBusinessHealthSnapshot(),
+        AnalyticsDataSource.getInventoryTurnover(),
+        AnalyticsDataSource.getMaterialEfficiency(),
       ]);
 
       state = state.copyWith(
@@ -102,6 +122,10 @@ class AnalyticsNotifier extends Notifier<AnalyticsState> {
         dsoTrend: results[5] as List<DSOMonthly>,
         collectionKPIs: results[6] as CollectionKPIs,
         productABC: results[7] as List<ProductABC>,
+        businessHealthTrend: results[8] as List<BusinessHealthMonthly>,
+        healthSnapshot: results[9] as BusinessHealthSnapshot,
+        inventoryTurnover: results[10] as List<InventoryTurnover>,
+        materialEfficiency: results[11] as List<MaterialEfficiency>,
         isLoading: false,
       );
     } catch (e) {

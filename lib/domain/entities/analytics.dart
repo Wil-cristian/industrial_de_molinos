@@ -530,6 +530,259 @@ class CollectionKPIs {
   }
 }
 
+/// Salud del Negocio - Mensual (Crédito vs Ganancia vs Inventario)
+class BusinessHealthMonthly {
+  final DateTime month;
+  final int year;
+  final int monthNum;
+  final double creditExtended;
+  final double revenue;
+  final double collected;
+  final double estimatedProfit;
+  final double inventoryValue;
+  final double productInventory;
+  final double materialInventory;
+  final double creditToRevenueRatio;
+  final double collectionRatio;
+
+  BusinessHealthMonthly({
+    required this.month,
+    required this.year,
+    required this.monthNum,
+    this.creditExtended = 0,
+    this.revenue = 0,
+    this.collected = 0,
+    this.estimatedProfit = 0,
+    this.inventoryValue = 0,
+    this.productInventory = 0,
+    this.materialInventory = 0,
+    this.creditToRevenueRatio = 0,
+    this.collectionRatio = 0,
+  });
+
+  factory BusinessHealthMonthly.fromJson(Map<String, dynamic> json) {
+    return BusinessHealthMonthly(
+      month: DateTime.tryParse(json['month']?.toString() ?? '') ?? DateTime.now(),
+      year: (json['year'] as num?)?.toInt() ?? DateTime.now().year,
+      monthNum: (json['month_num'] as num?)?.toInt() ?? 1,
+      creditExtended: (json['credit_extended'] as num?)?.toDouble() ?? 0,
+      revenue: (json['revenue'] as num?)?.toDouble() ?? 0,
+      collected: (json['collected'] as num?)?.toDouble() ?? 0,
+      estimatedProfit: (json['estimated_profit'] as num?)?.toDouble() ?? 0,
+      inventoryValue: (json['inventory_value'] as num?)?.toDouble() ?? 0,
+      productInventory: (json['product_inventory'] as num?)?.toDouble() ?? 0,
+      materialInventory: (json['material_inventory'] as num?)?.toDouble() ?? 0,
+      creditToRevenueRatio: (json['credit_to_revenue_ratio'] as num?)?.toDouble() ?? 0,
+      collectionRatio: (json['collection_ratio'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  String get monthName {
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return months[(monthNum - 1).clamp(0, 11)];
+  }
+}
+
+/// Snapshot de Salud del Negocio
+class BusinessHealthSnapshot {
+  final int totalInvoices;
+  final double totalRevenue;
+  final double totalCollected;
+  final double totalReceivables;
+  final double overdueAmount;
+  final int overdueCount;
+  final double avgInvoiceValue;
+  final int totalProducts;
+  final double productInventoryValue;
+  final int lowStockProducts;
+  final int outOfStockProducts;
+  final int totalMaterials;
+  final double materialInventoryValue;
+  final int lowStockMaterials;
+  final int outOfStockMaterials;
+  final double totalInventoryValue;
+  final double totalCreditLimit;
+  final double totalCreditUsed;
+  final double creditUtilizationPct;
+  final double revenueLast30d;
+  final double collectedLast30d;
+  final int invoicesLast30d;
+  final double receivablesToRevenuePct;
+  final double inventoryToRevenuePct;
+  final int healthScore;
+
+  BusinessHealthSnapshot({
+    this.totalInvoices = 0,
+    this.totalRevenue = 0,
+    this.totalCollected = 0,
+    this.totalReceivables = 0,
+    this.overdueAmount = 0,
+    this.overdueCount = 0,
+    this.avgInvoiceValue = 0,
+    this.totalProducts = 0,
+    this.productInventoryValue = 0,
+    this.lowStockProducts = 0,
+    this.outOfStockProducts = 0,
+    this.totalMaterials = 0,
+    this.materialInventoryValue = 0,
+    this.lowStockMaterials = 0,
+    this.outOfStockMaterials = 0,
+    this.totalInventoryValue = 0,
+    this.totalCreditLimit = 0,
+    this.totalCreditUsed = 0,
+    this.creditUtilizationPct = 0,
+    this.revenueLast30d = 0,
+    this.collectedLast30d = 0,
+    this.invoicesLast30d = 0,
+    this.receivablesToRevenuePct = 0,
+    this.inventoryToRevenuePct = 0,
+    this.healthScore = 0,
+  });
+
+  factory BusinessHealthSnapshot.fromJson(Map<String, dynamic> json) {
+    return BusinessHealthSnapshot(
+      totalInvoices: (json['total_invoices'] as num?)?.toInt() ?? 0,
+      totalRevenue: (json['total_revenue'] as num?)?.toDouble() ?? 0,
+      totalCollected: (json['total_collected'] as num?)?.toDouble() ?? 0,
+      totalReceivables: (json['total_receivables'] as num?)?.toDouble() ?? 0,
+      overdueAmount: (json['overdue_amount'] as num?)?.toDouble() ?? 0,
+      overdueCount: (json['overdue_count'] as num?)?.toInt() ?? 0,
+      avgInvoiceValue: (json['avg_invoice_value'] as num?)?.toDouble() ?? 0,
+      totalProducts: (json['total_products'] as num?)?.toInt() ?? 0,
+      productInventoryValue: (json['product_inventory_value'] as num?)?.toDouble() ?? 0,
+      lowStockProducts: (json['low_stock_products'] as num?)?.toInt() ?? 0,
+      outOfStockProducts: (json['out_of_stock_products'] as num?)?.toInt() ?? 0,
+      totalMaterials: (json['total_materials'] as num?)?.toInt() ?? 0,
+      materialInventoryValue: (json['material_inventory_value'] as num?)?.toDouble() ?? 0,
+      lowStockMaterials: (json['low_stock_materials'] as num?)?.toInt() ?? 0,
+      outOfStockMaterials: (json['out_of_stock_materials'] as num?)?.toInt() ?? 0,
+      totalInventoryValue: (json['total_inventory_value'] as num?)?.toDouble() ?? 0,
+      totalCreditLimit: (json['total_credit_limit'] as num?)?.toDouble() ?? 0,
+      totalCreditUsed: (json['total_credit_used'] as num?)?.toDouble() ?? 0,
+      creditUtilizationPct: (json['credit_utilization_pct'] as num?)?.toDouble() ?? 0,
+      revenueLast30d: (json['revenue_last_30d'] as num?)?.toDouble() ?? 0,
+      collectedLast30d: (json['collected_last_30d'] as num?)?.toDouble() ?? 0,
+      invoicesLast30d: (json['invoices_30d'] as num?)?.toInt() ?? 0,
+      receivablesToRevenuePct: (json['receivables_to_revenue_pct'] as num?)?.toDouble() ?? 0,
+      inventoryToRevenuePct: (json['inventory_to_revenue_pct'] as num?)?.toDouble() ?? 0,
+      healthScore: (json['health_score'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  String get healthLabel {
+    if (healthScore >= 80) return 'Excelente';
+    if (healthScore >= 60) return 'Bueno';
+    if (healthScore >= 40) return 'Regular';
+    if (healthScore >= 20) return 'En Riesgo';
+    return 'Crítico';
+  }
+}
+
+/// Rotación de Inventario por Producto
+class InventoryTurnover {
+  final String productId;
+  final String productCode;
+  final String productName;
+  final String? category;
+  final double currentStock;
+  final double unitPrice;
+  final double costPrice;
+  final double stockValue;
+  final double qtySold90Days;
+  final double revenue90Days;
+  final double annualTurnoverRate;
+  final int daysOfInventory;
+  final String inventoryStatus;
+
+  InventoryTurnover({
+    required this.productId,
+    required this.productCode,
+    required this.productName,
+    this.category,
+    this.currentStock = 0,
+    this.unitPrice = 0,
+    this.costPrice = 0,
+    this.stockValue = 0,
+    this.qtySold90Days = 0,
+    this.revenue90Days = 0,
+    this.annualTurnoverRate = 0,
+    this.daysOfInventory = 999,
+    this.inventoryStatus = 'NORMAL',
+  });
+
+  factory InventoryTurnover.fromJson(Map<String, dynamic> json) {
+    return InventoryTurnover(
+      productId: json['product_id'] ?? '',
+      productCode: json['product_code'] ?? '',
+      productName: json['product_name'] ?? '',
+      category: json['category'],
+      currentStock: (json['current_stock'] as num?)?.toDouble() ?? 0,
+      unitPrice: (json['unit_price'] as num?)?.toDouble() ?? 0,
+      costPrice: (json['cost_price'] as num?)?.toDouble() ?? 0,
+      stockValue: (json['stock_value'] as num?)?.toDouble() ?? 0,
+      qtySold90Days: (json['qty_sold_90_days'] as num?)?.toDouble() ?? 0,
+      revenue90Days: (json['revenue_90_days'] as num?)?.toDouble() ?? 0,
+      annualTurnoverRate: (json['annual_turnover_rate'] as num?)?.toDouble() ?? 0,
+      daysOfInventory: (json['days_of_inventory'] as num?)?.toInt() ?? 999,
+      inventoryStatus: json['inventory_status'] ?? 'NORMAL',
+    );
+  }
+}
+
+/// Eficiencia de Materia Prima
+class MaterialEfficiency {
+  final String materialId;
+  final String materialCode;
+  final String materialName;
+  final String? category;
+  final String? unit;
+  final double currentStock;
+  final double unitCost;
+  final double stockValue;
+  final double consumed90Days;
+  final double received90Days;
+  final int movements90Days;
+  final double dailyConsumptionRate;
+  final int daysOfStockRemaining;
+  final String reorderStatus;
+
+  MaterialEfficiency({
+    required this.materialId,
+    required this.materialCode,
+    required this.materialName,
+    this.category,
+    this.unit,
+    this.currentStock = 0,
+    this.unitCost = 0,
+    this.stockValue = 0,
+    this.consumed90Days = 0,
+    this.received90Days = 0,
+    this.movements90Days = 0,
+    this.dailyConsumptionRate = 0,
+    this.daysOfStockRemaining = 999,
+    this.reorderStatus = 'NORMAL',
+  });
+
+  factory MaterialEfficiency.fromJson(Map<String, dynamic> json) {
+    return MaterialEfficiency(
+      materialId: json['material_id'] ?? '',
+      materialCode: json['material_code'] ?? '',
+      materialName: json['material_name'] ?? '',
+      category: json['category'],
+      unit: json['unit'],
+      currentStock: (json['current_stock'] as num?)?.toDouble() ?? 0,
+      unitCost: (json['unit_cost'] as num?)?.toDouble() ?? 0,
+      stockValue: (json['stock_value'] as num?)?.toDouble() ?? 0,
+      consumed90Days: (json['consumed_90_days'] as num?)?.toDouble() ?? 0,
+      received90Days: (json['received_90_days'] as num?)?.toDouble() ?? 0,
+      movements90Days: (json['movements_90_days'] as num?)?.toInt() ?? 0,
+      dailyConsumptionRate: (json['daily_consumption_rate'] as num?)?.toDouble() ?? 0,
+      daysOfStockRemaining: (json['days_of_stock_remaining'] as num?)?.toInt() ?? 999,
+      reorderStatus: json['reorder_status'] ?? 'NORMAL',
+    );
+  }
+}
+
 /// Producto con análisis ABC (Pareto)
 class ProductABC {
   final String productName;

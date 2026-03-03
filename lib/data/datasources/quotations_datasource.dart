@@ -291,19 +291,27 @@ class QuotationsDataSource {
     }
   }
 
-  /// Anular cotización atómicamente (incluye factura y material_movements)
+  /// Anular cotización atómicamente con blindaje anti-fraude
+  /// Si la factura asociada tiene pagos, la anulación será BLOQUEADA
   static Future<Map<String, dynamic>> annulQuotation(
     String quotationId, {
     String reason = 'Anulada por el usuario',
   }) async {
     try {
-      AppLogger.debug('🚫 Anulando cotización: $quotationId');
+      AppLogger.debug('🔒 Anulación segura de cotización: $quotationId');
       final response = await _client.rpc(
-        'annul_quotation',
+        'secure_annul_quotation',
         params: {'p_quotation_id': quotationId, 'p_reason': reason},
       );
-      AppLogger.success('✅ Cotización anulada: $response');
-      return Map<String, dynamic>.from(response ?? {});
+      final result = Map<String, dynamic>.from(response ?? {});
+
+      if (result['success'] == true) {
+        AppLogger.success('✅ Cotización anulada: $result');
+      } else if (result['blocked'] == true) {
+        AppLogger.warning('🚫 Anulación bloqueada: ${result['reason']}');
+      }
+
+      return result;
     } catch (e) {
       AppLogger.error('❌ Error al anular cotización: $e');
       rethrow;

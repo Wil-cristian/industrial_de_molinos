@@ -230,9 +230,11 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           ),
           const SizedBox(height: 16),
 
-          // ROW 2: KPIs de Cobranzas (DSO, CEI, AR Turnover)
+          // ROW 2: Score de Salud + KPIs de Cobranzas (DSO, CEI, AR Turnover)
           Row(
             children: [
+              Expanded(child: _buildHealthScoreCard(state)),
+              const SizedBox(width: 12),
               Expanded(child: _buildDSOCard(state)),
               const SizedBox(width: 12),
               Expanded(child: _buildCEIGauge(state)),
@@ -277,6 +279,21 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
 
           // ROW 6: Profit/Loss detallado
           _buildProfitLossDetailedCard(state),
+          const SizedBox(height: 16),
+
+          // ROW 7: Crédito vs Ganancia vs Inventario (NUEVO)
+          _buildCreditProfitInventoryChart(state),
+          const SizedBox(height: 16),
+
+          // ROW 8: Rotación de Inventario + Eficiencia de Materiales (NUEVO)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildInventoryTurnoverCard(state)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildMaterialEfficiencyCard(state)),
+            ],
+          ),
         ],
       ),
     );
@@ -2129,6 +2146,632 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           ),
         ),
       ],
+    );
+  }
+
+  // ============================================================
+  // NUEVAS GRÁFICAS - FASE 2 (KPIs Industriales)
+  // ============================================================
+
+  // Score de Salud del Negocio
+  Widget _buildHealthScoreCard(AnalyticsState state) {
+    final snapshot = state.healthSnapshot;
+    final score = snapshot?.healthScore ?? 0;
+    final label = snapshot?.healthLabel ?? 'Sin datos';
+
+    Color getScoreColor() {
+      if (score >= 80) return Colors.green;
+      if (score >= 60) return Colors.blue;
+      if (score >= 40) return Colors.orange;
+      if (score >= 20) return Colors.deepOrange;
+      return Colors.red;
+    }
+
+    return Container(
+      height: 160,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.health_and_safety, color: getScoreColor(), size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Salud',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Tooltip(
+                message: 'Score basado en cobros, inventario y mora',
+                child: Icon(Icons.info_outline, size: 16, color: Colors.grey[400]),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Center(
+            child: Text(
+              '$score',
+              style: TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                color: getScoreColor(),
+              ),
+            ),
+          ),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+              decoration: BoxDecoration(
+                color: getScoreColor().withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: getScoreColor(),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: score / 100,
+              minHeight: 6,
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation(getScoreColor()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Gráfico: Crédito vs Ganancia vs Inventario (mensual)
+  Widget _buildCreditProfitInventoryChart(AnalyticsState state) {
+    final data = state.businessHealthTrend;
+    final hasData = data.isNotEmpty && data.any((d) => d.revenue > 0 || d.creditExtended > 0);
+
+    return Container(
+      height: 400,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.compare_arrows, color: Colors.indigo, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Crédito vs Ganancia vs Inventario',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              _buildLegendDot('Crédito Otorgado', Colors.red),
+              const SizedBox(width: 12),
+              _buildLegendDot('Ingresos', Colors.green),
+              const SizedBox(width: 12),
+              _buildLegendDot('Ganancia Est.', Colors.blue),
+              const SizedBox(width: 12),
+              _buildLegendDot('Inventario', Colors.orange),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Summary numbers
+          if (state.healthSnapshot != null)
+            Row(
+              children: [
+                _buildMiniMetric('Crédito Activo', state.healthSnapshot!.totalReceivables, Colors.red),
+                const SizedBox(width: 16),
+                _buildMiniMetric('Ventas Totales', state.healthSnapshot!.totalRevenue, Colors.green),
+                const SizedBox(width: 16),
+                _buildMiniMetric('Inventario', state.healthSnapshot!.totalInventoryValue, Colors.orange),
+                const SizedBox(width: 16),
+                _buildMiniMetric('Cobrado', state.healthSnapshot!.totalCollected, Colors.teal),
+              ],
+            ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: !hasData
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.show_chart, size: 48, color: Colors.grey[300]),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Sin datos de ventas para comparar.\nCrea facturas para ver esta gráfica.',
+                          style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                : LineChart(
+                    LineChartData(
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        getDrawingHorizontalLine: (value) =>
+                            FlLine(color: Colors.grey[200]!, strokeWidth: 1),
+                      ),
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 60,
+                            getTitlesWidget: (value, meta) {
+                              if (value == meta.max || value == meta.min) {
+                                return const SizedBox();
+                              }
+                              return Text(
+                                _formatCompact(value),
+                                style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+                              );
+                            },
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final idx = value.toInt();
+                              if (idx >= 0 && idx < data.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    data[idx].monthName,
+                                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                                  ),
+                                );
+                              }
+                              return const SizedBox();
+                            },
+                          ),
+                        ),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      lineBarsData: [
+                        // Línea: Crédito otorgado (rojo)
+                        LineChartBarData(
+                          spots: data.asMap().entries
+                              .map((e) => FlSpot(e.key.toDouble(), e.value.creditExtended))
+                              .toList(),
+                          isCurved: true,
+                          color: Colors.red,
+                          barWidth: 3,
+                          dotData: const FlDotData(show: true),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            color: Colors.red.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        // Línea: Ingresos (verde)
+                        LineChartBarData(
+                          spots: data.asMap().entries
+                              .map((e) => FlSpot(e.key.toDouble(), e.value.revenue))
+                              .toList(),
+                          isCurved: true,
+                          color: Colors.green,
+                          barWidth: 3,
+                          dotData: const FlDotData(show: true),
+                        ),
+                        // Línea: Ganancia estimada (azul, dashed)
+                        LineChartBarData(
+                          spots: data.asMap().entries
+                              .map((e) => FlSpot(e.key.toDouble(), e.value.estimatedProfit))
+                              .toList(),
+                          isCurved: true,
+                          color: Colors.blue,
+                          barWidth: 2,
+                          dashArray: [5, 5],
+                          dotData: const FlDotData(show: false),
+                        ),
+                        // Línea: Inventario (naranja)
+                        LineChartBarData(
+                          spots: data.asMap().entries
+                              .map((e) => FlSpot(e.key.toDouble(), e.value.inventoryValue))
+                              .toList(),
+                          isCurved: true,
+                          color: Colors.orange,
+                          barWidth: 2,
+                          dotData: const FlDotData(show: false),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            color: Colors.orange.withValues(alpha: 0.05),
+                          ),
+                        ),
+                      ],
+                      lineTouchData: LineTouchData(
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipItems: (spots) {
+                            return spots.map((spot) {
+                              final labels = ['Crédito', 'Ingresos', 'Ganancia', 'Inventario'];
+                              final colors = [Colors.red, Colors.green, Colors.blue, Colors.orange];
+                              return LineTooltipItem(
+                                '${labels[spot.barIndex]}: ${Helpers.formatCurrency(spot.y)}',
+                                TextStyle(color: colors[spot.barIndex], fontSize: 11),
+                              );
+                            }).toList();
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniMetric(String label, double value, Color color) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+          Text(
+            Helpers.formatCurrency(value),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatCompact(double value) {
+    if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
+    if (value >= 1000) return '${(value / 1000).toStringAsFixed(0)}K';
+    return value.toStringAsFixed(0);
+  }
+
+  // Card: Rotación de Inventario de Productos
+  Widget _buildInventoryTurnoverCard(AnalyticsState state) {
+    final items = state.inventoryTurnover;
+    final hasData = items.isNotEmpty;
+
+    return Container(
+      height: 400,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.autorenew, color: Colors.teal, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Rotación de Inventario',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Tooltip(
+                message: 'Veces que el inventario se renueva al año.\nMayor rotación = mejor eficiencia.',
+                child: Icon(Icons.info_outline, size: 16, color: Colors.grey[400]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: !hasData
+                ? Center(
+                    child: Text(
+                      'Sin datos de productos',
+                      style: TextStyle(color: Colors.grey[500]),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      Color statusColor;
+                      IconData statusIcon;
+                      switch (item.inventoryStatus) {
+                        case 'SIN_STOCK':
+                          statusColor = Colors.red;
+                          statusIcon = Icons.error;
+                          break;
+                        case 'STOCK_BAJO':
+                          statusColor = Colors.orange;
+                          statusIcon = Icons.warning;
+                          break;
+                        case 'SIN_MOVIMIENTO':
+                          statusColor = Colors.grey;
+                          statusIcon = Icons.pause_circle;
+                          break;
+                        case 'SOBREINVENTARIO':
+                          statusColor = Colors.purple;
+                          statusIcon = Icons.inventory_2;
+                          break;
+                        default:
+                          statusColor = Colors.green;
+                          statusIcon = Icons.check_circle;
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          children: [
+                            Icon(statusIcon, size: 16, color: statusColor),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.productName,
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    item.productCode,
+                                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '${item.annualTurnoverRate.toStringAsFixed(1)}x',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: item.annualTurnoverRate > 4 ? Colors.green : (item.annualTurnoverRate > 1 ? Colors.orange : Colors.red),
+                                    ),
+                                  ),
+                                  Text(
+                                    'Rotación/año',
+                                    style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    item.daysOfInventory >= 999 ? '∞' : '${item.daysOfInventory}d',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: item.daysOfInventory > 180 ? Colors.red : (item.daysOfInventory > 90 ? Colors.orange : Colors.green),
+                                    ),
+                                  ),
+                                  Text(
+                                    'Días inv.',
+                                    style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    Helpers.formatCurrency(item.stockValue),
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                                  ),
+                                  Text(
+                                    'Valor stock',
+                                    style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Card: Eficiencia de Materia Prima
+  Widget _buildMaterialEfficiencyCard(AnalyticsState state) {
+    final items = state.materialEfficiency;
+    final hasData = items.isNotEmpty;
+
+    return Container(
+      height: 400,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.precision_manufacturing, color: Colors.brown, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Eficiencia Materia Prima',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Tooltip(
+                message: 'Consumo y duración estimada de materiales.\nSemáforo de reabastecimiento automático.',
+                child: Icon(Icons.info_outline, size: 16, color: Colors.grey[400]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: !hasData
+                ? Center(
+                    child: Text(
+                      'Sin datos de materiales',
+                      style: TextStyle(color: Colors.grey[500]),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      Color statusColor;
+                      String statusLabel;
+                      switch (item.reorderStatus) {
+                        case 'URGENTE':
+                          statusColor = Colors.red;
+                          statusLabel = 'URGENTE';
+                          break;
+                        case 'CRITICO':
+                          statusColor = Colors.deepOrange;
+                          statusLabel = 'CRÍTICO';
+                          break;
+                        case 'ALERTA':
+                          statusColor = Colors.orange;
+                          statusLabel = 'ALERTA';
+                          break;
+                        case 'BAJO':
+                          statusColor = Colors.amber;
+                          statusLabel = 'BAJO';
+                          break;
+                        default:
+                          statusColor = Colors.green;
+                          statusLabel = 'OK';
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: statusColor,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.materialName,
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    '${item.category ?? ''} · ${item.currentStock.toStringAsFixed(1)} ${item.unit ?? 'UND'}',
+                                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                statusLabel,
+                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: statusColor),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    item.daysOfStockRemaining >= 999 ? '∞' : '${item.daysOfStockRemaining}d',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: item.daysOfStockRemaining <= 7 ? Colors.red
+                                          : (item.daysOfStockRemaining <= 15 ? Colors.orange : Colors.green),
+                                    ),
+                                  ),
+                                  Text(
+                                    'Duración',
+                                    style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '${item.dailyConsumptionRate.toStringAsFixed(1)}/${item.unit ?? 'd'}',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                                  ),
+                                  Text(
+                                    'Consumo/día',
+                                    style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

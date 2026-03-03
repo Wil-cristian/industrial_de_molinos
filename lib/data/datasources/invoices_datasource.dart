@@ -566,9 +566,73 @@ class InvoicesDataSource {
     return true;
   }
 
-  /// Cancela un recibo
+  /// Cancela un recibo (LEGACY - usar secureCancelInvoice en su lugar)
   static Future<void> cancel(String id) async {
     await updateStatus(id, 'cancelled');
+  }
+
+  // ==================== ANULACIÓN SEGURA (BLINDAJE) ====================
+
+  /// Verifica si una factura puede ser anulada (consulta server-side)
+  static Future<Map<String, dynamic>> canCancelInvoice(String invoiceId) async {
+    try {
+      final response = await _client.rpc(
+        'can_cancel_invoice',
+        params: {'p_invoice_id': invoiceId},
+      );
+      return Map<String, dynamic>.from(response ?? {});
+    } catch (e) {
+      AppLogger.error('❌ Error verificando si puede anular: $e');
+      return {
+        'can_cancel': false,
+        'reasons': ['Error al verificar: $e'],
+      };
+    }
+  }
+
+  /// Anula una factura de forma segura con todas las validaciones
+  /// Retorna un mapa con 'success', 'blocked', 'reason', etc.
+  static Future<Map<String, dynamic>> secureCancelInvoice(
+    String invoiceId, {
+    required String reason,
+  }) async {
+    try {
+      AppLogger.debug('🔒 Anulación segura de factura: $invoiceId');
+      final response = await _client.rpc(
+        'secure_cancel_invoice',
+        params: {'p_invoice_id': invoiceId, 'p_reason': reason},
+      );
+      final result = Map<String, dynamic>.from(response ?? {});
+
+      if (result['success'] == true) {
+        AppLogger.success(
+          '✅ Factura anulada de forma segura: ${result['invoice_number']}',
+        );
+      } else if (result['blocked'] == true) {
+        AppLogger.warning('🚫 Anulación BLOQUEADA: ${result['reason']}');
+      }
+
+      return result;
+    } catch (e) {
+      AppLogger.error('❌ Error en anulación segura: $e');
+      rethrow;
+    }
+  }
+
+  /// Obtiene historial de anulaciones (auditoría)
+  static Future<List<Map<String, dynamic>>> getCancellationHistory({
+    int limit = 50,
+  }) async {
+    try {
+      final response = await _client.rpc(
+        'get_cancellation_history',
+        params: {'p_limit': limit},
+      );
+      return List<Map<String, dynamic>>.from(response ?? []);
+    } catch (e) {
+      AppLogger.error('❌ Error obteniendo historial de anulaciones: $e');
+      return [];
+    }
   }
 
   // ==================== STATISTICS ====================

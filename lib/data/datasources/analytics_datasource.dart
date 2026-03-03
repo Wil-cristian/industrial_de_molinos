@@ -762,4 +762,77 @@ class AnalyticsDataSource {
       return null;
     }
   }
+
+  // ============================================================
+  // SALUD DEL NEGOCIO - KPIs INDUSTRIALES
+  // ============================================================
+
+  /// Obtener tendencia mensual de Crédito vs Ganancia vs Inventario
+  static Future<List<BusinessHealthMonthly>> getBusinessHealthMonthly() async {
+    try {
+      final response = await _client
+          .from('v_business_health_monthly')
+          .select()
+          .order('month', ascending: true);
+
+      return (response as List)
+          .map((json) => BusinessHealthMonthly.fromJson(json))
+          .toList();
+    } catch (e) {
+      AppLogger.error('❌ Error obteniendo salud del negocio mensual: $e');
+      return [];
+    }
+  }
+
+  /// Obtener snapshot actual de salud del negocio
+  static Future<BusinessHealthSnapshot> getBusinessHealthSnapshot() async {
+    try {
+      final response = await _client
+          .from('v_business_health_snapshot')
+          .select()
+          .maybeSingle();
+
+      if (response != null) {
+        return BusinessHealthSnapshot.fromJson(response);
+      }
+      return BusinessHealthSnapshot();
+    } catch (e) {
+      AppLogger.error('❌ Error obteniendo snapshot de salud: $e');
+      return BusinessHealthSnapshot();
+    }
+  }
+
+  /// Obtener rotación de inventario por producto
+  static Future<List<InventoryTurnover>> getInventoryTurnover() async {
+    try {
+      final response = await _client
+          .from('v_inventory_turnover')
+          .select()
+          .order('annual_turnover_rate', ascending: false);
+
+      return (response as List)
+          .map((json) => InventoryTurnover.fromJson(json))
+          .toList();
+    } catch (e) {
+      AppLogger.error('❌ Error obteniendo rotación de inventario: $e');
+      return [];
+    }
+  }
+
+  /// Obtener eficiencia de materia prima
+  static Future<List<MaterialEfficiency>> getMaterialEfficiency() async {
+    try {
+      final response = await _client
+          .from('v_material_efficiency')
+          .select()
+          .order('days_of_stock_remaining', ascending: true);
+
+      return (response as List)
+          .map((json) => MaterialEfficiency.fromJson(json))
+          .toList();
+    } catch (e) {
+      AppLogger.error('❌ Error obteniendo eficiencia de materiales: $e');
+      return [];
+    }
+  }
 }

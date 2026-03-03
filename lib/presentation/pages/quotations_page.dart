@@ -1133,7 +1133,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
 
   void _cancelQuotation(Map<String, dynamic> quotation, String reason) async {
     try {
-      // Usar RPC atómica que maneja todo: cotización + factura + material_movements
+      // Usar RPC segura con blindaje anti-fraude
       final result = await ref
           .read(quotationsProvider.notifier)
           .annulQuotation(quotation['id'], reason: reason);
@@ -1149,9 +1149,52 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
         return;
       }
 
-      if (mounted) {
+      // Verificar si fue BLOQUEADA por el blindaje
+      if (result?['blocked'] == true && mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.shield, color: Colors.red[700], size: 28),
+                const SizedBox(width: 8),
+                const Text('Anulación Bloqueada'),
+              ],
+            ),
+            content: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red[300]!),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock, color: Colors.red[700], size: 40),
+                  const SizedBox(height: 12),
+                  Text(
+                    result?['reason'] ?? 'No se puede anular esta cotización.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.red[800], fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Entendido'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      if (mounted && result?['success'] == true) {
         final invoiceAnnulled = result?['invoice_annulled'] == true;
-        final invoiceNumber = result?['invoice_number'];
+        final invoiceResult = result?['invoice_result'];
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1163,7 +1206,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                 Text('Motivo: $reason', style: const TextStyle(fontSize: 12)),
                 if (invoiceAnnulled)
                   Text(
-                    '✓ Factura $invoiceNumber también anulada automáticamente',
+                    '✓ Factura ${invoiceResult?['invoice_number'] ?? ''} también anulada',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -1171,7 +1214,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                   ),
               ],
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.green,
             duration: Duration(seconds: invoiceAnnulled ? 6 : 3),
           ),
         );
