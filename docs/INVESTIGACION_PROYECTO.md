@@ -481,8 +481,8 @@ dependencies:
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './database.types'
 
-const supabaseUrl = 'https://slpawyxxqzjdkbhwikwt.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+const supabaseUrl = process.env.SUPABASE_URL    // Configurar en .env
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY  // Configurar en .env
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {

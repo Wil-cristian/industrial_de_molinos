@@ -8,6 +8,7 @@ import '../../domain/entities/account.dart';
 import '../../data/providers/invoices_provider.dart';
 import '../../data/datasources/invoices_datasource.dart';
 import '../../data/datasources/accounts_datasource.dart';
+import '../../core/utils/print_service.dart';
 
 class InvoicesPage extends ConsumerStatefulWidget {
   const InvoicesPage({super.key});
@@ -16,7 +17,8 @@ class InvoicesPage extends ConsumerStatefulWidget {
   ConsumerState<InvoicesPage> createState() => _InvoicesPageState();
 }
 
-class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerProviderStateMixin {
+class _InvoicesPageState extends ConsumerState<InvoicesPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _searchQuery = '';
   String _selectedStatus = 'Todos';
@@ -25,39 +27,53 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
   // Los datos vienen del provider
   List<Map<String, dynamic>> get _invoices {
     final state = ref.watch(invoicesProvider);
-    return state.invoices.map((inv) => {
-      'id': inv.id,
-      'number': '${inv.series}-${inv.number}',
-      'customer': inv.customerName,
-      'customerId': inv.customerId,
-      'customerRuc': inv.customerDocument,
-      'date': inv.issueDate,
-      'dueDate': inv.dueDate,
-      'items': inv.items.length,
-      'subtotal': inv.subtotal,
-      'tax': inv.taxAmount,
-      'total': inv.total,
-      'paid': inv.paidAmount,
-      'status': _mapStatus(inv.status),
-      'paymentMethod': inv.paymentMethod?.name,
-      'notes': inv.notes,
-      'products': inv.items.map((item) => {
-        'name': item.productName,
-        'quantity': item.quantity,
-        'unitPrice': item.unitPrice,
-        'total': item.total,
-      }).toList(),
-    }).toList();
+    return state.invoices
+        .map(
+          (inv) => {
+            'id': inv.id,
+            'number': '${inv.series}-${inv.number}',
+            'customer': inv.customerName,
+            'customerId': inv.customerId,
+            'customerRuc': inv.customerDocument,
+            'date': inv.issueDate,
+            'dueDate': inv.dueDate,
+            'items': inv.items.length,
+            'subtotal': inv.subtotal,
+            'tax': inv.taxAmount,
+            'total': inv.total,
+            'paid': inv.paidAmount,
+            'status': _mapStatus(inv.status),
+            'paymentMethod': inv.paymentMethod?.name,
+            'notes': inv.notes,
+            'products': inv.items
+                .map(
+                  (item) => {
+                    'name': item.productName,
+                    'quantity': item.quantity,
+                    'unitPrice': item.unitPrice,
+                    'total': item.total,
+                  },
+                )
+                .toList(),
+          },
+        )
+        .toList();
   }
 
   String _mapStatus(InvoiceStatus status) {
     switch (status) {
-      case InvoiceStatus.draft: return 'Borrador';
-      case InvoiceStatus.issued: return 'Pendiente';
-      case InvoiceStatus.paid: return 'Pagada';
-      case InvoiceStatus.partial: return 'Parcial';
-      case InvoiceStatus.cancelled: return 'Anulada';
-      case InvoiceStatus.overdue: return 'Vencida';
+      case InvoiceStatus.draft:
+        return 'Borrador';
+      case InvoiceStatus.issued:
+        return 'Pendiente';
+      case InvoiceStatus.paid:
+        return 'Pagada';
+      case InvoiceStatus.partial:
+        return 'Parcial';
+      case InvoiceStatus.cancelled:
+        return 'Anulada';
+      case InvoiceStatus.overdue:
+        return 'Vencida';
     }
   }
 
@@ -77,9 +93,14 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
 
   List<Map<String, dynamic>> get _filteredInvoices {
     return _invoices.where((invoice) {
-      final matchesSearch = invoice['number'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          invoice['customer'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
-      
+      final matchesSearch =
+          invoice['number'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
+          invoice['customer'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          );
+
       bool matchesStatus = true;
       if (_selectedStatus != 'Todos') {
         matchesStatus = invoice['status'] == _selectedStatus;
@@ -88,7 +109,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
       bool matchesDate = true;
       if (_dateRange != null) {
         final invoiceDate = invoice['date'] as DateTime;
-        matchesDate = invoiceDate.isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
+        matchesDate =
+            invoiceDate.isAfter(
+              _dateRange!.start.subtract(const Duration(days: 1)),
+            ) &&
             invoiceDate.isBefore(_dateRange!.end.add(const Duration(days: 1)));
       }
 
@@ -97,11 +121,13 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
   }
 
   // Filtrar facturas activas (excluir anuladas) para estadísticas
-  List<Map<String, dynamic>> get _activeInvoices => 
+  List<Map<String, dynamic>> get _activeInvoices =>
       _invoices.where((inv) => inv['status'] != 'Anulada').toList();
 
-  double get _totalVentas => _activeInvoices.fold(0.0, (sum, inv) => sum + (inv['total'] as double));
-  double get _totalCobrado => _activeInvoices.fold(0.0, (sum, inv) => sum + (inv['paid'] as double));
+  double get _totalVentas =>
+      _activeInvoices.fold(0.0, (sum, inv) => sum + (inv['total'] as double));
+  double get _totalCobrado =>
+      _activeInvoices.fold(0.0, (sum, inv) => sum + (inv['paid'] as double));
   double get _totalPendiente => _totalVentas - _totalCobrado;
 
   @override
@@ -125,18 +151,34 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                 ),
                 const SizedBox(width: 12),
                 // Stats compactas
-                _buildQuickStat('Ventas', Formatters.currency(_totalVentas), Colors.blue, Icons.trending_up),
+                _buildQuickStat(
+                  'Ventas',
+                  Formatters.currency(_totalVentas),
+                  Colors.blue,
+                  Icons.trending_up,
+                ),
                 const SizedBox(width: 8),
-                _buildQuickStat('Cobrado', Formatters.currency(_totalCobrado), Colors.green, Icons.check_circle),
+                _buildQuickStat(
+                  'Cobrado',
+                  Formatters.currency(_totalCobrado),
+                  Colors.green,
+                  Icons.check_circle,
+                ),
                 const SizedBox(width: 8),
-                _buildQuickStat('Pendiente', Formatters.currency(_totalPendiente), Colors.orange, Icons.schedule),
+                _buildQuickStat(
+                  'Pendiente',
+                  Formatters.currency(_totalPendiente),
+                  Colors.orange,
+                  Icons.schedule,
+                ),
                 const SizedBox(width: 12),
                 // Búsqueda compacta
                 Expanded(
                   child: SizedBox(
                     height: 36,
                     child: TextField(
-                      onChanged: (value) => setState(() => _searchQuery = value),
+                      onChanged: (value) =>
+                          setState(() => _searchQuery = value),
                       decoration: InputDecoration(
                         hintText: 'Buscar...',
                         prefixIcon: const Icon(Icons.search, size: 18),
@@ -150,7 +192,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                         ),
                         filled: true,
                         fillColor: Colors.grey[50],
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 0,
+                        ),
                         isDense: true,
                       ),
                     ),
@@ -171,10 +216,27 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                       child: DropdownButton<String>(
                         value: _selectedStatus,
                         isDense: true,
-                        items: ['Todos', 'Pagada', 'Pendiente', 'Parcial', 'Vencida', 'Anulada']
-                            .map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13))))
-                            .toList(),
-                        onChanged: (value) => setState(() => _selectedStatus = value!),
+                        items:
+                            [
+                                  'Todos',
+                                  'Pagada',
+                                  'Pendiente',
+                                  'Parcial',
+                                  'Vencida',
+                                  'Anulada',
+                                ]
+                                .map(
+                                  (s) => DropdownMenuItem(
+                                    value: s,
+                                    child: Text(
+                                      s,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) =>
+                            setState(() => _selectedStatus = value!),
                       ),
                     ),
                   ),
@@ -197,7 +259,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                     },
                     icon: const Icon(Icons.calendar_today, size: 14),
                     label: Text(
-                      _dateRange == null ? 'Fecha' : '${Formatters.date(_dateRange!.start)} - ${Formatters.date(_dateRange!.end)}',
+                      _dateRange == null
+                          ? 'Fecha'
+                          : '${Formatters.date(_dateRange!.start)} - ${Formatters.date(_dateRange!.end)}',
                       style: const TextStyle(fontSize: 12),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -235,15 +299,18 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
             ),
           ),
           // Lista de recibos
-          Expanded(
-            child: _buildInvoicesList(_filteredInvoices),
-          ),
+          Expanded(child: _buildInvoicesList(_filteredInvoices)),
         ],
       ),
     );
   }
 
-  Widget _buildQuickStat(String label, String value, Color color, IconData icon) {
+  Widget _buildQuickStat(
+    String label,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
       decoration: BoxDecoration(
@@ -259,8 +326,18 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label, style: TextStyle(fontSize: 8, color: Colors.grey[600])),
-              Text(value, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+              Text(
+                label,
+                style: TextStyle(fontSize: 8, color: Colors.grey[600]),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
             ],
           ),
         ],
@@ -274,11 +351,19 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey[300]),
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 64,
+              color: Colors.grey[300],
+            ),
             const SizedBox(height: 16),
             Text(
               'No hay documentos',
-              style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -313,16 +398,60 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
               dataRowMaxHeight: 70,
               columnSpacing: 24,
               columns: const [
-                DataColumn(label: Text('Documento', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Cliente', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Fecha', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Vencimiento', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Total', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
-                DataColumn(label: Text('Pagado', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
-                DataColumn(label: Text('Estado', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                  label: Text(
+                    'Documento',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Cliente',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Fecha',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Vencimiento',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Total',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text(
+                    'Pagado',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text(
+                    'Estado',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    '',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
               ],
-              rows: invoices.map((invoice) => _buildInvoiceRow(invoice)).toList(),
+              rows: invoices
+                  .map((invoice) => _buildInvoiceRow(invoice))
+                  .toList(),
             ),
           ),
         ),
@@ -387,15 +516,17 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
-        DataCell(
-          Text(Formatters.date(invoice['date'])),
-        ),
+        DataCell(Text(Formatters.date(invoice['date']))),
         DataCell(
           invoice['dueDate'] != null
               ? Text(
                   Formatters.date(invoice['dueDate']),
                   style: TextStyle(
-                    color: (invoice['dueDate'] as DateTime).isBefore(DateTime.now()) && invoice['status'] != 'Pagada'
+                    color:
+                        (invoice['dueDate'] as DateTime).isBefore(
+                              DateTime.now(),
+                            ) &&
+                            invoice['status'] != 'Pagada'
                         ? Colors.red
                         : Colors.grey[700],
                   ),
@@ -457,16 +588,65 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
             icon: Icon(Icons.more_vert, color: Colors.grey[400]),
             onSelected: (value) => _handleInvoiceAction(value, invoice),
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'view', child: Row(children: [Icon(Icons.visibility, size: 18), SizedBox(width: 8), Text('Ver detalle')])),
-              const PopupMenuItem(value: 'print', child: Row(children: [Icon(Icons.print, size: 18), SizedBox(width: 8), Text('Imprimir')])),
-              const PopupMenuItem(value: 'email', child: Row(children: [Icon(Icons.email, size: 18), SizedBox(width: 8), Text('Enviar por email')])),
-              if (invoice['status'] != 'Pagada' && invoice['status'] != 'Anulada') ...[
+              const PopupMenuItem(
+                value: 'view',
+                child: Row(
+                  children: [
+                    Icon(Icons.visibility, size: 18),
+                    SizedBox(width: 8),
+                    Text('Ver detalle'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'print',
+                child: Row(
+                  children: [
+                    Icon(Icons.print, size: 18),
+                    SizedBox(width: 8),
+                    Text('Imprimir'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'email',
+                child: Row(
+                  children: [
+                    Icon(Icons.email, size: 18),
+                    SizedBox(width: 8),
+                    Text('Enviar por email'),
+                  ],
+                ),
+              ),
+              if (invoice['status'] != 'Pagada' &&
+                  invoice['status'] != 'Anulada') ...[
                 const PopupMenuDivider(),
-                const PopupMenuItem(value: 'payment', child: Row(children: [Icon(Icons.payment, size: 18, color: Colors.green), SizedBox(width: 8), Text('Registrar pago', style: TextStyle(color: Colors.green))])),
+                const PopupMenuItem(
+                  value: 'payment',
+                  child: Row(
+                    children: [
+                      Icon(Icons.payment, size: 18, color: Colors.green),
+                      SizedBox(width: 8),
+                      Text(
+                        'Registrar pago',
+                        style: TextStyle(color: Colors.green),
+                      ),
+                    ],
+                  ),
+                ),
               ],
               if (invoice['status'] != 'Anulada') ...[
                 const PopupMenuDivider(),
-                const PopupMenuItem(value: 'cancel', child: Row(children: [Icon(Icons.cancel, size: 18, color: Colors.red), SizedBox(width: 8), Text('Anular', style: TextStyle(color: Colors.red))])),
+                const PopupMenuItem(
+                  value: 'cancel',
+                  child: Row(
+                    children: [
+                      Icon(Icons.cancel, size: 18, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Anular', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
               ],
             ],
           ),
@@ -481,13 +661,14 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
         _showInvoiceDetails(invoice);
         break;
       case 'print':
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Imprimiendo ${invoice['number']}...'), backgroundColor: Colors.blue),
-        );
+        PrintService.printInvoice(invoice);
         break;
       case 'email':
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Enviando ${invoice['number']} por email...'), backgroundColor: Colors.blue),
+          SnackBar(
+            content: Text('Enviando ${invoice['number']} por email...'),
+            backgroundColor: Colors.blue,
+          ),
         );
         break;
       case 'payment':
@@ -501,180 +682,29 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
 
   InvoiceStatus getInvoiceStatus(String status) {
     switch (status) {
-      case 'Pagada': return InvoiceStatus.paid;
-      case 'Pendiente': return InvoiceStatus.issued;
-      case 'Parcial': return InvoiceStatus.partial;
-      case 'Vencida': return InvoiceStatus.overdue;
-      case 'Anulada': return InvoiceStatus.cancelled;
-      default: return InvoiceStatus.draft;
+      case 'Pagada':
+        return InvoiceStatus.paid;
+      case 'Pendiente':
+        return InvoiceStatus.issued;
+      case 'Parcial':
+        return InvoiceStatus.partial;
+      case 'Vencida':
+        return InvoiceStatus.overdue;
+      case 'Anulada':
+        return InvoiceStatus.cancelled;
+      default:
+        return InvoiceStatus.draft;
     }
   }
 
   void _showInvoiceDetails(Map<String, dynamic> invoice) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          width: 700,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.9,
-          ),
-          padding: const EdgeInsets.all(24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.receipt_long, color: AppTheme.primaryColor, size: 28),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          invoice['number'],
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          Formatters.dateLong(invoice['date']),
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _buildStatusBadge(invoice['status']),
-                  const SizedBox(width: 16),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-              // Cliente
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Cliente', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                        const SizedBox(height: 4),
-                        Text(invoice['customer'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Método de Pago', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                        const SizedBox(height: 4),
-                        Text(invoice['paymentMethod'] ?? 'Sin pago', style: const TextStyle(fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              // Resumen de montos
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    _buildAmountRow('Subtotal', invoice['subtotal']),
-                    const SizedBox(height: 8),
-                    _buildAmountRow('IGV (18%)', invoice['tax']),
-                    const Divider(),
-                    _buildAmountRow('Total', invoice['total'], isTotal: true),
-                    if ((invoice['paid'] as double) > 0) ...[
-                      const SizedBox(height: 8),
-                      _buildAmountRow('Pagado', invoice['paid'], color: Colors.green),
-                    ],
-                    if ((invoice['total'] as double) - (invoice['paid'] as double) > 0) ...[
-                      const SizedBox(height: 8),
-                      _buildAmountRow('Pendiente', (invoice['total'] as double) - (invoice['paid'] as double), color: Colors.orange),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Vista previa de recibo
-              const Divider(),
-              const SizedBox(height: 12),
-              const Text('Ver Recibo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _showReceiptPreview(invoice, isClientVersion: true);
-                    },
-                    icon: const Icon(Icons.receipt_long),
-                    label: const Text('Recibo Cliente'),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _showReceiptPreview(invoice, isClientVersion: false);
-                    },
-                    icon: const Icon(Icons.description),
-                    label: const Text('Recibo Empresa'),
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Acciones
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.print),
-                    label: const Text('Imprimir'),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.email),
-                    label: const Text('Enviar'),
-                  ),
-                  if (invoice['status'] != 'Pagada' && invoice['status'] != 'Anulada') ...[
-                    const SizedBox(width: 12),
-                    FilledButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _showPaymentDialog(invoice);
-                      },
-                      icon: const Icon(Icons.payment),
-                      label: const Text('Registrar Pago'),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-            ),
-          ),
-        ),
+      builder: (context) => _InvoiceFullDetailDialog(
+        invoice: invoice,
+        onPayment: () => _showPaymentDialog(invoice),
+        onCancel: () => _confirmCancelInvoice(invoice),
+        onRefresh: () => ref.read(invoicesProvider.notifier).refresh(),
       ),
     );
   }
@@ -682,11 +712,20 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
   Widget _buildStatusBadge(String status) {
     Color statusColor;
     switch (status) {
-      case 'Pagada': statusColor = Colors.green; break;
-      case 'Pendiente': statusColor = Colors.orange; break;
-      case 'Parcial': statusColor = Colors.blue; break;
-      case 'Vencida': statusColor = Colors.red; break;
-      default: statusColor = Colors.grey;
+      case 'Pagada':
+        statusColor = Colors.green;
+        break;
+      case 'Pendiente':
+        statusColor = Colors.orange;
+        break;
+      case 'Parcial':
+        statusColor = Colors.blue;
+        break;
+      case 'Vencida':
+        statusColor = Colors.red;
+        break;
+      default:
+        statusColor = Colors.grey;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -701,20 +740,29 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
     );
   }
 
-  Widget _buildAmountRow(String label, double amount, {bool isTotal = false, Color? color}) {
+  Widget _buildAmountRow(
+    String label,
+    double amount, {
+    bool isTotal = false,
+    Color? color,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(
-          fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-          fontSize: isTotal ? 16 : 14,
-        )),
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+            fontSize: isTotal ? 16 : 14,
+          ),
+        ),
         Text(
           Formatters.currency(amount),
           style: TextStyle(
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
             fontSize: isTotal ? 18 : 14,
-            color: color ?? (isTotal ? AppTheme.primaryColor : Colors.grey[800]),
+            color:
+                color ?? (isTotal ? AppTheme.primaryColor : Colors.grey[800]),
           ),
         ),
       ],
@@ -725,73 +773,85 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
     final total = invoice['total'] as double;
     final paid = invoice['paid'] as double;
     final pending = total - paid;
-    final amountController = TextEditingController(text: pending.toStringAsFixed(2));
+    final amountController = TextEditingController(
+      text: pending.toStringAsFixed(2),
+    );
     final referenceController = TextEditingController();
     Account? selectedAccount;
     List<Account> accounts = [];
     List<Map<String, dynamic>> paymentHistory = [];
     bool loadingHistory = true;
     bool loadingAccounts = true;
-    
+
     // Cargar cuentas
-    AccountsDataSource.getAllAccounts(activeOnly: true).then((loadedAccounts) {
-      accounts = loadedAccounts;
-      if (accounts.isNotEmpty) {
-        // Seleccionar efectivo por defecto o la primera cuenta
-        selectedAccount = accounts.firstWhere(
-          (a) => a.type == AccountType.cash,
-          orElse: () => accounts.first,
-        );
-      }
-      loadingAccounts = false;
-    }).catchError((e) {
-      loadingAccounts = false;
-    });
-    
+    AccountsDataSource.getAllAccounts(activeOnly: true)
+        .then((loadedAccounts) {
+          accounts = loadedAccounts;
+          if (accounts.isNotEmpty) {
+            // Seleccionar efectivo por defecto o la primera cuenta
+            selectedAccount = accounts.firstWhere(
+              (a) => a.type == AccountType.cash,
+              orElse: () => accounts.first,
+            );
+          }
+          loadingAccounts = false;
+        })
+        .catchError((e) {
+          loadingAccounts = false;
+        });
+
     // Cargar historial de pagos
-    InvoicesDataSource.getPayments(invoice['id']).then((payments) {
-      paymentHistory = payments;
-      loadingHistory = false;
-    }).catchError((e) {
-      loadingHistory = false;
-    });
-    
+    InvoicesDataSource.getPayments(invoice['id'])
+        .then((payments) {
+          paymentHistory = payments;
+          loadingHistory = false;
+        })
+        .catchError((e) {
+          loadingHistory = false;
+        });
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           // Refresh history
           if (loadingHistory) {
-            InvoicesDataSource.getPayments(invoice['id']).then((payments) {
-              setDialogState(() {
-                paymentHistory = payments;
-                loadingHistory = false;
-              });
-            }).catchError((e) {
-              setDialogState(() => loadingHistory = false);
-            });
+            InvoicesDataSource.getPayments(invoice['id'])
+                .then((payments) {
+                  setDialogState(() {
+                    paymentHistory = payments;
+                    loadingHistory = false;
+                  });
+                })
+                .catchError((e) {
+                  setDialogState(() => loadingHistory = false);
+                });
           }
-          
+
           // Cargar cuentas
           if (loadingAccounts) {
-            AccountsDataSource.getAllAccounts(activeOnly: true).then((loadedAccounts) {
-              setDialogState(() {
-                accounts = loadedAccounts;
-                if (accounts.isNotEmpty && selectedAccount == null) {
-                  selectedAccount = accounts.firstWhere(
-                    (a) => a.type == AccountType.cash,
-                    orElse: () => accounts.first,
-                  );
-                }
-                loadingAccounts = false;
-              });
-            }).catchError((e) {
-              setDialogState(() => loadingAccounts = false);
-            });
+            AccountsDataSource.getAllAccounts(activeOnly: true)
+                .then((loadedAccounts) {
+                  setDialogState(() {
+                    accounts = loadedAccounts;
+                    if (accounts.isNotEmpty && selectedAccount == null) {
+                      selectedAccount = accounts.firstWhere(
+                        (a) => a.type == AccountType.cash,
+                        orElse: () => accounts.first,
+                      );
+                    }
+                    loadingAccounts = false;
+                  });
+                })
+                .catchError((e) {
+                  setDialogState(() => loadingAccounts = false);
+                });
           }
-          
+
           return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Container(
               width: 480,
               constraints: const BoxConstraints(maxHeight: 600),
@@ -803,7 +863,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.green[50],
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -813,23 +875,42 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                             color: Colors.green[100],
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(Icons.payment, color: Colors.green[700], size: 24),
+                          child: Icon(
+                            Icons.payment,
+                            color: Colors.green[700],
+                            size: 24,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Registrar Pago / Abono', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                              Text(invoice['number'], style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                              const Text(
+                                'Registrar Pago / Abono',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                invoice['number'],
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 13,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
                       ],
                     ),
                   ),
-                  
+
                   // Scrollable content
                   Flexible(
                     child: SingleChildScrollView(
@@ -840,23 +921,47 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                              border: Border(
+                                bottom: BorderSide(color: Colors.grey[200]!),
+                              ),
                             ),
                             child: Column(
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('Total del recibo:', style: TextStyle(fontSize: 14)),
-                                    Text(Formatters.currency(total), style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    const Text(
+                                      'Total del recibo:',
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                    Text(
+                                      Formatters.currency(total),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('Pagado:', style: TextStyle(color: Colors.green[700], fontSize: 14)),
-                                    Text(Formatters.currency(paid), style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w600)),
+                                    Text(
+                                      'Pagado:',
+                                      style: TextStyle(
+                                        color: Colors.green[700],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      Formatters.currency(paid),
+                                      style: TextStyle(
+                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const Padding(
@@ -864,67 +969,123 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                                   child: Divider(),
                                 ),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('PENDIENTE:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                    const Text(
+                                      'PENDIENTE:',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                     Text(
                                       Formatters.currency(pending),
-                                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange[700]),
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.orange[700],
+                                      ),
                                     ),
                                   ],
                                 ),
                               ],
                             ),
                           ),
-                          
+
                           // Historial de pagos (si hay)
                           if (!loadingHistory && paymentHistory.isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.grey[50],
-                                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.grey[200]!),
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('HISTORIAL DE PAGOS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[500], letterSpacing: 0.5)),
-                                  const SizedBox(height: 8),
-                                  ...paymentHistory.map((payment) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 6),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.check_circle, color: Colors.green[400], size: 16),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            payment['payment_date']?.toString().split('T')[0] ?? '',
-                                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                                          ),
-                                        ),
-                                        Text(
-                                          payment['method']?.toString().toUpperCase() ?? '',
-                                          style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          Formatters.currency(payment['amount'] ?? 0),
-                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.green[700]),
-                                        ),
-                                      ],
+                                  Text(
+                                    'HISTORIAL DE PAGOS',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[500],
+                                      letterSpacing: 0.5,
                                     ),
-                                  )),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  ...paymentHistory.map(
+                                    (payment) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 6),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle,
+                                            color: Colors.green[400],
+                                            size: 16,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              payment['payment_date']
+                                                      ?.toString()
+                                                      .split('T')[0] ??
+                                                  '',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            payment['method']
+                                                    ?.toString()
+                                                    .toUpperCase() ??
+                                                '',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.grey[500],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            Formatters.currency(
+                                              payment['amount'] ?? 0,
+                                            ),
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.green[700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
-                          
+
                           // Formulario de pago
                           Padding(
                             padding: const EdgeInsets.all(20),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('NUEVO ABONO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[500], letterSpacing: 0.5)),
+                                Text(
+                                  'NUEVO ABONO',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[500],
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                                 const SizedBox(height: 12),
                                 TextFormField(
                                   controller: amountController,
@@ -933,7 +1094,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                                     border: const OutlineInputBorder(),
                                     prefixText: '\$ ',
                                     suffixIcon: TextButton(
-                                      onPressed: () => setDialogState(() => amountController.text = pending.toStringAsFixed(2)),
+                                      onPressed: () => setDialogState(
+                                        () => amountController.text = pending
+                                            .toStringAsFixed(2),
+                                      ),
                                       child: const Text('Pagar todo'),
                                     ),
                                   ),
@@ -941,20 +1105,32 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                                 ),
                                 const SizedBox(height: 12),
                                 if (loadingAccounts)
-                                  const Center(child: CircularProgressIndicator())
+                                  const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
                                 else if (accounts.isEmpty)
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
                                       color: Colors.orange[50],
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.orange[200]!),
+                                      border: Border.all(
+                                        color: Colors.orange[200]!,
+                                      ),
                                     ),
                                     child: Row(
                                       children: [
-                                        Icon(Icons.warning, color: Colors.orange[700], size: 20),
+                                        Icon(
+                                          Icons.warning,
+                                          color: Colors.orange[700],
+                                          size: 20,
+                                        ),
                                         const SizedBox(width: 8),
-                                        const Expanded(child: Text('No hay cuentas configuradas')),
+                                        const Expanded(
+                                          child: Text(
+                                            'No hay cuentas configuradas',
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   )
@@ -965,24 +1141,37 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                                       labelText: 'Cuenta destino',
                                       border: OutlineInputBorder(),
                                     ),
-                                    items: accounts.map((account) => DropdownMenuItem(
-                                      value: account.id,
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            account.type == AccountType.cash ? Icons.payments : Icons.account_balance,
-                                            size: 18,
-                                            color: account.type == AccountType.cash ? Colors.green : Colors.blue,
+                                    items: accounts
+                                        .map(
+                                          (account) => DropdownMenuItem(
+                                            value: account.id,
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  account.type ==
+                                                          AccountType.cash
+                                                      ? Icons.payments
+                                                      : Icons.account_balance,
+                                                  size: 18,
+                                                  color:
+                                                      account.type ==
+                                                          AccountType.cash
+                                                      ? Colors.green
+                                                      : Colors.blue,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(account.name),
+                                              ],
+                                            ),
                                           ),
-                                          const SizedBox(width: 8),
-                                          Text(account.name),
-                                        ],
-                                      ),
-                                    )).toList(),
+                                        )
+                                        .toList(),
                                     onChanged: (value) {
                                       if (value != null) {
                                         setDialogState(() {
-                                          selectedAccount = accounts.firstWhere((a) => a.id == value);
+                                          selectedAccount = accounts.firstWhere(
+                                            (a) => a.id == value,
+                                          );
                                         });
                                       }
                                     },
@@ -1003,70 +1192,99 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
                       ),
                     ),
                   ),
-                  
+
                   // Botones (fixed at bottom)
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.grey[50],
-                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(16),
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancelar'),
+                        ),
                         const SizedBox(width: 12),
                         FilledButton.icon(
                           onPressed: () async {
-                            final amount = double.tryParse(amountController.text) ?? 0;
+                            final amount =
+                                double.tryParse(amountController.text) ?? 0;
                             if (amount <= 0 || amount > pending) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Monto inválido'), backgroundColor: Colors.red),
+                                const SnackBar(
+                                  content: Text('Monto inválido'),
+                                  backgroundColor: Colors.red,
+                                ),
                               );
                               return;
                             }
-                            
+
                             if (selectedAccount == null) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Seleccione una cuenta destino'), backgroundColor: Colors.red),
+                                const SnackBar(
+                                  content: Text(
+                                    'Seleccione una cuenta destino',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
                               );
                               return;
                             }
-                            
+
                             // Guardar referencia al ScaffoldMessenger antes de cerrar el diálogo
-                            final scaffoldMessenger = ScaffoldMessenger.of(context);
+                            final scaffoldMessenger = ScaffoldMessenger.of(
+                              context,
+                            );
                             final accountId = selectedAccount!.id;
                             final accountType = selectedAccount!.type;
-                            
+
                             Navigator.pop(context);
-                            
+
                             // Convertir tipo de cuenta a método de pago
-                            PaymentMethod method = accountType == AccountType.cash 
-                                ? PaymentMethod.cash 
+                            PaymentMethod method =
+                                accountType == AccountType.cash
+                                ? PaymentMethod.cash
                                 : PaymentMethod.transfer;
-                            
-                            final success = await ref.read(invoicesProvider.notifier).registerPayment(
-                              invoice['id'],
-                              amount,
-                              method,
-                              accountId: accountId,
-                            );
-                            
+
+                            final success = await ref
+                                .read(invoicesProvider.notifier)
+                                .registerPayment(
+                                  invoice['id'],
+                                  amount,
+                                  method,
+                                  accountId: accountId,
+                                );
+
                             // Forzar refresh de la lista
                             if (success) {
-                              await ref.read(invoicesProvider.notifier).refresh();
+                              await ref
+                                  .read(invoicesProvider.notifier)
+                                  .refresh();
                             }
-                            
+
                             scaffoldMessenger.showSnackBar(
                               SnackBar(
-                                content: Text(success ? 'Pago registrado exitosamente' : 'Error al registrar pago'),
-                                backgroundColor: success ? Colors.green : Colors.red,
+                                content: Text(
+                                  success
+                                      ? 'Pago registrado exitosamente'
+                                      : 'Error al registrar pago',
+                                ),
+                                backgroundColor: success
+                                    ? Colors.green
+                                    : Colors.red,
                               ),
                             );
                           },
                           icon: const Icon(Icons.check),
                           label: const Text('Confirmar Abono'),
-                          style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.green,
+                          ),
                         ),
                       ],
                     ),
@@ -1081,32 +1299,47 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
   }
 
   void _confirmCancelInvoice(Map<String, dynamic> invoice) {
+    // Capturar ScaffoldMessenger ANTES de abrir el diálogo
+    // para evitar usar context del diálogo después de cerrarlo
+    final messenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Anular documento'),
-        content: Text('¿Está seguro de anular el documento ${invoice['number']}?\n\nEsta acción no se puede deshacer.'),
+        content: Text(
+          '¿Está seguro de anular el documento ${invoice['number']}?\n\nEsta acción no se puede deshacer.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
           FilledButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               try {
                 // Anular la factura en la base de datos
-                await InvoicesDataSource.updateStatus(invoice['id'], 'cancelled');
+                await InvoicesDataSource.updateStatus(
+                  invoice['id'],
+                  'cancelled',
+                );
                 // Refrescar la lista
                 ref.read(invoicesProvider.notifier).refresh();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Documento ${invoice['number']} anulado correctamente'), backgroundColor: Colors.green),
-                  );
-                }
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Documento ${invoice['number']} anulado correctamente',
+                    ),
+                    backgroundColor: Colors.green,
+                  ),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error al anular: $e'), backgroundColor: Colors.red),
-                  );
-                }
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Error al anular: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -1117,10 +1350,2411 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage> with SingleTickerPr
     );
   }
 
-  void _showReceiptPreview(Map<String, dynamic> invoice, {required bool isClientVersion}) {
+  void _showReceiptPreview(
+    Map<String, dynamic> invoice, {
+    required bool isClientVersion,
+  }) {
     showDialog(
       context: context,
-      builder: (context) => _InvoicePreviewDialog(invoice: invoice, initialTab: isClientVersion ? 0 : 1),
+      builder: (context) => _InvoicePreviewDialog(
+        invoice: invoice,
+        initialTab: isClientVersion ? 0 : 1,
+      ),
+    );
+  }
+}
+
+// ============================================
+// DIÁLOGO COMPLETO DE DETALLE DE FACTURA
+// ============================================
+class _InvoiceFullDetailDialog extends StatefulWidget {
+  final Map<String, dynamic> invoice;
+  final VoidCallback onPayment;
+  final VoidCallback onCancel;
+  final VoidCallback onRefresh;
+
+  const _InvoiceFullDetailDialog({
+    required this.invoice,
+    required this.onPayment,
+    required this.onCancel,
+    required this.onRefresh,
+  });
+
+  @override
+  State<_InvoiceFullDetailDialog> createState() =>
+      _InvoiceFullDetailDialogState();
+}
+
+class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  List<Map<String, dynamic>> _paymentHistory = [];
+  bool _loadingHistory = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _loadPaymentHistory();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPaymentHistory() async {
+    try {
+      final payments = await InvoicesDataSource.getPayments(
+        widget.invoice['id'],
+      );
+      if (mounted) {
+        setState(() {
+          _paymentHistory = payments;
+          _loadingHistory = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingHistory = false);
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Pagada':
+        return Colors.green;
+      case 'Pendiente':
+        return Colors.orange;
+      case 'Parcial':
+        return Colors.blue;
+      case 'Vencida':
+        return Colors.red;
+      case 'Anulada':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'Pagada':
+        return Icons.check_circle;
+      case 'Pendiente':
+        return Icons.schedule;
+      case 'Parcial':
+        return Icons.timelapse;
+      case 'Vencida':
+        return Icons.warning;
+      case 'Anulada':
+        return Icons.block;
+      default:
+        return Icons.receipt;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final inv = widget.invoice;
+    final screenHeight = MediaQuery.of(context).size.height;
+    const headerColor = Color(0xFF1e293b);
+    final total = (inv['total'] as num?)?.toDouble() ?? 0;
+    final paid = (inv['paid'] as num?)?.toDouble() ?? 0;
+    final pending = total - paid;
+    final paymentProgress = total > 0 ? (paid / total).clamp(0.0, 1.0) : 0.0;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: SizedBox(
+        width: 1100,
+        height: screenHeight * 0.9,
+        child: Column(
+          children: [
+            // ── HEADER COMPACTO ──
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: const BoxDecoration(
+                color: headerColor,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _getStatusIcon(inv['status']),
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        inv['number'],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(inv['status']),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          inv['status'],
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Tabs inline
+                      _buildHeaderTab('Detalle', Icons.info_outline, 0),
+                      _buildHeaderTab('Recibo', Icons.receipt_long, 1),
+                      _buildHeaderTab('Empresa', Icons.business, 2),
+                      const Spacer(),
+                      // Payment progress mini
+                      if (inv['status'] != 'Anulada') ...[
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              Helpers.formatCurrency(total),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Text(
+                                  paid > 0
+                                      ? 'Pagado: ${Helpers.formatCurrency(paid)}'
+                                      : 'Sin pagos',
+                                  style: TextStyle(
+                                    color: paid > 0
+                                        ? Colors.green[300]
+                                        : Colors.white60,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                if (pending > 0) ...[
+                                  Text(
+                                    ' • ',
+                                    style: TextStyle(
+                                      color: Colors.white38,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Debe: ${Helpers.formatCurrency(pending)}',
+                                    style: TextStyle(
+                                      color: Colors.orange[300],
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(width: 12),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        splashRadius: 18,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Payment progress bar
+                  if (inv['status'] != 'Anulada' && total > 0) ...[
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: paymentProgress,
+                        backgroundColor: Colors.white.withOpacity(0.15),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          paid >= total
+                              ? Colors.green[400]!
+                              : Colors.orange[400]!,
+                        ),
+                        minHeight: 4,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // ── CONTENIDO DE TABS ──
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildDetailTab(inv),
+                  _buildClientReceiptTab(inv),
+                  _buildEnterpriseTab(inv),
+                ],
+              ),
+            ),
+            // ── FOOTER ──
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today, size: 14, color: Colors.grey[500]),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Emitida: ${Helpers.formatDate(inv['date'])}  •  Vence: ${Helpers.formatDate(inv['dueDate'])}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                  const Spacer(),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      PrintService.printInvoice(inv);
+                    },
+                    icon: Icon(Icons.print, size: 16, color: Colors.blue[600]),
+                    label: Text(
+                      'Imprimir',
+                      style: TextStyle(color: Colors.blue[600], fontSize: 13),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.blue[300]!),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (inv['status'] != 'Pagada' && inv['status'] != 'Anulada')
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        widget.onPayment();
+                      },
+                      icon: const Icon(Icons.payment, size: 16),
+                      label: const Text(
+                        'Registrar Pago',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[600],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  if (inv['status'] != 'Pagada' && inv['status'] != 'Anulada')
+                    const SizedBox(width: 8),
+                  if (inv['status'] != 'Anulada')
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        widget.onCancel();
+                      },
+                      icon: Icon(Icons.block, size: 16, color: Colors.red[400]),
+                      label: Text(
+                        'Anular',
+                        style: TextStyle(color: Colors.red[400], fontSize: 13),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.red[300]!),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: headerColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                    ),
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('Cerrar', style: TextStyle(fontSize: 13)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderTab(String label, IconData icon, int index) {
+    final isSelected = _tabController.index == index;
+    return GestureDetector(
+      onTap: () => setState(() => _tabController.animateTo(index)),
+      child: Container(
+        margin: const EdgeInsets.only(right: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors.white.withOpacity(0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? Colors.white38 : Colors.transparent,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.white54,
+              size: 15,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white54,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────
+  // TAB 1: DETALLE (resumen + pagos)
+  // ──────────────────────────────────────
+  Widget _buildDetailTab(Map<String, dynamic> inv) {
+    final total = (inv['total'] as num?)?.toDouble() ?? 0;
+    final paid = (inv['paid'] as num?)?.toDouble() ?? 0;
+    final pending = total - paid;
+    final subtotal = (inv['subtotal'] as num?)?.toDouble() ?? 0;
+    final tax = (inv['tax'] as num?)?.toDouble() ?? 0;
+    final products = inv['products'] as List<dynamic>? ?? [];
+    final paymentProgress = total > 0 ? (paid / total).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      color: const Color(0xFFF1F4F8),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── COLUMNA IZQUIERDA: Info + Productos ──
+            Expanded(
+              flex: 3,
+              child: Column(
+                children: [
+                  // Tarjeta cliente
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.person,
+                            color: AppTheme.primaryColor,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                inv['customer'] ?? '',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                'NIT: ${inv['customerRuc'] ?? 'N/A'}',
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today,
+                                  size: 13,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  Helpers.formatDate(inv['date']),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.event,
+                                  size: 13,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Vence: ${Helpers.formatDate(inv['dueDate'])}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Tabla de productos
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.list_alt,
+                                size: 18,
+                                color: AppTheme.primaryColor,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Productos (${products.length})',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '${inv['items'] ?? products.length} items',
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Header tabla
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          color: Colors.grey[100],
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 4,
+                                child: Text(
+                                  'Producto',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 60,
+                                child: Text(
+                                  'Cant.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[600],
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 100,
+                                child: Text(
+                                  'P. Unit.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[600],
+                                  ),
+                                  textAlign: TextAlign.right,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 110,
+                                child: Text(
+                                  'Total',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[600],
+                                  ),
+                                  textAlign: TextAlign.right,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ...products.map(
+                          (prod) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: Colors.grey[100]!),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 4,
+                                  child: Text(
+                                    prod['name'] ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 60,
+                                  child: Text(
+                                    '${prod['quantity']}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[700],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 100,
+                                  child: Text(
+                                    Helpers.formatCurrency(
+                                      (prod['unitPrice'] as num?)?.toDouble() ??
+                                          0,
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[700],
+                                    ),
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 110,
+                                  child: Text(
+                                    Helpers.formatCurrency(
+                                      (prod['total'] as num?)?.toDouble() ?? 0,
+                                    ),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // Totales
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(12),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              _buildSummaryRow('Subtotal', subtotal),
+                              const SizedBox(height: 4),
+                              _buildSummaryRow('IVA (19%)', tax),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: Divider(),
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'TOTAL',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    Helpers.formatCurrency(total),
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppTheme.primaryColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Notas
+                  if ((inv['notes'] as String?)?.isNotEmpty == true) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.amber[50],
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.amber[200]!),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.note, color: Colors.amber[700], size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'NOTAS',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.amber[800],
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  inv['notes'],
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 20),
+            // ── COLUMNA DERECHA: Estado de pago ──
+            SizedBox(
+              width: 320,
+              child: Column(
+                children: [
+                  // Estado de pago
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              paid >= total
+                                  ? Icons.check_circle
+                                  : Icons.account_balance_wallet,
+                              color: paid >= total
+                                  ? Colors.green[600]
+                                  : AppTheme.primaryColor,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Estado de Pago',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        // Progress circle
+                        Center(
+                          child: SizedBox(
+                            width: 120,
+                            height: 120,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 120,
+                                  height: 120,
+                                  child: CircularProgressIndicator(
+                                    value: paymentProgress,
+                                    strokeWidth: 10,
+                                    backgroundColor: Colors.grey[200],
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      paid >= total
+                                          ? Colors.green[500]!
+                                          : Colors.orange[400]!,
+                                    ),
+                                  ),
+                                ),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '${(paymentProgress * 100).toStringAsFixed(0)}%',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                        color: paid >= total
+                                            ? Colors.green[700]
+                                            : Colors.orange[700],
+                                      ),
+                                    ),
+                                    Text(
+                                      'pagado',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey[500],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Desglose
+                        _buildPaymentInfoRow(
+                          'Total',
+                          total,
+                          AppTheme.primaryColor,
+                          Icons.receipt,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildPaymentInfoRow(
+                          'Pagado',
+                          paid,
+                          Colors.green[600]!,
+                          Icons.check_circle_outline,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildPaymentInfoRow(
+                          'Pendiente',
+                          pending,
+                          pending > 0
+                              ? Colors.orange[600]!
+                              : Colors.green[600]!,
+                          Icons.hourglass_empty,
+                        ),
+                        if (inv['paymentMethod'] != null) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.payment,
+                                  size: 14,
+                                  color: Colors.blue[600],
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Método: ${inv['paymentMethod']}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        // Botón registrar pago
+                        if (inv['status'] != 'Pagada' &&
+                            inv['status'] != 'Anulada') ...[
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                widget.onPayment();
+                              },
+                              icon: const Icon(
+                                Icons.add_circle_outline,
+                                size: 18,
+                              ),
+                              label: const Text('Registrar Pago / Abono'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green[600],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Historial de pagos
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.history,
+                              size: 18,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Historial de Pagos',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (_loadingHistory)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        else if (_paymentHistory.isEmpty)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.hourglass_empty,
+                                  color: Colors.grey[300],
+                                  size: 32,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Sin pagos registrados',
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          ..._paymentHistory.map((payment) {
+                            final amount =
+                                (payment['amount'] as num?)?.toDouble() ?? 0;
+                            final date =
+                                payment['payment_date']?.toString().split(
+                                  'T',
+                                )[0] ??
+                                '';
+                            final method = payment['method']?.toString() ?? '';
+                            final reference =
+                                payment['reference']?.toString() ?? '';
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.green[50],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.green[100]!),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: Colors.green[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.check,
+                                      color: Colors.green[700],
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          date,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                        Text(
+                                          '${method.isNotEmpty ? method.toUpperCase() : "Pago"}${reference.isNotEmpty ? " • $reference" : ""}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey[500],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    Helpers.formatCurrency(amount),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green[700],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        if (_paymentHistory.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Total abonado',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  Helpers.formatCurrency(
+                                    _paymentHistory.fold(
+                                      0.0,
+                                      (sum, p) =>
+                                          sum +
+                                          ((p['amount'] as num?)?.toDouble() ??
+                                              0),
+                                    ),
+                                  ),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green[700],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentInfoRow(
+    String label,
+    double amount,
+    Color color,
+    IconData icon,
+  ) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          ),
+        ),
+        Text(
+          Helpers.formatCurrency(amount),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryRow(String label, double value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+        Text(
+          Helpers.formatCurrency(value),
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+
+  // ──────────────────────────────────────
+  // TAB 2: RECIBO CLIENTE
+  // ──────────────────────────────────────
+  Widget _buildClientReceiptTab(Map<String, dynamic> inv) {
+    final products = inv['products'] as List<dynamic>? ?? [];
+    const headerColor = Color(0xFF1e293b);
+    final total = (inv['total'] as num?)?.toDouble() ?? 0;
+    final paid = (inv['paid'] as num?)?.toDouble() ?? 0;
+    final subtotal = (inv['subtotal'] as num?)?.toDouble() ?? 0;
+    final tax = (inv['tax'] as num?)?.toDouble() ?? 0;
+
+    return Container(
+      color: const Color(0xFFF8FAFC),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 900),
+          margin: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Barra de acento
+              Container(
+                width: double.infinity,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: headerColor,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(40),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.verified,
+                                      color: headerColor,
+                                      size: 36,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text(
+                                      'RECIBO DE CAJA',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFF111418),
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '#${inv['number']}',
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 10,
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.asset(
+                                    'lib/photo/logo_empresa.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            headerColor,
+                                            headerColor.withOpacity(0.8),
+                                          ],
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.precision_manufacturing,
+                                        color: Colors.white,
+                                        size: 30,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Industrial de Molinos',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const Text(
+                                'NIT: 901946675-1',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      // Cliente
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey[200]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'CLIENTE',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[400],
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    inv['customer'] ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF111418),
+                                    ),
+                                  ),
+                                  Text(
+                                    'NIT/CC: ${inv['customerRuc'] ?? 'N/A'}',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                _buildDateInfo(
+                                  'Fecha:',
+                                  Helpers.formatDate(inv['date']),
+                                ),
+                                const SizedBox(height: 6),
+                                _buildDateInfo(
+                                  'Vence:',
+                                  Helpers.formatDate(inv['dueDate']),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      // Tabla
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey[200]!),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(10),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      'Descripción',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 70,
+                                    child: Text(
+                                      'Cant.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[600],
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 100,
+                                    child: Text(
+                                      'P. Unit.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[600],
+                                      ),
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 110,
+                                    child: Text(
+                                      'Total',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[600],
+                                      ),
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ...products.map(
+                              (prod) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    top: BorderSide(color: Colors.grey[100]!),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        prod['name'] ?? '',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 70,
+                                      child: Text(
+                                        '${prod['quantity']}',
+                                        style: TextStyle(
+                                          color: Colors.grey[700],
+                                          fontSize: 14,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 100,
+                                      child: Text(
+                                        Helpers.formatCurrency(
+                                          (prod['unitPrice'] as num?)
+                                                  ?.toDouble() ??
+                                              0,
+                                        ),
+                                        style: TextStyle(
+                                          color: Colors.grey[700],
+                                          fontSize: 13,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 110,
+                                      child: Text(
+                                        Helpers.formatCurrency(
+                                          (prod['total'] as num?)?.toDouble() ??
+                                              0,
+                                        ),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      // Totales
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          SizedBox(
+                            width: 300,
+                            child: Column(
+                              children: [
+                                _buildSummaryRow('Subtotal', subtotal),
+                                const SizedBox(height: 4),
+                                _buildSummaryRow('IVA (19%)', tax),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 10),
+                                  child: Divider(thickness: 1),
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'TOTAL',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      Helpers.formatCurrency(total),
+                                      style: TextStyle(
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.w900,
+                                        color: headerColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (paid > 0) ...[
+                                  const SizedBox(height: 12),
+                                  _buildPaymentSummaryRow(
+                                    'Pagado',
+                                    paid,
+                                    Colors.green[600]!,
+                                  ),
+                                ],
+                                if (total - paid > 0) ...[
+                                  const SizedBox(height: 4),
+                                  _buildPaymentSummaryRow(
+                                    'Pendiente',
+                                    total - paid,
+                                    Colors.orange[600]!,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      // Footer
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.email,
+                              size: 18,
+                              color: Colors.blue[700],
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'industriasdemolinosasfact@gmail.com',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '¡GRACIAS POR SU COMPRA!',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[700],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateInfo(String label, String value) {
+    return Row(
+      children: [
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+        const SizedBox(width: 6),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentSummaryRow(String label, double value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Text(
+          Helpers.formatCurrency(value),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ──────────────────────────────────────
+  // TAB 3: VISTA EMPRESA
+  // ──────────────────────────────────────
+  Widget _buildEnterpriseTab(Map<String, dynamic> inv) {
+    final products = inv['products'] as List<dynamic>? ?? [];
+    final subtotal = (inv['subtotal'] as num?)?.toDouble() ?? 0;
+    final tax = (inv['tax'] as num?)?.toDouble() ?? 0;
+    final total = (inv['total'] as num?)?.toDouble() ?? 0;
+    final paid = (inv['paid'] as num?)?.toDouble() ?? 0;
+
+    double totalCost = 0;
+    for (var prod in products) {
+      final qty = (prod['quantity'] as num?)?.toDouble() ?? 1;
+      final costPrice =
+          (prod['costPrice'] as num?)?.toDouble() ??
+          (prod['unitCostPrice'] as num?)?.toDouble() ??
+          0;
+      totalCost += costPrice * qty;
+    }
+    final totalProfit = subtotal - totalCost;
+    final profitMargin = totalCost > 0 ? ((totalProfit / totalCost) * 100) : 0;
+
+    return Container(
+      color: const Color(0xFFF1F4F8),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'lib/photo/logo_empresa.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.orange.shade400,
+                                Colors.deepOrange,
+                              ],
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.business,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'DOCUMENTO INTERNO',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          inv['number'],
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[100],
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.lock_outline,
+                          size: 12,
+                          color: Colors.orange[800],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'USO INTERNO',
+                          style: TextStyle(
+                            color: Colors.orange[800],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Stats cards
+            Row(
+              children: [
+                _buildMiniStat(
+                  'Subtotal',
+                  Helpers.formatCurrency(subtotal),
+                  Icons.inventory_2,
+                  Colors.blue,
+                ),
+                const SizedBox(width: 10),
+                _buildMiniStat(
+                  'IVA',
+                  Helpers.formatCurrency(tax),
+                  Icons.receipt,
+                  Colors.purple,
+                ),
+                const SizedBox(width: 10),
+                _buildMiniStat(
+                  'Total',
+                  Helpers.formatCurrency(total),
+                  Icons.payments,
+                  AppTheme.primaryColor,
+                ),
+                const SizedBox(width: 10),
+                _buildMiniStat(
+                  'Pagado',
+                  Helpers.formatCurrency(paid),
+                  Icons.check_circle,
+                  Colors.green,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Cliente
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.person, color: Colors.grey[400], size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          inv['customer'] ?? '',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          'NIT: ${inv['customerRuc'] ?? 'N/A'}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(inv['status']).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      inv['status'],
+                      style: TextStyle(
+                        color: _getStatusColor(inv['status']),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Detalle de productos con métricas
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.list_alt,
+                          color: AppTheme.primaryColor,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Detalle con Costos',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${products.length} items',
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ...products.map((prod) => _buildProductMetricsRow(prod)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Análisis financiero
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.analytics_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Análisis Financiero',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (totalCost > 0) ...[
+                    _buildFinanceSection('COSTOS', Colors.red, [
+                      _buildFinanceLine(
+                        'Costo de productos',
+                        totalCost,
+                        Colors.red,
+                      ),
+                    ]),
+                    const SizedBox(height: 10),
+                  ],
+                  _buildFinanceSection('VENTAS', Colors.green, [
+                    _buildFinanceLine(
+                      'Subtotal productos',
+                      subtotal,
+                      Colors.green,
+                    ),
+                    _buildFinanceLine('IVA (19%)', tax, Colors.purple),
+                  ]),
+                  if (totalCost > 0) ...[
+                    const SizedBox(height: 10),
+                    _buildFinanceSection('GANANCIAS', Colors.blue, [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Ganancia Neta',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                          Text(
+                            Helpers.formatCurrency(totalProfit),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: totalProfit >= 0
+                                  ? Colors.blue[700]
+                                  : Colors.red[700],
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Markup', style: TextStyle(fontSize: 13)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: profitMargin >= 0
+                                  ? Colors.purple[100]
+                                  : Colors.red[100],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${profitMargin.toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: profitMargin >= 0
+                                    ? Colors.purple[700]
+                                    : Colors.red[700],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ]),
+                  ],
+                  const SizedBox(height: 12),
+                  // Total grande
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primaryColor.withOpacity(0.08),
+                          AppTheme.primaryColor.withOpacity(0.03),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppTheme.primaryColor.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.payments,
+                              size: 22,
+                              color: AppTheme.primaryColor,
+                            ),
+                            const SizedBox(width: 10),
+                            const Text(
+                              'TOTAL RECIBO',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          Helpers.formatCurrency(total),
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Estado de pago
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: paid >= total
+                          ? Colors.green[50]
+                          : Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              paid >= total
+                                  ? Icons.check_circle
+                                  : Icons.warning,
+                              color: paid >= total
+                                  ? Colors.green[700]
+                                  : Colors.orange[700],
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Pagado: ${Helpers.formatCurrency(paid)}',
+                              style: TextStyle(
+                                color: Colors.green[700],
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (total - paid > 0)
+                          Text(
+                            'Pendiente: ${Helpers.formatCurrency(total - paid)}',
+                            style: TextStyle(
+                              color: Colors.orange[700],
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniStat(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(icon, color: color, size: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductMetricsRow(Map<String, dynamic> prod) {
+    final quantity = (prod['quantity'] as num?)?.toDouble() ?? 1;
+    final total = (prod['total'] as num?)?.toDouble() ?? 0;
+    final unitPrice =
+        (prod['unitPrice'] as num?)?.toDouble() ?? (total / quantity);
+    final costPrice =
+        (prod['costPrice'] as num?)?.toDouble() ??
+        (prod['unitCostPrice'] as num?)?.toDouble() ??
+        0;
+    final totalCost = costPrice * quantity;
+    final profit = total - totalCost;
+    final profitPct = totalCost > 0 ? ((profit / totalCost) * 100) : 0;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    '${prod['quantity']}×',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  prod['name'] ?? '',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              Text(
+                Helpers.formatCurrency(total),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryColor,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+          if (costPrice > 0) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  _buildMetricChip(
+                    'Costo',
+                    Helpers.formatCurrency(costPrice),
+                    Colors.orange,
+                  ),
+                  Container(
+                    width: 1,
+                    height: 24,
+                    color: Colors.grey[300],
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  _buildMetricChip(
+                    'Venta',
+                    Helpers.formatCurrency(unitPrice),
+                    Colors.green,
+                  ),
+                  Container(
+                    width: 1,
+                    height: 24,
+                    color: Colors.grey[300],
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  _buildMetricChip(
+                    'Ganancia',
+                    '${Helpers.formatCurrency(profit)} (${profitPct.toStringAsFixed(0)}%)',
+                    profit >= 0 ? Colors.blue : Colors.red,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricChip(String label, String value, Color color) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: color,
+              fontSize: 11,
+            ),
+          ),
+          Text(label, style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFinanceSection(
+    String title,
+    Color color,
+    List<Widget> children,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                title == 'COSTOS'
+                    ? Icons.shopping_cart
+                    : title == 'VENTAS'
+                    ? Icons.sell
+                    : Icons.trending_up,
+                size: 16,
+                color: color,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFinanceLine(String label, double value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.grey[700], fontSize: 12),
+            ),
+          ),
+          Text(
+            Helpers.formatCurrency(value),
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1138,13 +3772,18 @@ class _InvoicePreviewDialog extends StatefulWidget {
   State<_InvoicePreviewDialog> createState() => _InvoicePreviewDialogState();
 }
 
-class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with SingleTickerProviderStateMixin {
+class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab,
+    );
   }
 
   @override
@@ -1155,12 +3794,18 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'Pagada': return Colors.green;
-      case 'Pendiente': return Colors.orange;
-      case 'Parcial': return Colors.blue;
-      case 'Vencida': return Colors.red;
-      case 'Anulada': return Colors.grey;
-      default: return Colors.grey;
+      case 'Pagada':
+        return Colors.green;
+      case 'Pendiente':
+        return Colors.orange;
+      case 'Parcial':
+        return Colors.blue;
+      case 'Vencida':
+        return Colors.red;
+      case 'Anulada':
+        return Colors.grey;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -1169,7 +3814,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
     final inv = widget.invoice;
     final screenHeight = MediaQuery.of(context).size.height;
     const headerColor = Color(0xFF1e293b);
-    
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
@@ -1191,16 +3836,30 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                   Expanded(
                     child: Text(
                       'Vista Previa del Recibo',
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: _getStatusColor(inv['status']),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(inv['status'], style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      inv['status'],
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 16),
                   IconButton(
@@ -1227,10 +3886,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: [
-                  _buildClientView(inv),
-                  _buildEnterpriseView(inv),
-                ],
+                children: [_buildClientView(inv), _buildEnterpriseView(inv)],
               ),
             ),
             // Footer
@@ -1238,14 +3894,20 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Fecha: ${Helpers.formatDate(inv['date'])}  •  Vence: ${Helpers.formatDate(inv['dueDate'])}',
@@ -1255,24 +3917,38 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                   ),
                   Row(
                     children: [
-                      _buildFooterButton('Imprimir', Icons.print, Colors.blue[600]!, () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Preparando impresión...'), backgroundColor: Colors.blue),
-                        );
-                      }),
+                      _buildFooterButton(
+                        'Imprimir',
+                        Icons.print,
+                        Colors.blue[600]!,
+                        () {
+                          PrintService.printInvoice(widget.invoice);
+                        },
+                      ),
                       const SizedBox(width: 12),
-                      _buildFooterButton('Enviar', Icons.email, Colors.green[600]!, () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Enviando por correo...'), backgroundColor: Colors.green),
-                        );
-                      }),
+                      _buildFooterButton(
+                        'Enviar',
+                        Icons.email,
+                        Colors.green[600]!,
+                        () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Enviando por correo...'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        },
+                      ),
                       const SizedBox(width: 12),
                       ElevatedButton.icon(
                         onPressed: () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1e293b),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
                         ),
                         icon: const Icon(Icons.check, size: 18),
                         label: const Text('Cerrar'),
@@ -1305,7 +3981,11 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? Colors.white : Colors.white60, size: 18),
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.white60,
+              size: 18,
+            ),
             const SizedBox(width: 8),
             Text(
               label,
@@ -1321,7 +4001,12 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
     );
   }
 
-  Widget _buildFooterButton(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildFooterButton(
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return OutlinedButton.icon(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
@@ -1340,7 +4025,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
   Widget _buildClientView(Map<String, dynamic> inv) {
     final products = inv['products'] as List<dynamic>? ?? [];
     const headerColor = Color(0xFF1e293b);
-    
+
     return Container(
       color: const Color(0xFFF8FAFC),
       child: Center(
@@ -1386,7 +4071,11 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.verified, color: headerColor, size: 28),
+                                    Icon(
+                                      Icons.verified,
+                                      color: headerColor,
+                                      size: 28,
+                                    ),
                                     const SizedBox(width: 10),
                                     const Text(
                                       'RECIBO DE CAJA',
@@ -1402,7 +4091,11 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                                 const SizedBox(height: 4),
                                 Text(
                                   inv['number'],
-                                  style: TextStyle(color: Colors.grey[500], fontSize: 12, fontWeight: FontWeight.w500),
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ],
                             ),
@@ -1416,7 +4109,12 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                                 height: 50,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
-                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 8,
+                                    ),
+                                  ],
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
@@ -1425,16 +4123,37 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                                     fit: BoxFit.contain,
                                     errorBuilder: (_, __, ___) => Container(
                                       decoration: BoxDecoration(
-                                        gradient: LinearGradient(colors: [headerColor, headerColor.withOpacity(0.8)]),
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            headerColor,
+                                            headerColor.withOpacity(0.8),
+                                          ],
+                                        ),
                                       ),
-                                      child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 24),
+                                      child: const Icon(
+                                        Icons.precision_manufacturing,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              const Text('Industrial de Molinos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                              const Text('NIT: 901946675-1', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              const Text(
+                                'Industrial de Molinos',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const Text(
+                                'NIT: 901946675-1',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -1454,20 +4173,47 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('CLIENTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400], letterSpacing: 1.5)),
+                                  Text(
+                                    'CLIENTE',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[400],
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
                                   const SizedBox(height: 10),
-                                  Text(inv['customer'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF111418))),
+                                  Text(
+                                    inv['customer'],
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF111418),
+                                    ),
+                                  ),
                                   const SizedBox(height: 4),
-                                  Text('NIT/CC: ${inv['customerRuc'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                                  Text(
+                                    'NIT/CC: ${inv['customerRuc'] ?? 'N/A'}',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 14,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                _buildDateRow('Fecha:', Helpers.formatDate(inv['date'])),
+                                _buildDateRow(
+                                  'Fecha:',
+                                  Helpers.formatDate(inv['date']),
+                                ),
                                 const SizedBox(height: 8),
-                                _buildDateRow('Vence:', Helpers.formatDate(inv['dueDate'])),
+                                _buildDateRow(
+                                  'Vence:',
+                                  Helpers.formatDate(inv['dueDate']),
+                                ),
                               ],
                             ),
                           ],
@@ -1484,40 +4230,107 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                           children: [
                             // Header de tabla
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF8FAFC),
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(12),
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  const Expanded(flex: 3, child: Text('Descripción', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey))),
-                                  SizedBox(width: 80, child: Text('Cant.', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.center)),
-                                  SizedBox(width: 120, child: Text('Total', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.right)),
+                                  const Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      'Descripción',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 80,
+                                    child: Text(
+                                      'Cant.',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[600],
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 120,
+                                    child: Text(
+                                      'Total',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[600],
+                                      ),
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                             // Filas de productos
-                            ...products.map((prod) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                              decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey[100]!))),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: Text(prod['name'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                            ...products.map(
+                              (prod) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 18,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    top: BorderSide(color: Colors.grey[100]!),
                                   ),
-                                  SizedBox(
-                                    width: 80,
-                                    child: Text('${prod['quantity']}', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey[700], fontSize: 15), textAlign: TextAlign.center),
-                                  ),
-                                  SizedBox(
-                                    width: 120,
-                                    child: Text('\$${Helpers.formatNumber(prod['total'])}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), textAlign: TextAlign.right),
-                                  ),
-                                ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        prod['name'],
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 80,
+                                      child: Text(
+                                        '${prod['quantity']}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey[700],
+                                          fontSize: 15,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 120,
+                                      child: Text(
+                                        '\$${Helpers.formatNumber(prod['total'])}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            )),
+                            ),
                           ],
                         ),
                       ),
@@ -1532,21 +4345,49 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                               children: [
                                 _buildTotalRow('Subtotal', inv['subtotal']),
                                 _buildTotalRow('IVA (19%)', inv['tax']),
-                                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(thickness: 1)),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  child: Divider(thickness: 1),
+                                ),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('TOTAL', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                    Text('\$${Helpers.formatNumber(inv['total'])}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: headerColor)),
+                                    const Text(
+                                      'TOTAL',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      '\$${Helpers.formatNumber(inv['total'])}',
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w900,
+                                        color: headerColor,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 if ((inv['paid'] as double) > 0) ...[
                                   const SizedBox(height: 16),
-                                  _buildTotalRow('Pagado', inv['paid'], color: Colors.green[600]),
+                                  _buildTotalRow(
+                                    'Pagado',
+                                    inv['paid'],
+                                    color: Colors.green[600],
+                                  ),
                                 ],
-                                if ((inv['total'] as double) - (inv['paid'] as double) > 0) ...[
+                                if ((inv['total'] as double) -
+                                        (inv['paid'] as double) >
+                                    0) ...[
                                   const SizedBox(height: 8),
-                                  _buildTotalRow('Pendiente', (inv['total'] as double) - (inv['paid'] as double), color: Colors.orange[600]),
+                                  _buildTotalRow(
+                                    'Pendiente',
+                                    (inv['total'] as double) -
+                                        (inv['paid'] as double),
+                                    color: Colors.orange[600],
+                                  ),
                                 ],
                               ],
                             ),
@@ -1565,11 +4406,28 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.email, size: 20, color: Colors.blue[700]),
+                            Icon(
+                              Icons.email,
+                              size: 20,
+                              color: Colors.blue[700],
+                            ),
                             const SizedBox(width: 12),
-                            Text('industriasdemolinosasfact@gmail.com', style: TextStyle(fontSize: 13, color: Colors.blue[700])),
+                            Text(
+                              'industriasdemolinosasfact@gmail.com',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.blue[700],
+                              ),
+                            ),
                             const Spacer(),
-                            Text('¡GRACIAS POR SU COMPRA!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 13)),
+                            Text(
+                              '¡GRACIAS POR SU COMPRA!',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[700],
+                                fontSize: 13,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1589,7 +4447,10 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
       children: [
         Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
         const SizedBox(width: 8),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
       ],
     );
   }
@@ -1597,12 +4458,24 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
   Widget _buildTotalRow(String label, double value, {Color? color}) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey[100]!))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: color ?? Colors.grey[600], fontSize: 14)),
-          Text('\$${Helpers.formatNumber(value)}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: color)),
+          Text(
+            label,
+            style: TextStyle(color: color ?? Colors.grey[600], fontSize: 14),
+          ),
+          Text(
+            '\$${Helpers.formatNumber(value)}',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
@@ -1617,17 +4490,20 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
     final tax = (inv['tax'] as num?)?.toDouble() ?? 0;
     final total = (inv['total'] as num?)?.toDouble() ?? 0;
     final paid = (inv['paid'] as num?)?.toDouble() ?? 0;
-    
+
     // Calcular costo total de productos
     double totalCost = 0;
     for (var prod in products) {
       final qty = (prod['quantity'] as num?)?.toDouble() ?? 1;
-      final costPrice = (prod['costPrice'] as num?)?.toDouble() ?? (prod['unitCostPrice'] as num?)?.toDouble() ?? 0;
+      final costPrice =
+          (prod['costPrice'] as num?)?.toDouble() ??
+          (prod['unitCostPrice'] as num?)?.toDouble() ??
+          0;
       totalCost += costPrice * qty;
     }
     final totalProfit = subtotal - totalCost;
     final profitMargin = totalCost > 0 ? ((totalProfit / totalCost) * 100) : 0;
-    
+
     return Container(
       color: const Color(0xFFF1F4F8),
       child: SingleChildScrollView(
@@ -1641,7 +4517,12 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -1650,7 +4531,12 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                     height: 56,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                        ),
+                      ],
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
@@ -1659,9 +4545,18 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                         fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => Container(
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [Colors.orange.shade400, Colors.deepOrange]),
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.orange.shade400,
+                                Colors.deepOrange,
+                              ],
+                            ),
                           ),
-                          child: const Icon(Icons.business, color: Colors.white, size: 30),
+                          child: const Icon(
+                            Icons.business,
+                            color: Colors.white,
+                            size: 30,
+                          ),
                         ),
                       ),
                     ),
@@ -1671,13 +4566,29 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('DOCUMENTO INTERNO', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF111418))),
-                        Text(inv['number'], style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                        const Text(
+                          'DOCUMENTO INTERNO',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF111418),
+                          ),
+                        ),
+                        Text(
+                          inv['number'],
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.orange[100],
                       borderRadius: BorderRadius.circular(20),
@@ -1685,9 +4596,20 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.lock_outline, size: 14, color: Colors.orange[800]),
+                        Icon(
+                          Icons.lock_outline,
+                          size: 14,
+                          color: Colors.orange[800],
+                        ),
                         const SizedBox(width: 6),
-                        Text('USO INTERNO', style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.bold, fontSize: 11)),
+                        Text(
+                          'USO INTERNO',
+                          style: TextStyle(
+                            color: Colors.orange[800],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1698,13 +4620,33 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
             // Tarjetas de resumen rápido
             Row(
               children: [
-                _buildStatCard('Subtotal', '\$${Helpers.formatNumber(subtotal)}', Icons.inventory_2, Colors.blue),
+                _buildStatCard(
+                  'Subtotal',
+                  '\$${Helpers.formatNumber(subtotal)}',
+                  Icons.inventory_2,
+                  Colors.blue,
+                ),
                 const SizedBox(width: 12),
-                _buildStatCard('IVA (19%)', '\$${Helpers.formatNumber(tax)}', Icons.receipt, Colors.purple),
+                _buildStatCard(
+                  'IVA (19%)',
+                  '\$${Helpers.formatNumber(tax)}',
+                  Icons.receipt,
+                  Colors.purple,
+                ),
                 const SizedBox(width: 12),
-                _buildStatCard('Total', '\$${Helpers.formatNumber(total)}', Icons.payments, AppTheme.primaryColor),
+                _buildStatCard(
+                  'Total',
+                  '\$${Helpers.formatNumber(total)}',
+                  Icons.payments,
+                  AppTheme.primaryColor,
+                ),
                 const SizedBox(width: 12),
-                _buildStatCard('Pagado', '\$${Helpers.formatNumber(paid)}', Icons.check_circle, Colors.green),
+                _buildStatCard(
+                  'Pagado',
+                  '\$${Helpers.formatNumber(paid)}',
+                  Icons.check_circle,
+                  Colors.green,
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -1714,7 +4656,12 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -1724,20 +4671,50 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('CLIENTE', style: TextStyle(fontSize: 10, color: Colors.grey[400], fontWeight: FontWeight.bold, letterSpacing: 1)),
+                        Text(
+                          'CLIENTE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[400],
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text(inv['customer'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                        Text('NIT: ${inv['customerRuc'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                        Text(
+                          inv['customer'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        Text(
+                          'NIT: ${inv['customerRuc'] ?? 'N/A'}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: _getStatusColor(inv['status']).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(inv['status'], style: TextStyle(color: _getStatusColor(inv['status']), fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: Text(
+                      inv['status'],
+                      style: TextStyle(
+                        color: _getStatusColor(inv['status']),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1748,7 +4725,12 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1757,16 +4739,32 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.grey[50],
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                      border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey[200]!),
+                      ),
                     ),
                     child: Row(
                       children: [
                         Icon(Icons.list_alt, color: AppTheme.primaryColor),
                         const SizedBox(width: 10),
-                        const Text('Detalle de Productos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Detalle de Productos',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const Spacer(),
-                        Text('${products.length} producto(s)', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                        Text(
+                          '${products.length} producto(s)',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1782,7 +4780,12 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
               child: Column(
                 children: [
@@ -1790,7 +4793,13 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                     children: [
                       const Icon(Icons.analytics_outlined),
                       const SizedBox(width: 10),
-                      const Text('Análisis Financiero', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Análisis Financiero',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -1807,13 +4816,28 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.shopping_cart, size: 18, color: Colors.red[700]),
+                              Icon(
+                                Icons.shopping_cart,
+                                size: 18,
+                                color: Colors.red[700],
+                              ),
                               const SizedBox(width: 8),
-                              Text('COSTOS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700], fontSize: 13)),
+                              Text(
+                                'COSTOS',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red[700],
+                                  fontSize: 13,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 8),
-                          _buildCostLine('Costo de productos', totalCost, Colors.red),
+                          _buildCostLine(
+                            'Costo de productos',
+                            totalCost,
+                            Colors.red,
+                          ),
                         ],
                       ),
                     ),
@@ -1831,13 +4855,28 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.sell, size: 18, color: Colors.green[700]),
+                            Icon(
+                              Icons.sell,
+                              size: 18,
+                              color: Colors.green[700],
+                            ),
                             const SizedBox(width: 8),
-                            Text('VENTAS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 13)),
+                            Text(
+                              'VENTAS',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green[700],
+                                fontSize: 13,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        _buildCostLine('Subtotal productos', subtotal, Colors.green),
+                        _buildCostLine(
+                          'Subtotal productos',
+                          subtotal,
+                          Colors.green,
+                        ),
                         _buildCostLine('IVA (19%)', tax, Colors.purple),
                       ],
                     ),
@@ -1856,9 +4895,20 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.trending_up, size: 18, color: Colors.blue[700]),
+                              Icon(
+                                Icons.trending_up,
+                                size: 18,
+                                color: Colors.blue[700],
+                              ),
                               const SizedBox(width: 8),
-                              Text('GANANCIAS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 13)),
+                              Text(
+                                'GANANCIAS',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[700],
+                                  fontSize: 13,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -1868,7 +4918,13 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                               const Text('Ganancia Neta'),
                               Text(
                                 Helpers.formatCurrency(totalProfit),
-                                style: TextStyle(fontWeight: FontWeight.bold, color: totalProfit >= 0 ? Colors.blue[700] : Colors.red[700], fontSize: 16),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: totalProfit >= 0
+                                      ? Colors.blue[700]
+                                      : Colors.red[700],
+                                  fontSize: 16,
+                                ),
                               ),
                             ],
                           ),
@@ -1878,14 +4934,24 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                             children: [
                               const Text('Markup'),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: profitMargin >= 0 ? Colors.purple[100] : Colors.red[100],
+                                  color: profitMargin >= 0
+                                      ? Colors.purple[100]
+                                      : Colors.red[100],
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
                                   '${profitMargin.toStringAsFixed(1)}%',
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: profitMargin >= 0 ? Colors.purple[700] : Colors.red[700]),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: profitMargin >= 0
+                                        ? Colors.purple[700]
+                                        : Colors.red[700],
+                                  ),
                                 ),
                               ),
                             ],
@@ -1899,9 +4965,16 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [AppTheme.primaryColor.withOpacity(0.1), AppTheme.primaryColor.withOpacity(0.05)]),
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primaryColor.withOpacity(0.1),
+                          AppTheme.primaryColor.withOpacity(0.05),
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                      border: Border.all(
+                        color: AppTheme.primaryColor.withOpacity(0.3),
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1910,10 +4983,23 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                           children: [
                             Icon(Icons.payments, size: 28),
                             SizedBox(width: 12),
-                            Text('TOTAL RECIBO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(
+                              'TOTAL RECIBO',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
                           ],
                         ),
-                        Text(Helpers.formatCurrency(total), style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.primaryColor)),
+                        Text(
+                          Helpers.formatCurrency(total),
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1922,7 +5008,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: paid >= total ? Colors.green[50] : Colors.orange[50],
+                      color: paid >= total
+                          ? Colors.green[50]
+                          : Colors.orange[50],
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -1931,16 +5019,32 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                         Row(
                           children: [
                             Icon(
-                              paid >= total ? Icons.check_circle : Icons.warning,
-                              color: paid >= total ? Colors.green[700] : Colors.orange[700],
+                              paid >= total
+                                  ? Icons.check_circle
+                                  : Icons.warning,
+                              color: paid >= total
+                                  ? Colors.green[700]
+                                  : Colors.orange[700],
                               size: 20,
                             ),
                             const SizedBox(width: 8),
-                            Text('Pagado: ${Helpers.formatCurrency(paid)}', style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold)),
+                            Text(
+                              'Pagado: ${Helpers.formatCurrency(paid)}',
+                              style: TextStyle(
+                                color: Colors.green[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ],
                         ),
                         if (total - paid > 0)
-                          Text('Pendiente: ${Helpers.formatCurrency(total - paid)}', style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.bold)),
+                          Text(
+                            'Pendiente: ${Helpers.formatCurrency(total - paid)}',
+                            style: TextStyle(
+                              color: Colors.orange[700],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -1967,9 +5071,22 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('NOTAS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber[800], fontSize: 12)),
+                          Text(
+                            'NOTAS',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber[800],
+                              fontSize: 12,
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Text(inv['notes'], style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+                          Text(
+                            inv['notes'],
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[700],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1983,14 +5100,21 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2005,9 +5129,15 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(height: 12),
-            Text(title, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+            Text(
+              title,
+              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+            ),
             const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
       ),
@@ -2018,14 +5148,20 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
     // Obtener precios de costo y venta
     final quantity = (prod['quantity'] as num?)?.toDouble() ?? 1;
     final total = (prod['total'] as num?)?.toDouble() ?? 0;
-    final unitPrice = (prod['unitPrice'] as num?)?.toDouble() ?? (total / quantity);
-    final costPrice = (prod['costPrice'] as num?)?.toDouble() ?? (prod['unitCostPrice'] as num?)?.toDouble() ?? 0;
+    final unitPrice =
+        (prod['unitPrice'] as num?)?.toDouble() ?? (total / quantity);
+    final costPrice =
+        (prod['costPrice'] as num?)?.toDouble() ??
+        (prod['unitCostPrice'] as num?)?.toDouble() ??
+        0;
     final totalWeight = (prod['totalWeight'] as num?)?.toDouble() ?? quantity;
-    
+
     // Calcular precios por kg si hay peso
     final salePerKg = totalWeight > 0 ? total / totalWeight : unitPrice;
-    final costPerKg = totalWeight > 0 && costPrice > 0 ? (costPrice * quantity) / totalWeight : costPrice;
-    
+    final costPerKg = totalWeight > 0 && costPrice > 0
+        ? (costPrice * quantity) / totalWeight
+        : costPrice;
+
     // Calcular ganancia
     final totalCost = costPrice * quantity;
     final profit = total - totalCost;
@@ -2049,7 +5185,14 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
-                  child: Text('${prod['quantity']}×', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor, fontSize: 14)),
+                  child: Text(
+                    '${prod['quantity']}×',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -2057,7 +5200,13 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(prod['name'] ?? 'Producto', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    Text(
+                      prod['name'] ?? 'Producto',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
                     if (prod['type'] != null || totalWeight > 0)
                       Text(
                         '${prod['type'] ?? ''} ${totalWeight > 0 ? '• ${Helpers.formatNumber(totalWeight)} kg' : ''}',
@@ -2069,8 +5218,18 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(Helpers.formatCurrency(total), style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor, fontSize: 18)),
-                  Text('Total Venta', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                  Text(
+                    Helpers.formatCurrency(total),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                      fontSize: 18,
+                    ),
+                  ),
+                  Text(
+                    'Total Venta',
+                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                  ),
                 ],
               ),
             ],
@@ -2089,13 +5248,24 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                 Expanded(
                   child: Column(
                     children: [
-                      Icon(Icons.shopping_cart_outlined, size: 16, color: Colors.orange[700]),
+                      Icon(
+                        Icons.shopping_cart_outlined,
+                        size: 16,
+                        color: Colors.orange[700],
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         costPerKg > 0 ? Helpers.formatCurrency(costPerKg) : '-',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[700], fontSize: 12),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange[700],
+                          fontSize: 12,
+                        ),
                       ),
-                      Text('Compra/kg', style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+                      Text(
+                        'Compra/kg',
+                        style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+                      ),
                     ],
                   ),
                 ),
@@ -2104,13 +5274,24 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                 Expanded(
                   child: Column(
                     children: [
-                      Icon(Icons.sell_outlined, size: 16, color: Colors.green[700]),
+                      Icon(
+                        Icons.sell_outlined,
+                        size: 16,
+                        color: Colors.green[700],
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         Helpers.formatCurrency(salePerKg),
-                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 12),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[700],
+                          fontSize: 12,
+                        ),
                       ),
-                      Text('Venta/kg', style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+                      Text(
+                        'Venta/kg',
+                        style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+                      ),
                     ],
                   ),
                 ),
@@ -2119,13 +5300,28 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                 Expanded(
                   child: Column(
                     children: [
-                      Icon(Icons.trending_up, size: 16, color: profit >= 0 ? Colors.blue[700] : Colors.red[700]),
+                      Icon(
+                        Icons.trending_up,
+                        size: 16,
+                        color: profit >= 0 ? Colors.blue[700] : Colors.red[700],
+                      ),
                       const SizedBox(height: 4),
                       Text(
-                        costPrice > 0 ? '${Helpers.formatCurrency(profit)} (${profitMargin.toStringAsFixed(1)}%)' : '-',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: profit >= 0 ? Colors.blue[700] : Colors.red[700], fontSize: 12),
+                        costPrice > 0
+                            ? '${Helpers.formatCurrency(profit)} (${profitMargin.toStringAsFixed(1)}%)'
+                            : '-',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: profit >= 0
+                              ? Colors.blue[700]
+                              : Colors.red[700],
+                          fontSize: 12,
+                        ),
                       ),
-                      Text('Ganancia', style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+                      Text(
+                        'Ganancia',
+                        style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+                      ),
                     ],
                   ),
                 ),
@@ -2134,13 +5330,24 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
                 Expanded(
                   child: Column(
                     children: [
-                      Icon(Icons.account_balance_wallet_outlined, size: 16, color: Colors.red[700]),
+                      Icon(
+                        Icons.account_balance_wallet_outlined,
+                        size: 16,
+                        color: Colors.red[700],
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         costPrice > 0 ? Helpers.formatCurrency(totalCost) : '-',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700], fontSize: 12),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[700],
+                          fontSize: 12,
+                        ),
                       ),
-                      Text('Costo Total', style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+                      Text(
+                        'Costo Total',
+                        style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+                      ),
                     ],
                   ),
                 ),
@@ -2157,10 +5364,25 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog> with Singl
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
           const SizedBox(width: 10),
-          Expanded(child: Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 13))),
-          Text('\$${Helpers.formatNumber(value)}', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.grey[700], fontSize: 13),
+            ),
+          ),
+          Text(
+            '\$${Helpers.formatNumber(value)}',
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+          ),
         ],
       ),
     );

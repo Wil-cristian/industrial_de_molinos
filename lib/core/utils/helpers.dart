@@ -19,26 +19,31 @@ class Formatters {
 
   // Formato de fecha
   static String date(DateTime date) {
-    return DateFormat('dd/MM/yyyy').format(date);
+    return DateFormat('dd/MM/yyyy').format(date.toLocal());
+  }
+
+  // Formato de fecha corta
+  static String dateShort(DateTime date) {
+    return DateFormat('dd/MM/yy').format(date.toLocal());
   }
 
   // Formato de fecha y hora
   static String dateTime(DateTime date) {
-    return DateFormat('dd/MM/yyyy HH:mm').format(date);
+    return DateFormat('dd/MM/yyyy HH:mm').format(date.toLocal());
   }
 
   // Formato de fecha larga
   static String dateLong(DateTime date) {
     try {
-      return DateFormat('EEEE, d MMMM yyyy', 'es_ES').format(date);
+      return DateFormat('EEEE, d MMMM yyyy', 'es_CO').format(date.toLocal());
     } catch (e) {
-      return DateFormat('dd/MM/yyyy').format(date);
+      return DateFormat('dd/MM/yyyy').format(date.toLocal());
     }
   }
 
-  // Formato de hora
+  // Formato de hora (zona horaria local - Colombia UTC-5)
   static String time(DateTime date) {
-    return DateFormat('HH:mm').format(date);
+    return DateFormat('HH:mm').format(date.toLocal());
   }
 
   // Formato de porcentaje

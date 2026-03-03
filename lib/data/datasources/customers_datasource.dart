@@ -1,3 +1,4 @@
+﻿import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/customer.dart';
 import 'supabase_datasource.dart';
@@ -52,16 +53,20 @@ class CustomersDataSource {
       data.remove('id');
       data.remove('created_at');
       data.remove('updated_at');
-      
-      print('📝 Intentando crear cliente: ${customer.name}');
-      print('📝 Datos a insertar: $data');
 
-      final response = await _client.from(_table).insert(data).select().single();
-      print('✅ Cliente creado exitosamente: ${response['id']}');
+      AppLogger.debug('📝 Intentando crear cliente: ${customer.name}');
+      AppLogger.debug('📝 Datos a insertar: $data');
+
+      final response = await _client
+          .from(_table)
+          .insert(data)
+          .select()
+          .single();
+      AppLogger.success('✅ Cliente creado exitosamente: ${response['id']}');
       return _fromJson(response);
     } catch (e, stackTrace) {
-      print('❌ Error creando cliente: $e');
-      print('📋 Stack trace: $stackTrace');
+      AppLogger.error('❌ Error creando cliente: $e');
+      AppLogger.debug('📋 Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -95,12 +100,12 @@ class CustomersDataSource {
 
   /// Actualizar balance del cliente
   static Future<void> updateBalance(String id, double newBalance) async {
-    print('💾 Actualizando balance de cliente $id a: $newBalance');
+    AppLogger.debug('💾 Actualizando balance de cliente $id a: $newBalance');
     await _client
         .from(_table)
         .update({'current_balance': newBalance})
         .eq('id', id);
-    print('✅ Balance actualizado en BD');
+    AppLogger.success('✅ Balance actualizado en BD');
   }
 
   /// Obtener deuda calculada desde facturas (sin actualizar BD)
@@ -110,22 +115,23 @@ class CustomersDataSource {
           .from('invoices')
           .select('total, paid_amount, status')
           .eq('customer_id', customerId);
-      
+
       double totalPending = 0.0;
       final noDebtStatuses = ['paid', 'cancelled', 'anulada'];
-      
+
       for (final invoice in response) {
         final status = invoice['status']?.toString().toLowerCase() ?? '';
         if (!noDebtStatuses.contains(status)) {
           final total = (invoice['total'] as num?)?.toDouble() ?? 0.0;
-          final paidAmount = (invoice['paid_amount'] as num?)?.toDouble() ?? 0.0;
+          final paidAmount =
+              (invoice['paid_amount'] as num?)?.toDouble() ?? 0.0;
           totalPending += (total - paidAmount);
         }
       }
-      
+
       return totalPending;
     } catch (e) {
-      print('❌ Error calculando deuda: $e');
+      AppLogger.error('❌ Error calculando deuda: $e');
       return 0.0;
     }
   }
@@ -138,37 +144,43 @@ class CustomersDataSource {
           .from('invoices')
           .select('total, paid_amount, status')
           .eq('customer_id', customerId);
-      
+
       double totalPending = 0.0;
-      print('📋 Facturas encontradas para cliente $customerId: ${response.length}');
-      
+      AppLogger.debug(
+        '📋 Facturas encontradas para cliente $customerId: ${response.length}',
+      );
+
       // Estados que NO generan deuda
       final noDebtStatuses = ['paid', 'cancelled', 'anulada'];
-      
+
       for (final invoice in response) {
         final status = invoice['status']?.toString().toLowerCase() ?? '';
         final total = (invoice['total'] as num?)?.toDouble() ?? 0.0;
         final paidAmount = (invoice['paid_amount'] as num?)?.toDouble() ?? 0.0;
-        
-        print('   - Status: "$status", Total: $total, Pagado: $paidAmount');
-        
+
+        AppLogger.debug(
+          ' - Status: "$status", Total: $total, Pagado: $paidAmount',
+        );
+
         // Si el status NO está en la lista de "sin deuda", sumar la deuda pendiente
         if (!noDebtStatuses.contains(status)) {
           final pending = total - paidAmount;
           totalPending += pending;
-          print('     → Pendiente: $pending (sumado)');
+          AppLogger.debug('   → Pendiente: $pending (sumado)');
         } else {
-          print('     → Ignorado (status sin deuda)');
+          AppLogger.debug('   → Ignorado (status sin deuda)');
         }
       }
-      
+
       // Actualizar el balance en la base de datos
       await updateBalance(customerId, totalPending);
-      print('✅ Balance TOTAL recalculado para cliente $customerId: $totalPending');
-      
+      AppLogger.success(
+        '✅ Balance TOTAL recalculado para cliente $customerId: $totalPending',
+      );
+
       return totalPending;
     } catch (e) {
-      print('❌ Error recalculando balance: $e');
+      AppLogger.error('❌ Error recalculando balance: $e');
       rethrow;
     }
   }
@@ -177,15 +189,17 @@ class CustomersDataSource {
   static Future<void> recalculateAllBalances() async {
     try {
       final customers = await getAll();
-      print('🔄 Recalculando balances de ${customers.length} clientes...');
-      
+      AppLogger.debug(
+        '🔄 Recalculando balances de ${customers.length} clientes...',
+      );
+
       for (final customer in customers) {
         await recalculateBalance(customer.id);
       }
-      
-      print('✅ Todos los balances han sido recalculados');
+
+      AppLogger.success('✅ Todos los balances han sido recalculados');
     } catch (e) {
-      print('❌ Error recalculando todos los balances: $e');
+      AppLogger.error('❌ Error recalculando todos los balances: $e');
       rethrow;
     }
   }
@@ -253,7 +267,7 @@ class CustomersDataSource {
   static Map<String, dynamic> _toJson(Customer customer) {
     // Normalizar document_type para enviar solo valores válidos de BD
     final normalizedDocType = customer.documentType.normalized.name;
-    
+
     return {
       'id': customer.id,
       'type': customer.type.name,

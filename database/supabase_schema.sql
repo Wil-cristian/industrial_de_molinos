@@ -83,7 +83,7 @@ EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE document_type AS ENUM ('cc', 'nit', 'ce', 'pasaporte', 'ti');
+    CREATE TYPE document_type AS ENUM ('cc', 'nit', 'ce', 'pasaporte', 'ti', 'ruc', 'dni');
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 

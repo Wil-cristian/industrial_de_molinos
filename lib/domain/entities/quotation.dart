@@ -1,3 +1,35 @@
+/// Estados posibles de una cotización
+enum QuotationStatus {
+  borrador('Borrador'),
+  enviada('Enviada'),
+  aprobada('Aprobada'),
+  rechazada('Rechazada'),
+  vencida('Vencida'),
+  anulada('Anulada');
+
+  final String displayName;
+  const QuotationStatus(this.displayName);
+
+  static QuotationStatus fromString(String? value) {
+    switch (value) {
+      case 'Borrador':
+        return QuotationStatus.borrador;
+      case 'Enviada':
+        return QuotationStatus.enviada;
+      case 'Aprobada':
+        return QuotationStatus.aprobada;
+      case 'Rechazada':
+        return QuotationStatus.rechazada;
+      case 'Vencida':
+        return QuotationStatus.vencida;
+      case 'Anulada':
+        return QuotationStatus.anulada;
+      default:
+        return QuotationStatus.borrador;
+    }
+  }
+}
+
 /// Entidad principal de Cotización
 class Quotation {
   final String id;
@@ -41,7 +73,8 @@ class Quotation {
   });
 
   /// Subtotal de materiales (suma de todos los items)
-  double get materialsCost => items.fold(0.0, (sum, item) => sum + item.totalPrice);
+  double get materialsCost =>
+      items.fold(0.0, (sum, item) => sum + item.totalPrice);
 
   /// Subtotal de costos indirectos
   double get indirectCosts => energyCost + gasCost + suppliesCost + otherCosts;
@@ -56,7 +89,8 @@ class Quotation {
   double get total => subtotal + profitAmount;
 
   /// Peso total en kg
-  double get totalWeight => items.fold(0.0, (sum, item) => sum + item.totalWeight);
+  double get totalWeight =>
+      items.fold(0.0, (sum, item) => sum + item.totalWeight);
 
   Quotation copyWith({
     String? id,
@@ -129,7 +163,11 @@ class Quotation {
     customerId: json['customer_id'],
     customerName: json['customer_name'],
     status: json['status'] ?? 'Borrador',
-    items: (json['items'] as List?)?.map((e) => QuotationItem.fromJson(e)).toList() ?? [],
+    items:
+        (json['items'] as List?)
+            ?.map((e) => QuotationItem.fromJson(e))
+            .toList() ??
+        [],
     laborCost: (json['labor_cost'] ?? 0).toDouble(),
     energyCost: (json['energy_cost'] ?? 0).toDouble(),
     gasCost: (json['gas_cost'] ?? 0).toDouble(),
@@ -138,7 +176,9 @@ class Quotation {
     profitMargin: (json['profit_margin'] ?? 20).toDouble(),
     notes: json['notes'] ?? '',
     createdAt: DateTime.parse(json['created_at']),
-    updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+    updatedAt: json['updated_at'] != null
+        ? DateTime.parse(json['updated_at'])
+        : null,
     synced: json['synced'] ?? false,
   );
 }
@@ -155,9 +195,11 @@ class QuotationItem {
   final double unitWeight; // Peso unitario en kg
   final double pricePerKg; // Precio por kg del material (VENTA)
   final double costPerKg; // Precio por kg del material (COMPRA)
-  final double unitPrice; // Precio unitario (para productos que no se calculan por peso)
+  final double
+  unitPrice; // Precio unitario (para productos que no se calculan por peso)
   final double unitCost; // Costo unitario (para productos)
-  final Map<String, dynamic> dimensions; // Dimensiones específicas según el tipo
+  final Map<String, dynamic>
+  dimensions; // Dimensiones específicas según el tipo
   final String materialType; // Tipo de material/lámina
 
   QuotationItem({
@@ -200,7 +242,8 @@ class QuotationItem {
   double get totalProfit => totalPrice - totalCost;
 
   /// Margen de ganancia (%)
-  double get profitMargin => totalCost > 0 ? ((totalProfit / totalCost) * 100) : 0;
+  double get profitMargin =>
+      totalCost > 0 ? ((totalProfit / totalCost) * 100) : 0;
 
   QuotationItem copyWith({
     String? id,

@@ -9,3 +9,5 @@ export 'accounts_provider.dart';
 export 'inventory_provider.dart';
 export 'analytics_provider.dart';
 export 'recipes_provider.dart';
+export 'composite_products_provider.dart';
+export 'material_category_provider.dart';

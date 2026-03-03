@@ -1,3 +1,4 @@
+﻿import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_datasource.dart';
 import '../../domain/entities/analytics.dart';
@@ -12,7 +13,8 @@ class AnalyticsDataSource {
 
   /// Obtener historial de compras de un cliente específico
   static Future<List<CustomerPurchaseHistory>> getCustomerPurchaseHistory(
-      String customerId) async {
+    String customerId,
+  ) async {
     try {
       final response = await _client
           .from('v_customer_purchase_history')
@@ -24,7 +26,7 @@ class AnalyticsDataSource {
           .map((json) => CustomerPurchaseHistory.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo historial de compras: $e');
+      AppLogger.error('❌ Error obteniendo historial de compras: $e');
       return [];
     }
   }
@@ -44,7 +46,7 @@ class AnalyticsDataSource {
           .map((json) => CustomerPurchaseHistory.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo historial general: $e');
+      AppLogger.error('❌ Error obteniendo historial general: $e');
       return [];
     }
   }
@@ -68,84 +70,96 @@ class AnalyticsDataSource {
             .toList();
       } catch (_) {
         // Si la vista no existe, calcular manualmente desde customers e invoices
-        print('⚠️ Vista v_customer_metrics no existe, calculando manualmente...');
-        
+        AppLogger.warning(
+          '⚠️ Vista v_customer_metrics no existe, calculando manualmente...',
+        );
+
         final customersResponse = await _client
             .from('customers')
-            .select('id, name, document_number, type, current_balance, credit_limit, is_active, created_at')
+            .select(
+              'id, name, document_number, type, current_balance, credit_limit, is_active, created_at',
+            )
             .eq('is_active', true);
-        
+
         final List<CustomerMetrics> metrics = [];
-        
+
         for (final customer in customersResponse) {
           final customerId = customer['id'] as String;
-          
+
           // Obtener facturas del cliente
           final invoicesResponse = await _client
               .from('invoices')
               .select('total, paid_amount, status, issue_date')
               .eq('customer_id', customerId);
-          
+
           double totalSpent = 0.0;
           int invoiceCount = 0;
           DateTime? lastPurchase;
           DateTime? firstPurchase;
-          
+
           for (final inv in invoicesResponse) {
             final status = inv['status']?.toString() ?? '';
             if (status != 'cancelled' && status != 'anulada') {
               totalSpent += (inv['total'] as num?)?.toDouble() ?? 0.0;
               invoiceCount++;
-              
-              final issueDate = inv['issue_date'] != null 
+
+              final issueDate = inv['issue_date'] != null
                   ? DateTime.tryParse(inv['issue_date'].toString())
                   : null;
               if (issueDate != null) {
                 if (lastPurchase == null || issueDate.isAfter(lastPurchase)) {
                   lastPurchase = issueDate;
                 }
-                if (firstPurchase == null || issueDate.isBefore(firstPurchase)) {
+                if (firstPurchase == null ||
+                    issueDate.isBefore(firstPurchase)) {
                   firstPurchase = issueDate;
                 }
               }
             }
           }
-          
+
           // Calcular días desde última compra
           int? daysSinceLastPurchase;
           if (lastPurchase != null) {
-            daysSinceLastPurchase = DateTime.now().difference(lastPurchase).inDays;
+            daysSinceLastPurchase = DateTime.now()
+                .difference(lastPurchase)
+                .inDays;
           }
-          
-          final createdAt = customer['created_at'] != null 
+
+          final createdAt = customer['created_at'] != null
               ? DateTime.tryParse(customer['created_at'].toString())
               : null;
-          
-          metrics.add(CustomerMetrics(
-            id: customerId,
-            name: customer['name'] as String? ?? '',
-            documentNumber: customer['document_number'] as String?,
-            type: customer['type'] as String?,
-            debt: (customer['current_balance'] as num?)?.toDouble() ?? 0.0,
-            creditLimit: (customer['credit_limit'] as num?)?.toDouble() ?? 0.0,
-            customerSince: createdAt,
-            totalPurchases: invoiceCount,
-            totalSpent: totalSpent,
-            averageTicket: invoiceCount > 0 ? totalSpent / invoiceCount : 0.0,
-            lastPurchaseDate: lastPurchase,
-            firstPurchaseDate: firstPurchase,
-            daysSinceLastPurchase: daysSinceLastPurchase,
-          ));
+
+          metrics.add(
+            CustomerMetrics(
+              id: customerId,
+              name: customer['name'] as String? ?? '',
+              documentNumber: customer['document_number'] as String?,
+              type: customer['type'] as String?,
+              debt: (customer['current_balance'] as num?)?.toDouble() ?? 0.0,
+              creditLimit:
+                  (customer['credit_limit'] as num?)?.toDouble() ?? 0.0,
+              customerSince: createdAt,
+              totalPurchases: invoiceCount,
+              totalSpent: totalSpent,
+              averageTicket: invoiceCount > 0 ? totalSpent / invoiceCount : 0.0,
+              lastPurchaseDate: lastPurchase,
+              firstPurchaseDate: firstPurchase,
+              daysSinceLastPurchase: daysSinceLastPurchase,
+            ),
+          );
         }
-        
+
         // Ordenar por gasto total
         metrics.sort((a, b) => b.totalSpent.compareTo(a.totalSpent));
-        print('✅ Métricas calculadas para ${metrics.length} clientes');
-        
+        AppLogger.success(
+          '✅ Métricas calculadas para ${metrics.length} clientes',
+        );
+
         return metrics;
       }
     } catch (e) {
-      print('❌ Error obteniendo métricas de clientes: $e');
+      AppLogger.error('❌ Error obteniendo métricas de clientes: $e');
       return [];
     }
   }
@@ -164,7 +178,7 @@ class AnalyticsDataSource {
       }
       return null;
     } catch (e) {
-      print('❌ Error obteniendo métricas del cliente: $e');
+      AppLogger.error('❌ Error obteniendo métricas del cliente: $e');
       return null;
     }
   }
@@ -183,7 +197,7 @@ class AnalyticsDataSource {
           .map((json) => CustomerMetrics.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo top clientes: $e');
+      AppLogger.error('❌ Error obteniendo top clientes: $e');
       return [];
     }
   }
@@ -207,7 +221,7 @@ class AnalyticsDataSource {
           .map((json) => TopSellingProduct.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo productos top: $e');
+      AppLogger.error('❌ Error obteniendo productos top: $e');
       return [];
     }
   }
@@ -228,21 +242,23 @@ class AnalyticsDataSource {
         query = query.gte('month', fromMonth.toIso8601String());
       }
 
-      final response =
-          await query.order('month', ascending: false).limit(limit);
+      final response = await query
+          .order('month', ascending: false)
+          .limit(limit);
 
       return (response as List)
           .map((json) => MaterialConsumption.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo consumo de materiales: $e');
+      AppLogger.error('❌ Error obteniendo consumo de materiales: $e');
       return [];
     }
   }
 
   /// Obtener consumo de un material específico
   static Future<List<MaterialConsumption>> getMaterialConsumptionById(
-      String materialId) async {
+    String materialId,
+  ) async {
     try {
       final response = await _client
           .from('v_material_consumption_monthly')
@@ -254,7 +270,7 @@ class AnalyticsDataSource {
           .map((json) => MaterialConsumption.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo consumo del material: $e');
+      AppLogger.error('❌ Error obteniendo consumo del material: $e');
       return [];
     }
   }
@@ -281,7 +297,7 @@ class AnalyticsDataSource {
           .map((json) => SalesByPeriod.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo ventas por período: $e');
+      AppLogger.error('❌ Error obteniendo ventas por período: $e');
       return [];
     }
   }
@@ -308,7 +324,7 @@ class AnalyticsDataSource {
 
       return monthlySales;
     } catch (e) {
-      print('❌ Error obteniendo ventas mensuales: $e');
+      AppLogger.error('❌ Error obteniendo ventas mensuales: $e');
       return {};
     }
   }
@@ -329,14 +345,16 @@ class AnalyticsDataSource {
         query = query.eq('year', year);
       }
 
-      final response =
-          await query.order('year', ascending: false).order('month', ascending: false).limit(limit);
+      final response = await query
+          .order('year', ascending: false)
+          .order('month', ascending: false)
+          .limit(limit);
 
       return (response as List)
           .map((json) => ProfitLossMonthly.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo P&L: $e');
+      AppLogger.error('❌ Error obteniendo P&L: $e');
       return [];
     }
   }
@@ -347,7 +365,8 @@ class AnalyticsDataSource {
 
   /// Obtener análisis de productos por cliente
   static Future<List<CustomerProductAnalysis>> getCustomerProductAnalysis(
-      String customerId) async {
+    String customerId,
+  ) async {
     try {
       final response = await _client
           .from('v_customer_product_analysis')
@@ -359,7 +378,7 @@ class AnalyticsDataSource {
           .map((json) => CustomerProductAnalysis.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo análisis de productos: $e');
+      AppLogger.error('❌ Error obteniendo análisis de productos: $e');
       return [];
     }
   }
@@ -380,7 +399,7 @@ class AnalyticsDataSource {
           .map((json) => AccountReceivableAging.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo cuentas por cobrar: $e');
+      AppLogger.error('❌ Error obteniendo cuentas por cobrar: $e');
       return [];
     }
   }
@@ -405,7 +424,7 @@ class AnalyticsDataSource {
 
       return summary;
     } catch (e) {
-      print('❌ Error obteniendo resumen de antigüedad: $e');
+      AppLogger.error('❌ Error obteniendo resumen de antigüedad: $e');
       return {};
     }
   }
@@ -417,15 +436,17 @@ class AnalyticsDataSource {
   /// Calcular CLV de un cliente
   static Future<CustomerCLV?> calculateCustomerCLV(String customerId) async {
     try {
-      final response = await _client
-          .rpc('calculate_customer_clv', params: {'p_customer_id': customerId});
+      final response = await _client.rpc(
+        'calculate_customer_clv',
+        params: {'p_customer_id': customerId},
+      );
 
       if (response != null && (response as List).isNotEmpty) {
         return CustomerCLV.fromJson(response.first);
       }
       return null;
     } catch (e) {
-      print('❌ Error calculando CLV: $e');
+      AppLogger.error('❌ Error calculando CLV: $e');
       return null;
     }
   }
@@ -436,16 +457,16 @@ class AnalyticsDataSource {
     int limit = 5,
   }) async {
     try {
-      final response = await _client.rpc('get_related_products', params: {
-        'p_product_code': productCode,
-        'p_limit': limit,
-      });
+      final response = await _client.rpc(
+        'get_related_products',
+        params: {'p_product_code': productCode, 'p_limit': limit},
+      );
 
       return (response as List)
           .map((json) => RelatedProduct.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error obteniendo productos relacionados: $e');
+      AppLogger.error('❌ Error obteniendo productos relacionados: $e');
       return [];
     }
   }
@@ -467,13 +488,13 @@ class AnalyticsDataSource {
           .select('total')
           .gte('issue_date', startOfMonth.toIso8601String())
           .neq('status', 'cancelled');
-      
+
       final invoicesPending = await _client
           .from('invoices')
           .select('total, paid_amount')
           .neq('status', 'paid')
           .neq('status', 'cancelled');
-      
+
       final topCustomers = await getTopCustomers(limit: 5);
       final topProducts = await getTopSellingProducts(limit: 5);
 
@@ -486,7 +507,8 @@ class AnalyticsDataSource {
       // Procesar cuentas por cobrar
       double totalReceivables = 0;
       for (var inv in invoicesPending) {
-        totalReceivables += (inv['total'] as num).toDouble() -
+        totalReceivables +=
+            (inv['total'] as num).toDouble() -
             (inv['paid_amount'] as num).toDouble();
       }
 
@@ -497,7 +519,7 @@ class AnalyticsDataSource {
         'top_products': topProducts,
       };
     } catch (e) {
-      print('❌ Error obteniendo dashboard summary: $e');
+      AppLogger.error('❌ Error obteniendo dashboard summary: $e');
       return {};
     }
   }
@@ -506,8 +528,50 @@ class AnalyticsDataSource {
   // KPIs AVANZADOS DE COBRANZAS
   // ============================================================
 
-  /// Obtener DSO mensual de los últimos N meses
+  /// Obtener DSO mensual de los últimos N meses (usa RPC optimizada)
   static Future<List<DSOMonthly>> getDSOTrend({int months = 12}) async {
+    try {
+      // Intentar usar la RPC que hace todo en una sola query
+      final result = await _client.rpc(
+        'get_dso_trend',
+        params: {'p_months': months},
+      );
+
+      final List<DSOMonthly> dsoList = [];
+      for (var row in (result as List)) {
+        final month = DateTime.parse(row['month'] as String);
+        final dsoDays = (row['dso_days'] as num).toDouble();
+        final totalBilled = (row['total_billed'] as num).toDouble();
+        final totalOutstanding = (row['total_outstanding'] as num).toDouble();
+
+        dsoList.add(
+          DSOMonthly(
+            year: month.year,
+            month: month.month,
+            dso: dsoDays,
+            totalReceivables: totalOutstanding,
+            totalSales: totalBilled,
+            collectionRate: totalBilled > 0
+                ? ((totalBilled - totalOutstanding) / totalBilled * 100)
+                : 0,
+          ),
+        );
+      }
+
+      return dsoList;
+    } catch (e) {
+      // Fallback al método clásico si la RPC no existe
+      if (e.toString().contains('function') &&
+          e.toString().contains('not exist')) {
+        return _getDSOTrendLegacy(months: months);
+      }
+      AppLogger.error('❌ Error obteniendo DSO trend: $e');
+      return [];
+    }
+  }
+
+  /// Fallback N+1 para DSO trend
+  static Future<List<DSOMonthly>> _getDSOTrendLegacy({int months = 12}) async {
     try {
       final now = DateTime.now();
       List<DSOMonthly> dsoList = [];
@@ -515,63 +579,44 @@ class AnalyticsDataSource {
       for (int i = 0; i < months; i++) {
         final targetDate = DateTime(now.year, now.month - i, 1);
         final endOfMonth = DateTime(targetDate.year, targetDate.month + 1, 0);
-        
-        // Ventas del mes - sin paid_date que no existe
+
         final salesResponse = await _client
             .from('invoices')
-            .select('total, paid_amount, issue_date, due_date, status')
+            .select('total, paid_amount')
             .gte('issue_date', targetDate.toIso8601String())
             .lte('issue_date', endOfMonth.toIso8601String())
-            .neq('status', 'cancelled');
+            .neq('status', 'anulada');
 
         double totalSales = 0;
         double totalCollected = 0;
-        double totalReceivables = 0;
-
         for (var inv in salesResponse) {
-          final total = (inv['total'] as num).toDouble();
-          final paidAmount = (inv['paid_amount'] as num?)?.toDouble() ?? 0;
-          totalSales += total;
-          totalCollected += paidAmount;
-          totalReceivables += (total - paidAmount);
+          totalSales += (inv['total'] as num).toDouble();
+          totalCollected += (inv['paid_amount'] as num?)?.toDouble() ?? 0;
         }
 
-        // Cuentas por cobrar al final del mes
-        final receivablesResponse = await _client
-            .from('invoices')
-            .select('total, paid_amount')
-            .lte('issue_date', endOfMonth.toIso8601String())
-            .neq('status', 'paid')
-            .neq('status', 'cancelled');
-
-        // Recalcular receivables desde todas las facturas pendientes
-        totalReceivables = 0;
-        for (var inv in receivablesResponse) {
-          totalReceivables += (inv['total'] as num).toDouble() - 
-              ((inv['paid_amount'] as num?)?.toDouble() ?? 0);
-        }
-
-        // Calcular DSO: (Cuentas por Cobrar / Ventas Diarias)
+        final totalReceivables = totalSales - totalCollected;
         final daysInMonth = endOfMonth.day;
         final dailySales = totalSales / daysInMonth;
         final dso = dailySales > 0 ? totalReceivables / dailySales : 0.0;
-        
-        // Collection rate
-        final collectionRate = totalSales > 0 ? (totalCollected / totalSales * 100) : 0.0;
+        final collectionRate = totalSales > 0
+            ? (totalCollected / totalSales * 100)
+            : 0.0;
 
-        dsoList.add(DSOMonthly(
-          year: targetDate.year,
-          month: targetDate.month,
-          dso: dso.toDouble(),
-          totalReceivables: totalReceivables,
-          totalSales: totalSales,
-          collectionRate: collectionRate.toDouble(),
-        ));
+        dsoList.add(
+          DSOMonthly(
+            year: targetDate.year,
+            month: targetDate.month,
+            dso: dso,
+            totalReceivables: totalReceivables,
+            totalSales: totalSales,
+            collectionRate: collectionRate,
+          ),
+        );
       }
 
-      return dsoList.reversed.toList(); // Orden cronológico
+      return dsoList.reversed.toList();
     } catch (e) {
-      print('❌ Error obteniendo DSO trend: $e');
+      AppLogger.error('❌ Error obteniendo DSO trend (legacy): $e');
       return [];
     }
   }
@@ -601,13 +646,13 @@ class AnalyticsDataSource {
         final total = (inv['total'] as num).toDouble();
         final paid = (inv['paid_amount'] as num?)?.toDouble() ?? 0;
         final pending = total - paid;
-        
+
         totalSales += total;
         totalCollected += paid;
-        
+
         if (pending > 0) {
           totalReceivables += pending;
-          
+
           // Verificar si está vencida
           if (inv['due_date'] != null) {
             final dueDate = DateTime.tryParse(inv['due_date']);
@@ -620,33 +665,40 @@ class AnalyticsDataSource {
 
         // Contar facturas pagadas para cálculo de DSO
         final status = inv['status']?.toString() ?? '';
-        if (status == 'paid' && inv['issue_date'] != null && inv['due_date'] != null) {
+        if (status == 'paid' &&
+            inv['issue_date'] != null &&
+            inv['due_date'] != null) {
           final issueDate = DateTime.tryParse(inv['issue_date']);
           final dueDate = DateTime.tryParse(inv['due_date']);
           if (issueDate != null && dueDate != null) {
             // Usar la diferencia entre issue_date y due_date como estimación
-            totalDaysToCollect += dueDate.difference(issueDate).inDays ~/ 2; // Estimación media
+            totalDaysToCollect +=
+                dueDate.difference(issueDate).inDays ~/ 2; // Estimación media
             paidInvoicesCount++;
           }
         }
       }
 
       // DSO = Días promedio de cobro
-      final dso = paidInvoicesCount > 0 
+      final dso = paidInvoicesCount > 0
           ? (totalDaysToCollect / paidInvoicesCount).toDouble()
-          : (totalReceivables > 0 && totalSales > 0 
-              ? (totalReceivables / (totalSales / 365)).toDouble()
-              : 0.0);
+          : (totalReceivables > 0 && totalSales > 0
+                ? (totalReceivables / (totalSales / 365)).toDouble()
+                : 0.0);
 
       // CEI = (Cobrado / (Inicial + Ventas - Vigente)) * 100
       // Simplificado: CEI = (Cobrado / Ventas) * 100
       final cei = totalSales > 0 ? (totalCollected / totalSales * 100) : 0.0;
 
       // AR Turnover = Ventas a Crédito / Promedio de Cuentas por Cobrar
-      final arTurnover = totalReceivables > 0 ? (totalSales / totalReceivables) : 0.0;
+      final arTurnover = totalReceivables > 0
+          ? (totalSales / totalReceivables)
+          : 0.0;
 
       // Bad Debt Ratio (estimado con +90 días como incobrable)
-      final badDebtRatio = totalSales > 0 ? (overdueAmount * 0.5 / totalSales * 100) : 0.0;
+      final badDebtRatio = totalSales > 0
+          ? (overdueAmount * 0.5 / totalSales * 100)
+          : 0.0;
 
       return CollectionKPIs(
         dso: dso.toDouble(),
@@ -660,7 +712,7 @@ class AnalyticsDataSource {
         totalInvoices: allInvoices.length,
       );
     } catch (e) {
-      print('❌ Error calculando KPIs de cobranzas: $e');
+      AppLogger.error('❌ Error calculando KPIs de cobranzas: $e');
       return CollectionKPIs();
     }
   }
@@ -669,24 +721,45 @@ class AnalyticsDataSource {
   static Future<List<ProductABC>> getProductABCAnalysis() async {
     try {
       final products = await getTopSellingProducts(limit: 100);
-      
+
       if (products.isEmpty) return [];
 
       // Calcular total de ingresos
       final totalRevenue = products.fold(0.0, (sum, p) => sum + p.totalRevenue);
-      
+
       // Generar análisis ABC con acumulados
       List<ProductABC> abcList = [];
       double cumulativeRevenue = 0;
 
       for (var product in products) {
         cumulativeRevenue += product.totalRevenue;
-        abcList.add(ProductABC.fromTopSellingProduct(product, cumulativeRevenue, totalRevenue));
+        abcList.add(
+          ProductABC.fromTopSellingProduct(
+            product,
+            cumulativeRevenue,
+            totalRevenue,
+          ),
+        );
       }
 
       return abcList;
     } catch (e) {
-      print('❌ Error generando análisis ABC: $e');
+      AppLogger.error('❌ Error generando análisis ABC: $e');
       return [];
     }
-  }}
+  }
+
+  /// Refrescar todas las vistas materializadas
+  static Future<Map<String, dynamic>?> refreshMaterializedViews() async {
+    try {
+      final result = await _client.rpc('refresh_materialized_views');
+      AppLogger.success('✅ Vistas materializadas refrescadas');
+      return result as Map<String, dynamic>?;
+    } catch (e) {
+      AppLogger.warning(
+        '⚠️ No se pudieron refrescar vistas materializadas: $e',
+      );
+      return null;
+    }
+  }
+}

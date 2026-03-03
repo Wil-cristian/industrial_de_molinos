@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/utils/logger.dart';
 import '../datasources/invoices_datasource.dart';
 import '../../domain/entities/invoice.dart';
+import '../../domain/entities/customer.dart';
 
 // Estado de los recibos de caja menor
 class InvoicesState {
@@ -36,7 +38,11 @@ class InvoicesState {
       .fold(0, (sum, i) => sum + i.total);
 
   double get totalPendiente => invoices
-      .where((i) => i.status == InvoiceStatus.issued || i.status == InvoiceStatus.partial)
+      .where(
+        (i) =>
+            i.status == InvoiceStatus.issued ||
+            i.status == InvoiceStatus.partial,
+      )
       .fold(0, (sum, i) => sum + (i.total - i.paidAmount));
 
   double get totalPagado => invoices
@@ -44,19 +50,21 @@ class InvoicesState {
       .fold(0, (sum, i) => sum + i.total);
 
   int get countPendientes => invoices
-      .where((i) => i.status == InvoiceStatus.issued || i.status == InvoiceStatus.partial)
+      .where(
+        (i) =>
+            i.status == InvoiceStatus.issued ||
+            i.status == InvoiceStatus.partial,
+      )
       .length;
 
-  int get countVencidas => invoices
-      .where((i) => i.status == InvoiceStatus.overdue)
-      .length;
+  int get countVencidas =>
+      invoices.where((i) => i.status == InvoiceStatus.overdue).length;
 
   List<Invoice> get recentInvoices => invoices.take(10).toList();
 }
 
 // Notifier para manejar los recibos
 class InvoicesNotifier extends Notifier<InvoicesState> {
-
   @override
   InvoicesState build() {
     // Cargar recibos al iniciar - usar Future.microtask para evitar
@@ -68,18 +76,18 @@ class InvoicesNotifier extends Notifier<InvoicesState> {
   Future<void> _loadInvoices() async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-      print('🔄 Cargando recibos desde Supabase...');
+      AppLogger.debug('🔄 Cargando recibos desde Supabase...');
       final invoices = await InvoicesDataSource.getAll();
-      print('✅ Recibos cargados: ${invoices.length}');
+      AppLogger.success('✅ Recibos cargados: ${invoices.length}');
       final stats = await InvoicesDataSource.getMonthlyStats();
-      print('✅ Stats: $stats');
+      AppLogger.success('✅ Stats: $stats');
       state = state.copyWith(
         invoices: invoices,
         monthlyStats: stats,
         isLoading: false,
       );
     } catch (e) {
-      print('❌ Error cargando recibos: $e');
+      AppLogger.error('❌ Error cargando recibos: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Error al cargar recibos: $e',
@@ -114,8 +122,25 @@ class InvoicesNotifier extends Notifier<InvoicesState> {
     int? installmentNumber,
     int? totalInstallments,
   }) async {
+    // Guardar estado previo para rollback
+    final previousState = state;
+
     try {
-      state = state.copyWith(isLoading: true, error: null);
+      // Actualización optimista: actualizar invoice local inmediatamente
+      final updatedInvoices = state.invoices.map((inv) {
+        if (inv.id == invoiceId) {
+          final newPaid = inv.paidAmount + amount;
+          final newStatus = newPaid >= inv.total
+              ? InvoiceStatus.paid
+              : InvoiceStatus.partial;
+          return inv.copyWith(paidAmount: newPaid, status: newStatus);
+        }
+        return inv;
+      }).toList();
+
+      state = state.copyWith(invoices: updatedInvoices, error: null);
+
+      // Enviar al servidor
       await InvoicesDataSource.registerPayment(
         invoiceId: invoiceId,
         amount: amount,
@@ -125,34 +150,115 @@ class InvoicesNotifier extends Notifier<InvoicesState> {
         installmentNumber: installmentNumber,
         totalInstallments: totalInstallments,
       );
-      await _loadInvoices(); // Recargar lista
+
+      // Refrescar stats en background (no bloquea UI)
+      _refreshStatsInBackground();
       return true;
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Error al registrar pago: $e',
-      );
+      // Rollback al estado previo
+      state = previousState.copyWith(error: 'Error al registrar pago: $e');
       return false;
     }
   }
 
   Future<bool> cancelInvoice(String invoiceId) async {
+    final previousState = state;
+
     try {
-      state = state.copyWith(isLoading: true, error: null);
+      // Actualización optimista
+      final updatedInvoices = state.invoices.map((inv) {
+        if (inv.id == invoiceId) {
+          return inv.copyWith(status: InvoiceStatus.cancelled);
+        }
+        return inv;
+      }).toList();
+
+      state = state.copyWith(invoices: updatedInvoices, error: null);
+
+      // Enviar al servidor
       await InvoicesDataSource.cancel(invoiceId);
-      await _loadInvoices();
+
+      _refreshStatsInBackground();
       return true;
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Error al cancelar recibo: $e',
-      );
+      // Rollback
+      state = previousState.copyWith(error: 'Error al cancelar recibo: $e');
       return false;
     }
   }
 
+  /// Refresca stats sin bloquear la UI
+  void _refreshStatsInBackground() {
+    Future.microtask(() async {
+      try {
+        final stats = await InvoicesDataSource.getMonthlyStats();
+        state = state.copyWith(monthlyStats: stats);
+      } catch (_) {}
+    });
+  }
+
   void clearError() {
     state = state.copyWith(error: null);
+  }
+
+  /// Crear factura con items (pasa por el provider para actualizar estado local)
+  Future<Invoice?> createInvoice({
+    required String type,
+    required String series,
+    required Customer customer,
+    required DateTime issueDate,
+    DateTime? dueDate,
+    required List<InvoiceItem> items,
+    double taxRate = 0.0,
+    double discount = 0.0,
+    String? quotationId,
+    String? notes,
+  }) async {
+    try {
+      final invoice = await InvoicesDataSource.createWithItems(
+        type: type,
+        series: series,
+        customer: customer,
+        issueDate: issueDate,
+        dueDate: dueDate,
+        items: items,
+        taxRate: taxRate,
+        discount: discount,
+        quotationId: quotationId,
+        notes: notes,
+      );
+
+      // Agregar al estado local inmediatamente
+      state = state.copyWith(invoices: [invoice, ...state.invoices]);
+
+      return invoice;
+    } catch (e) {
+      AppLogger.error('❌ Error al crear factura: $e');
+      state = state.copyWith(error: 'Error al crear factura: $e');
+      return null;
+    }
+  }
+
+  /// Emitir una factura (cambia estado a issued y descuenta inventario)
+  Future<bool> emitInvoice(String invoiceId) async {
+    final previousState = state;
+    try {
+      // Optimistic update
+      final updatedInvoices = state.invoices.map((inv) {
+        if (inv.id == invoiceId) {
+          return inv.copyWith(status: InvoiceStatus.issued);
+        }
+        return inv;
+      }).toList();
+      state = state.copyWith(invoices: updatedInvoices, error: null);
+
+      await InvoicesDataSource.updateStatus(invoiceId, 'issued');
+      _refreshStatsInBackground();
+      return true;
+    } catch (e) {
+      state = previousState.copyWith(error: 'Error al emitir factura: $e');
+      return false;
+    }
   }
 }
 
@@ -181,8 +287,10 @@ final invoiceStatsProvider = Provider<Map<String, dynamic>>((ref) {
 });
 
 // Provider para recibos filtrados por estado
-final filteredInvoicesProvider = Provider.family<List<Invoice>, InvoiceStatus?>((ref, status) {
-  final state = ref.watch(invoicesProvider);
-  if (status == null) return state.invoices;
-  return state.invoices.where((i) => i.status == status).toList();
-});
+final filteredInvoicesProvider = Provider.family<List<Invoice>, InvoiceStatus?>(
+  (ref, status) {
+    final state = ref.watch(invoicesProvider);
+    if (status == null) return state.invoices;
+    return state.invoices.where((i) => i.status == status).toList();
+  },
+);

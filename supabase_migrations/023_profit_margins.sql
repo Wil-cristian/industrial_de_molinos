@@ -205,9 +205,9 @@ ORDER BY i.issue_date DESC;
 CREATE OR REPLACE VIEW v_quotation_profit_analysis AS
 SELECT 
     q.id as quotation_id,
-    q.quotation_number,
+    q.number as quotation_number,
     q.customer_name,
-    q.issue_date,
+    q.date as issue_date,
     q.status,
     q.total as quotation_total,
     -- Costo total de items
@@ -236,7 +236,7 @@ LEFT JOIN (
     FROM quotation_items
     GROUP BY quotation_id
 ) items ON items.quotation_id = q.id
-ORDER BY q.issue_date DESC;
+ORDER BY q.date DESC;
 
 -- =====================================================
 -- 6. VISTA: RESUMEN DE MÁRGENES POR CATEGORÍA

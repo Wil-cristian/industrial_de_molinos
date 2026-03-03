@@ -6,11 +6,8 @@ import '../../core/theme/app_theme.dart';
 /// Usar dentro de un Stack para que el indicador se vea por encima del contenido
 class AppSidebar extends StatefulWidget {
   final String currentRoute;
-  
-  const AppSidebar({
-    super.key,
-    required this.currentRoute,
-  });
+
+  const AppSidebar({super.key, required this.currentRoute});
 
   @override
   State<AppSidebar> createState() => _AppSidebarState();
@@ -20,18 +17,48 @@ class _AppSidebarState extends State<AppSidebar> {
   // Altura fija para cada item de navegación
   static const double _itemHeight = 48.0;
   static const double _logoHeight = 52.0;
-  
+
   final List<NavItemData> _navItems = [
-    NavItemData(icon: Icons.account_balance_wallet, label: 'Caja', route: '/daily-cash'),
-    NavItemData(icon: Icons.inventory_2, label: 'Productos', route: '/products'),
-    NavItemData(icon: Icons.warehouse, label: 'Materiales', route: '/materials'),
+    NavItemData(
+      icon: Icons.account_balance_wallet,
+      label: 'Caja',
+      route: '/daily-cash',
+    ),
+    NavItemData(
+      icon: Icons.layers,
+      label: 'Productos',
+      route: '/composite-products',
+    ),
+    NavItemData(
+      icon: Icons.warehouse,
+      label: 'Materiales',
+      route: '/materials',
+    ),
     NavItemData(icon: Icons.people, label: 'Clientes', route: '/customers'),
     NavItemData(icon: Icons.receipt_long, label: 'Ventas', route: '/invoices'),
-    NavItemData(icon: Icons.request_quote, label: 'Cotizar', route: '/quotations'),
+    NavItemData(
+      icon: Icons.request_quote,
+      label: 'Cotizar',
+      route: '/quotations',
+    ),
     NavItemData(icon: Icons.bar_chart, label: 'Reportes', route: '/reports'),
-    NavItemData(icon: Icons.calendar_today, label: 'Calendario', route: '/calendar'),
+    NavItemData(
+      icon: Icons.calendar_today,
+      label: 'Calendario',
+      route: '/calendar',
+    ),
     NavItemData(icon: Icons.badge, label: 'Empleados', route: '/employees'),
-    NavItemData(icon: Icons.business_center, label: 'Activos', route: '/assets'),
+    NavItemData(
+      icon: Icons.business_center,
+      label: 'Activos',
+      route: '/assets',
+    ),
+    NavItemData(
+      icon: Icons.account_balance,
+      label: 'Contable',
+      route: '/accounting',
+    ),
+    NavItemData(icon: Icons.receipt_long, label: 'IVA', route: '/iva-control'),
     NavItemData(icon: Icons.settings, label: 'Config', route: '/settings'),
   ];
 
@@ -47,7 +74,7 @@ class _AppSidebarState extends State<AppSidebar> {
   @override
   Widget build(BuildContext context) {
     final selectedIdx = _selectedIndex;
-    
+
     return SizedBox(
       width: 88, // 80 del sidebar + 8 para la burbuja
       child: Stack(
@@ -83,7 +110,7 @@ class _AppSidebarState extends State<AppSidebar> {
                     ),
                   ),
                 ),
-                
+
                 // Nav Items
                 Expanded(
                   child: ListView(
@@ -91,7 +118,7 @@ class _AppSidebarState extends State<AppSidebar> {
                     children: List.generate(_navItems.length, (index) {
                       final item = _navItems[index];
                       final isSelected = index == selectedIdx;
-                      
+
                       return _NavItemWidget(
                         icon: item.icon,
                         label: item.label,
@@ -105,7 +132,7 @@ class _AppSidebarState extends State<AppSidebar> {
               ],
             ),
           ),
-          
+
           // Burbuja indicadora - sale del sidebar hacia la derecha
           if (selectedIdx >= 0)
             AnimatedPositioned(
@@ -136,11 +163,7 @@ class NavItemData {
   final String label;
   final String route;
 
-  NavItemData({
-    required this.icon,
-    required this.label,
-    required this.route,
-  });
+  NavItemData({required this.icon, required this.label, required this.route});
 }
 
 class _NavItemWidget extends StatelessWidget {

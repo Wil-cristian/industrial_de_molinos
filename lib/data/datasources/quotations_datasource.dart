@@ -1,3 +1,4 @@
+﻿import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/quotation.dart';
 import 'supabase_datasource.dart';
@@ -8,19 +9,35 @@ class QuotationsDataSource {
 
   static SupabaseClient get _client => SupabaseDataSource.client;
 
-  /// Obtener todas las cotizaciones
+  /// Obtener todas las cotizaciones (con items en batch para evitar N+1)
   static Future<List<Quotation>> getAll() async {
     final response = await _client
         .from(_table)
         .select()
         .order('date', ascending: false);
-    
-    List<Quotation> quotations = [];
-    for (var json in response) {
-      final items = await getItems(json['id']);
-      quotations.add(_fromJson(json, items));
+
+    if (response.isEmpty) return [];
+
+    // Cargar TODOS los items en una sola consulta
+    final allIds = response.map<String>((q) => q['id'] as String).toList();
+    final allItemsResponse = await _client
+        .from(_itemsTable)
+        .select()
+        .inFilter('quotation_id', allIds)
+        .order('sort_order');
+
+    // Agrupar items por quotation_id
+    final itemsByQuotation = <String, List<QuotationItem>>{};
+    for (var itemJson in allItemsResponse) {
+      final qId = itemJson['quotation_id'] as String;
+      itemsByQuotation.putIfAbsent(qId, () => []);
+      itemsByQuotation[qId]!.add(_itemFromJson(itemJson));
     }
-    return quotations;
+
+    return response.map((json) {
+      final items = itemsByQuotation[json['id']] ?? [];
+      return _fromJson(json, items);
+    }).toList();
   }
 
   /// Obtener cotizaciones por estado
@@ -30,19 +47,38 @@ class QuotationsDataSource {
         .select()
         .eq('status', status)
         .order('date', ascending: false);
-    
-    List<Quotation> quotations = [];
-    for (var json in response) {
-      final items = await getItems(json['id']);
-      quotations.add(_fromJson(json, items));
+
+    if (response.isEmpty) return [];
+
+    // Batch load items
+    final allIds = response.map<String>((q) => q['id'] as String).toList();
+    final allItemsResponse = await _client
+        .from(_itemsTable)
+        .select()
+        .inFilter('quotation_id', allIds)
+        .order('sort_order');
+
+    final itemsByQuotation = <String, List<QuotationItem>>{};
+    for (var itemJson in allItemsResponse) {
+      final qId = itemJson['quotation_id'] as String;
+      itemsByQuotation.putIfAbsent(qId, () => []);
+      itemsByQuotation[qId]!.add(_itemFromJson(itemJson));
     }
-    return quotations;
+
+    return response.map((json) {
+      final items = itemsByQuotation[json['id']] ?? [];
+      return _fromJson(json, items);
+    }).toList();
   }
 
   /// Obtener cotización por ID con items
   static Future<Quotation?> getById(String id) async {
     try {
-      final response = await _client.from(_table).select().eq('id', id).single();
+      final response = await _client
+          .from(_table)
+          .select()
+          .eq('id', id)
+          .single();
       final items = await getItems(id);
       return _fromJson(response, items);
     } catch (e) {
@@ -70,10 +106,10 @@ class QuotationsDataSource {
   static Future<Quotation> create(Quotation quotation) async {
     try {
       // Generar número automático
-      print('📝 Generando número de cotización...');
+      AppLogger.debug('📝 Generando número de cotización...');
       final number = await generateNumber();
-      print('✅ Número generado: $number');
-      
+      AppLogger.success('✅ Número generado: $number');
+
       final data = _toJson(quotation);
       data['number'] = number;
       data.remove('id');
@@ -81,44 +117,56 @@ class QuotationsDataSource {
       data.remove('created_at');
       data.remove('updated_at');
       data.remove('synced');
-      
-      print('📤 Insertando cotización: $data');
-      final response = await _client.from(_table).insert(data).select().single();
+
+      AppLogger.debug('📤 Insertando cotización: $data');
+      final response = await _client
+          .from(_table)
+          .insert(data)
+          .select()
+          .single();
       final newId = response['id'];
-      print('✅ Cotización creada con ID: $newId');
-      
+      AppLogger.success('✅ Cotización creada con ID: $newId');
+
       // Insertar items
-      print('📝 Insertando ${quotation.items.length} items...');
+      AppLogger.debug('📝 Insertando ${quotation.items.length} items...');
       for (var i = 0; i < quotation.items.length; i++) {
-        print('  Item $i: ${quotation.items[i].name}');
+        AppLogger.debug('Item $i: ${quotation.items[i].name}');
         await createItem(newId, quotation.items[i], i);
       }
-      print('✅ Items insertados');
-      
+      AppLogger.success('✅ Items insertados');
+
       // Retornar cotización con items
       return (await getById(newId))!;
     } catch (e, stack) {
-      print('❌ Error al crear cotización: $e');
-      print('Stack: $stack');
+      AppLogger.error('❌ Error al crear cotización: $e');
+      AppLogger.error('Stack: $stack');
       rethrow;
     }
   }
 
   /// Crear item de cotización
-  static Future<QuotationItem> createItem(String quotationId, QuotationItem item, int order) async {
+  static Future<QuotationItem> createItem(
+    String quotationId,
+    QuotationItem item,
+    int order,
+  ) async {
     try {
       final data = _itemToJson(item);
       data['quotation_id'] = quotationId;
       data['sort_order'] = order;
       data.remove('id');
       data.remove('created_at');
-      
-      print('  📤 Insertando item: $data');
-      final response = await _client.from(_itemsTable).insert(data).select().single();
-      print('  ✅ Item insertado');
+
+      AppLogger.debug('📤 Insertando item: $data');
+      final response = await _client
+          .from(_itemsTable)
+          .insert(data)
+          .select()
+          .single();
+      AppLogger.success('✅ Item insertado');
       return _itemFromJson(response);
     } catch (e) {
-      print('  ❌ Error insertando item: $e');
+      AppLogger.error('❌ Error insertando item: $e');
       rethrow;
     }
   }
@@ -132,16 +180,16 @@ class QuotationsDataSource {
     data.remove('created_at');
     data.remove('updated_at');
     data.remove('synced');
-    
+
     await _client.from(_table).update(data).eq('id', quotation.id);
-    
+
     // Eliminar items existentes y recrear
     await _client.from(_itemsTable).delete().eq('quotation_id', quotation.id);
-    
+
     for (var i = 0; i < quotation.items.length; i++) {
       await createItem(quotation.id, quotation.items[i], i);
     }
-    
+
     return (await getById(quotation.id))!;
   }
 
@@ -157,7 +205,7 @@ class QuotationsDataSource {
     bool deductMaterials = true,
   }) async {
     try {
-      print('📋 Aprobando cotización: $quotationId');
+      AppLogger.debug('📋 Aprobando cotización: $quotationId');
       final response = await _client.rpc(
         'approve_quotation_with_materials',
         params: {
@@ -166,46 +214,34 @@ class QuotationsDataSource {
           'p_deduct_materials': deductMaterials,
         },
       );
-      
-      print('✅ Respuesta de aprobación:');
-      print('   Response: $response');
+
+      AppLogger.success('✅ Respuesta de aprobación:');
+      AppLogger.debug(' Response: $response');
       if (response is Map<String, dynamic>) {
-        print('   Invoice: ${response['invoice_number']}');
-        print('   Items procesados: ${response['items_processed']}');
-        print('   Descuentos: ${response['deductions']}');
+        AppLogger.debug(' Invoice: ${response['invoice_number']}');
+        AppLogger.debug(' Items procesados: ${response['items_processed']}');
+        AppLogger.debug(' Descuentos: ${response['deductions']}');
       }
-      
+
       return response as Map<String, dynamic>?;
     } catch (e) {
-      // Fallback a la función original si la nueva no existe
-      print('⚠️ Intentando función alternativa... Error: $e');
-      try {
-        final response = await _client.rpc(
-          'approve_quotation_and_create_invoice',
-          params: {
-            'p_quotation_id': quotationId,
-            'p_series': series,
-          },
-        );
-        return {'invoice_id': response};
-      } catch (e2) {
-        print('❌ Error al aprobar cotización: $e2');
-        rethrow;
-      }
-    }
-  }
-
-  /// Verificar stock de materiales antes de aprobar
-  static Future<List<Map<String, dynamic>>> checkMaterialsStock(String quotationId) async {
-    try {
-      final response = await _client.rpc(
-        'check_quotation_stock',
-        params: {'p_quotation_id': quotationId},
+      // NO usar fallback silencioso — la función con descuento de materiales es obligatoria
+      AppLogger.error(
+        '❌ Error al aprobar cotización con descuento de inventario: $e',
       );
-      return List<Map<String, dynamic>>.from(response ?? []);
-    } catch (e) {
-      print('❌ Error al verificar stock de materiales: $e');
-      return [];
+
+      // Si el error es que la función no existe, dar instrucciones claras
+      final errorMsg = e.toString().toLowerCase();
+      if (errorMsg.contains('function') &&
+          (errorMsg.contains('not exist') ||
+              errorMsg.contains('does not exist') ||
+              errorMsg.contains('could not find'))) {
+        throw Exception(
+          'La función approve_quotation_with_materials no existe en Supabase. '
+          'Ejecute la migración 036_bulk_inventory_operations.sql en el SQL Editor de Supabase.',
+        );
+      }
+      rethrow;
     }
   }
 
@@ -214,19 +250,18 @@ class QuotationsDataSource {
     try {
       await _client.rpc(
         'reject_quotation',
-        params: {
-          'p_quotation_id': quotationId,
-          'p_reason': reason,
-        },
+        params: {'p_quotation_id': quotationId, 'p_reason': reason},
       );
     } catch (e) {
-      print('❌ Error al rechazar cotización: $e');
+      AppLogger.error('❌ Error al rechazar cotización: $e');
       rethrow;
     }
   }
 
   /// Verificar disponibilidad de stock para cotización
-  static Future<List<Map<String, dynamic>>> checkStockAvailability(String quotationId) async {
+  static Future<List<Map<String, dynamic>>> checkStockAvailability(
+    String quotationId,
+  ) async {
     try {
       final response = await _client.rpc(
         'check_stock_availability',
@@ -234,15 +269,45 @@ class QuotationsDataSource {
       );
       return List<Map<String, dynamic>>.from(response ?? []);
     } catch (e) {
-      print('❌ Error al verificar stock: $e');
+      AppLogger.error('❌ Error al verificar stock: $e');
       return [];
     }
   }
 
-  /// Eliminar cotización
+  /// Eliminar cotización (solo borradores, usa RPC segura)
   static Future<void> delete(String id) async {
-    // Items se eliminan por CASCADE
-    await _client.from(_table).delete().eq('id', id);
+    try {
+      await _client.rpc(
+        'safe_delete_quotation',
+        params: {'p_quotation_id': id},
+      );
+    } catch (e) {
+      // Fallback directo si la RPC no existe aún
+      if (e.toString().contains('could not find')) {
+        await _client.from(_table).delete().eq('id', id);
+      } else {
+        rethrow;
+      }
+    }
+  }
+
+  /// Anular cotización atómicamente (incluye factura y material_movements)
+  static Future<Map<String, dynamic>> annulQuotation(
+    String quotationId, {
+    String reason = 'Anulada por el usuario',
+  }) async {
+    try {
+      AppLogger.debug('🚫 Anulando cotización: $quotationId');
+      final response = await _client.rpc(
+        'annul_quotation',
+        params: {'p_quotation_id': quotationId, 'p_reason': reason},
+      );
+      AppLogger.success('✅ Cotización anulada: $response');
+      return Map<String, dynamic>.from(response ?? {});
+    } catch (e) {
+      AppLogger.error('❌ Error al anular cotización: $e');
+      rethrow;
+    }
   }
 
   /// Buscar cotizaciones
@@ -252,12 +317,28 @@ class QuotationsDataSource {
         .select()
         .or('number.ilike.%$query%,customer_name.ilike.%$query%')
         .order('date', ascending: false);
-    
-    List<Quotation> quotations = [];
-    for (var json in response) {
-      final items = await getItems(json['id']);
-      quotations.add(_fromJson(json, items));
+
+    if (response.isEmpty) return [];
+
+    // Batch load items
+    final allIds = response.map<String>((q) => q['id'] as String).toList();
+    final allItemsResponse = await _client
+        .from(_itemsTable)
+        .select()
+        .inFilter('quotation_id', allIds)
+        .order('sort_order');
+
+    final itemsByQuotation = <String, List<QuotationItem>>{};
+    for (var itemJson in allItemsResponse) {
+      final qId = itemJson['quotation_id'] as String;
+      itemsByQuotation.putIfAbsent(qId, () => []);
+      itemsByQuotation[qId]!.add(_itemFromJson(itemJson));
     }
+
+    List<Quotation> quotations = response.map((json) {
+      final items = itemsByQuotation[json['id']] ?? [];
+      return _fromJson(json, items);
+    }).toList();
     return quotations;
   }
 
@@ -271,7 +352,10 @@ class QuotationsDataSource {
   }
 
   // Helpers de conversión
-  static Quotation _fromJson(Map<String, dynamic> json, List<QuotationItem> items) {
+  static Quotation _fromJson(
+    Map<String, dynamic> json,
+    List<QuotationItem> items,
+  ) {
     return Quotation(
       id: json['id'],
       number: json['number'],
@@ -289,7 +373,9 @@ class QuotationsDataSource {
       profitMargin: (json['profit_margin'] ?? 20).toDouble(),
       notes: json['notes'] ?? '',
       createdAt: DateTime.parse(json['created_at']),
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : null,
       synced: true,
     );
   }
@@ -300,13 +386,13 @@ class QuotationsDataSource {
       'number': quotation.number,
       'date': quotation.date.toIso8601String().split('T')[0],
       'valid_until': quotation.validUntil.toIso8601String().split('T')[0],
-      'customer_id': quotation.customerId.isNotEmpty ? quotation.customerId : null,
+      'customer_id': quotation.customerId.isNotEmpty
+          ? quotation.customerId
+          : null,
       'customer_name': quotation.customerName,
       'status': quotation.status,
       'materials_cost': quotation.materialsCost,
       'labor_cost': quotation.laborCost,
-      'labor_hours': quotation.laborCost / 25, // Asumiendo tarifa por hora
-      'labor_rate': 25.00,
       'energy_cost': quotation.energyCost,
       'gas_cost': quotation.gasCost,
       'supplies_cost': quotation.suppliesCost,
@@ -329,7 +415,8 @@ class QuotationsDataSource {
       description: json['description'] ?? '',
       type: json['type'] ?? 'custom',
       productId: json['product_id'],
-      materialId: json['inv_material_id'], // Leer de columna de inventario
+      materialId:
+          json['material_id'], // Columna correcta (inv_material_id fue eliminada en migración 028)
       quantity: json['quantity'] ?? 1,
       unitWeight: (json['unit_weight'] ?? 0).toDouble(),
       pricePerKg: (json['price_per_kg'] ?? 0).toDouble(),
@@ -348,7 +435,7 @@ class QuotationsDataSource {
       'description': item.description,
       'type': item.type,
       'product_id': item.productId,
-      'inv_material_id': item.materialId, // Columna para inventario de materials
+      'material_id': item.materialId, // FK a materials(id)
       'material_name': item.materialType,
       'material_type': item.materialType,
       'dimensions': item.dimensions,

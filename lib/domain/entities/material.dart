@@ -6,24 +6,31 @@ class Material {
   final String code;
   final String name;
   final String? description;
-  final String category;      // tubo, lamina, eje, rodamiento, tornilleria, etc.
-  final String shape;         // cylinder, plate, solid_cylinder, bearing, custom
-  
+  final String category; // tubo, lamina, eje, rodamiento, tornilleria, etc.
+  final String shape; // cylinder, plate, solid_cylinder, bearing, custom
+
   // Precios
-  final double pricePerKg;    // Para materiales por peso
-  final double unitPrice;     // Para materiales por unidad
-  final double costPrice;     // Costo de compra
-  
+  final double pricePerKg; // Para materiales por peso
+  final double unitPrice; // Para materiales por unidad
+  final double costPrice; // Costo de compra
+
   // Stock
-  final double stock;         // Cantidad actual
-  final double minStock;      // Stock mínimo (alerta)
-  final String unit;          // KG, UND, M, L, etc.
-  
+  final double stock; // Cantidad actual (KG o UND)
+  final double minStock; // Stock mínimo (alerta)
+  final String unit; // KG, UND, M, L, etc.
+
+  // Dimensiones físicas (mm)
+  final double? outerDiameter; // Diámetro exterior (tubos, ejes)
+  final double? wallThickness; // Espesor de pared (tubos)
+  final double? thickness; // Espesor (láminas, placas)
+  final double? totalLength; // Largo total de la pieza como se compra (mm)
+  final double? width; // Ancho (láminas)
+
   // Propiedades físicas
-  final double density;       // kg/m³ (acero = 7850)
+  final double density; // kg/m³ (acero = 7850)
   final double? defaultThickness;
-  final double? fixedWeight;  // Peso fijo por unidad
-  
+  final double? fixedWeight; // Peso fijo por unidad
+
   // Metadata
   final String? supplier;
   final String? location;
@@ -44,6 +51,11 @@ class Material {
     this.stock = 0,
     this.minStock = 0,
     this.unit = 'KG',
+    this.outerDiameter,
+    this.wallThickness,
+    this.thickness,
+    this.totalLength,
+    this.width,
     this.density = 7850,
     this.defaultThickness,
     this.fixedWeight,
@@ -61,23 +73,62 @@ class Material {
   double get effectivePrice => unit == 'KG' ? pricePerKg : unitPrice;
 
   // Precio efectivo de COMPRA/COSTO (según tipo)
-  // Si costPrice > 0, usar ese; sino usar effectivePrice como fallback
   double get effectiveCostPrice => costPrice > 0 ? costPrice : effectivePrice;
 
   // Nombre formateado con stock
-  String get displayName => '$name (${stock.toStringAsFixed(stock % 1 == 0 ? 0 : 2)} $unit)';
+  String get displayName {
+    return '$name (${stock.toStringAsFixed(stock % 1 == 0 ? 0 : 2)} $unit)';
+  }
+
+  // Descripción dimensional
+  String get dimensionText {
+    final parts = <String>[];
+    if (outerDiameter != null && outerDiameter! > 0) {
+      parts.add('Ø${_formatMm(outerDiameter!)}');
+    }
+    if (wallThickness != null && wallThickness! > 0) {
+      parts.add('e=${_formatMm(wallThickness!)}');
+    }
+    if (thickness != null && thickness! > 0) {
+      parts.add('e=${_formatMm(thickness!)}');
+    }
+    if (totalLength != null && totalLength! > 0) {
+      parts.add('L=${(totalLength! / 1000).toStringAsFixed(2)}m');
+    }
+    if (width != null && width! > 0) {
+      parts.add('A=${_formatMm(width!)}');
+    }
+    return parts.join(' × ');
+  }
+
+  String _formatMm(double mm) {
+    // Convertir mm a pulgadas si es un valor estándar
+    final inches = mm / 25.4;
+    if ((inches * 16).round() == (inches * 16) && inches > 0) {
+      return '${inches.toStringAsFixed(inches == inches.roundToDouble() ? 0 : 3)}"';
+    }
+    return '${mm.toStringAsFixed(mm == mm.roundToDouble() ? 0 : 1)}mm';
+  }
 
   // Categoría formateada
   String get categoryDisplay {
     switch (category) {
-      case 'tubo': return 'Tubos';
-      case 'lamina': return 'Láminas';
-      case 'eje': return 'Ejes';
-      case 'rodamiento': return 'Rodamientos';
-      case 'tornilleria': return 'Tornillería';
-      case 'consumible': return 'Consumibles';
-      case 'pintura': return 'Pintura';
-      default: return category;
+      case 'tubo':
+        return 'Tubos';
+      case 'lamina':
+        return 'Láminas';
+      case 'eje':
+        return 'Ejes';
+      case 'rodamiento':
+        return 'Rodamientos';
+      case 'tornilleria':
+        return 'Tornillería';
+      case 'consumible':
+        return 'Consumibles';
+      case 'pintura':
+        return 'Pintura';
+      default:
+        return category;
     }
   }
 
@@ -94,6 +145,11 @@ class Material {
     double? stock,
     double? minStock,
     String? unit,
+    double? outerDiameter,
+    double? wallThickness,
+    double? thickness,
+    double? totalLength,
+    double? width,
     double? density,
     double? defaultThickness,
     double? fixedWeight,
@@ -116,6 +172,11 @@ class Material {
       stock: stock ?? this.stock,
       minStock: minStock ?? this.minStock,
       unit: unit ?? this.unit,
+      outerDiameter: outerDiameter ?? this.outerDiameter,
+      wallThickness: wallThickness ?? this.wallThickness,
+      thickness: thickness ?? this.thickness,
+      totalLength: totalLength ?? this.totalLength,
+      width: width ?? this.width,
       density: density ?? this.density,
       defaultThickness: defaultThickness ?? this.defaultThickness,
       fixedWeight: fixedWeight ?? this.fixedWeight,
@@ -142,14 +203,23 @@ class Material {
       stock: (json['stock'] ?? 0).toDouble(),
       minStock: (json['min_stock'] ?? 0).toDouble(),
       unit: json['unit'] ?? 'KG',
+      outerDiameter: json['outer_diameter']?.toDouble(),
+      wallThickness: json['wall_thickness']?.toDouble(),
+      thickness: json['thickness']?.toDouble(),
+      totalLength: json['total_length']?.toDouble(),
+      width: json['width']?.toDouble(),
       density: (json['density'] ?? 7850).toDouble(),
       defaultThickness: json['default_thickness']?.toDouble(),
       fixedWeight: json['fixed_weight']?.toDouble(),
       supplier: json['supplier'],
       location: json['location'],
       isActive: json['is_active'] ?? true,
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        json['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        json['updated_at'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 
@@ -167,6 +237,11 @@ class Material {
       'stock': stock,
       'min_stock': minStock,
       'unit': unit,
+      'outer_diameter': outerDiameter,
+      'wall_thickness': wallThickness,
+      'thickness': thickness,
+      'total_length': totalLength,
+      'width': width,
       'density': density,
       'default_thickness': defaultThickness,
       'fixed_weight': fixedWeight,
@@ -186,20 +261,20 @@ class ProductComponent {
   final String? description;
   final double quantity;
   final String unit;
-  
+
   // Dimensiones (para cálculo)
   final double? outerDiameter;
   final double? innerDiameter;
   final double? thickness;
   final double? length;
   final double? width;
-  
+
   // Peso y costo
   final double calculatedWeight;
   final double unitCost;
   final double totalCost;
   final int sortOrder;
-  
+
   // Material relacionado (opcional, para mostrar info)
   final Material? material;
 

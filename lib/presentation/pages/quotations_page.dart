@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
+import '../../data/datasources/inventory_datasource.dart';
+import '../../data/datasources/purchase_orders_datasource.dart';
 import '../../data/providers/quotations_provider.dart';
+import '../../data/providers/invoices_provider.dart';
+import '../../core/utils/print_service.dart';
 
 class QuotationsPage extends ConsumerStatefulWidget {
   const QuotationsPage({super.key});
@@ -172,119 +176,104 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                       border: Border(
                         bottom: BorderSide(color: Colors.grey[200]!),
                       ),
-                              ),
-                              child: TabBar(
-                                controller: _tabController,
-                                labelColor: AppTheme.primaryColor,
-                                unselectedLabelColor: Colors.grey[600],
-                                indicatorColor: AppTheme.primaryColor,
-                                isScrollable: true,
-                                tabs: [
-                                  Tab(text: 'Todas ($_totalQuotations)'),
-                                  Tab(
-                                    text:
-                                        'Borrador (${_quotations.where((q) => q['status'] == 'Borrador').length})',
-                                  ),
-                                  Tab(
-                                    text:
-                                        'Enviadas (${_quotations.where((q) => q['status'] == 'Enviada').length})',
-                                  ),
-                                  Tab(text: 'Aprobadas ($_approvedQuotations)'),
-                                  Tab(
-                                    text:
-                                        'Rechazadas (${_quotations.where((q) => q['status'] == 'Rechazada').length})',
-                                  ),
-                                  Tab(
-                                    text:
-                                        'Anuladas (${_quotations.where((q) => q['status'] == 'Anulada').length})',
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Search Bar
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: TextField(
-                                onChanged: (value) =>
-                                    setState(() => _searchQuery = value),
-                                decoration: InputDecoration(
-                                  hintText:
-                                      'Buscar por número, cliente o descripción...',
-                                  prefixIcon: const Icon(Icons.search),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
-                                ),
-                              ),
-                            ),
-                            // Lista de cotizaciones
-                            Expanded(
-                              child: quotationsState.isLoading
-                                  ? const Center(
-                                      child: CircularProgressIndicator(),
-                                    )
-                                  : quotationsState.error != null
-                                  ? Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.error_outline,
-                                            size: 48,
-                                            color: Colors.red[300],
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'Error: ${quotationsState.error}',
-                                            style: TextStyle(
-                                              color: Colors.red[700],
-                                            ),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          ElevatedButton.icon(
-                                            onPressed: () => ref
-                                                .read(
-                                                  quotationsProvider.notifier,
-                                                )
-                                                .loadQuotations(),
-                                            icon: const Icon(Icons.refresh),
-                                            label: const Text('Reintentar'),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : _filteredQuotations.isEmpty
-                                  ? _buildEmptyState()
-                                  : ListView.separated(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      itemCount: _filteredQuotations.length,
-                                      separatorBuilder: (_, __) =>
-                                          const Divider(height: 1),
-                                      itemBuilder: (context, index) {
-                                        final quotation =
-                                            _filteredQuotations[index];
-                                        return _buildQuotationItem(quotation);
-                                      },
-                                    ),
-                            ),
-                          ],
+                    ),
+                    child: TabBar(
+                      controller: _tabController,
+                      labelColor: AppTheme.primaryColor,
+                      unselectedLabelColor: Colors.grey[600],
+                      indicatorColor: AppTheme.primaryColor,
+                      isScrollable: true,
+                      tabs: [
+                        Tab(text: 'Todas ($_totalQuotations)'),
+                        Tab(
+                          text:
+                              'Borrador (${_quotations.where((q) => q['status'] == 'Borrador').length})',
                         ),
+                        Tab(
+                          text:
+                              'Enviadas (${_quotations.where((q) => q['status'] == 'Enviada').length})',
+                        ),
+                        Tab(text: 'Aprobadas ($_approvedQuotations)'),
+                        Tab(
+                          text:
+                              'Rechazadas (${_quotations.where((q) => q['status'] == 'Rechazada').length})',
+                        ),
+                        Tab(
+                          text:
+                              'Anuladas (${_quotations.where((q) => q['status'] == 'Anulada').length})',
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Search Bar
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: TextField(
+                      onChanged: (value) =>
+                          setState(() => _searchQuery = value),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar por número, cliente o descripción...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
                       ),
                     ),
+                  ),
+                  // Lista de cotizaciones
+                  Expanded(
+                    child: quotationsState.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : quotationsState.error != null
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 48,
+                                  color: Colors.red[300],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Error: ${quotationsState.error}',
+                                  style: TextStyle(color: Colors.red[700]),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: () => ref
+                                      .read(quotationsProvider.notifier)
+                                      .loadQuotations(),
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Reintentar'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _filteredQuotations.isEmpty
+                        ? _buildEmptyState()
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: _filteredQuotations.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final quotation = _filteredQuotations[index];
+                              return _buildQuotationItem(quotation);
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -850,85 +839,23 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 28),
-            const SizedBox(width: 12),
-            const Text('Aprobar Cotización'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Al aprobar la cotización ${quotation['number']}:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            _buildApprovalInfo(
-              Icons.receipt_long,
-              'Se creará un recibo de caja automáticamente',
-            ),
-            _buildApprovalInfo(
-              Icons.inventory,
-              'Se descontará el stock de los productos',
-            ),
-            _buildApprovalInfo(
-              Icons.lock,
-              'La cotización no podrá ser editada',
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: seriesController,
-              decoration: const InputDecoration(
-                labelText: 'Serie de Recibo',
-                hintText: 'Ej: REC, RC',
-                prefixIcon: Icon(Icons.numbers),
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              _approveQuotation(quotation, seriesController.text);
-            },
-            icon: const Icon(Icons.check, color: Colors.white),
-            label: const Text(
-              'Aprobar y Crear Recibo',
-              style: TextStyle(color: Colors.white),
-            ),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildApprovalInfo(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: Colors.grey[600]),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(text, style: TextStyle(color: Colors.grey[700])),
-          ),
-        ],
+      builder: (context) => _ApproveQuotationDialog(
+        quotation: quotation,
+        seriesController: seriesController,
+        onApprove: (series) {
+          Navigator.pop(context);
+          _approveQuotation(quotation, series);
+        },
       ),
     );
   }
 
   void _approveQuotation(Map<String, dynamic> quotation, String series) async {
+    // Capturar el root navigator para cerrar el dialog correctamente
+    // (showDialog usa rootNavigator por defecto, pero Navigator.pop(context)
+    // busca el navigator más cercano que en StatefulShellRoute es un sub-navigator)
+    final rootNav = Navigator.of(context, rootNavigator: true);
+
     // Mostrar loading
     showDialog(
       context: context,
@@ -958,7 +885,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
             series.isEmpty ? 'FAC' : series,
           );
 
-      if (mounted) Navigator.pop(context); // Cerrar loading
+      if (mounted) rootNav.pop(); // Cerrar loading del root navigator
 
       if (result != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -975,13 +902,13 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
             action: SnackBarAction(
               label: 'Ver Ventas',
               textColor: Colors.white,
-              onPressed: () => context.go('/sales'),
+              onPressed: () => context.go('/invoices'),
             ),
           ),
         );
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context); // Cerrar loading
+      if (mounted) rootNav.pop(); // Cerrar loading del root navigator
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1205,39 +1132,62 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
   }
 
   void _cancelQuotation(Map<String, dynamic> quotation, String reason) async {
-    final wasApproved = quotation['status'] == 'Aprobada';
-
     try {
-      // Usar 'Anulada' - requiere ejecutar: ALTER TYPE quotation_status ADD VALUE IF NOT EXISTS 'Anulada';
-      await ref
+      // Usar RPC atómica que maneja todo: cotización + factura + material_movements
+      final result = await ref
           .read(quotationsProvider.notifier)
-          .updateStatus(quotation['id'], 'Anulada');
+          .annulQuotation(quotation['id'], reason: reason);
+
+      if (result == null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: No se pudo anular la cotización.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
+          ),
+        );
+        return;
+      }
 
       if (mounted) {
+        final invoiceAnnulled = result?['invoice_annulled'] == true;
+        final invoiceNumber = result?['invoice_number'];
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Cotización ${quotation['number']} anulada'),
+                Text('Cotización ${quotation['number']} anulada ✓'),
                 Text('Motivo: $reason', style: const TextStyle(fontSize: 12)),
-                if (wasApproved)
-                  const Text(
-                    '⚠️ Esta cotización estaba aprobada. Revise las facturas asociadas.',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                if (invoiceAnnulled)
+                  Text(
+                    '✓ Factura $invoiceNumber también anulada automáticamente',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
               ],
             ),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: wasApproved ? 6 : 3),
+            duration: Duration(seconds: invoiceAnnulled ? 6 : 3),
           ),
         );
+
+        // Refrescar facturas si se anuló alguna
+        if (invoiceAnnulled) {
+          ref.read(invoicesProvider.notifier).refresh();
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error al anular: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -1260,15 +1210,25 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
   }
 
   void _generatePdf(Map<String, dynamic> quotation) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Generando PDF de ${quotation['number']}...'),
-        backgroundColor: AppTheme.primaryColor,
-      ),
-    );
+    PrintService.printQuotation(quotation);
   }
 
   void _confirmDelete(Map<String, dynamic> quotation) {
+    // Solo permitir eliminar borradores
+    if (quotation['status'] != 'Borrador') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Solo se pueden eliminar cotizaciones en estado Borrador. '
+            'Estado actual: ${quotation['status']}. Use "Anular" en su lugar.',
+          ),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1283,6 +1243,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
           ),
           ElevatedButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
 
               // Eliminar de la base de datos usando el provider
@@ -1292,7 +1253,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
 
               if (mounted) {
                 if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text(
                         '✅ Cotización ${quotation['number']} eliminada',
@@ -1301,7 +1262,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                     ),
                   );
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('❌ Error al eliminar la cotización'),
                       backgroundColor: Colors.red,
@@ -1374,7 +1335,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
     final q = widget.quotation;
     final screenHeight = MediaQuery.of(context).size.height;
     const headerColor = Color(0xFF1e293b);
-    
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
@@ -1397,25 +1358,61 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(q['number'], style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text('Cotización ${q['number']}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                        Text(
+                          q['number'],
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Cotización ${q['number']}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: _getStatusColor(q['status']),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(q['status'], style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      q['status'],
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 20),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(Helpers.formatCurrency(q['total']), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                      Text('${Helpers.formatNumber(q['weight'])} kg', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text(
+                        Helpers.formatCurrency(q['total']),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${Helpers.formatNumber(q['weight'])} kg',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(width: 16),
@@ -1451,14 +1448,20 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Cliente: ${q['customer']}  •  Fecha: ${Helpers.formatDate(q['date'])}',
@@ -1468,19 +1471,32 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                   ),
                   Row(
                     children: [
-                      _buildFooterButton('Generar PDF', Icons.picture_as_pdf, Colors.blue[600]!, () {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Generando PDF de ${q['number']}...'), backgroundColor: AppTheme.primaryColor),
-                        );
-                      }),
+                      _buildFooterButton(
+                        'Generar PDF',
+                        Icons.picture_as_pdf,
+                        Colors.blue[600]!,
+                        () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Generando PDF de ${q['number']}...',
+                              ),
+                              backgroundColor: AppTheme.primaryColor,
+                            ),
+                          );
+                        },
+                      ),
                       const SizedBox(width: 12),
                       ElevatedButton.icon(
                         onPressed: () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1e293b),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
                         ),
                         icon: const Icon(Icons.check, size: 18),
                         label: const Text('Cerrar'),
@@ -1513,7 +1529,11 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? Colors.white : Colors.white60, size: 18),
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.white60,
+              size: 18,
+            ),
             const SizedBox(width: 8),
             Text(
               label,
@@ -1529,7 +1549,12 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
     );
   }
 
-  Widget _buildFooterButton(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildFooterButton(
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return OutlinedButton.icon(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
@@ -1594,7 +1619,11 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.verified, color: headerColor, size: 48),
+                                    Icon(
+                                      Icons.verified,
+                                      color: headerColor,
+                                      size: 48,
+                                    ),
                                     const SizedBox(width: 16),
                                     const Text(
                                       'COTIZACIÓN',
@@ -1610,7 +1639,11 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                 const SizedBox(height: 8),
                                 Text(
                                   q['number'],
-                                  style: TextStyle(color: Colors.grey[500], fontSize: 16, fontWeight: FontWeight.w500),
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ],
                             ),
@@ -1624,7 +1657,12 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                 height: 70,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 12)],
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 12,
+                                    ),
+                                  ],
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
@@ -1633,16 +1671,37 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                     fit: BoxFit.contain,
                                     errorBuilder: (_, __, ___) => Container(
                                       decoration: BoxDecoration(
-                                        gradient: LinearGradient(colors: [headerColor, headerColor.withOpacity(0.8)]),
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            headerColor,
+                                            headerColor.withOpacity(0.8),
+                                          ],
+                                        ),
                                       ),
-                                      child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 36),
+                                      child: const Icon(
+                                        Icons.precision_manufacturing,
+                                        color: Colors.white,
+                                        size: 36,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              const Text('Industrial de Molinos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              const Text('NIT: 901946675-1', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              const Text(
+                                'Industrial de Molinos',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const Text(
+                                'NIT: 901946675-1',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -1662,20 +1721,47 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('CLIENTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400], letterSpacing: 1.5)),
+                                  Text(
+                                    'CLIENTE',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[400],
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
                                   const SizedBox(height: 10),
-                                  Text(q['customer'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF111418))),
+                                  Text(
+                                    q['customer'],
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF111418),
+                                    ),
+                                  ),
                                   const SizedBox(height: 4),
-                                  Text('NIT/CC: ${q['customerRuc'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                                  Text(
+                                    'NIT/CC: ${q['customerRuc'] ?? 'N/A'}',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 14,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                _buildDateRow('Fecha:', Helpers.formatDate(q['date'])),
+                                _buildDateRow(
+                                  'Fecha:',
+                                  Helpers.formatDate(q['date']),
+                                ),
                                 const SizedBox(height: 8),
-                                _buildDateRow('Válida:', Helpers.formatDate(q['validUntil'])),
+                                _buildDateRow(
+                                  'Válida:',
+                                  Helpers.formatDate(q['validUntil']),
+                                ),
                               ],
                             ),
                           ],
@@ -1692,46 +1778,120 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                           children: [
                             // Header de tabla
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF8FAFC),
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(12),
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  const Expanded(flex: 3, child: Text('Descripción', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey))),
-                                  SizedBox(width: 80, child: Text('Cant.', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.center)),
-                                  SizedBox(width: 120, child: Text('Total', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.right)),
-                                ],
-                              ),
-                            ),
-                            // Filas de productos
-                            ...items.map((item) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                              decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey[100]!))),
-                              child: Row(
-                                children: [
-                                  Expanded(
+                                  const Expanded(
                                     flex: 3,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(item['name'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                                        Text('Código: ${item['productCode'] ?? 'N/A'}', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-                                      ],
+                                    child: Text(
+                                      'Descripción',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ),
                                   SizedBox(
                                     width: 80,
-                                    child: Text('${item['quantity']}', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey[700], fontSize: 15), textAlign: TextAlign.center),
+                                    child: Text(
+                                      'Cant.',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[600],
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
                                   ),
                                   SizedBox(
                                     width: 120,
-                                    child: Text('\$ ${Helpers.formatNumber((item['totalPrice'] ?? 0) * (item['quantity'] ?? 1))}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), textAlign: TextAlign.right),
+                                    child: Text(
+                                      'Total',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[600],
+                                      ),
+                                      textAlign: TextAlign.right,
+                                    ),
                                   ),
                                 ],
                               ),
-                            )),
+                            ),
+                            // Filas de productos
+                            ...items.map(
+                              (item) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 18,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    top: BorderSide(color: Colors.grey[100]!),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item['name'],
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Código: ${item['productCode'] ?? 'N/A'}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[500],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 80,
+                                      child: Text(
+                                        '${item['quantity']}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey[700],
+                                          fontSize: 15,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 120,
+                                      child: Text(
+                                        '\$ ${Helpers.formatNumber((item['totalPrice'] ?? 0) * (item['quantity'] ?? 1))}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1744,15 +1904,41 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                             width: 320,
                             child: Column(
                               children: [
-                                _buildTotalRow('Subtotal materiales', q['materialsCost'] ?? 0),
-                                _buildTotalRow('Mano de Obra', q['laborCost'] ?? 0),
-                                _buildTotalRow('Otros Costos', q['indirectCosts'] ?? 0),
-                                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(thickness: 1)),
+                                _buildTotalRow(
+                                  'Subtotal materiales',
+                                  q['materialsCost'] ?? 0,
+                                ),
+                                _buildTotalRow(
+                                  'Mano de Obra',
+                                  q['laborCost'] ?? 0,
+                                ),
+                                _buildTotalRow(
+                                  'Otros Costos',
+                                  q['indirectCosts'] ?? 0,
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  child: Divider(thickness: 1),
+                                ),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('TOTAL', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                    Text('\$ ${Helpers.formatNumber(q['total'] ?? 0)}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: headerColor)),
+                                    const Text(
+                                      'TOTAL',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      '\$ ${Helpers.formatNumber(q['total'] ?? 0)}',
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w900,
+                                        color: headerColor,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -1764,7 +1950,11 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       // Nota de validez
                       Text(
                         'Esta cotización es válida hasta ${Helpers.formatDate(q['validUntil'])}.',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 13, fontStyle: FontStyle.italic),
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 13,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ],
                   ),
@@ -1782,7 +1972,10 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
       children: [
         Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
         const SizedBox(width: 8),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
       ],
     );
   }
@@ -1896,7 +2089,10 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                 const Divider(),
                 const SizedBox(height: 16),
                 // Desglose por producto
-                ...items.map((item) => _buildProductBreakdown(item, q['profitMargin'] ?? 0)),
+                ...items.map(
+                  (item) =>
+                      _buildProductBreakdown(item, q['profitMargin'] ?? 0),
+                ),
                 const SizedBox(height: 24),
                 const Divider(thickness: 2),
                 const SizedBox(height: 16),
@@ -1927,23 +2123,58 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.shopping_cart, size: 18, color: Colors.red[700]),
+                                Icon(
+                                  Icons.shopping_cart,
+                                  size: 18,
+                                  color: Colors.red[700],
+                                ),
                                 const SizedBox(width: 8),
-                                Text('COSTOS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700], fontSize: 13)),
+                                Text(
+                                  'COSTOS',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red[700],
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8),
-                            _buildCostDetailRow('Costo Materiales', q['materialCostPrice'] ?? (q['materialsCost'] ?? 0) * 0.6, Icons.inventory_2),
-                            _buildCostDetailRow('Mano de Obra', q['laborCost'] ?? 0, Icons.engineering),
-                            _buildCostDetailRow('Costos Indirectos', q['indirectCosts'] ?? 0, Icons.receipt_long),
+                            _buildCostDetailRow(
+                              'Costo Materiales',
+                              q['materialCostPrice'] ??
+                                  (q['materialsCost'] ?? 0) * 0.6,
+                              Icons.inventory_2,
+                            ),
+                            _buildCostDetailRow(
+                              'Mano de Obra',
+                              q['laborCost'] ?? 0,
+                              Icons.engineering,
+                            ),
+                            _buildCostDetailRow(
+                              'Costos Indirectos',
+                              q['indirectCosts'] ?? 0,
+                              Icons.receipt_long,
+                            ),
                             const Divider(),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Costo Total', style: TextStyle(fontWeight: FontWeight.bold)),
+                                const Text(
+                                  'Costo Total',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
                                 Text(
-                                  Helpers.formatCurrency((q['materialCostPrice'] ?? (q['materialsCost'] ?? 0) * 0.6) + (q['laborCost'] ?? 0) + (q['indirectCosts'] ?? 0)),
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700]),
+                                  Helpers.formatCurrency(
+                                    (q['materialCostPrice'] ??
+                                            (q['materialsCost'] ?? 0) * 0.6) +
+                                        (q['laborCost'] ?? 0) +
+                                        (q['indirectCosts'] ?? 0),
+                                  ),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red[700],
+                                  ),
                                 ),
                               ],
                             ),
@@ -1963,23 +2194,49 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.sell, size: 18, color: Colors.green[700]),
+                                Icon(
+                                  Icons.sell,
+                                  size: 18,
+                                  color: Colors.green[700],
+                                ),
                                 const SizedBox(width: 8),
-                                Text('VENTAS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 13)),
+                                Text(
+                                  'VENTAS',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green[700],
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8),
-                            _buildCostDetailRow('Venta Materiales', q['materialsCost'] ?? 0, Icons.inventory_2),
+                            _buildCostDetailRow(
+                              'Venta Materiales',
+                              q['materialsCost'] ?? 0,
+                              Icons.inventory_2,
+                            ),
                             if ((q['discount'] ?? 0) > 0)
-                              _buildCostDetailRow('Descuento', -(q['discount'] ?? 0), Icons.discount),
+                              _buildCostDetailRow(
+                                'Descuento',
+                                -(q['discount'] ?? 0),
+                                Icons.discount,
+                              ),
                             const Divider(),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Total Cotización', style: TextStyle(fontWeight: FontWeight.bold)),
+                                const Text(
+                                  'Total Cotización',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
                                 Text(
                                   Helpers.formatCurrency(q['total'] ?? 0),
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 16),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green[700],
+                                    fontSize: 16,
+                                  ),
                                 ),
                               ],
                             ),
@@ -1999,70 +2256,110 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.trending_up, size: 18, color: Colors.blue[700]),
+                                Icon(
+                                  Icons.trending_up,
+                                  size: 18,
+                                  color: Colors.blue[700],
+                                ),
                                 const SizedBox(width: 8),
-                                Text('GANANCIAS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 13)),
+                                Text(
+                                  'GANANCIAS',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue[700],
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Builder(builder: (context) {
-                              final totalCost = (q['materialCostPrice'] ?? (q['materialsCost'] ?? 0) * 0.6) + (q['laborCost'] ?? 0) + (q['indirectCosts'] ?? 0);
-                              final totalSale = q['total'] ?? 0;
-                              final netProfit = totalSale - totalCost;
-                              final markup = totalCost > 0 ? (netProfit / totalCost * 100) : 0;
-                              
-                              return Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(Icons.payments, size: 16, color: Colors.blue[600]),
-                                          const SizedBox(width: 8),
-                                          const Text('Ganancia Neta'),
-                                        ],
-                                      ),
-                                      Text(
-                                        Helpers.formatCurrency(netProfit),
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: netProfit >= 0 ? Colors.blue[700] : Colors.red[700],
-                                          fontSize: 18,
+                            Builder(
+                              builder: (context) {
+                                final totalCost =
+                                    (q['materialCostPrice'] ??
+                                        (q['materialsCost'] ?? 0) * 0.6) +
+                                    (q['laborCost'] ?? 0) +
+                                    (q['indirectCosts'] ?? 0);
+                                final totalSale = q['total'] ?? 0;
+                                final netProfit = totalSale - totalCost;
+                                final markup = totalCost > 0
+                                    ? (netProfit / totalCost * 100)
+                                    : 0;
+
+                                return Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.payments,
+                                              size: 16,
+                                              color: Colors.blue[600],
+                                            ),
+                                            const SizedBox(width: 8),
+                                            const Text('Ganancia Neta'),
+                                          ],
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(Icons.percent, size: 16, color: Colors.purple[600]),
-                                          const SizedBox(width: 8),
-                                          const Text('Markup Total'),
-                                        ],
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: markup >= 0 ? Colors.purple[100] : Colors.red[100],
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          '${markup.toStringAsFixed(1)}%',
+                                        Text(
+                                          Helpers.formatCurrency(netProfit),
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: markup >= 0 ? Colors.purple[700] : Colors.red[700],
+                                            color: netProfit >= 0
+                                                ? Colors.blue[700]
+                                                : Colors.red[700],
+                                            fontSize: 18,
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              );
-                            }),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.percent,
+                                              size: 16,
+                                              color: Colors.purple[600],
+                                            ),
+                                            const SizedBox(width: 8),
+                                            const Text('Markup Total'),
+                                          ],
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: markup >= 0
+                                                ? Colors.purple[100]
+                                                : Colors.red[100],
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '${markup.toStringAsFixed(1)}%',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: markup >= 0
+                                                  ? Colors.purple[700]
+                                                  : Colors.red[700],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -2100,32 +2397,45 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
     );
   }
 
-  Widget _buildProductBreakdown(Map<String, dynamic> item, double quotationProfitMargin) {
+  Widget _buildProductBreakdown(
+    Map<String, dynamic> item,
+    double quotationProfitMargin,
+  ) {
     final components = item['components'] as List<dynamic>? ?? [];
     final qty = item['quantity'] as int? ?? 1;
     final totalWeight = (item['totalWeight'] as num?)?.toDouble() ?? 0;
     final totalSalePrice = (item['totalPrice'] as num?)?.toDouble() ?? 0;
-    
-    // Calcular precios por kg basándose en los datos disponibles
-    // Si no hay unitCostPrice/unitSalePrice, los calculamos del totalPrice y margen
-    double unitSalePrice = (item['unitSalePrice'] as num?)?.toDouble() ?? 
-                           (item['pricePerKg'] as num?)?.toDouble() ?? 
-                           (totalWeight > 0 ? totalSalePrice / totalWeight : 0);
-    
-    // Calcular costo usando el margen de la cotización si no está disponible
-    // Fórmula: Costo = Venta / (1 + margen/100)
-    double unitCostPrice = (item['unitCostPrice'] as num?)?.toDouble() ?? 
-                           (item['costPrice'] as num?)?.toDouble() ?? 0;
-    
-    // Si no tenemos costo pero tenemos margen, calcularlo
+
+    // Usar totalCost almacenado (siempre correcto para recetas y materiales)
+    final totalCost = (item['totalCost'] as num?)?.toDouble() ?? 0;
+
+    // Calcular precios por kg desde los totales (funciona para recetas y materiales)
+    // Para recetas: totalPrice = unitPrice*qty, totalWeight = weight*qty
+    //   → totalPrice/totalWeight = precio de venta por kg real
+    // Para materiales: totalPrice = weight*pricePerKg
+    //   → totalPrice/totalWeight = pricePerKg
+    double unitSalePrice = totalWeight > 0
+        ? totalSalePrice / totalWeight
+        : (item['unitSalePrice'] as num?)?.toDouble() ??
+              (item['pricePerKg'] as num?)?.toDouble() ??
+              0;
+
+    double unitCostPrice = totalWeight > 0 && totalCost > 0
+        ? totalCost / totalWeight
+        : 0;
+
+    // Si no tenemos costo pero tenemos margen, calcularlo desde venta
     if (unitCostPrice == 0 && quotationProfitMargin > 0 && unitSalePrice > 0) {
       unitCostPrice = unitSalePrice / (1 + quotationProfitMargin / 100);
     }
-    
-    // Calcular totales y ganancia
-    final totalCost = unitCostPrice * totalWeight;
-    final totalProfit = (item['totalProfit'] as num?)?.toDouble() ?? (totalSalePrice - totalCost);
-    final profitMargin = totalCost > 0 ? ((totalProfit / totalCost) * 100) : quotationProfitMargin;
+
+    // Ganancia: usar valor almacenado o calcular desde totales
+    final totalProfit =
+        (item['totalProfit'] as num?)?.toDouble() ??
+        (totalSalePrice - totalCost);
+    final profitMargin = totalCost > 0
+        ? ((totalProfit / totalCost) * 100)
+        : quotationProfitMargin;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -2140,7 +2450,9 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppTheme.primaryColor.withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
             ),
             child: Column(
               children: [
@@ -2152,7 +2464,11 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                         color: AppTheme.primaryColor.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(Icons.precision_manufacturing, color: AppTheme.primaryColor, size: 24),
+                      child: Icon(
+                        Icons.precision_manufacturing,
+                        color: AppTheme.primaryColor,
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -2161,11 +2477,17 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                         children: [
                           Text(
                             item['name'] ?? 'Producto',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                           Text(
                             'Código: ${item['productCode'] ?? 'N/A'} | Cantidad: $qty | Peso: ${Helpers.formatNumber(totalWeight)} kg',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ],
                       ),
@@ -2175,9 +2497,19 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       children: [
                         Text(
                           Helpers.formatCurrency(totalSalePrice),
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryColor),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: AppTheme.primaryColor,
+                          ),
                         ),
-                        Text('Total Venta', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                        Text(
+                          'Total Venta',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[500],
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -2196,13 +2528,27 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       Expanded(
                         child: Column(
                           children: [
-                            Icon(Icons.shopping_cart_outlined, size: 16, color: Colors.orange[700]),
+                            Icon(
+                              Icons.shopping_cart_outlined,
+                              size: 16,
+                              color: Colors.orange[700],
+                            ),
                             const SizedBox(height: 4),
                             Text(
                               Helpers.formatCurrency(unitCostPrice),
-                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[700], fontSize: 13),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange[700],
+                                fontSize: 13,
+                              ),
                             ),
-                            Text('Compra/kg', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                            Text(
+                              'Compra/kg',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[500],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -2211,13 +2557,27 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       Expanded(
                         child: Column(
                           children: [
-                            Icon(Icons.sell_outlined, size: 16, color: Colors.green[700]),
+                            Icon(
+                              Icons.sell_outlined,
+                              size: 16,
+                              color: Colors.green[700],
+                            ),
                             const SizedBox(height: 4),
                             Text(
                               Helpers.formatCurrency(unitSalePrice),
-                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 13),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green[700],
+                                fontSize: 13,
+                              ),
                             ),
-                            Text('Venta/kg', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                            Text(
+                              'Venta/kg',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[500],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -2226,13 +2586,27 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       Expanded(
                         child: Column(
                           children: [
-                            Icon(Icons.trending_up, size: 16, color: Colors.blue[700]),
+                            Icon(
+                              Icons.trending_up,
+                              size: 16,
+                              color: Colors.blue[700],
+                            ),
                             const SizedBox(height: 4),
                             Text(
                               '${Helpers.formatCurrency(totalProfit)} (${profitMargin.toStringAsFixed(1)}%)',
-                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 13),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[700],
+                                fontSize: 13,
+                              ),
                             ),
-                            Text('Ganancia Total', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                            Text(
+                              'Ganancia Total',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[500],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -2241,13 +2615,27 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       Expanded(
                         child: Column(
                           children: [
-                            Icon(Icons.account_balance_wallet_outlined, size: 16, color: Colors.red[700]),
+                            Icon(
+                              Icons.account_balance_wallet_outlined,
+                              size: 16,
+                              color: Colors.red[700],
+                            ),
                             const SizedBox(height: 4),
                             Text(
                               Helpers.formatCurrency(totalCost),
-                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700], fontSize: 13),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red[700],
+                                fontSize: 13,
+                              ),
                             ),
-                            Text('Costo Total', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                            Text(
+                              'Costo Total',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[500],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -2264,32 +2652,117 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
               color: Colors.grey[100],
               child: Row(
                 children: [
-                  const SizedBox(width: 30, child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                  const Expanded(flex: 2, child: Text('Componente', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                  const Expanded(flex: 2, child: Text('Material', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                  SizedBox(width: 70, child: Text('Compra/kg', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.orange[700]), textAlign: TextAlign.right)),
-                  SizedBox(width: 70, child: Text('Venta/kg', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green[700]), textAlign: TextAlign.right)),
-                  SizedBox(width: 70, child: Text('Ganancia', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.blue[700]), textAlign: TextAlign.right)),
-                  const SizedBox(width: 80, child: Text('Total Venta', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
+                  const SizedBox(
+                    width: 30,
+                    child: Text(
+                      'Qty',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  const Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Componente',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  const Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Material',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 70,
+                    child: Text(
+                      'Compra/kg',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        color: Colors.orange[700],
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 70,
+                    child: Text(
+                      'Venta/kg',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        color: Colors.green[700],
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 70,
+                    child: Text(
+                      'Ganancia',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        color: Colors.blue[700],
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                  const SizedBox(
+                    width: 80,
+                    child: Text(
+                      'Total Venta',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
                 ],
               ),
             ),
             ...components.take(10).map((comp) {
-              final compWeight = (comp['totalWeight'] ?? comp['weight'] ?? 0) as num;
-              final compTotalSale = (comp['totalPrice'] ?? comp['price'] ?? 0) as num;
-              final compSalePrice = (comp['unitSalePrice'] ?? comp['pricePerKg'] ?? (compWeight > 0 ? compTotalSale / compWeight : 0)) as num;
-              
+              final compWeight =
+                  (comp['totalWeight'] ?? comp['weight'] ?? 0) as num;
+              final compTotalSale =
+                  (comp['totalPrice'] ?? comp['price'] ?? 0) as num;
+              final compSalePrice =
+                  (comp['unitSalePrice'] ??
+                          comp['pricePerKg'] ??
+                          (compWeight > 0 ? compTotalSale / compWeight : 0))
+                      as num;
+
               // Calcular costo del componente usando el margen
-              var compCostPrice = (comp['unitCostPrice'] ?? comp['costPrice'] ?? 0) as num;
-              if (compCostPrice == 0 && quotationProfitMargin > 0 && compSalePrice > 0) {
-                compCostPrice = compSalePrice / (1 + quotationProfitMargin / 100);
+              var compCostPrice =
+                  (comp['unitCostPrice'] ?? comp['costPrice'] ?? 0) as num;
+              if (compCostPrice == 0 &&
+                  quotationProfitMargin > 0 &&
+                  compSalePrice > 0) {
+                compCostPrice =
+                    compSalePrice / (1 + quotationProfitMargin / 100);
               }
-              
+
               final compTotalCost = compCostPrice * compWeight;
-              final compTotalProfit = (comp['totalProfit'] ?? (compTotalSale - compTotalCost)) as num;
-              
+              final compTotalProfit =
+                  (comp['totalProfit'] ?? (compTotalSale - compTotalCost))
+                      as num;
+
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   border: Border(top: BorderSide(color: Colors.grey[200]!)),
                 ),
@@ -2297,21 +2770,36 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                   children: [
                     SizedBox(
                       width: 30,
-                      child: Text('${comp['quantity']}×', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                      child: Text(
+                        '${comp['quantity']}×',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
                     ),
                     Expanded(
                       flex: 2,
-                      child: Text(comp['name'] ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                      child: Text(
+                        comp['name'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                     Expanded(
                       flex: 2,
-                      child: Text(comp['material'] ?? '', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+                      child: Text(
+                        comp['material'] ?? '',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                      ),
                     ),
                     SizedBox(
                       width: 70,
                       child: Text(
                         Helpers.formatCurrency(compCostPrice.toDouble()),
-                        style: TextStyle(fontSize: 11, color: Colors.orange[700]),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.orange[700],
+                        ),
                         textAlign: TextAlign.right,
                       ),
                     ),
@@ -2319,7 +2807,10 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       width: 70,
                       child: Text(
                         Helpers.formatCurrency(compSalePrice.toDouble()),
-                        style: TextStyle(fontSize: 11, color: Colors.green[700]),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.green[700],
+                        ),
                         textAlign: TextAlign.right,
                       ),
                     ),
@@ -2327,7 +2818,11 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       width: 70,
                       child: Text(
                         Helpers.formatCurrency(compTotalProfit.toDouble()),
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.blue[700]),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.blue[700],
+                        ),
                         textAlign: TextAlign.right,
                       ),
                     ),
@@ -2335,7 +2830,10 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       width: 80,
                       child: Text(
                         Helpers.formatCurrency(compTotalSale.toDouble()),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                         textAlign: TextAlign.right,
                       ),
                     ),
@@ -2350,7 +2848,11 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                 child: Center(
                   child: Text(
                     '... y ${components.length - 10} componentes más',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[600], fontStyle: FontStyle.italic),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ),
               ),
@@ -2413,6 +2915,666 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             '\$ ${Helpers.formatNumber(value)}',
             style: TextStyle(
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Diálogo de aprobación con verificación de stock consolidado
+// ──────────────────────────────────────────────────────────────────
+class _ApproveQuotationDialog extends StatefulWidget {
+  final Map<String, dynamic> quotation;
+  final TextEditingController seriesController;
+  final void Function(String series) onApprove;
+
+  const _ApproveQuotationDialog({
+    required this.quotation,
+    required this.seriesController,
+    required this.onApprove,
+  });
+
+  @override
+  State<_ApproveQuotationDialog> createState() =>
+      _ApproveQuotationDialogState();
+}
+
+class _ApproveQuotationDialogState extends State<_ApproveQuotationDialog> {
+  List<Map<String, dynamic>>? _stockData;
+  bool _loading = true;
+  String? _error;
+
+  // Para creación de órdenes de compra
+  bool _creatingOrders = false;
+  List<String>? _createdOrderNumbers;
+  List<String>? _materialsWithoutSupplier;
+  String? _orderError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStockCheck();
+  }
+
+  Future<void> _loadStockCheck() async {
+    try {
+      final data = await InventoryDataSource.checkQuotationStock(
+        widget.quotation['id'],
+      );
+      if (mounted) {
+        setState(() {
+          _stockData = data;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  bool get _allStockAvailable {
+    if (_stockData == null) return true;
+    return _stockData!.every((m) => m['has_stock'] == true);
+  }
+
+  int get _insufficientCount {
+    if (_stockData == null) return 0;
+    return _stockData!.where((m) => m['has_stock'] != true).length;
+  }
+
+  String _fmtQty(num v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+
+  /// Obtener lista de materiales faltantes (has_stock == false)
+  List<Map<String, dynamic>> get _missingMaterials {
+    if (_stockData == null) return [];
+    return _stockData!.where((m) => m['has_stock'] != true).toList();
+  }
+
+  /// Crear órdenes de compra para materiales faltantes
+  Future<void> _createPurchaseOrders() async {
+    final missing = _missingMaterials;
+    if (missing.isEmpty) return;
+
+    setState(() {
+      _creatingOrders = true;
+      _orderError = null;
+    });
+
+    try {
+      final quotNum = widget.quotation['quotation_number'] ?? '';
+      final orders = await PurchaseOrdersDataSource.createFromShortage(
+        missingMaterials: missing,
+        quotationNumber: quotNum,
+      );
+
+      // Detectar materiales sin proveedor
+      // Materiales que no tienen entrada en supplier_materials
+      final materialsWithOrders = <String>{};
+      for (final order in orders) {
+        for (final item in order.items) {
+          materialsWithOrders.add(item.materialId);
+        }
+      }
+      final withoutSupplier = missing
+          .where(
+            (m) =>
+                m['material_id'] != null &&
+                !materialsWithOrders.contains(m['material_id']),
+          )
+          .map<String>((m) => m['material_name']?.toString() ?? 'Material')
+          .toList();
+
+      if (mounted) {
+        setState(() {
+          _creatingOrders = false;
+          _createdOrderNumbers = orders.map((o) => o.orderNumber).toList();
+          _materialsWithoutSupplier = withoutSupplier.isNotEmpty
+              ? withoutSupplier
+              : null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _creatingOrders = false;
+          _orderError = e.toString();
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final clientName =
+        widget.quotation['client_name'] ??
+        widget.quotation['clients']?['name'] ??
+        'Cliente';
+    final quotNum = widget.quotation['quotation_number'] ?? '';
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.approval, color: Colors.blue[700]),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text('Aprobar Cotización', style: TextStyle(fontSize: 18)),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 520,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Info de la cotización
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$quotNum — $clientName',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Total: \$ ${Helpers.formatNumber(widget.quotation['total'] ?? 0)}',
+                      style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Stock check section
+              Row(
+                children: [
+                  Icon(Icons.inventory_2, size: 18, color: Colors.grey[700]),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Verificación de Stock',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 12),
+                        Text(
+                          'Verificando stock de materiales...',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else if (_error != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber, color: Colors.orange[700]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'No se pudo verificar stock: $_error\nPuede aprobar de todas formas.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange[800],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (_stockData != null && _stockData!.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Text(
+                        'No se encontraron materiales con receta.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                      ),
+                    ],
+                  ),
+                )
+              else if (_stockData != null) ...[
+                // Summary badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _allStockAvailable
+                        ? Colors.green[50]
+                        : Colors.red[50],
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _allStockAvailable
+                          ? Colors.green[300]!
+                          : Colors.red[300]!,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _allStockAvailable
+                            ? Icons.check_circle
+                            : Icons.warning_amber,
+                        size: 16,
+                        color: _allStockAvailable
+                            ? Colors.green[700]
+                            : Colors.red[700],
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _allStockAvailable
+                              ? 'Todos los materiales disponibles (${_stockData!.length})'
+                              : '$_insufficientCount de ${_stockData!.length} materiales con stock insuficiente',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: _allStockAvailable
+                                ? Colors.green[800]
+                                : Colors.red[800],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Material list
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 250),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.all(8),
+                    itemCount: _stockData!.length,
+                    separatorBuilder: (_, __) =>
+                        Divider(height: 1, color: Colors.grey[200]),
+                    itemBuilder: (context, index) {
+                      final m = _stockData![index];
+                      final hasStock = m['has_stock'] == true;
+                      final requiredQty =
+                          (m['required_qty'] as num?)?.toDouble() ?? 0;
+                      final available =
+                          (m['available_stock'] as num?)?.toDouble() ?? 0;
+                      final shortage = (m['shortage'] as num?)?.toDouble() ?? 0;
+                      final unit = m['unit'] ?? 'KG';
+                      final sources = m['source_items'] ?? '';
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Icon(
+                              hasStock ? Icons.check_circle : Icons.cancel,
+                              size: 16,
+                              color: hasStock ? Colors.green : Colors.red,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    m['material_name'] ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (sources.toString().isNotEmpty)
+                                    Text(
+                                      'Usado en: $sources',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.grey[500],
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            // Required / Available
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '${_fmtQty(requiredQty)} $unit',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: hasStock
+                                            ? Colors.green[700]
+                                            : Colors.red[700],
+                                      ),
+                                    ),
+                                    Text(
+                                      ' / ${_fmtQty(available)}',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.grey[500],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (!hasStock)
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red[100],
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'Faltan ${_fmtQty(shortage)}',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.red[700],
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+              // Info bullets
+              _buildInfoRow(
+                Icons.receipt_long,
+                'Se creará una factura automáticamente',
+              ),
+              _buildInfoRow(
+                Icons.inventory,
+                'El stock se descontará del inventario',
+              ),
+              _buildInfoRow(
+                Icons.lock,
+                'La cotización pasará a estado "Aprobada"',
+              ),
+
+              const SizedBox(height: 16),
+              // Series input
+              TextField(
+                controller: widget.seriesController,
+                decoration: InputDecoration(
+                  labelText: 'Serie de Factura',
+                  hintText: 'FAC',
+                  prefixIcon: const Icon(Icons.tag),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+
+              // Warning + botón Pedir Materiales si stock insuficiente
+              if (!_loading && !_allStockAvailable) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.amber[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.amber[300]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.warning,
+                            color: Colors.amber[800],
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Hay materiales con stock insuficiente. '
+                              'Puede aprobar de todas formas, pero el inventario '
+                              'quedará con valores negativos.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.amber[900],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Resultado de creación de órdenes
+                      if (_createdOrderNumbers != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.green[50],
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.green[300]!),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle,
+                                    size: 16,
+                                    color: Colors.green[700],
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      _createdOrderNumbers!.length == 1
+                                          ? 'Orden de compra creada: ${_createdOrderNumbers!.first}'
+                                          : '${_createdOrderNumbers!.length} órdenes creadas: ${_createdOrderNumbers!.join(", ")}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.green[800],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (_materialsWithoutSupplier != null &&
+                                  _materialsWithoutSupplier!.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      size: 14,
+                                      color: Colors.orange[700],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        'Sin proveedor: ${_materialsWithoutSupplier!.join(", ")}',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.orange[800],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ] else if (_orderError != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.red[300]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.error,
+                                size: 16,
+                                color: Colors.red[700],
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Error creando órdenes: $_orderError',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.red[800],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        // Botón para crear órdenes de compra
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _creatingOrders
+                                ? null
+                                : _createPurchaseOrders,
+                            icon: _creatingOrders
+                                ? SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.shopping_cart, size: 16),
+                            label: Text(
+                              _creatingOrders
+                                  ? 'Creando órdenes...'
+                                  : 'Pedir $_insufficientCount Material${_insufficientCount > 1 ? "es" : ""} Faltante${_insufficientCount > 1 ? "s" : ""}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange[700],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Se creará una orden de compra por cada proveedor con los materiales faltantes',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton.icon(
+          onPressed: _loading
+              ? null
+              : () => widget.onApprove(widget.seriesController.text),
+          icon: const Icon(Icons.check),
+          label: const Text('Aprobar'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
             ),
           ),
         ],

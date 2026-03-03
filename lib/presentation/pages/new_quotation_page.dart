@@ -3,18 +3,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
+import '../../core/utils/logger.dart';
 import '../../core/utils/weight_calculator.dart';
+import '../../core/utils/print_service.dart';
 import '../../data/providers/customers_provider.dart';
 import '../../data/providers/products_provider.dart';
 import '../../data/providers/quotations_provider.dart';
 import '../../data/providers/inventory_provider.dart';
 import '../../data/datasources/inventory_datasource.dart';
+import '../../data/datasources/quotations_datasource.dart';
+import '../../data/datasources/composite_products_datasource.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/quotation.dart';
 import '../../domain/entities/material.dart' as domain;
 
 class NewQuotationPage extends ConsumerStatefulWidget {
-  const NewQuotationPage({super.key});
+  final String? quotationId;
+
+  const NewQuotationPage({super.key, this.quotationId});
+
+  bool get isEditMode => quotationId != null;
 
   @override
   ConsumerState<NewQuotationPage> createState() => _NewQuotationPageState();
@@ -81,10 +89,14 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
   }
 
   // Cálculos
-  double get _materialsCost =>
-      _items.fold(0.0, (sum, item) => sum + (item['totalPrice'] as double? ?? 0));
-  double get _totalWeight =>
-      _items.fold(0.0, (sum, item) => sum + (item['totalWeight'] as double? ?? 0));
+  double get _materialsCost => _items.fold(
+    0.0,
+    (sum, item) => sum + (item['totalPrice'] as double? ?? 0),
+  );
+  double get _totalWeight => _items.fold(
+    0.0,
+    (sum, item) => sum + (item['totalWeight'] as double? ?? 0),
+  );
   double get _laborCost {
     final percent = double.tryParse(_laborPercentController.text) ?? 0;
     return _materialsCost * (percent / 100);
@@ -97,7 +109,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
     final margin = double.tryParse(_profitMarginController.text) ?? 0;
     return _subtotal * (margin / 100);
   }
-  
+
   double get _discountAmount {
     final discount = double.tryParse(_discountController.text) ?? 0;
     return (_subtotal + _profitAmount) * (discount / 100);
@@ -106,28 +118,122 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
   double get _total => _subtotal + _profitAmount - _discountAmount;
 
   // Precio de venta de materiales (suma de totalPrice de items)
-  double get _materialSalePrice => _items.fold(0.0, (sum, item) => sum + (item['totalPrice'] as double? ?? 0));
-  
+  double get _materialSalePrice => _items.fold(
+    0.0,
+    (sum, item) => sum + (item['totalPrice'] as double? ?? 0),
+  );
+
   // Costo de compra de materiales (suma de totalCost de items)
   double get _materialCostPrice => _items.fold(0.0, (sum, item) {
     final totalCost = item['totalCost'] as double? ?? 0.0;
     if (totalCost > 0) return sum + totalCost;
-    
+
     // Fallback para items manuales
-    final costPrice = item['unitCostPrice'] as double? ?? item['costPrice'] as double? ?? 0.0;
-    final qty = item['quantity'] as int? ?? 1;
+    final costPrice =
+        (item['unitCostPrice'] as num?)?.toDouble() ??
+        (item['costPrice'] as num?)?.toDouble() ??
+        0.0;
+    final qty = (item['quantity'] as num?)?.toInt() ?? 1;
     return sum + (costPrice * qty);
   });
+
+  bool _isLoading = false;
+  String? _editQuotationId;
+
+  // Stock consolidado de TODA la cotización
+  List<Map<String, dynamic>>? _consolidatedStock;
+  bool _loadingStock = false;
 
   @override
   void initState() {
     super.initState();
+    _editQuotationId = widget.quotationId;
     // Cargar clientes, productos y materiales desde Supabase
     Future.microtask(() {
       ref.read(customersProvider.notifier).loadCustomers();
       ref.read(productsProvider.notifier).loadProducts();
       ref.read(inventoryProvider.notifier).loadMaterials();
+      // Si es modo edición, cargar la cotización existente
+      if (widget.isEditMode) {
+        _loadExistingQuotation();
+      }
     });
+  }
+
+  Future<void> _loadExistingQuotation() async {
+    setState(() => _isLoading = true);
+    try {
+      final quotation = await QuotationsDataSource.getById(widget.quotationId!);
+      if (quotation != null && mounted) {
+        setState(() {
+          _selectedCustomerId = quotation.customerId;
+          _customerController.text = quotation.customerName;
+          _notesController.text = quotation.notes;
+          _profitMarginController.text = quotation.profitMargin.toStringAsFixed(
+            0,
+          );
+          _indirectCostsController.text = quotation.otherCosts.toStringAsFixed(
+            0,
+          );
+          // Calcular porcentaje de mano de obra sobre materiales
+          final materialsCost = quotation.items.fold(
+            0.0,
+            (sum, item) => sum + item.totalPrice,
+          );
+          if (materialsCost > 0) {
+            _laborPercentController.text =
+                (quotation.laborCost / materialsCost * 100).toStringAsFixed(0);
+          }
+          // Convertir QuotationItems a Map para _items
+          for (final item in quotation.items) {
+            // Derivar precio por kg real desde totales
+            // (para recetas: totalPrice/totalWeight = venta/kg real)
+            final tw = item.totalWeight;
+            final salePkgReal = tw > 0 ? item.totalPrice / tw : item.pricePerKg;
+            final costPkgReal = tw > 0 && item.totalCost > 0
+                ? item.totalCost / tw
+                : item.costPerKg;
+            final profit = item.totalPrice - item.totalCost;
+
+            _items.add({
+              'id': item.id,
+              'name': item.name,
+              'description': item.description,
+              'type': item.type,
+              'productId': item.productId,
+              'materialId': item.materialId,
+              'quantity': item.quantity,
+              'unitWeight': item.unitWeight,
+              'pricePerKg': salePkgReal,
+              'unitSalePrice': salePkgReal,
+              'costPrice': costPkgReal,
+              'unitCostPrice': costPkgReal,
+              'totalWeight': tw,
+              'totalPrice': item.totalPrice,
+              'totalCost': item.totalCost,
+              'totalProfit': profit,
+              'profitMargin': item.totalCost > 0
+                  ? (profit / item.totalCost * 100)
+                  : 0.0,
+              'material': item.materialType,
+              'dimensions': item.description,
+            });
+          }
+          _isLoading = false;
+        });
+        _refreshConsolidatedStock();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar cotización: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -144,6 +250,22 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.grey[100],
+        body: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Cargando cotización...'),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: Row(
@@ -303,14 +425,16 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Nueva Cotización',
+                  widget.isEditMode ? 'Editar Cotización' : 'Nueva Cotización',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppTheme.primaryColor,
                   ),
                 ),
                 Text(
-                  'Complete los pasos para crear la cotización',
+                  widget.isEditMode
+                      ? 'Modifique los datos de la cotización'
+                      : 'Complete los pasos para crear la cotización',
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
               ],
@@ -475,6 +599,9 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                 ),
               ),
               const SizedBox(height: 12),
+              // Verificación de stock del inventario
+              _buildStockVerificationCard(),
+              const SizedBox(height: 12),
               // Análisis de rentabilidad
               _buildProfitAnalysisCard(),
             ],
@@ -484,40 +611,330 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
     );
   }
 
+  /// Verifica stock CONSOLIDADO de TODOS los items de la cotización
+  /// Agrega materiales compartidos entre recetas y materiales directos
+  List<Map<String, dynamic>> _getStockIssues() {
+    if (_consolidatedStock == null) return [];
+    return _consolidatedStock!.where((m) => m['has_stock'] != true).toList();
+  }
+
+  /// Obtener lista completa de materiales consolidados (con y sin stock)
+  List<Map<String, dynamic>> get _allConsolidatedMaterials {
+    return _consolidatedStock ?? [];
+  }
+
+  /// Refresca el stock consolidado de toda la cotización
+  Future<void> _refreshConsolidatedStock() async {
+    if (_items.isEmpty) {
+      setState(() => _consolidatedStock = []);
+      return;
+    }
+
+    setState(() => _loadingStock = true);
+    try {
+      final inventoryState = ref.read(inventoryProvider);
+      // Mapa: materialId → {name, code, unit, required, available}
+      final Map<String, Map<String, dynamic>> aggregated = {};
+
+      // 1. Materiales directos (no-receta)
+      for (final item in _items) {
+        final isRecipe = item['isRecipe'] == true;
+        if (isRecipe) continue;
+
+        final materialId = item['materialId'] ?? item['inv_material_id'];
+        if (materialId == null) continue;
+
+        final requiredQty =
+            (item['totalWeight'] as num?)?.toDouble() ??
+            (item['quantity'] as num?)?.toDouble() ??
+            0;
+
+        if (aggregated.containsKey(materialId)) {
+          aggregated[materialId]!['required_qty'] =
+              (aggregated[materialId]!['required_qty'] as double) + requiredQty;
+        } else {
+          final material = inventoryState.materials
+              .where((m) => m.id == materialId)
+              .firstOrNull;
+          aggregated[materialId] = {
+            'material_id': materialId,
+            'material_name': material?.name ?? item['name'] ?? '',
+            'material_code': material?.code ?? item['material'] ?? '',
+            'unit': material?.unit ?? item['unit'] ?? 'KG',
+            'required_qty': requiredQty,
+            'available_stock': material?.stock ?? 0.0,
+            'source_items': item['name'] ?? '',
+          };
+        }
+      }
+
+      // 2. Recetas → expandir componentes
+      final recipeItems = _items.where((i) => i['isRecipe'] == true).toList();
+      if (recipeItems.isNotEmpty) {
+        // Cargar todas las recetas con sus componentes (precios EN VIVO)
+        final compositeProducts = await CompositeProductsDataSource.getAll();
+        final cpMap = {for (final cp in compositeProducts) cp.id: cp};
+
+        for (final item in recipeItems) {
+          final productId = item['productId'] as String?;
+          if (productId == null) continue;
+
+          final cp = cpMap[productId];
+          if (cp == null) continue;
+
+          final qty = (item['quantity'] as num?)?.toDouble() ?? 1;
+
+          for (final comp in cp.components) {
+            final matId = comp.materialId;
+            if (matId.isEmpty) continue;
+
+            // peso_pieza × piezas_por_receta × cantidad_pedida
+            final requiredKg = comp.weightPerUnit * comp.quantity * qty;
+
+            if (aggregated.containsKey(matId)) {
+              aggregated[matId]!['required_qty'] =
+                  (aggregated[matId]!['required_qty'] as double) + requiredKg;
+              // Append source
+              final existing = aggregated[matId]!['source_items'] as String;
+              final newSource =
+                  '${cp.name} (${comp.materialName ?? comp.materialCode ?? matId})';
+              if (!existing.contains(cp.name)) {
+                aggregated[matId]!['source_items'] = '$existing, $newSource';
+              }
+            } else {
+              final material = inventoryState.materials
+                  .where((m) => m.id == matId)
+                  .firstOrNull;
+              aggregated[matId] = {
+                'material_id': matId,
+                'material_name': material?.name ?? comp.materialName ?? '',
+                'material_code': material?.code ?? comp.materialCode ?? '',
+                'unit': material?.unit ?? 'KG',
+                'required_qty': requiredKg,
+                'available_stock': material?.stock ?? 0.0,
+                'source_items':
+                    '${cp.name} (${comp.materialName ?? comp.materialCode ?? matId})',
+              };
+            }
+          }
+        }
+      }
+
+      // 3. Calcular has_stock y shortage
+      final result = aggregated.values.map((m) {
+        final required = (m['required_qty'] as double?) ?? 0;
+        final available = (m['available_stock'] as double?) ?? 0;
+        return {
+          ...m,
+          'has_stock': available >= required,
+          'shortage': (required - available).clamp(0, double.infinity),
+        };
+      }).toList();
+
+      // Ordenar: insuficiente primero, luego por nombre
+      result.sort((a, b) {
+        final aOk = a['has_stock'] == true ? 1 : 0;
+        final bOk = b['has_stock'] == true ? 1 : 0;
+        if (aOk != bOk) return aOk - bOk;
+        return (a['material_name'] as String).compareTo(
+          b['material_name'] as String,
+        );
+      });
+
+      if (mounted) {
+        setState(() {
+          _consolidatedStock = result;
+          _loadingStock = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadingStock = false);
+      }
+    }
+  }
+
+  Widget _buildStockVerificationCard() {
+    if (_items.isEmpty) return const SizedBox.shrink();
+
+    final allMaterials = _allConsolidatedMaterials;
+    final issues = _getStockIssues();
+    final hasIssues = issues.isNotEmpty;
+    final totalMaterials = allMaterials.length;
+
+    String fmtQty(num v) =>
+        v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: _loadingStock
+            ? Colors.blue[50]
+            : (hasIssues ? Colors.orange[50] : Colors.green[50]),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: _loadingStock
+              ? Colors.blue[200]!
+              : (hasIssues ? Colors.orange[300]! : Colors.green[300]!),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (_loadingStock)
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.blue[600],
+                  ),
+                )
+              else
+                Icon(
+                  hasIssues ? Icons.warning_amber : Icons.check_circle,
+                  color: hasIssues ? Colors.orange[700] : Colors.green[700],
+                  size: 14,
+                ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _loadingStock
+                      ? 'Verificando stock...'
+                      : (hasIssues ? 'Stock Insuficiente' : 'Stock Completo'),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    color: _loadingStock
+                        ? Colors.blue[700]
+                        : (hasIssues ? Colors.orange[800] : Colors.green[800]),
+                  ),
+                ),
+              ),
+              if (!_loadingStock && totalMaterials > 0)
+                Text(
+                  '${totalMaterials - issues.length}/$totalMaterials',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: hasIssues ? Colors.orange[600] : Colors.green[600],
+                  ),
+                ),
+            ],
+          ),
+          if (!_loadingStock && allMaterials.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            // Mostrar TODOS los materiales del sidebar
+            ...allMaterials.take(6).map((m) {
+              final hasStock = m['has_stock'] == true;
+              final shortage = (m['shortage'] as num?)?.toDouble() ?? 0;
+              final required = (m['required_qty'] as num?)?.toDouble() ?? 0;
+              final available = (m['available_stock'] as num?)?.toDouble() ?? 0;
+              final unit = m['unit'] ?? 'KG';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Row(
+                  children: [
+                    Icon(
+                      hasStock ? Icons.check_circle : Icons.cancel,
+                      size: 10,
+                      color: hasStock ? Colors.green : Colors.red,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        m['material_name'] ?? '',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: hasStock ? Colors.grey[700] : Colors.red[800],
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      fmtQty(required),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: hasStock ? Colors.green[700] : Colors.red[700],
+                      ),
+                    ),
+                    Text(
+                      '/${fmtQty(available)} $unit',
+                      style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                    ),
+                    if (!hasStock) ...[
+                      const SizedBox(width: 2),
+                      Text(
+                        '-${fmtQty(shortage)}',
+                        style: TextStyle(
+                          fontSize: 8,
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }),
+            if (allMaterials.length > 6)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  '+ ${allMaterials.length - 6} más...',
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildProfitAnalysisCard() {
     // Sumar datos de cada item (vienen de la receta)
-    double totalSalePrice = 0;
     double totalCostPrice = 0;
     double totalItemProfit = 0;
-    
+
     for (final item in _items) {
-      totalSalePrice += (item['totalPrice'] as double? ?? 0);
       totalCostPrice += (item['totalCost'] as double? ?? 0);
       totalItemProfit += (item['totalProfit'] as double? ?? 0);
     }
-    
+
     // Si no hay totalCost, calcular desde costPrice
     if (totalCostPrice == 0) {
       totalCostPrice = _items.fold(0.0, (sum, item) {
-        final costPrice = item['unitCostPrice'] as double? ?? item['costPrice'] as double? ?? 0.0;
-        final qty = item['quantity'] as int? ?? 1;
+        final costPrice =
+            (item['unitCostPrice'] as num?)?.toDouble() ??
+            (item['costPrice'] as num?)?.toDouble() ??
+            0.0;
+        final qty = (item['quantity'] as num?)?.toInt() ?? 1;
         return sum + (costPrice * qty);
       });
     }
-    
+
     // Mano de obra ES UN COSTO real
     final laborCostReal = _laborCost;
-    
+
     // COSTO TOTAL = Materiales + Mano de Obra + Costos Indirectos
     final totalCost = totalCostPrice + laborCostReal + _indirectCosts;
-    
+
     // Ganancia de productos (ya viene de las recetas)
-    final productMarkup = totalCostPrice > 0 ? (totalItemProfit / totalCostPrice * 100) : 0.0;
-    
+    final productMarkup = totalCostPrice > 0
+        ? (totalItemProfit / totalCostPrice * 100)
+        : 0.0;
+
     // GANANCIA NETA = Total cotización - Costo Total
     final netProfit = _total - totalCost;
     final netMarkup = totalCost > 0 ? (netProfit / totalCost * 100) : 0.0;
-    
+
     // Color según ganancia neta
     Color marginColor;
     IconData marginIcon;
@@ -640,7 +1057,10 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
             children: [
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 6,
+                    horizontal: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -649,9 +1069,16 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                     children: [
                       Text(
                         '${productMarkup.toStringAsFixed(1)}%',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.blue,
+                        ),
                       ),
-                      Text('Markup Prod.', style: TextStyle(fontSize: 8, color: Colors.grey[600])),
+                      Text(
+                        'Markup Prod.',
+                        style: TextStyle(fontSize: 8, color: Colors.grey[600]),
+                      ),
                     ],
                   ),
                 ),
@@ -659,7 +1086,10 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
               const SizedBox(width: 6),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 6,
+                    horizontal: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: marginColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -671,7 +1101,11 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                       const SizedBox(width: 4),
                       Text(
                         '${netMarkup.toStringAsFixed(1)}%',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: marginColor),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: marginColor,
+                        ),
                       ),
                     ],
                   ),
@@ -704,10 +1138,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
           const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 9,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 9, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
         ],
@@ -749,7 +1180,10 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: color ?? Colors.grey[700], fontSize: 12)),
+          Text(
+            label,
+            style: TextStyle(color: color ?? Colors.grey[700], fontSize: 12),
+          ),
           Text(
             Helpers.formatCurrency(value),
             style: TextStyle(fontSize: 12, color: color),
@@ -1058,21 +1492,29 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                         ),
                         Expanded(
                           child: Text(
-                            Helpers.formatNumber(item['totalWeight'] as double? ?? 0),
+                            Helpers.formatNumber(
+                              item['totalWeight'] as double? ?? 0,
+                            ),
                             textAlign: TextAlign.right,
                             style: const TextStyle(fontSize: 11),
                           ),
                         ),
                         Expanded(
                           child: Text(
-                            Helpers.formatCurrency(item['pricePerKg'] as double? ?? item['unitSalePrice'] as double? ?? 0),
+                            Helpers.formatCurrency(
+                              item['pricePerKg'] as double? ??
+                                  item['unitSalePrice'] as double? ??
+                                  0,
+                            ),
                             textAlign: TextAlign.right,
                             style: const TextStyle(fontSize: 11),
                           ),
                         ),
                         Expanded(
                           child: Text(
-                            Helpers.formatCurrency(item['totalPrice'] as double? ?? 0),
+                            Helpers.formatCurrency(
+                              item['totalPrice'] as double? ?? 0,
+                            ),
                             textAlign: TextAlign.right,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
@@ -1090,8 +1532,10 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                             ),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            onPressed: () =>
-                                setState(() => _items.removeAt(index)),
+                            onPressed: () {
+                              setState(() => _items.removeAt(index));
+                              _refreshConsolidatedStock();
+                            },
                           ),
                         ),
                       ],
@@ -1405,8 +1849,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Slider(
-                      value:
-                          double.tryParse(_discountController.text) ?? 0,
+                      value: double.tryParse(_discountController.text) ?? 0,
                       min: 0,
                       max: 30,
                       divisions: 30,
@@ -1564,6 +2007,162 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                   ),
                 ],
               ),
+              // Verificación consolidada de stock
+              const SizedBox(height: 16),
+              if (_loadingStock)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Verificando stock consolidado...',
+                        style: TextStyle(color: Colors.blue[800], fontSize: 12),
+                      ),
+                    ],
+                  ),
+                )
+              else if (_consolidatedStock != null) ...[
+                Builder(
+                  builder: (context) {
+                    final allMaterials = _allConsolidatedMaterials;
+                    final issues = _getStockIssues();
+                    final allOk = issues.isEmpty;
+
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: allOk ? Colors.green[50] : Colors.orange[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: allOk
+                              ? Colors.green[300]!
+                              : Colors.orange[300]!,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                allOk
+                                    ? Icons.check_circle
+                                    : Icons.warning_amber,
+                                color: allOk
+                                    ? Colors.green[700]
+                                    : Colors.orange[700],
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                allOk
+                                    ? 'Stock Completo (${allMaterials.length} materiales)'
+                                    : '${issues.length} de ${allMaterials.length} materiales sin stock',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: allOk
+                                      ? Colors.green[800]
+                                      : Colors.orange[800],
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ...allMaterials.map((mat) {
+                            final hasStock = mat['has_stock'] == true;
+                            final name = mat['material_name'] ?? '';
+                            final required =
+                                (mat['required_qty'] as num?)?.toDouble() ?? 0;
+                            final available =
+                                (mat['available_stock'] as num?)?.toDouble() ??
+                                0;
+                            final unit = mat['unit'] ?? 'KG';
+
+                            String fmt(double v) => v == v.roundToDouble()
+                                ? v.toStringAsFixed(0)
+                                : v.toStringAsFixed(1);
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 3),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    hasStock
+                                        ? Icons.check_circle
+                                        : Icons.cancel,
+                                    size: 14,
+                                    color: hasStock
+                                        ? Colors.green[600]
+                                        : Colors.red[600],
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      name,
+                                      style: const TextStyle(fontSize: 11),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${fmt(required)} $unit',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: hasStock
+                                          ? Colors.green[700]
+                                          : Colors.red[700],
+                                    ),
+                                  ),
+                                  Text(
+                                    ' / ${fmt(available)}',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      color: Colors.grey[500],
+                                    ),
+                                  ),
+                                  if (!hasStock) ...[
+                                    const SizedBox(width: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red[100],
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'Faltan ${fmt((mat['shortage'] as num?)?.toDouble() ?? 0)}',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          color: Colors.red[700],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
             ],
           ),
         ),
@@ -1637,6 +2236,117 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
       return;
     }
 
+    // Verificar stock antes de guardar
+    final stockIssues = _getStockIssues();
+    if (stockIssues.isNotEmpty) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber, color: Colors.orange[700], size: 22),
+              const SizedBox(width: 8),
+              const Text('Stock Insuficiente', style: TextStyle(fontSize: 16)),
+            ],
+          ),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Materiales sin stock suficiente:',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                ...stockIssues
+                    .take(6)
+                    .map(
+                      (issue) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          children: [
+                            Icon(Icons.circle, size: 6, color: Colors.red[400]),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                issue['material_name'] ?? '',
+                                style: const TextStyle(fontSize: 12),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              '${(issue['available_stock'] as num?)?.toStringAsFixed(0) ?? '0'}/${(issue['required_qty'] as num?)?.toStringAsFixed(0) ?? '0'} ${issue['unit']}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red[100],
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: Text(
+                                '-${(issue['shortage'] as num?)?.toStringAsFixed(0) ?? '0'}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.red[800],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                if (stockIssues.length > 6)
+                  Text(
+                    '+ ${stockIssues.length - 6} más...',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                Text(
+                  '¿Guardar de todas formas?',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[800],
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Guardar Igualmente'),
+            ),
+          ],
+        ),
+      );
+
+      if (proceed != true) return;
+    }
+
     // Mostrar indicador de carga
     showDialog(
       context: context,
@@ -1666,14 +2376,15 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                   item['inv_material_id'], // Buscar en ambas claves
               quantity: (item['quantity'] ?? 1).toInt(),
               unitWeight: (item['unitWeight'] ?? 0).toDouble(),
-              pricePerKg: (item['pricePerKg'] ?? item['unitSalePrice'] ?? 0).toDouble(),
-              costPerKg: (item['costPrice'] ?? item['unitCostPrice'] ?? 0).toDouble(),
+              pricePerKg: (item['pricePerKg'] ?? item['unitSalePrice'] ?? 0)
+                  .toDouble(),
+              costPerKg: (item['costPrice'] ?? item['unitCostPrice'] ?? 0)
+                  .toDouble(),
               unitPrice:
                   (item['totalPrice'] ?? 0).toDouble() /
                   (item['quantity'] ?? 1),
               unitCost:
-                  (item['totalCost'] ?? 0).toDouble() /
-                  (item['quantity'] ?? 1),
+                  (item['totalCost'] ?? 0).toDouble() / (item['quantity'] ?? 1),
               materialType: item['material'] ?? '',
             ),
           )
@@ -1681,8 +2392,8 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
 
       // Crear cotización
       final quotation = Quotation(
-        id: '', // Se genera en el servidor
-        number: '', // Se genera en el servidor
+        id: _editQuotationId ?? '', // Usar ID existente si es edición
+        number: '', // Se genera en el servidor (solo para nuevas)
         date: DateTime.now(),
         validUntil: DateTime.now().add(Duration(days: validDays)),
         customerId: _selectedCustomerId!,
@@ -1699,45 +2410,78 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
         createdAt: DateTime.now(),
       );
 
-      // Guardar en Supabase
-      final created = await ref
-          .read(quotationsProvider.notifier)
-          .createQuotation(quotation);
+      if (widget.isEditMode) {
+        // Actualizar cotización existente
+        final success = await ref
+            .read(quotationsProvider.notifier)
+            .updateQuotation(quotation);
 
-      // Cerrar indicador de carga
-      if (mounted) Navigator.of(context).pop();
+        if (mounted) Navigator.of(context).pop();
 
-      if (created != null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '✅ Cotización ${created.number} guardada exitosamente',
+        if (success) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✅ Cotización actualizada exitosamente'),
+                backgroundColor: Colors.green,
               ),
-              backgroundColor: Colors.green,
-            ),
-          );
-          // Usar go en lugar de pop para evitar errores de Navigator
-          context.go('/quotations');
+            );
+            context.go('/quotations');
+          }
+        } else {
+          if (mounted) {
+            final errorMsg =
+                ref.read(quotationsProvider).error ?? 'Error desconocido';
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error: $errorMsg'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 10),
+              ),
+            );
+          }
         }
       } else {
-        if (mounted) {
-          final errorMsg =
-              ref.read(quotationsProvider).error ?? 'Error desconocido';
-          print('❌ Error al guardar: $errorMsg');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: $errorMsg'),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 10),
-            ),
-          );
+        // Crear nueva cotización
+        final created = await ref
+            .read(quotationsProvider.notifier)
+            .createQuotation(quotation);
+
+        // Cerrar indicador de carga
+        if (mounted) Navigator.of(context).pop();
+
+        if (created != null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '✅ Cotización ${created.number} guardada exitosamente',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+            // Usar go en lugar de pop para evitar errores de Navigator
+            context.go('/quotations');
+          }
+        } else {
+          if (mounted) {
+            final errorMsg =
+                ref.read(quotationsProvider).error ?? 'Error desconocido';
+            AppLogger.error('❌ Error al guardar: $errorMsg');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error: $errorMsg'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 10),
+              ),
+            );
+          }
         }
       }
     } catch (e) {
       // Cerrar indicador de carga
       if (mounted) Navigator.of(context).pop();
-      print('❌ Exception: $e');
+      AppLogger.error('❌ Exception: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1775,6 +2519,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
         materials: materials,
         onAdd: (materialData) {
           setState(() => _items.add(materialData));
+          _refreshConsolidatedStock();
         },
       ),
     );
@@ -1826,31 +2571,78 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
       builder: (context) => _SelectProductDialog(
         products: _products,
         categories: _categories,
-        onSelect: (product, quantity, recipeComponents) {
+        onSelect: (product, quantity, recipeComponents, livePricing) {
           setState(() {
-            // Calcular peso: usar totalWeight del producto (receta) o 0 si no tiene
-            final unitWeight = product.totalWeight > 0
-                ? product.totalWeight
-                : 0.0;
+            // === PRECIOS EN VIVO: Si tenemos livePricing del RPC, usar esos valores ===
+            // Esto garantiza que los precios reflejen los costos ACTUALES de materiales
+            final bool hasLivePricing =
+                livePricing != null && livePricing['success'] == true;
+
+            // Peso unitario: preferir live pricing, fallback a producto
+            final unitWeight = hasLivePricing
+                ? (livePricing['total_weight'] as num?)?.toDouble() ??
+                      product.totalWeight
+                : (product.totalWeight > 0 ? product.totalWeight : 0.0);
             final totalWeight = unitWeight * quantity;
 
             // Convertir los ingredientes de la receta a formato components
-            final components = recipeComponents?.map((c) => {
-              'name': c['component_name'] ?? c['name'] ?? '',
-              'quantity': c['required_qty'] ?? c['quantity'] ?? 0,
-              'unit': c['unit'] ?? '',
-              'stock': c['current_stock'] ?? 0,
-              'hasStock': c['has_stock'] ?? true,
-            }).toList() ?? [];
+            final components =
+                recipeComponents
+                    ?.map(
+                      (c) => {
+                        'name': c['component_name'] ?? c['name'] ?? '',
+                        'quantity': c['required_qty'] ?? c['quantity'] ?? 0,
+                        'unit': c['unit'] ?? '',
+                        'stock': c['current_stock'] ?? 0,
+                        'hasStock': c['has_stock'] ?? true,
+                      },
+                    )
+                    .toList() ??
+                [];
 
-            // Costo del producto (totalCost si es receta, costPrice si no)
-            final productCost = product.totalCost > 0 
-                ? product.totalCost 
-                : product.costPrice;
-            
-            // Ganancia del producto (ya calculada en la receta)
-            final productProfit = product.unitPrice - productCost;
-            final productMargin = product.profitMargin; // Viene de la receta
+            // === Precios: EN VIVO si disponible, frozen si no ===
+            final double unitSalePrice; // Precio venta total unitario
+            final double unitCostPrice; // Costo total unitario
+            final double salePricePerKg;
+            final double costPricePerKg;
+            final double productProfit;
+            final double productMargin;
+
+            if (hasLivePricing) {
+              // PRECIOS EN VIVO desde el inventario de materiales
+              unitSalePrice =
+                  (livePricing['total_sale'] as num?)?.toDouble() ??
+                  product.unitPrice;
+              unitCostPrice =
+                  (livePricing['total_cost'] as num?)?.toDouble() ??
+                  product.costPrice;
+              salePricePerKg =
+                  (livePricing['sale_per_kg'] as num?)?.toDouble() ??
+                  (unitWeight > 0 ? unitSalePrice / unitWeight : unitSalePrice);
+              costPricePerKg =
+                  (livePricing['cost_per_kg'] as num?)?.toDouble() ??
+                  (unitWeight > 0 ? unitCostPrice / unitWeight : unitCostPrice);
+              productProfit =
+                  (livePricing['profit'] as num?)?.toDouble() ??
+                  (unitSalePrice - unitCostPrice);
+              productMargin =
+                  (livePricing['profit_margin'] as num?)?.toDouble() ?? 0;
+            } else {
+              // Fallback: valores congelados del producto
+              final productCost = product.totalCost > 0
+                  ? product.totalCost
+                  : product.costPrice;
+              unitSalePrice = product.unitPrice;
+              unitCostPrice = productCost;
+              salePricePerKg = unitWeight > 0
+                  ? product.unitPrice / unitWeight
+                  : product.unitPrice;
+              costPricePerKg = unitWeight > 0
+                  ? productCost / unitWeight
+                  : productCost;
+              productProfit = product.unitPrice - productCost;
+              productMargin = product.profitMargin;
+            }
 
             // Agregar producto del inventario como item
             _items.add({
@@ -1864,24 +2656,28 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
               'quantity': quantity,
               'unitWeight': unitWeight,
               'totalWeight': totalWeight,
-              // Precios del producto
-              'pricePerKg': product.unitPrice, // Mantener para compatibilidad
-              'unitSalePrice': product.unitPrice, // Precio venta unitario
-              'unitCostPrice': productCost, // Precio costo unitario
-              'totalPrice': product.unitPrice * quantity, // Precio venta total
-              'totalCost': productCost * quantity, // Costo total
-              // Ganancia del item
+              // Precios por kg (EN VIVO si disponible)
+              'pricePerKg': salePricePerKg, // Precio venta por kg
+              'unitSalePrice': salePricePerKg, // Alias
+              'unitCostPrice': costPricePerKg, // Precio costo por kg
+              'costPrice': costPricePerKg, // Alias
+              'totalPrice': unitSalePrice * quantity, // Precio venta total
+              'totalCost': unitCostPrice * quantity, // Costo total
+              // Ganancia del item (EN VIVO si disponible)
               'unitProfit': productProfit, // Ganancia unitaria
-              'totalProfit': productProfit * quantity, // Ganancia total del item
-              'profitMargin': productMargin, // % de margen de la receta
+              'totalProfit':
+                  productProfit * quantity, // Ganancia total del item
+              'profitMargin': productMargin, // % de margen
               // Info adicional
               'productCode': product.code,
               'stock': product.stock,
               'unit': product.unit,
               'isRecipe': product.isRecipe,
               'components': components,
+              'livePricingUsed': hasLivePricing, // Indicador de precios en vivo
             });
           });
+          _refreshConsolidatedStock();
         },
       ),
     );
@@ -2457,13 +3253,17 @@ class _AddComponentDialogState extends State<_AddComponentDialog> {
         : null;
 
     // Obtener costPrice del material (precio de compra)
-    final costPrice = material != null ? (material['costPrice'] as num?)?.toDouble() ?? 0.0 : 0.0;
-    
+    final costPrice = material != null
+        ? (material['costPrice'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
+
     // Calcular ganancia
     final totalSale = totalWeight * _pricePerKg;
     final totalCost = totalWeight * costPrice;
     final totalProfit = totalSale - totalCost;
-    final profitMargin = totalCost > 0 ? ((totalProfit / totalCost) * 100) : 0.0;
+    final profitMargin = totalCost > 0
+        ? ((totalProfit / totalCost) * 100)
+        : 0.0;
 
     final component = {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
@@ -2514,7 +3314,13 @@ class _AddComponentDialogState extends State<_AddComponentDialog> {
 class _SelectProductDialog extends StatefulWidget {
   final List<Product> products;
   final List<Category> categories;
-  final Function(Product product, double quantity, List<Map<String, dynamic>>? components) onSelect;
+  final Function(
+    Product product,
+    double quantity,
+    List<Map<String, dynamic>>? components,
+    Map<String, dynamic>? livePricing,
+  )
+  onSelect;
 
   const _SelectProductDialog({
     required this.products,
@@ -2534,7 +3340,16 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
 
   // Para verificar stock de recetas
   List<Map<String, dynamic>>? _recipeStockCheck;
+  // ignore: unused_field - se asigna en _checkRecipeStock pero la UI consolidada está en el sidebar
   bool _isCheckingStock = false;
+
+  // Precios EN VIVO desde inventario de materiales
+  Map<String, dynamic>? _livePricing;
+  bool _isLoadingPricing = false;
+
+  // Precios EN VIVO de TODAS las recetas para la lista
+  Map<String, double> _recipeLiveVentaPrices = {};
+  bool _isLoadingRecipePrices = false;
 
   List<Product> get _filteredProducts {
     return widget.products.where((p) {
@@ -2545,6 +3360,34 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
           _selectedCategoryId == null || p.categoryId == _selectedCategoryId;
       return matchesSearch && matchesCategory;
     }).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecipeLivePrices();
+  }
+
+  /// Cargar precios EN VIVO de todas las recetas para mostrar en la lista
+  Future<void> _loadRecipeLivePrices() async {
+    setState(() => _isLoadingRecipePrices = true);
+    try {
+      final compositeProducts = await CompositeProductsDataSource.getAll();
+      final Map<String, double> prices = {};
+      for (final cp in compositeProducts) {
+        prices[cp.id] = cp.materialsCost; // Precio venta EN VIVO
+      }
+      if (mounted) {
+        setState(() {
+          _recipeLiveVentaPrices = prices;
+          _isLoadingRecipePrices = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingRecipePrices = false);
+      }
+    }
   }
 
   @override
@@ -2572,6 +3415,34 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
         _recipeStockCheck = null;
         _isCheckingStock = false;
       });
+    }
+  }
+
+  // Obtener precios EN VIVO de la receta desde los materiales del inventario
+  Future<void> _fetchLivePricing(Product product) async {
+    if (!product.isRecipe) {
+      setState(() => _livePricing = null);
+      return;
+    }
+
+    setState(() => _isLoadingPricing = true);
+    try {
+      final pricing = await InventoryDataSource.getRecipeLivePricing(
+        product.id,
+      );
+      if (mounted) {
+        setState(() {
+          _livePricing = pricing;
+          _isLoadingPricing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _livePricing = null;
+          _isLoadingPricing = false;
+        });
+      }
     }
   }
 
@@ -2790,16 +3661,68 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                                       ],
                                     ],
                                   ),
-                                  trailing: Text(
-                                    '\$ ${Helpers.formatNumber(product.unitPrice)}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.primaryColor,
-                                    ),
+                                  trailing: Builder(
+                                    builder: (context) {
+                                      final isRecipeProduct = product.isRecipe;
+                                      final livePrice = isRecipeProduct
+                                          ? _recipeLiveVentaPrices[product.id]
+                                          : null;
+                                      final displayPrice =
+                                          livePrice ?? product.unitPrice;
+                                      final hasLivePrice = livePrice != null;
+                                      return Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '\$ ${Helpers.formatNumber(displayPrice)}',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: hasLivePrice
+                                                  ? Colors.green[700]
+                                                  : AppTheme.primaryColor,
+                                            ),
+                                          ),
+                                          if (hasLivePrice)
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.sync,
+                                                  size: 10,
+                                                  color: Colors.green[600],
+                                                ),
+                                                const SizedBox(width: 2),
+                                                Text(
+                                                  'EN VIVO',
+                                                  style: TextStyle(
+                                                    fontSize: 9,
+                                                    color: Colors.green[600],
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          if (isRecipeProduct &&
+                                              _isLoadingRecipePrices &&
+                                              livePrice == null)
+                                            SizedBox(
+                                              width: 12,
+                                              height: 12,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 1.5,
+                                                color: Colors.grey[400],
+                                              ),
+                                            ),
+                                        ],
+                                      );
+                                    },
                                   ),
                                   onTap: () {
                                     setState(() => _selectedProduct = product);
-                                    // Si es receta, verificar stock de componentes
+                                    // Si es receta, verificar stock y obtener precios en vivo
                                     if (product.isRecipe) {
                                       _checkRecipeStock(
                                         product,
@@ -2808,8 +3731,10 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                                             ) ??
                                             1,
                                       );
+                                      _fetchLivePricing(product);
                                     } else {
                                       _recipeStockCheck = null;
+                                      _livePricing = null;
                                     }
                                   },
                                 );
@@ -2877,7 +3802,12 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                         );
                         return;
                       }
-                      widget.onSelect(_selectedProduct!, qty, _recipeStockCheck);
+                      widget.onSelect(
+                        _selectedProduct!,
+                        qty,
+                        _recipeStockCheck,
+                        _livePricing,
+                      );
                       Navigator.pop(context);
                     },
                     icon: const Icon(Icons.add_shopping_cart, size: 18),
@@ -2897,6 +3827,220 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
         ),
       ),
     );
+  }
+
+  /// Construir fila de Precio + Stock/Materiales, usando precios EN VIVO cuando disponible
+  List<Widget> _buildPriceAndStockRow(
+    Product product,
+    bool isRecipe,
+    bool hasStock,
+    bool allMaterialsAvailable,
+    int missingCount,
+  ) {
+    final bool hasLive =
+        _livePricing != null && _livePricing!['success'] == true;
+    final livePrice = hasLive
+        ? (_livePricing!['total_sale'] as num?)?.toDouble()
+        : null;
+    final liveCost = hasLive
+        ? (_livePricing!['total_cost'] as num?)?.toDouble()
+        : null;
+    final liveMargin = hasLive
+        ? (_livePricing!['profit_margin'] as num?)?.toDouble()
+        : null;
+    final displayPrice = livePrice ?? product.unitPrice;
+
+    return [
+      Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: hasLive ? Colors.green[50] : Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: hasLive ? Colors.green[200]! : Colors.grey[200]!,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Precio Venta',
+                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                      ),
+                      if (hasLive) ...[
+                        const SizedBox(width: 4),
+                        Icon(Icons.sync, size: 10, color: Colors.green[600]),
+                      ],
+                    ],
+                  ),
+                  if (_isLoadingPricing)
+                    const SizedBox(height: 2, child: LinearProgressIndicator())
+                  else
+                    Text(
+                      '\$ ${Helpers.formatNumber(displayPrice)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isRecipe
+                    ? Colors.blue[50]
+                    : (hasStock ? Colors.green[50] : Colors.red[50]),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isRecipe
+                      ? Colors.blue[200]!
+                      : (hasStock ? Colors.green[200]! : Colors.red[200]!),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isRecipe ? 'Componentes' : 'Stock',
+                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  ),
+                  if (isRecipe) ...[
+                    Text(
+                      '${_recipeStockCheck?.length ?? '...'} materiales',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[700],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ] else
+                    Text(
+                      '${product.stock.toStringAsFixed(0)} ${product.unit}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: hasStock ? Colors.green[700] : Colors.red[700],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      // Mostrar resumen de precios EN VIVO si disponible
+      if (hasLive && isRecipe) ...[
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.green[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.sync, size: 14, color: Colors.green[700]),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Precios en VIVO (del inventario)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Costo:',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          '\$ ${Helpers.formatNumber(liveCost ?? 0)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Venta:',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          '\$ ${Helpers.formatNumber(livePrice ?? 0)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Margen:',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          '${(liveMargin ?? 0).toStringAsFixed(1)}%',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: (liveMargin ?? 0) > 0
+                                ? Colors.green[700]
+                                : Colors.red[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    ];
   }
 
   Widget _buildProductDetail() {
@@ -2988,190 +4132,15 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
           const SizedBox(height: 8),
 
           // Info compacta: Precio y Stock/Materiales en una fila
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Precio',
-                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                      ),
-                      Text(
-                        '\$ ${Helpers.formatNumber(product.unitPrice)}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isRecipe
-                        ? (allMaterialsAvailable
-                              ? Colors.green[50]
-                              : Colors.orange[50])
-                        : (hasStock ? Colors.green[50] : Colors.red[50]),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isRecipe
-                          ? (allMaterialsAvailable
-                                ? Colors.green[200]!
-                                : Colors.orange[200]!)
-                          : (hasStock ? Colors.green[200]! : Colors.red[200]!),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isRecipe ? 'Materiales' : 'Stock',
-                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                      ),
-                      if (isRecipe) ...[
-                        if (_isCheckingStock)
-                          const SizedBox(
-                            height: 2,
-                            child: LinearProgressIndicator(),
-                          )
-                        else if (_recipeStockCheck != null)
-                          Text(
-                            allMaterialsAvailable
-                                ? '✓ Completos'
-                                : '⚠ Faltan $missingCount',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: allMaterialsAvailable
-                                  ? Colors.green[700]
-                                  : Colors.orange[700],
-                            ),
-                          )
-                        else
-                          Text(
-                            'Verificando...',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                      ] else
-                        Text(
-                          '${product.stock.toStringAsFixed(0)} ${product.unit}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: hasStock
-                                ? Colors.green[700]
-                                : Colors.red[700],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+          // Usar precios EN VIVO si están disponibles
+          ..._buildPriceAndStockRow(
+            product,
+            isRecipe,
+            hasStock,
+            allMaterialsAvailable,
+            missingCount,
           ),
 
-          // Para recetas: mostrar lista de materiales requeridos
-          if (isRecipe &&
-              _recipeStockCheck != null &&
-              _recipeStockCheck!.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.checklist, size: 16, color: Colors.grey[700]),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Materiales Requeridos',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ..._recipeStockCheck!.map((item) {
-                    final hasItemStock = item['has_stock'] == true;
-                    final shortage =
-                        (item['shortage'] as num?)?.toDouble() ?? 0;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(
-                        children: [
-                          Icon(
-                            hasItemStock ? Icons.check_circle : Icons.cancel,
-                            size: 14,
-                            color: hasItemStock ? Colors.green : Colors.red,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              item['component_name'] ?? '',
-                              style: const TextStyle(fontSize: 11),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text(
-                            '${(item['required_qty'] as num?)?.toStringAsFixed(1) ?? '0'} ${item['unit'] ?? ''}',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          if (!hasItemStock) ...[
-                            const SizedBox(width: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.red[100],
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '-${shortage.toStringAsFixed(1)}',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: Colors.red[700],
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ],
           const SizedBox(height: 12),
 
           // Cantidad a agregar
@@ -3233,13 +4202,24 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                             color: Colors.grey[600],
                           ),
                         ),
-                        Text(
-                          '\$ ${Helpers.formatNumber(product.unitPrice * (double.tryParse(_quantityController.text) ?? 1))}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryColor,
-                          ),
+                        Builder(
+                          builder: (context) {
+                            final livePrice =
+                                (_livePricing != null &&
+                                    _livePricing!['success'] == true)
+                                ? (_livePricing!['total_sale'] as num?)
+                                      ?.toDouble()
+                                : null;
+                            final displayPrice = livePrice ?? product.unitPrice;
+                            return Text(
+                              '\$ ${Helpers.formatNumber(displayPrice * (double.tryParse(_quantityController.text) ?? 1))}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryColor,
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -3318,7 +4298,7 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
   @override
   Widget build(BuildContext context) {
     const headerColor = Color(0xFF1e293b);
-    
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
@@ -3332,64 +4312,59 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
           children: [
             // Header compacto
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: const BoxDecoration(
                 color: headerColor,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.description, color: Colors.white, size: 26),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Previsualización de Cotización',
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        Text(_quotationNumber, style: TextStyle(color: Colors.grey[400], fontSize: 13)),
-                      ],
+                  Icon(Icons.description, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    _quotationNumber,
+                    style: TextStyle(
+                      color: Colors.grey[300],
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  // Tabs inline en el header
+                  _buildTab(0, Icons.person, 'Cliente'),
+                  const SizedBox(width: 8),
+                  _buildTab(1, Icons.domain, 'Empresa'),
+                  const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.white.withOpacity(0.2)),
                     ),
                     child: Text(
                       '\$ ${Helpers.formatNumber(widget.total)}',
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 8),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close, color: Colors.grey[400], size: 28),
+                    icon: Icon(Icons.close, color: Colors.grey[400], size: 22),
                     hoverColor: Colors.white.withOpacity(0.1),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                   ),
-                ],
-              ),
-            ),
-            // Tabs
-            Container(
-              color: headerColor,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  _buildTab(0, Icons.person, 'Recibo Cliente'),
-                  const SizedBox(width: 16),
-                  _buildTab(1, Icons.domain, 'Recibo Empresa'),
                 ],
               ),
             ),
@@ -3402,7 +4377,7 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
             ),
             // Footer
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border(top: BorderSide(color: Colors.grey[200]!)),
@@ -3412,7 +4387,11 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.info_outline, size: 18, color: Colors.grey[500]),
+                      Icon(
+                        Icons.info_outline,
+                        size: 18,
+                        color: Colors.grey[500],
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Válida hasta: ${_formatDate(DateTime.now().add(Duration(days: widget.validDays)))}',
@@ -3423,29 +4402,74 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                   Row(
                     children: [
                       _buildFooterButton(Icons.print, 'Imprimir', () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Preparando impresión...'), backgroundColor: Colors.blue),
-                        );
+                        final quotationData = {
+                          'number': _quotationNumber,
+                          'customer': widget.customer['name'] ?? '',
+                          'customerRuc': widget.customer['document'] ?? '',
+                          'date': DateTime.now(),
+                          'validUntil': DateTime.now().add(
+                            Duration(days: widget.validDays),
+                          ),
+                          'status': 'Borrador',
+                          'materialsCost': widget.materialsCost,
+                          'laborCost': widget.laborCost,
+                          'indirectCosts': widget.indirectCosts,
+                          'profitMargin': widget.profitMargin,
+                          'total': widget.total,
+                          'weight': widget.totalWeight,
+                          'notes': widget.notes,
+                          'items': widget.items
+                              .map(
+                                (item) => {
+                                  'name': item['name'] ?? '',
+                                  'quantity': item['quantity'] ?? 1,
+                                  'totalWeight': item['totalWeight'] ?? 0,
+                                  'pricePerKg':
+                                      item['pricePerKg'] ??
+                                      item['unitSalePrice'] ??
+                                      0,
+                                  'totalPrice':
+                                      item['totalPrice'] ?? item['total'] ?? 0,
+                                },
+                              )
+                              .toList(),
+                        };
+                        PrintService.printQuotation(quotationData);
                       }),
                       const SizedBox(width: 12),
-                      _buildFooterButton(Icons.edit, 'Editar', () => Navigator.pop(context)),
+                      _buildFooterButton(
+                        Icons.edit,
+                        'Editar',
+                        () => Navigator.pop(context),
+                      ),
                       const SizedBox(width: 12),
                       ElevatedButton.icon(
                         onPressed: () {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Cotización confirmada'), backgroundColor: Colors.green),
+                            const SnackBar(
+                              content: Text('Cotización confirmada'),
+                              backgroundColor: Colors.green,
+                            ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4caf50),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           elevation: 2,
                         ),
                         icon: const Icon(Icons.check, size: 20),
-                        label: const Text('Confirmar', style: TextStyle(fontWeight: FontWeight.bold)),
+                        label: const Text(
+                          'Confirmar',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ],
                   ),
@@ -3475,7 +4499,11 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? Colors.white : Colors.grey[500], size: 22),
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.grey[500],
+              size: 22,
+            ),
             const SizedBox(width: 10),
             Text(
               label,
@@ -3491,7 +4519,11 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
     );
   }
 
-  Widget _buildFooterButton(IconData icon, String label, VoidCallback onPressed) {
+  Widget _buildFooterButton(
+    IconData icon,
+    String label,
+    VoidCallback onPressed,
+  ) {
     return OutlinedButton.icon(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
@@ -3509,7 +4541,7 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
   // ==========================================
   Widget _buildClientView() {
     const headerColor = Color(0xFF1e293b);
-    
+
     return Container(
       color: const Color(0xFFF1F5F9).withOpacity(0.5),
       child: Center(
@@ -3537,7 +4569,9 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                   height: 8,
                   decoration: const BoxDecoration(
                     color: headerColor,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
                   ),
                 ),
                 // Contenido principal
@@ -3554,7 +4588,11 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                           // Título con icono
                           Row(
                             children: [
-                              Icon(Icons.verified, color: AppTheme.primaryColor, size: 48),
+                              Icon(
+                                Icons.verified,
+                                color: AppTheme.primaryColor,
+                                size: 48,
+                              ),
                               const SizedBox(width: 16),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3570,7 +4608,11 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                                   ),
                                   Text(
                                     '#$_quotationNumber',
-                                    style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w500, fontSize: 14),
+                                    style: TextStyle(
+                                      color: Colors.grey[500],
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -3584,20 +4626,45 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                                 children: [
                                   const Text(
                                     'Industrial de Molinos S.A.S.',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1e293b)),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Color(0xFF1e293b),
+                                    ),
                                   ),
-                                  Text('NIT: 901946675-1', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+                                  Text(
+                                    'NIT: 901946675-1',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[500],
+                                    ),
+                                  ),
                                 ],
                               ),
                               const SizedBox(width: 16),
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(24),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: Image.asset(
+                                  'lib/photo/logo_empresa.png',
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryColor.withOpacity(
+                                        0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    child: Icon(
+                                      Icons.precision_manufacturing,
+                                      color: AppTheme.primaryColor,
+                                      size: 24,
+                                    ),
+                                  ),
                                 ),
-                                child: Icon(Icons.precision_manufacturing, color: AppTheme.primaryColor, size: 24),
                               ),
                             ],
                           ),
@@ -3620,23 +4687,48 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                               children: [
                                 Text(
                                   'CLIENTE',
-                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400], letterSpacing: 1.5),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[400],
+                                    letterSpacing: 1.5,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   widget.customer['name'] ?? '',
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF111418)),
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF111418),
+                                  ),
                                 ),
                                 if (widget.customer['ruc'] != null)
-                                  Text('ID: ${widget.customer['ruc']}', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                                  Text(
+                                    'ID: ${widget.customer['ruc']}',
+                                    style: TextStyle(
+                                      color: Colors.grey[500],
+                                      fontSize: 13,
+                                    ),
+                                  ),
                               ],
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                _buildDateRow('Fecha Emisión:', _formatDate(DateTime.now())),
+                                _buildDateRow(
+                                  'Fecha Emisión:',
+                                  _formatDate(DateTime.now()),
+                                ),
                                 const SizedBox(height: 6),
-                                _buildDateRow('Vencimiento:', _formatDate(DateTime.now().add(Duration(days: widget.validDays)))),
+                                _buildDateRow(
+                                  'Vencimiento:',
+                                  _formatDate(
+                                    DateTime.now().add(
+                                      Duration(days: widget.validDays),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -3653,63 +4745,128 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                           children: [
                             // Header de tabla
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.grey[50],
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(10),
+                                ),
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.grey[200]!),
+                                ),
                               ),
                               child: Row(
                                 children: [
                                   Expanded(
                                     flex: 3,
-                                    child: Text('Descripción', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600])),
-                                  ),
-                                  SizedBox(
-                                    width: 80,
-                                    child: Text('Cant.', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.right),
-                                  ),
-                                  SizedBox(
-                                    width: 120,
-                                    child: Text('Total', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600]), textAlign: TextAlign.right),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Items
-                            ...widget.items.map((item) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                              decoration: BoxDecoration(
-                                border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF111418))),
-                                        if (item['productCode'] != null)
-                                          Text('Código: ${item['productCode']}', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
-                                      ],
+                                    child: Text(
+                                      'Descripción',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
                                   ),
                                   SizedBox(
                                     width: 80,
-                                    child: Text('${item['quantity']}', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey[700], fontSize: 14), textAlign: TextAlign.right),
+                                    child: Text(
+                                      'Cant.',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[600],
+                                      ),
+                                      textAlign: TextAlign.right,
+                                    ),
                                   ),
                                   SizedBox(
                                     width: 120,
                                     child: Text(
-                                      '\$${Helpers.formatNumber(item['totalPrice'] * (item['quantity'] as int))}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF111418)),
+                                      'Total',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[600],
+                                      ),
                                       textAlign: TextAlign.right,
                                     ),
                                   ),
                                 ],
                               ),
-                            )),
+                            ),
+                            // Items
+                            ...widget.items.map(
+                              (item) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 20,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: Colors.grey[100]!,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item['name'],
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                              color: Color(0xFF111418),
+                                            ),
+                                          ),
+                                          if (item['productCode'] != null)
+                                            Text(
+                                              'Código: ${item['productCode']}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 80,
+                                      child: Text(
+                                        '${item['quantity']}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey[700],
+                                          fontSize: 14,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 120,
+                                      child: Text(
+                                        '\$${Helpers.formatNumber(((item['totalPrice'] as num? ?? 0) * ((item['quantity'] as num?)?.toInt() ?? 1)).toDouble())}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          color: Color(0xFF111418),
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -3723,18 +4880,41 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                             child: Column(
                               children: [
                                 _buildTotalRow('Subtotal', widget.subtotal),
-                                _buildTotalRow('Mano de Obra', widget.laborCost),
-                                _buildTotalRow('Costos Indirectos', widget.indirectCosts),
+                                _buildTotalRow(
+                                  'Mano de Obra',
+                                  widget.laborCost,
+                                ),
+                                _buildTotalRow(
+                                  'Costos Indirectos',
+                                  widget.indirectCosts,
+                                ),
                                 Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 12),
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                   height: 1,
                                   color: Colors.grey[200],
                                 ),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('Total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF111418))),
-                                    Text('\$${Helpers.formatNumber(widget.total)}', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.primaryColor)),
+                                    const Text(
+                                      'Total',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF111418),
+                                      ),
+                                    ),
+                                    Text(
+                                      '\$${Helpers.formatNumber(widget.total)}',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                        color: AppTheme.primaryColor,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -3746,7 +4926,11 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                       const SizedBox(height: 48),
                       Text(
                         'Esta cotización es válida hasta el ${_formatDate(DateTime.now().add(Duration(days: widget.validDays)))}. Sujeta a cambios si no se confirma antes de la fecha límite.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[400], fontStyle: FontStyle.italic),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[400],
+                          fontStyle: FontStyle.italic,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -3766,7 +4950,14 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
       children: [
         Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
         const SizedBox(width: 16),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF111418), fontSize: 13)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF111418),
+            fontSize: 13,
+          ),
+        ),
       ],
     );
   }
@@ -3778,7 +4969,10 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-          Text('\$${Helpers.formatNumber(value)}', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+          Text(
+            '\$${Helpers.formatNumber(value)}',
+            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+          ),
         ],
       ),
     );
@@ -4019,7 +5213,9 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.grey[100],
-                      border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey[200]!),
+                      ),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -4392,12 +5588,12 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
 
   Widget _buildProfitAnalysisSection() {
     final grossProfit = widget.materialSalePrice - widget.materialCostPrice;
-    final grossMarginPercent = widget.materialCostPrice > 0 
-        ? (grossProfit / widget.materialCostPrice * 100) 
+    final grossMarginPercent = widget.materialCostPrice > 0
+        ? (grossProfit / widget.materialCostPrice * 100)
         : 0.0;
     final netProfit = widget.total - widget.subtotal;
-    final netMarginPercent = widget.subtotal > 0 
-        ? (netProfit / widget.subtotal * 100) 
+    final netMarginPercent = widget.subtotal > 0
+        ? (netProfit / widget.subtotal * 100)
         : 0.0;
 
     return Container(
@@ -4451,7 +5647,13 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
     );
   }
 
-  Widget _buildProfitItem(String title, String subtitle, double value, double percent, Color color) {
+  Widget _buildProfitItem(
+    String title,
+    String subtitle,
+    double value,
+    double percent,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -4462,20 +5664,36 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
-          Text(subtitle, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 9, color: Colors.grey[600]),
+          ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 '\$${Helpers.formatNumber(value)}',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: value >= 0 ? color : Colors.red),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: value >= 0 ? color : Colors.red,
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: percent >= 0 ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                  color: percent >= 0
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -4496,14 +5714,31 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
 
   Widget _buildBOMRow(Map<String, dynamic> item) {
     final components = item['components'] as List<dynamic>? ?? [];
-    final unitCostPrice = item['unitCostPrice'] as double? ?? 0;
-    final unitSalePrice = item['unitSalePrice'] as double? ?? item['pricePerKg'] as double? ?? 0;
-    final totalProfit = item['totalProfit'] as double? ?? 0;
-    final profitMargin = item['profitMargin'] as double? ?? 0;
-    final qty = item['quantity'] as int? ?? 1;
-    final totalWeight = item['totalWeight'] as double? ?? 0;
-    final unitProfit = totalProfit > 0 && totalWeight > 0 ? (totalProfit / totalWeight) : 0;
-    
+    final qty = (item['quantity'] as num?)?.toInt() ?? 1;
+    final totalWeight = (item['totalWeight'] as num?)?.toDouble() ?? 0;
+    final totalSalePrice = (item['totalPrice'] as num?)?.toDouble() ?? 0;
+    final totalCost = (item['totalCost'] as num?)?.toDouble() ?? 0;
+
+    // Derivar per-kg desde totales (correcto para recetas y materiales)
+    final unitSalePrice = totalWeight > 0
+        ? totalSalePrice / totalWeight
+        : (item['unitSalePrice'] as num?)?.toDouble() ??
+              (item['pricePerKg'] as num?)?.toDouble() ??
+              0;
+    final unitCostPrice = totalWeight > 0 && totalCost > 0
+        ? totalCost / totalWeight
+        : (item['unitCostPrice'] as num?)?.toDouble() ?? 0;
+
+    final totalProfit =
+        (item['totalProfit'] as num?)?.toDouble() ??
+        (totalSalePrice - totalCost);
+    final profitMargin = totalCost > 0
+        ? ((totalProfit / totalCost) * 100)
+        : (item['profitMargin'] as num?)?.toDouble() ?? 0;
+    final unitProfit = totalProfit > 0 && totalWeight > 0
+        ? (totalProfit / totalWeight)
+        : 0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -4549,7 +5784,11 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                     const SizedBox(height: 2),
                     Text(
                       'Peso: ${Helpers.formatNumber(totalWeight)} kg',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.blue[700]),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.blue[700],
+                      ),
                     ),
                   ],
                 ),
@@ -4668,12 +5907,14 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                   const SizedBox(height: 8),
                   ...components.take(3).map((c) {
                     if (c == null) return const SizedBox.shrink();
-                    
-                    final compQty = (c['quantity'] ?? c['required_qty'] ?? 0) as num? ?? 0;
-                    final compName = c['component_name'] ?? c['name'] ?? 'Componente';
+
+                    final compQty =
+                        (c['quantity'] ?? c['required_qty'] ?? 0) as num? ?? 0;
+                    final compName =
+                        c['component_name'] ?? c['name'] ?? 'Componente';
                     final compUnit = c['unit'] ?? '';
                     final hasStock = c['has_stock'] ?? c['hasStock'] ?? true;
-                    
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Row(
@@ -4692,7 +5933,9 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: hasStock ? Colors.green[100] : Colors.red[100],
+                              color: hasStock
+                                  ? Colors.green[100]
+                                  : Colors.red[100],
                               borderRadius: BorderRadius.circular(3),
                             ),
                             child: Text(
@@ -4700,14 +5943,16 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w600,
-                                color: hasStock ? Colors.green[700] : Colors.red[700],
+                                color: hasStock
+                                    ? Colors.green[700]
+                                    : Colors.red[700],
                               ),
                             ),
                           ),
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                   if (components.length > 3)
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
@@ -4912,29 +6157,69 @@ class _AddMaterialFromInventoryDialogState
                             alpha: 0.1,
                           ),
                           leading: CircleAvatar(
-                            backgroundColor: Colors.orange.withValues(
-                              alpha: 0.1,
-                            ),
-                            child: const Icon(
+                            radius: 16,
+                            backgroundColor: material.isLowStock
+                                ? Colors.red.withValues(alpha: 0.1)
+                                : Colors.orange.withValues(alpha: 0.1),
+                            child: Icon(
                               Icons.inventory_2,
-                              color: Colors.orange,
-                              size: 20,
+                              color: material.isLowStock
+                                  ? Colors.red
+                                  : Colors.orange,
+                              size: 16,
                             ),
                           ),
                           title: Text(
                             material.name,
                             style: const TextStyle(fontWeight: FontWeight.w500),
                           ),
-                          subtitle: Text(
-                            '${material.code} • Stock: ${material.stock.toStringAsFixed(0)} ${material.unit}',
+                          subtitle: Row(
+                            children: [
+                              Text('${material.code} • '),
+                              Text(
+                                'Stock: ${material.stock.toStringAsFixed(0)} ${material.unit}',
+                                style: TextStyle(
+                                  color: material.isLowStock
+                                      ? Colors.red[700]
+                                      : null,
+                                  fontWeight: material.isLowStock
+                                      ? FontWeight.bold
+                                      : null,
+                                ),
+                              ),
+                              if (material.isLowStock) ...[
+                                const SizedBox(width: 3),
+                                Icon(
+                                  Icons.warning_amber,
+                                  size: 12,
+                                  color: Colors.red[400],
+                                ),
+                              ],
+                            ],
                           ),
-                          trailing: Text(
-                            Helpers.formatCurrency(
-                              material.pricePerKg > 0
-                                  ? material.pricePerKg
-                                  : material.unitPrice,
-                            ),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          trailing: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                Helpers.formatCurrency(
+                                  material.pricePerKg > 0
+                                      ? material.pricePerKg
+                                      : material.unitPrice,
+                                ),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (material.costPrice > 0)
+                                Text(
+                                  'Costo: ${Helpers.formatCurrency(material.effectiveCostPrice)}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                            ],
                           ),
                           onTap: () =>
                               setState(() => _selectedMaterial = material),
@@ -4994,6 +6279,69 @@ class _AddMaterialFromInventoryDialogState
                   ),
                 ],
               ),
+              // Stock warning
+              if (_quantity > _selectedMaterial!.stock)
+                Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.orange[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber,
+                        color: Colors.orange[700],
+                        size: 14,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Faltan ${(_quantity - _selectedMaterial!.stock).toStringAsFixed(1)} ${_selectedMaterial!.unit} (disp: ${_selectedMaterial!.stock.toStringAsFixed(0)})',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.orange[800],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_quantity <= _selectedMaterial!.stock && _quantity > 0)
+                Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.green[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        color: Colors.green[700],
+                        size: 14,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Disp: ${_selectedMaterial!.stock.toStringAsFixed(0)} ${_selectedMaterial!.unit}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.green[800],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ],
         ),
@@ -5014,10 +6362,12 @@ class _AddMaterialFromInventoryDialogState
                   // Usar effectiveCostPrice para obtener el precio de compra correcto
                   final costPrice = _selectedMaterial!.effectiveCostPrice;
                   final totalCost = costPrice * _quantity;
-                  
+
                   // Calcular ganancia
                   final totalProfit = totalPrice - totalCost;
-                  final profitMargin = totalCost > 0 ? ((totalProfit / totalCost) * 100) : 0.0;
+                  final profitMargin = totalCost > 0
+                      ? ((totalProfit / totalCost) * 100)
+                      : 0.0;
 
                   // Crear item compatible con la estructura de cotización
                   widget.onAdd({

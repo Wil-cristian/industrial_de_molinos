@@ -7,6 +7,7 @@ import '../../core/utils/helpers.dart';
 import '../../data/providers/accounts_provider.dart';
 import '../../data/providers/customers_provider.dart';
 import '../../data/providers/suppliers_provider.dart';
+import '../../data/datasources/accounts_datasource.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
 
@@ -44,7 +45,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     children: [
                       // Header section compacto
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
                         child: Row(
                           children: [
                             // Ícono y título en línea
@@ -68,14 +72,16 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                               children: [
                                 Text(
                                   'Caja Diaria',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
                                         color: AppTheme.primaryColor,
                                         fontWeight: FontWeight.bold,
                                       ),
                                 ),
                                 Text(
                                   'Control de ingresos, gastos y traslados',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: Colors.grey[600]),
                                 ),
                               ],
                             ),
@@ -85,12 +91,17 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                               onTap: () => _selectDate(context),
                               borderRadius: BorderRadius.circular(8),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppTheme.primaryColor.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: AppTheme.primaryColor.withOpacity(0.3),
+                                    color: AppTheme.primaryColor.withOpacity(
+                                      0.3,
+                                    ),
                                   ),
                                 ),
                                 child: Row(
@@ -111,8 +122,27 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                       ),
                                     ),
                                     const SizedBox(width: 2),
-                                    Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor, size: 20),
+                                    Icon(
+                                      Icons.arrow_drop_down,
+                                      color: AppTheme.primaryColor,
+                                      size: 20,
+                                    ),
                                   ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Botón "Ver Historial Completo"
+                            OutlinedButton.icon(
+                              onPressed: () => _showHistoryRangeDialog(context),
+                              icon: const Icon(Icons.history, size: 18),
+                              label: const Text('Ver Historial'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.grey[700],
+                                side: BorderSide(color: Colors.grey[300]!),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
                                 ),
                               ),
                             ),
@@ -125,7 +155,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.primaryColor,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -137,7 +170,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.orange,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
                               ),
                             ),
                           ],
@@ -318,8 +354,16 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildMiniStat('Ingresos hoy', Formatters.currency(incomeToday), Colors.green),
-                _buildMiniStat('Gastos hoy', Formatters.currency(expenseToday), Colors.red),
+                _buildMiniStat(
+                  'Ingresos hoy',
+                  Formatters.currency(incomeToday),
+                  Colors.green,
+                ),
+                _buildMiniStat(
+                  'Gastos hoy',
+                  Formatters.currency(expenseToday),
+                  Colors.red,
+                ),
               ],
             ),
           ],
@@ -680,6 +724,329 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
 
   void _showTransferDialog(BuildContext context) {
     showDialog(context: context, builder: (context) => const _TransferDialog());
+  }
+
+  void _showHistoryRangeDialog(BuildContext context) {
+    DateTime startDate = DateTime.now().subtract(const Duration(days: 30));
+    DateTime endDate = DateTime.now();
+    String? selectedAccountId;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Ver Historial de Movimientos'),
+          content: SizedBox(
+            width: 500,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Selector de cuenta
+                DropdownButtonFormField<String?>(
+                  value: selectedAccountId,
+                  hint: const Text('Todas las cuentas'),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Todas las cuentas'),
+                    ),
+                    ...ref.read(dailyCashProvider).accounts.map((account) {
+                      return DropdownMenuItem<String?>(
+                        value: account.id,
+                        child: Text(account.name),
+                      );
+                    }),
+                  ],
+                  onChanged: (value) {
+                    setState(() => selectedAccountId = value);
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Filtrar por Cuenta',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Fecha inicio
+                ListTile(
+                  title: const Text('Desde'),
+                  subtitle: Text(Formatters.dateLong(startDate)),
+                  leading: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: startDate,
+                      firstDate: DateTime(2020),
+                      lastDate: endDate,
+                    );
+                    if (picked != null) {
+                      setState(() => startDate = picked);
+                    }
+                  },
+                ),
+                const Divider(),
+
+                // Fecha fin
+                ListTile(
+                  title: const Text('Hasta'),
+                  subtitle: Text(Formatters.dateLong(endDate)),
+                  leading: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: endDate,
+                      firstDate: startDate,
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() => endDate = picked);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.history, size: 18),
+              label: const Text('Ver Movimientos'),
+              onPressed: () async {
+                Navigator.pop(context);
+                _showHistoryResults(
+                  context,
+                  startDate,
+                  endDate,
+                  selectedAccountId,
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showHistoryResults(
+    BuildContext context,
+    DateTime startDate,
+    DateTime endDate,
+    String? accountId,
+  ) async {
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return FutureBuilder<List<CashMovement>>(
+            future: AccountsDataSource.getMovementsByDateRange(
+              startDate,
+              endDate,
+            ),
+            builder: (context, snapshot) {
+              List<CashMovement> movements = [];
+              if (snapshot.hasData) {
+                movements = snapshot.data ?? [];
+                // Filtrar por cuenta si está seleccionada
+                if (accountId != null) {
+                  movements = movements
+                      .where(
+                        (m) =>
+                            m.accountId == accountId ||
+                            m.toAccountId == accountId,
+                      )
+                      .toList();
+                }
+              }
+
+              return AlertDialog(
+                title: Text(
+                  'Movimientos: ${Formatters.dateLong(startDate)} - ${Formatters.dateLong(endDate)}',
+                ),
+                content: SizedBox(
+                  width: 700,
+                  height: 500,
+                  child: snapshot.connectionState == ConnectionState.waiting
+                      ? const Center(child: CircularProgressIndicator())
+                      : movements.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.inbox,
+                                size: 64,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No hay movimientos en este rango',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            // Resumen
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  Column(
+                                    children: [
+                                      const Text(
+                                        'Total Movimientos',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      Text(
+                                        movements.length.toString(),
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    children: [
+                                      const Text(
+                                        'Total Ingresos',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      Text(
+                                        '\$${Helpers.formatNumber(movements.where((m) => m.type == MovementType.income).fold(0.0, (sum, m) => sum + m.amount))}',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    children: [
+                                      const Text(
+                                        'Total Gastos',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      Text(
+                                        '\$${Helpers.formatNumber(movements.where((m) => m.type == MovementType.expense).fold(0.0, (sum, m) => sum + m.amount))}',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            // Lista
+                            Expanded(
+                              child: ListView.separated(
+                                itemCount: movements.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 0),
+                                itemBuilder: (context, index) {
+                                  final movement = movements[index];
+                                  final accountName =
+                                      ref
+                                          .read(dailyCashProvider)
+                                          .getAccountById(movement.accountId)
+                                          ?.name ??
+                                      'Desconocida';
+
+                                  final isIncome =
+                                      movement.type == MovementType.income;
+                                  final color = isIncome
+                                      ? Colors.green
+                                      : Colors.red;
+
+                                  return ListTile(
+                                    dense: true,
+                                    leading: Icon(
+                                      isIncome
+                                          ? Icons.arrow_downward
+                                          : Icons.arrow_upward,
+                                      color: color,
+                                      size: 20,
+                                    ),
+                                    title: Text(
+                                      movement.description,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          accountName,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                        Text(
+                                          Formatters.dateTime(movement.date),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.grey[500],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    trailing: Text(
+                                      '\$${Helpers.formatNumber(movement.amount)}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: color,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cerrar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 
   void _showAccountOptions(BuildContext context, Account account) {
@@ -1132,11 +1499,18 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.attach_file, color: Colors.grey[600], size: 20),
+                          Icon(
+                            Icons.attach_file,
+                            color: Colors.grey[600],
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Archivos adjuntos',
-                            style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                           const Spacer(),
                           TextButton.icon(
@@ -1144,7 +1518,9 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                             icon: const Icon(Icons.add, size: 18),
                             label: const Text('Agregar'),
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -1155,31 +1531,54 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                           spacing: 8,
                           runSpacing: 8,
                           children: _attachedFiles.map((file) {
-                            final isImage = file.extension?.toLowerCase() == 'jpg' ||
+                            final isImage =
+                                file.extension?.toLowerCase() == 'jpg' ||
                                 file.extension?.toLowerCase() == 'jpeg' ||
                                 file.extension?.toLowerCase() == 'png';
-                            final isPdf = file.extension?.toLowerCase() == 'pdf';
-                            
+                            final isPdf =
+                                file.extension?.toLowerCase() == 'pdf';
+
                             return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
-                                color: isImage ? Colors.blue[50] : (isPdf ? Colors.red[50] : Colors.grey[100]),
+                                color: isImage
+                                    ? Colors.blue[50]
+                                    : (isPdf
+                                          ? Colors.red[50]
+                                          : Colors.grey[100]),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: isImage ? Colors.blue[200]! : (isPdf ? Colors.red[200]! : Colors.grey[300]!),
+                                  color: isImage
+                                      ? Colors.blue[200]!
+                                      : (isPdf
+                                            ? Colors.red[200]!
+                                            : Colors.grey[300]!),
                                 ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    isImage ? Icons.image : (isPdf ? Icons.picture_as_pdf : Icons.insert_drive_file),
+                                    isImage
+                                        ? Icons.image
+                                        : (isPdf
+                                              ? Icons.picture_as_pdf
+                                              : Icons.insert_drive_file),
                                     size: 16,
-                                    color: isImage ? Colors.blue : (isPdf ? Colors.red : Colors.grey[600]),
+                                    color: isImage
+                                        ? Colors.blue
+                                        : (isPdf
+                                              ? Colors.red
+                                              : Colors.grey[600]),
                                   ),
                                   const SizedBox(width: 6),
                                   ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 120),
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 120,
+                                    ),
                                     child: Text(
                                       file.name,
                                       style: const TextStyle(fontSize: 12),
@@ -1193,7 +1592,11 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                                         _attachedFiles.remove(file);
                                       });
                                     },
-                                    child: Icon(Icons.close, size: 16, color: Colors.grey[600]),
+                                    child: Icon(
+                                      Icons.close,
+                                      size: 16,
+                                      color: Colors.grey[600],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1205,7 +1608,10 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Text(
                             'Sin archivos adjuntos',
-                            style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                     ],
@@ -1249,7 +1655,16 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
       final result = await FilePicker.platform.pickFiles(
         allowMultiple: true,
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx'],
+        allowedExtensions: [
+          'jpg',
+          'jpeg',
+          'png',
+          'pdf',
+          'doc',
+          'docx',
+          'xls',
+          'xlsx',
+        ],
       );
 
       if (result != null && result.files.isNotEmpty) {

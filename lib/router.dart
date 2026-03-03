@@ -1,14 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'data/datasources/supabase_datasource.dart';
 import 'presentation/pages/dashboard_page.dart';
-import 'presentation/pages/products_page.dart';
+// ProductsPage ya no se usa - unificada en CompositeProductsPage
 import 'presentation/pages/customers_page.dart';
 import 'presentation/pages/invoices_page.dart';
 import 'presentation/pages/reports_analytics_page.dart';
 import 'presentation/pages/settings_page.dart';
 import 'presentation/pages/quotations_page.dart';
 import 'presentation/pages/new_quotation_page.dart';
-import 'presentation/pages/new_invoice_page.dart';
+import 'presentation/pages/new_sale_page.dart';
 import 'presentation/pages/materials_page.dart';
 import 'presentation/pages/daily_cash_page.dart';
 import 'presentation/pages/composite_products_page.dart';
@@ -16,6 +19,9 @@ import 'presentation/pages/customer_history_page.dart';
 import 'presentation/pages/calendar_page.dart';
 import 'presentation/pages/assets_page.dart';
 import 'presentation/pages/employees_page.dart';
+import 'presentation/pages/login_page.dart';
+import 'presentation/pages/accounting_page.dart';
+import 'presentation/pages/iva_control_page.dart';
 import 'presentation/widgets/app_sidebar.dart';
 import 'presentation/widgets/quick_actions_button.dart';
 import 'core/theme/app_theme.dart';
@@ -23,11 +29,54 @@ import 'core/theme/app_theme.dart';
 // Claves de navegación para mantener el estado
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
+// Listenable que refresca el router cuando cambia el estado de auth
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    _subscription = stream.listen((_) {
+      notifyListeners();
+    });
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
 // Configuración del router con StatefulShellRoute para mantener estado
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/daily-cash',
+  refreshListenable: GoRouterRefreshStream(
+    SupabaseDataSource.client.auth.onAuthStateChange,
+  ),
+  redirect: (context, state) {
+    final isAuthenticated = SupabaseDataSource.isAuthenticated;
+    final isLoginRoute = state.uri.path == '/login';
+
+    // Si no está autenticado y no está en login, redirigir a login
+    if (!isAuthenticated && !isLoginRoute) {
+      return '/login';
+    }
+
+    // Si está autenticado y está en login, redirigir a la app
+    if (isAuthenticated && isLoginRoute) {
+      return '/daily-cash';
+    }
+
+    // No redirigir
+    return null;
+  },
   routes: [
+    // Ruta de login (fuera del shell)
+    GoRoute(
+      path: '/login',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const LoginPage(),
+    ),
     // StatefulShellRoute mantiene el estado de las páginas principales
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
@@ -42,9 +91,8 @@ final GoRouter router = GoRouter(
           routes: [
             GoRoute(
               path: '/',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: DashboardPage(),
-              ),
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: DashboardPage()),
             ),
           ],
         ),
@@ -53,28 +101,17 @@ final GoRouter router = GoRouter(
           routes: [
             GoRoute(
               path: '/daily-cash',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: DailyCashPage(),
-              ),
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: DailyCashPage()),
             ),
           ],
         ),
-        // Branch 2: Productos
+        // Branch 2: Productos (redirige a Compuestos unificado)
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/products',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: ProductsPage(),
-              ),
-              routes: [
-                GoRoute(
-                  path: 'new',
-                  pageBuilder: (context, state) => const NoTransitionPage(
-                    child: ProductsPage(openNewDialog: true),
-                  ),
-                ),
-              ],
+              redirect: (context, state) => '/composite-products',
             ),
           ],
         ),
@@ -92,14 +129,13 @@ final GoRouter router = GoRouter(
             ),
           ],
         ),
-        // Branch 4: Clientes
+        // Branch 4: Clientes y Proveedores
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/customers',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: CustomersPage(),
-              ),
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: CustomersPage()),
               routes: [
                 GoRoute(
                   path: 'new',
@@ -124,9 +160,8 @@ final GoRouter router = GoRouter(
           routes: [
             GoRoute(
               path: '/invoices',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: InvoicesPage(),
-              ),
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: InvoicesPage()),
             ),
           ],
         ),
@@ -135,9 +170,8 @@ final GoRouter router = GoRouter(
           routes: [
             GoRoute(
               path: '/quotations',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: QuotationsPage(),
-              ),
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: QuotationsPage()),
             ),
           ],
         ),
@@ -146,9 +180,8 @@ final GoRouter router = GoRouter(
           routes: [
             GoRoute(
               path: '/reports',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: ReportsAnalyticsPage(),
-              ),
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: ReportsAnalyticsPage()),
             ),
           ],
         ),
@@ -197,25 +230,43 @@ final GoRouter router = GoRouter(
             ),
           ],
         ),
-        // Branch 11: Configuración
+        // Branch 11: Contabilidad
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/accounting',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: AccountingPage()),
+            ),
+          ],
+        ),
+        // Branch 12: Control IVA
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/iva-control',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: IvaControlPage()),
+            ),
+          ],
+        ),
+        // Branch 13: Configuración
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/settings',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: SettingsPage(),
-              ),
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: SettingsPage()),
             ),
           ],
         ),
-        // Branch 12: Productos Compuestos
+        // Branch 14: Productos Compuestos
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/composite-products',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: CompositeProductsPage(),
-              ),
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: CompositeProductsPage()),
             ),
           ],
         ),
@@ -225,7 +276,7 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/invoices/new',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const NewInvoicePage(),
+      builder: (context, state) => const NewSalePage(),
     ),
     GoRoute(
       path: '/quotations/new',
@@ -235,14 +286,8 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/quotations/edit/:id',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const Scaffold(
-        body: Center(child: Text('Editar Cotización - Por implementar')),
-      ),
-    ),
-    // Redirección
-    GoRoute(
-      path: '/recipe-builder',
-      redirect: (context, state) => '/products/new',
+      builder: (context, state) =>
+          NewQuotationPage(quotationId: state.pathParameters['id']),
     ),
   ],
 );
@@ -252,10 +297,7 @@ class _MainShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
   final String currentPath;
 
-  const _MainShell({
-    required this.navigationShell,
-    required this.currentPath,
-  });
+  const _MainShell({required this.navigationShell, required this.currentPath});
 
   @override
   Widget build(BuildContext context) {

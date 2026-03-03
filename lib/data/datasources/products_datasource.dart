@@ -1,3 +1,4 @@
+﻿import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/product.dart';
 import 'supabase_datasource.dart';
@@ -11,11 +12,11 @@ class ProductsDataSource {
   /// Obtener todos los productos
   static Future<List<Product>> getAll({bool activeOnly = true}) async {
     var query = _client.from(_table).select();
-    
+
     if (activeOnly) {
       query = query.eq('is_active', true);
     }
-    
+
     final response = await query.order('name');
     return response.map<Product>((json) => _fromJson(json)).toList();
   }
@@ -23,7 +24,11 @@ class ProductsDataSource {
   /// Obtener producto por ID
   static Future<Product?> getById(String id) async {
     try {
-      final response = await _client.from(_table).select().eq('id', id).single();
+      final response = await _client
+          .from(_table)
+          .select()
+          .eq('id', id)
+          .single();
       return _fromJson(response);
     } catch (e) {
       return null;
@@ -35,7 +40,9 @@ class ProductsDataSource {
     final response = await _client
         .from(_table)
         .select()
-        .or('name.ilike.%$query%,code.ilike.%$query%,description.ilike.%$query%')
+        .or(
+          'name.ilike.%$query%,code.ilike.%$query%,description.ilike.%$query%',
+        )
         .order('name');
     return response.map<Product>((json) => _fromJson(json)).toList();
   }
@@ -46,7 +53,7 @@ class ProductsDataSource {
     data.remove('id');
     data.remove('created_at');
     data.remove('updated_at');
-    
+
     final response = await _client.from(_table).insert(data).select().single();
     return _fromJson(response);
   }
@@ -57,7 +64,7 @@ class ProductsDataSource {
     data.remove('id');
     data.remove('created_at');
     data.remove('updated_at');
-    
+
     final response = await _client
         .from(_table)
         .update(data)
@@ -82,9 +89,7 @@ class ProductsDataSource {
 
   /// Productos con stock bajo
   static Future<List<Product>> getLowStock() async {
-    final response = await _client
-        .from('v_low_stock_products')
-        .select();
+    final response = await _client.from('v_low_stock_products').select();
     return response.map<Product>((json) => _fromJson(json)).toList();
   }
 
@@ -104,10 +109,10 @@ class ProductsDataSource {
     // Obtener stock actual
     final product = await getById(productId);
     if (product == null) throw Exception('Producto no encontrado');
-    
+
     final previousStock = product.stock;
     double newStock;
-    
+
     if (type == 'incoming') {
       newStock = previousStock + quantity;
     } else if (type == 'outgoing') {
@@ -116,7 +121,7 @@ class ProductsDataSource {
     } else {
       newStock = quantity; // adjustment = set direct value
     }
-    
+
     // Registrar movimiento
     await _client.from('stock_movements').insert({
       'product_id': productId,
@@ -127,7 +132,7 @@ class ProductsDataSource {
       'reason': reason,
       'reference': reference,
     });
-    
+
     // Actualizar stock del producto
     await updateStock(productId, newStock);
   }
@@ -135,15 +140,20 @@ class ProductsDataSource {
   /// Descontar stock para una factura
   static Future<void> deductStockForInvoice(String invoiceId) async {
     try {
-      await _client.rpc('deduct_stock_for_invoice', params: {'p_invoice_id': invoiceId});
+      await _client.rpc(
+        'deduct_stock_for_invoice',
+        params: {'p_invoice_id': invoiceId},
+      );
     } catch (e) {
-      print('❌ Error al descontar stock: $e');
+      AppLogger.error('❌ Error al descontar stock: $e');
       rethrow;
     }
   }
 
   /// Obtener movimientos de stock de un producto
-  static Future<List<Map<String, dynamic>>> getStockMovements(String productId) async {
+  static Future<List<Map<String, dynamic>>> getStockMovements(
+    String productId,
+  ) async {
     final response = await _client
         .from('stock_movements')
         .select()
@@ -154,14 +164,21 @@ class ProductsDataSource {
 
   /// Obtener todas las categorías
   static Future<List<Category>> getCategories() async {
-    final response = await _client.from(_categoriesTable).select().order('name');
-    return response.map<Category>((json) => Category(
-      id: json['id'],
-      name: json['name'],
-      description: json['description'],
-      parentId: json['parent_id'],
-      createdAt: DateTime.parse(json['created_at']),
-    )).toList();
+    final response = await _client
+        .from(_categoriesTable)
+        .select()
+        .order('name');
+    return response
+        .map<Category>(
+          (json) => Category(
+            id: json['id'],
+            name: json['name'],
+            description: json['description'],
+            parentId: json['parent_id'],
+            createdAt: DateTime.parse(json['created_at']),
+          ),
+        )
+        .toList();
   }
 
   // Helpers de conversión

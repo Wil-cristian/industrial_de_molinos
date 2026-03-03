@@ -1,3 +1,4 @@
+﻿import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/activity.dart';
 
@@ -7,23 +8,25 @@ class ActivitiesDatasource {
   /// Obtener todas las actividades
   static Future<List<Activity>> getActivities() async {
     try {
-      print('🔄 Cargando actividades desde Supabase...');
+      AppLogger.debug('🔄 Cargando actividades desde Supabase...');
       final response = await _client
           .from('activities')
           .select('*, customers(name)')
           .order('start_date', ascending: true);
 
       final activities = (response as List)
-          .map((json) => Activity.fromJson({
-                ...json,
-                'customer_name': json['customers']?['name'],
-              }))
+          .map(
+            (json) => Activity.fromJson({
+              ...json,
+              'customer_name': json['customers']?['name'],
+            }),
+          )
           .toList();
 
-      print('✅ Actividades cargadas: ${activities.length}');
+      AppLogger.success('✅ Actividades cargadas: ${activities.length}');
       return activities;
     } catch (e) {
-      print('❌ Error cargando actividades: $e');
+      AppLogger.error('❌ Error cargando actividades: $e');
       return [];
     }
   }
@@ -42,19 +45,24 @@ class ActivitiesDatasource {
           .order('start_date', ascending: true);
 
       return (response as List)
-          .map((json) => Activity.fromJson({
-                ...json,
-                'customer_name': json['customers']?['name'],
-              }))
+          .map(
+            (json) => Activity.fromJson({
+              ...json,
+              'customer_name': json['customers']?['name'],
+            }),
+          )
           .toList();
     } catch (e) {
-      print('❌ Error cargando actividades por fecha: $e');
+      AppLogger.error('❌ Error cargando actividades por fecha: $e');
       return [];
     }
   }
 
   /// Obtener actividades por mes
-  static Future<List<Activity>> getActivitiesByMonth(int year, int month) async {
+  static Future<List<Activity>> getActivitiesByMonth(
+    int year,
+    int month,
+  ) async {
     try {
       final startOfMonth = DateTime(year, month, 1);
       final endOfMonth = DateTime(year, month + 1, 1);
@@ -67,13 +75,15 @@ class ActivitiesDatasource {
           .order('start_date', ascending: true);
 
       return (response as List)
-          .map((json) => Activity.fromJson({
-                ...json,
-                'customer_name': json['customers']?['name'],
-              }))
+          .map(
+            (json) => Activity.fromJson({
+              ...json,
+              'customer_name': json['customers']?['name'],
+            }),
+          )
           .toList();
     } catch (e) {
-      print('❌ Error cargando actividades del mes: $e');
+      AppLogger.error('❌ Error cargando actividades del mes: $e');
       return [];
     }
   }
@@ -81,7 +91,7 @@ class ActivitiesDatasource {
   /// Crear nueva actividad
   static Future<Activity?> createActivity(Activity activity) async {
     try {
-      print('🔄 Creando actividad: ${activity.title}');
+      AppLogger.debug('🔄 Creando actividad: ${activity.title}');
       final response = await _client
           .from('activities')
           .insert({
@@ -105,10 +115,10 @@ class ActivitiesDatasource {
           .select()
           .single();
 
-      print('✅ Actividad creada: ${response['id']}');
+      AppLogger.success('✅ Actividad creada: ${response['id']}');
       return Activity.fromJson(response);
     } catch (e) {
-      print('❌ Error creando actividad: $e');
+      AppLogger.error('❌ Error creando actividad: $e');
       return null;
     }
   }
@@ -116,25 +126,28 @@ class ActivitiesDatasource {
   /// Actualizar actividad
   static Future<bool> updateActivity(Activity activity) async {
     try {
-      await _client.from('activities').update({
-        'title': activity.title,
-        'description': activity.description,
-        'activity_type': _activityTypeToString(activity.activityType),
-        'start_date': activity.startDate.toIso8601String(),
-        'end_date': activity.endDate?.toIso8601String(),
-        'due_date': activity.dueDate?.toIso8601String().split('T')[0],
-        'status': _statusToString(activity.status),
-        'priority': _priorityToString(activity.priority),
-        'customer_id': activity.customerId,
-        'amount': activity.amount,
-        'color': activity.color,
-        'notes': activity.notes,
-      }).eq('id', activity.id);
+      await _client
+          .from('activities')
+          .update({
+            'title': activity.title,
+            'description': activity.description,
+            'activity_type': _activityTypeToString(activity.activityType),
+            'start_date': activity.startDate.toIso8601String(),
+            'end_date': activity.endDate?.toIso8601String(),
+            'due_date': activity.dueDate?.toIso8601String().split('T')[0],
+            'status': _statusToString(activity.status),
+            'priority': _priorityToString(activity.priority),
+            'customer_id': activity.customerId,
+            'amount': activity.amount,
+            'color': activity.color,
+            'notes': activity.notes,
+          })
+          .eq('id', activity.id);
 
-      print('✅ Actividad actualizada: ${activity.id}');
+      AppLogger.success('✅ Actividad actualizada: ${activity.id}');
       return true;
     } catch (e) {
-      print('❌ Error actualizando actividad: $e');
+      AppLogger.error('❌ Error actualizando actividad: $e');
       return false;
     }
   }
@@ -143,10 +156,10 @@ class ActivitiesDatasource {
   static Future<bool> deleteActivity(String id) async {
     try {
       await _client.from('activities').delete().eq('id', id);
-      print('✅ Actividad eliminada: $id');
+      AppLogger.success('✅ Actividad eliminada: $id');
       return true;
     } catch (e) {
-      print('❌ Error eliminando actividad: $e');
+      AppLogger.error('❌ Error eliminando actividad: $e');
       return false;
     }
   }
@@ -154,12 +167,13 @@ class ActivitiesDatasource {
   /// Marcar actividad como completada
   static Future<bool> completeActivity(String id) async {
     try {
-      await _client.from('activities').update({
-        'status': 'completed',
-      }).eq('id', id);
+      await _client
+          .from('activities')
+          .update({'status': 'completed'})
+          .eq('id', id);
       return true;
     } catch (e) {
-      print('❌ Error completando actividad: $e');
+      AppLogger.error('❌ Error completando actividad: $e');
       return false;
     }
   }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Concepto de nómina (ingreso/descuento)
@@ -92,11 +93,29 @@ class PayrollPeriod {
   }
 
   String get displayName {
-    final typeLabel = periodType == 'mensual'
-        ? 'Mes'
-        : periodType == 'quincenal'
-        ? 'Quincena'
-        : 'Semana';
+    if (periodType == 'quincenal') {
+      // period_number: mes*2-1 = Q1, mes*2 = Q2
+      final isQ1 = periodNumber.isOdd;
+      final month = isQ1 ? (periodNumber + 1) ~/ 2 : periodNumber ~/ 2;
+      const meses = [
+        '',
+        'Ene',
+        'Feb',
+        'Mar',
+        'Abr',
+        'May',
+        'Jun',
+        'Jul',
+        'Ago',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dic',
+      ];
+      final mesLabel = month >= 1 && month <= 12 ? meses[month] : 'Mes $month';
+      return '$mesLabel Q${isQ1 ? 1 : 2} $year';
+    }
+    final typeLabel = periodType == 'mensual' ? 'Mes' : 'Semana';
     return '$typeLabel $periodNumber/$year';
   }
 }
@@ -126,6 +145,10 @@ class EmployeePayroll {
   final String? cashMovementId;
   final String? notes;
   final DateTime createdAt;
+
+  // Rango de fechas pagadas
+  final DateTime? paidStartDate;
+  final DateTime? paidEndDate;
 
   // Datos relacionados
   final String? employeeName;
@@ -157,6 +180,8 @@ class EmployeePayroll {
     this.cashMovementId,
     this.notes,
     required this.createdAt,
+    this.paidStartDate,
+    this.paidEndDate,
     this.employeeName,
     this.employeePosition,
     this.periodName,
@@ -193,6 +218,12 @@ class EmployeePayroll {
       cashMovementId: json['cash_movement_id'],
       notes: json['notes'],
       createdAt: DateTime.parse(json['created_at']),
+      paidStartDate: json['paid_start_date'] != null
+          ? DateTime.parse(json['paid_start_date'])
+          : null,
+      paidEndDate: json['paid_end_date'] != null
+          ? DateTime.parse(json['paid_end_date'])
+          : null,
       employeeName: employee != null
           ? '${employee['first_name']} ${employee['last_name']}'
           : null,
@@ -343,6 +374,8 @@ class EmployeeIncapacity {
         return 'Accidente Común';
       case 'maternidad':
         return 'Maternidad';
+      case 'permiso':
+        return 'Permiso';
       default:
         return type;
     }
@@ -482,12 +515,18 @@ class PayrollDatasource {
     final year = now.year;
     final month = now.month;
 
-    // Buscar periodo actual
+    // Determinar quincena actual
+    // Q1 = día 1-15, Q2 = día 16-fin de mes
+    // period_number = (mes * 2 - 1) para Q1, (mes * 2) para Q2
+    final isQ1 = now.day <= 15;
+    final periodNumber = isQ1 ? (month * 2 - 1) : (month * 2);
+
+    // Buscar periodo quincenal actual
     final existing = await _client
         .from('payroll_periods')
         .select()
-        .eq('period_type', 'mensual')
-        .eq('period_number', month)
+        .eq('period_type', 'quincenal')
+        .eq('period_number', periodNumber)
         .eq('year', year)
         .maybeSingle();
 
@@ -495,13 +534,20 @@ class PayrollDatasource {
       return PayrollPeriod.fromJson(existing);
     }
 
-    // Crear nuevo periodo
-    final startDate = DateTime(year, month, 1);
-    final endDate = DateTime(year, month + 1, 0);
+    // Crear nuevo periodo quincenal
+    final DateTime startDate;
+    final DateTime endDate;
+    if (isQ1) {
+      startDate = DateTime(year, month, 1);
+      endDate = DateTime(year, month, 15);
+    } else {
+      startDate = DateTime(year, month, 16);
+      endDate = DateTime(year, month + 1, 0); // último día del mes
+    }
 
     return createPeriod(
-      periodType: 'mensual',
-      periodNumber: month,
+      periodType: 'quincenal',
+      periodNumber: periodNumber,
       year: year,
       startDate: startDate,
       endDate: endDate,
@@ -516,71 +562,83 @@ class PayrollDatasource {
     String? employeeId,
     String? status,
   }) async {
-    var query = _client.from('payroll').select('''
-      *,
-      employees(first_name, last_name, position),
-      payroll_periods(period_type, period_number, year)
-    ''');
+    try {
+      var query = _client.from('payroll').select('''
+        *,
+        employees(first_name, last_name, position),
+        payroll_periods(period_type, period_number, year)
+      ''');
 
-    if (periodId != null) {
-      query = query.eq('period_id', periodId);
-    }
-    if (employeeId != null) {
-      query = query.eq('employee_id', employeeId);
-    }
-    if (status != null) {
-      query = query.eq('status', status);
-    }
+      if (periodId != null) {
+        query = query.eq('period_id', periodId);
+      }
+      if (employeeId != null) {
+        query = query.eq('employee_id', employeeId);
+      }
+      if (status != null) {
+        query = query.eq('status', status);
+      }
 
-    final response = await query.order('created_at', ascending: false);
-    return (response as List).map((e) => EmployeePayroll.fromJson(e)).toList();
+      final response = await query.order('created_at', ascending: false);
+      return (response as List)
+          .map((e) => EmployeePayroll.fromJson(e))
+          .toList();
+    } catch (e) {
+      debugPrint('Error al obtener nóminas: $e');
+      return [];
+    }
   }
 
   static Future<EmployeePayroll?> getPayrollWithDetails(
     String payrollId,
   ) async {
-    final response = await _client
-        .from('payroll')
-        .select('''
-      *,
-      employees(first_name, last_name, position),
-      payroll_periods(period_type, period_number, year)
-    ''')
-        .eq('id', payrollId)
-        .single();
+    try {
+      final response = await _client
+          .from('payroll')
+          .select('''
+        *,
+        employees(first_name, last_name, position),
+        payroll_periods(period_type, period_number, year)
+      ''')
+          .eq('id', payrollId)
+          .single();
 
-    final details = await getPayrollDetails(payrollId);
-    final payroll = EmployeePayroll.fromJson(response);
+      final details = await getPayrollDetails(payrollId);
+      final payroll = EmployeePayroll.fromJson(response);
 
-    return EmployeePayroll(
-      id: payroll.id,
-      employeeId: payroll.employeeId,
-      periodId: payroll.periodId,
-      baseSalary: payroll.baseSalary,
-      daysWorked: payroll.daysWorked,
-      daysAbsent: payroll.daysAbsent,
-      daysVacation: payroll.daysVacation,
-      daysIncapacity: payroll.daysIncapacity,
-      regularHours: payroll.regularHours,
-      overtimeHours25: payroll.overtimeHours25,
-      overtimeHours35: payroll.overtimeHours35,
-      overtimeHours100: payroll.overtimeHours100,
-      totalEarnings: payroll.totalEarnings,
-      totalDeductions: payroll.totalDeductions,
-      netPay: payroll.netPay,
-      status: payroll.status,
-      paymentDate: payroll.paymentDate,
-      paymentMethod: payroll.paymentMethod,
-      paymentReference: payroll.paymentReference,
-      accountId: payroll.accountId,
-      cashMovementId: payroll.cashMovementId,
-      notes: payroll.notes,
-      createdAt: payroll.createdAt,
-      employeeName: payroll.employeeName,
-      employeePosition: payroll.employeePosition,
-      periodName: payroll.periodName,
-      details: details,
-    );
+      return EmployeePayroll(
+        id: payroll.id,
+        employeeId: payroll.employeeId,
+        periodId: payroll.periodId,
+        baseSalary: payroll.baseSalary,
+        daysWorked: payroll.daysWorked,
+        daysAbsent: payroll.daysAbsent,
+        daysVacation: payroll.daysVacation,
+        daysIncapacity: payroll.daysIncapacity,
+        regularHours: payroll.regularHours,
+        overtimeHours25: payroll.overtimeHours25,
+        overtimeHours35: payroll.overtimeHours35,
+        overtimeHours100: payroll.overtimeHours100,
+        totalEarnings: payroll.totalEarnings,
+        totalDeductions: payroll.totalDeductions,
+        netPay: payroll.netPay,
+        status: payroll.status,
+        paymentDate: payroll.paymentDate,
+        paymentMethod: payroll.paymentMethod,
+        paymentReference: payroll.paymentReference,
+        accountId: payroll.accountId,
+        cashMovementId: payroll.cashMovementId,
+        notes: payroll.notes,
+        createdAt: payroll.createdAt,
+        employeeName: payroll.employeeName,
+        employeePosition: payroll.employeePosition,
+        periodName: payroll.periodName,
+        details: details,
+      );
+    } catch (e) {
+      debugPrint('Error al obtener nómina $payrollId: $e');
+      return null;
+    }
   }
 
   static Future<EmployeePayroll?> createPayroll({
@@ -632,6 +690,13 @@ class PayrollDatasource {
     Map<String, dynamic> data,
   ) async {
     await _client.from('payroll').update(data).eq('id', payrollId);
+  }
+
+  static Future<void> deletePayroll(String payrollId) async {
+    // Primero eliminar detalles
+    await _client.from('payroll_details').delete().eq('payroll_id', payrollId);
+    // Luego eliminar la nómina
+    await _client.from('payroll').delete().eq('id', payrollId);
   }
 
   // ==========================================
@@ -791,6 +856,25 @@ class PayrollDatasource {
     required String accountId,
     String? reason,
   }) async {
+    // Validaciones
+    if (amount <= 0) {
+      throw Exception('El monto del préstamo debe ser mayor a 0');
+    }
+    if (installments <= 0) {
+      throw Exception('El número de cuotas debe ser mayor a 0');
+    }
+
+    // Verificar que el empleado existe y está activo
+    final employee = await _client
+        .from('employees')
+        .select('id, is_active')
+        .eq('id', employeeId)
+        .maybeSingle();
+    if (employee == null) throw Exception('Empleado no encontrado');
+    if (employee['is_active'] != true) {
+      throw Exception('No se puede otorgar préstamo a un empleado inactivo');
+    }
+
     final response = await _client.rpc(
       'register_employee_loan',
       params: {
@@ -799,6 +883,7 @@ class PayrollDatasource {
         'p_installments': installments,
         'p_account_id': accountId,
         'p_reason': reason,
+        'p_date': DateTime.now().toIso8601String(),
       },
     );
 
@@ -812,6 +897,27 @@ class PayrollDatasource {
     String? payrollId,
     String paymentMethod = 'nomina',
   }) async {
+    // Validaciones
+    if (amount <= 0) throw Exception('El monto del pago debe ser mayor a 0');
+
+    // Verificar que el préstamo existe y está activo
+    final loanCheck = await _client
+        .from('employee_loans')
+        .select('id, status, remaining_amount')
+        .eq('id', loanId)
+        .maybeSingle();
+    if (loanCheck == null) throw Exception('Préstamo no encontrado');
+    if (loanCheck['status'] != 'activo') {
+      throw Exception('El préstamo no está activo');
+    }
+    final remainingAmount =
+        (loanCheck['remaining_amount'] as num?)?.toDouble() ?? 0;
+    if (amount > remainingAmount + 0.01) {
+      throw Exception(
+        'El pago (\$${amount.toStringAsFixed(2)}) excede el saldo pendiente (\$${remainingAmount.toStringAsFixed(2)})',
+      );
+    }
+
     // Registrar pago
     await _client.from('loan_payments').insert({
       'loan_id': loanId,
@@ -843,6 +949,64 @@ class PayrollDatasource {
           'status': newRemainingAmount <= 0 ? 'pagado' : 'activo',
         })
         .eq('id', loanId);
+  }
+
+  // ==========================================
+  // ASIENTO CONTABLE: DESCUENTO PRÉSTAMO EN NÓMINA
+  // ==========================================
+  /// Crea un asiento contable cuando un préstamo se salda vía nómina.
+  /// NO hay movimiento de efectivo: el empleado simplemente recibe menos sueldo.
+  /// Débito: 621 Sueldos y Salarios (la parte retenida es gasto salarial)
+  /// Crédito: 122 Préstamos a Empleados (el activo baja, deuda saldada)
+  static Future<void> createLoanSettlementEntry({
+    required String loanId,
+    required double amount,
+    required String employeeName,
+    required int installmentNumber,
+    required int totalInstallments,
+  }) async {
+    final lines = [
+      {
+        'account_code': '621',
+        'account_name': 'Sueldos y Salarios',
+        'debit': amount,
+        'credit': 0,
+      },
+      {
+        'account_code': '122',
+        'account_name': 'Préstamos a Empleados',
+        'debit': 0,
+        'credit': amount,
+      },
+    ];
+
+    await _client.rpc(
+      'create_journal_entry',
+      params: {
+        'p_date': DateTime.now().toIso8601String().split('T')[0],
+        'p_description':
+            'Descuento nómina - Cuota $installmentNumber/$totalInstallments préstamo $employeeName',
+        'p_ref_type': 'employee_loan',
+        'p_ref_id': loanId,
+        'p_lines': lines,
+      },
+    );
+  }
+
+  // ==========================================
+  // ANULAR PRÉSTAMO (función atómica en DB)
+  // ==========================================
+  static Future<void> cancelLoan(String loanId) async {
+    // Usar RPC atómica: todo en una transacción PostgreSQL
+    // Si algo falla, nada se aplica (no hay saldos inflados)
+    final result = await _client.rpc(
+      'cancel_employee_loan',
+      params: {'p_loan_id': loanId},
+    );
+
+    if (result is Map && result['success'] != true) {
+      throw Exception('Error al anular préstamo');
+    }
   }
 
   // ==========================================

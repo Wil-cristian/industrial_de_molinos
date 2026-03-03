@@ -82,6 +82,12 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
       route: '/calendar?action=new',
       color: Colors.pink,
     ),
+    QuickActionItem(
+      icon: Icons.receipt_long,
+      label: 'Control IVA',
+      route: '/iva-control',
+      color: Colors.red,
+    ),
   ];
 
   @override
@@ -117,8 +123,9 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final maxPanelHeight = screenHeight - 180; // Espacio para el botón y márgenes
-    
+    final maxPanelHeight =
+        screenHeight - 180; // Espacio para el botón y márgenes
+
     return Stack(
       alignment: Alignment.bottomLeft,
       children: [
@@ -130,9 +137,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
               child: AnimatedOpacity(
                 opacity: _isExpanded ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
-                child: Container(
-                  color: Colors.black.withOpacity(0.3),
-                ),
+                child: Container(color: Colors.black.withOpacity(0.3)),
               ),
             ),
           ),
@@ -147,10 +152,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
               return Transform.scale(
                 scale: _expandAnimation.value,
                 alignment: Alignment.bottomLeft,
-                child: Opacity(
-                  opacity: _expandAnimation.value,
-                  child: child,
-                ),
+                child: Opacity(opacity: _expandAnimation.value, child: child),
               );
             },
             child: Container(
@@ -269,7 +271,11 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
     );
   }
 
-  Widget _buildActionItem(BuildContext context, QuickActionItem action, int index) {
+  Widget _buildActionItem(
+    BuildContext context,
+    QuickActionItem action,
+    int index,
+  ) {
     return AnimatedBuilder(
       animation: _expandAnimation,
       builder: (context, child) {
@@ -278,10 +284,11 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
         if (_expandAnimation.value > 0) {
           final delay = index * 0.08; // Reducir delay para evitar problemas
           if (_expandAnimation.value > delay) {
-            animValue = ((_expandAnimation.value - delay) / (1.0 - delay)).clamp(0.0, 1.0);
+            animValue = ((_expandAnimation.value - delay) / (1.0 - delay))
+                .clamp(0.0, 1.0);
           }
         }
-        
+
         return Transform.translate(
           offset: Offset(-20 * (1 - animValue), 0),
           child: Opacity(
@@ -310,11 +317,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                       color: action.color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
-                      action.icon,
-                      color: action.color,
-                      size: 20,
-                    ),
+                    child: Icon(action.icon, color: action.color, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -326,11 +329,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                       ),
                     ),
                   ),
-                  Icon(
-                    Icons.chevron_right,
-                    color: Colors.grey[400],
-                    size: 20,
-                  ),
+                  Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
                 ],
               ),
             ),

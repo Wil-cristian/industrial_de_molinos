@@ -87,9 +87,7 @@ class InventoryNotifier extends Notifier<InventoryState> {
   Future<Material?> createMaterial(Material material) async {
     try {
       final created = await InventoryDataSource.createMaterial(material);
-      state = state.copyWith(
-        materials: [...state.materials, created],
-      );
+      state = state.copyWith(materials: [...state.materials, created]);
       return created;
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -101,9 +99,9 @@ class InventoryNotifier extends Notifier<InventoryState> {
   Future<bool> updateMaterial(Material material) async {
     try {
       final updated = await InventoryDataSource.updateMaterial(material);
-      final materials = state.materials.map((m) =>
-        m.id == material.id ? updated : m
-      ).toList();
+      final materials = state.materials
+          .map((m) => m.id == material.id ? updated : m)
+          .toList();
       state = state.copyWith(materials: materials);
       return true;
     } catch (e) {
@@ -116,9 +114,13 @@ class InventoryNotifier extends Notifier<InventoryState> {
   Future<bool> updateStock(String id, double newStock) async {
     try {
       await InventoryDataSource.updateStock(id, newStock);
-      final materials = state.materials.map((m) =>
-        m.id == id ? m.copyWith(stock: newStock, updatedAt: DateTime.now()) : m
-      ).toList();
+      final materials = state.materials
+          .map(
+            (m) => m.id == id
+                ? m.copyWith(stock: newStock, updatedAt: DateTime.now())
+                : m,
+          )
+          .toList();
       state = state.copyWith(materials: materials);
       return true;
     } catch (e) {
@@ -153,9 +155,11 @@ class InventoryNotifier extends Notifier<InventoryState> {
 }
 
 /// Provider principal de inventario
-final inventoryProvider = NotifierProvider<InventoryNotifier, InventoryState>(() {
-  return InventoryNotifier();
-});
+final inventoryProvider = NotifierProvider<InventoryNotifier, InventoryState>(
+  () {
+    return InventoryNotifier();
+  },
+);
 
 // ==================== COMPONENTES DE RECETAS ====================
 
@@ -209,11 +213,10 @@ class ComponentsNotifier extends Notifier<ComponentsState> {
   Future<void> loadComponents(String productId) async {
     state = state.copyWith(isLoading: true, error: null, productId: productId);
     try {
-      final components = await InventoryDataSource.getProductComponents(productId);
-      state = state.copyWith(
-        components: components,
-        isLoading: false,
+      final components = await InventoryDataSource.getProductComponents(
+        productId,
       );
+      state = state.copyWith(components: components, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -223,9 +226,7 @@ class ComponentsNotifier extends Notifier<ComponentsState> {
   Future<ProductComponent?> addComponent(ProductComponent component) async {
     try {
       final created = await InventoryDataSource.createComponent(component);
-      state = state.copyWith(
-        components: [...state.components, created],
-      );
+      state = state.copyWith(components: [...state.components, created]);
       // Actualizar totales del producto
       if (state.productId != null) {
         await InventoryDataSource.updateProductTotals(state.productId!);
@@ -241,9 +242,9 @@ class ComponentsNotifier extends Notifier<ComponentsState> {
   Future<bool> updateComponent(ProductComponent component) async {
     try {
       final updated = await InventoryDataSource.updateComponent(component);
-      final components = state.components.map((c) =>
-        c.id == component.id ? updated : c
-      ).toList();
+      final components = state.components
+          .map((c) => c.id == component.id ? updated : c)
+          .toList();
       state = state.copyWith(components: components);
       // Actualizar totales del producto
       if (state.productId != null) {
@@ -284,6 +285,7 @@ class ComponentsNotifier extends Notifier<ComponentsState> {
 }
 
 /// Provider para componentes de receta
-final componentsProvider = NotifierProvider<ComponentsNotifier, ComponentsState>(() {
-  return ComponentsNotifier();
-});
+final componentsProvider =
+    NotifierProvider<ComponentsNotifier, ComponentsState>(() {
+      return ComponentsNotifier();
+    });

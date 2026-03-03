@@ -1,3 +1,4 @@
+﻿import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/asset.dart';
 
@@ -31,18 +32,21 @@ class AssetsDatasource {
       // Filtrar por búsqueda en memoria
       if (searchQuery != null && searchQuery.isNotEmpty) {
         final query = searchQuery.toLowerCase();
-        assets = assets.where((a) =>
-          a.name.toLowerCase().contains(query) ||
-          (a.description?.toLowerCase().contains(query) ?? false) ||
-          (a.brand?.toLowerCase().contains(query) ?? false) ||
-          (a.serialNumber?.toLowerCase().contains(query) ?? false)
-        ).toList();
+        assets = assets
+            .where(
+              (a) =>
+                  a.name.toLowerCase().contains(query) ||
+                  (a.description?.toLowerCase().contains(query) ?? false) ||
+                  (a.brand?.toLowerCase().contains(query) ?? false) ||
+                  (a.serialNumber?.toLowerCase().contains(query) ?? false),
+            )
+            .toList();
       }
 
-      print('✅ Activos cargados: ${assets.length}');
+      AppLogger.success('✅ Activos cargados: ${assets.length}');
       return assets;
     } catch (e) {
-      print('❌ Error cargando activos: $e');
+      AppLogger.error('❌ Error cargando activos: $e');
       return [];
     }
   }
@@ -58,7 +62,7 @@ class AssetsDatasource {
 
       return Asset.fromJson(response);
     } catch (e) {
-      print('❌ Error obteniendo activo: $e');
+      AppLogger.error('❌ Error obteniendo activo: $e');
       return null;
     }
   }
@@ -66,17 +70,17 @@ class AssetsDatasource {
   /// Crear activo
   static Future<Asset?> createAsset(Asset asset) async {
     try {
-      print('🔄 Creando activo: ${asset.name}');
+      AppLogger.debug('🔄 Creando activo: ${asset.name}');
       final response = await _client
           .from('assets')
           .insert(asset.toJson())
           .select()
           .single();
 
-      print('✅ Activo creado exitosamente');
+      AppLogger.success('✅ Activo creado exitosamente');
       return Asset.fromJson(response);
     } catch (e) {
-      print('❌ Error creando activo: $e');
+      AppLogger.error('❌ Error creando activo: $e');
       return null;
     }
   }
@@ -84,15 +88,12 @@ class AssetsDatasource {
   /// Actualizar activo
   static Future<bool> updateAsset(Asset asset) async {
     try {
-      await _client
-          .from('assets')
-          .update(asset.toJson())
-          .eq('id', asset.id);
+      await _client.from('assets').update(asset.toJson()).eq('id', asset.id);
 
-      print('✅ Activo actualizado');
+      AppLogger.success('✅ Activo actualizado');
       return true;
     } catch (e) {
-      print('❌ Error actualizando activo: $e');
+      AppLogger.error('❌ Error actualizando activo: $e');
       return false;
     }
   }
@@ -101,10 +102,10 @@ class AssetsDatasource {
   static Future<bool> deleteAsset(String id) async {
     try {
       await _client.from('assets').delete().eq('id', id);
-      print('✅ Activo eliminado');
+      AppLogger.success('✅ Activo eliminado');
       return true;
     } catch (e) {
-      print('❌ Error eliminando activo: $e');
+      AppLogger.error('❌ Error eliminando activo: $e');
       return false;
     }
   }
@@ -112,15 +113,12 @@ class AssetsDatasource {
   /// Cambiar estado del activo
   static Future<bool> updateAssetStatus(String id, String status) async {
     try {
-      await _client
-          .from('assets')
-          .update({'status': status})
-          .eq('id', id);
+      await _client.from('assets').update({'status': status}).eq('id', id);
 
-      print('✅ Estado actualizado a: $status');
+      AppLogger.success('✅ Estado actualizado a: $status');
       return true;
     } catch (e) {
-      print('❌ Error actualizando estado: $e');
+      AppLogger.error('❌ Error actualizando estado: $e');
       return false;
     }
   }
@@ -128,7 +126,9 @@ class AssetsDatasource {
   // ========== MANTENIMIENTO ==========
 
   /// Obtener historial de mantenimiento de un activo
-  static Future<List<AssetMaintenance>> getMaintenanceHistory(String assetId) async {
+  static Future<List<AssetMaintenance>> getMaintenanceHistory(
+    String assetId,
+  ) async {
     try {
       final response = await _client
           .from('asset_maintenance')
@@ -140,15 +140,17 @@ class AssetsDatasource {
           .map((json) => AssetMaintenance.fromJson(json))
           .toList();
     } catch (e) {
-      print('❌ Error cargando mantenimientos: $e');
+      AppLogger.error('❌ Error cargando mantenimientos: $e');
       return [];
     }
   }
 
   /// Registrar mantenimiento
-  static Future<AssetMaintenance?> createMaintenance(AssetMaintenance maintenance) async {
+  static Future<AssetMaintenance?> createMaintenance(
+    AssetMaintenance maintenance,
+  ) async {
     try {
-      print('🔄 Registrando mantenimiento');
+      AppLogger.debug('🔄 Registrando mantenimiento');
       final response = await _client
           .from('asset_maintenance')
           .insert(maintenance.toJson())
@@ -156,7 +158,7 @@ class AssetsDatasource {
           .single();
 
       // Actualizar estado del activo si es necesario
-      if (maintenance.maintenanceType == 'correctivo' || 
+      if (maintenance.maintenanceType == 'correctivo' ||
           maintenance.maintenanceType == 'emergencia') {
         await _client
             .from('assets')
@@ -164,10 +166,10 @@ class AssetsDatasource {
             .eq('id', maintenance.assetId);
       }
 
-      print('✅ Mantenimiento registrado');
+      AppLogger.success('✅ Mantenimiento registrado');
       return AssetMaintenance.fromJson(response);
     } catch (e) {
-      print('❌ Error registrando mantenimiento: $e');
+      AppLogger.error('❌ Error registrando mantenimiento: $e');
       return null;
     }
   }
@@ -181,11 +183,9 @@ class AssetsDatasource {
           .select()
           .eq('status', 'mantenimiento');
 
-      return (response as List)
-          .map((json) => Asset.fromJson(json))
-          .toList();
+      return (response as List).map((json) => Asset.fromJson(json)).toList();
     } catch (e) {
-      print('❌ Error: $e');
+      AppLogger.error('❌ Error: $e');
       return [];
     }
   }
@@ -194,7 +194,7 @@ class AssetsDatasource {
   static Future<Map<String, dynamic>> getAssetStats() async {
     try {
       final assets = await getAssets();
-      
+
       double totalValue = 0;
       double totalInvestment = 0;
       int inMaintenance = 0;
@@ -214,7 +214,7 @@ class AssetsDatasource {
         'inMaintenance': inMaintenance,
       };
     } catch (e) {
-      print('❌ Error calculando estadísticas: $e');
+      AppLogger.error('❌ Error calculando estadísticas: $e');
       return {
         'totalAssets': 0,
         'totalValue': 0.0,

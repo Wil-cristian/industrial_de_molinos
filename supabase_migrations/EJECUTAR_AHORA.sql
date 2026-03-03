@@ -84,7 +84,7 @@ CREATE TABLE proveedores (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     type VARCHAR(20) DEFAULT 'business',
     document_type VARCHAR(20) DEFAULT 'nit',
-    document_number VARCHAR(50) NOT NULL DEFAULT '',,
+    document_number VARCHAR(50) NOT NULL DEFAULT '',
     name VARCHAR(255) NOT NULL,
     trade_name VARCHAR(255),
     address TEXT,

@@ -34,6 +34,13 @@ dependencies:
   # Archivos
   file_picker: ^8.0.0
   
+  # Impresión y PDF
+  pdf: ^3.11.2
+  printing: ^5.13.4
+  
+  # Variables de entorno
+  flutter_dotenv: ^5.2.1
+  
   # Serialización (para modelos)
   freezed_annotation: ^3.1.0
   json_annotation: ^4.9.0
@@ -42,6 +49,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
   
   # Generadores de código
   build_runner: ^2.4.15
@@ -58,6 +66,7 @@ flutter:
 
   # Assets
   assets:
+    - .env
     - lib/photo/logo_empresa.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -85,3 +94,13 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# ── Launcher Icons ──────────────────────────────
+flutter_launcher_icons:
+  android: true
+  ios: true
+  windows:
+    generate: true
+    icon_size: 256
+  image_path: "lib/photo/logo_empresa.png"
+  min_sdk_android: 21

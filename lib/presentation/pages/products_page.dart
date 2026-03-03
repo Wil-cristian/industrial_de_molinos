@@ -1711,6 +1711,9 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
   }
 
   String _getCategoryName(String category) {
+    final catState = ref.read(materialCategoryProvider);
+    final match = catState.categories.where((c) => c.slug == category);
+    if (match.isNotEmpty) return match.first.name;
     switch (category) {
       case 'tubo': return 'Tubos';
       case 'lamina': return 'Láminas';
@@ -1725,6 +1728,9 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
 
   /// Ícono de forma según categoría
   IconData _getShapeIcon(String category) {
+    final catState = ref.read(materialCategoryProvider);
+    final match = catState.categories.where((c) => c.slug == category);
+    if (match.isNotEmpty) return match.first.displayIcon;
     switch (category) {
       case 'tubo': return Icons.circle_outlined; // Tubo hueco (cilindro)
       case 'lamina': return Icons.crop_square; // Lámina (rectángulo)
@@ -1735,6 +1741,9 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
 
   /// Color de forma según categoría
   Color _getShapeColor(String category) {
+    final catState = ref.read(materialCategoryProvider);
+    final match = catState.categories.where((c) => c.slug == category);
+    if (match.isNotEmpty) return match.first.displayColor;
     switch (category) {
       case 'tubo': return Colors.orange;
       case 'lamina': return Colors.blue;

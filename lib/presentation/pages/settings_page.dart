@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/providers/auth_provider.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -22,16 +23,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   // Controladores para edición de perfil
   final _nameController = TextEditingController(text: 'Administrador');
   final _lastNameController = TextEditingController(text: 'Sistema');
-  final _emailController = TextEditingController(text: 'admin@industrialmolinos.com');
+  final _emailController = TextEditingController(
+    text: 'admin@industrialmolinos.com',
+  );
   final _phoneController = TextEditingController(text: '+51 999 999 999');
   final _roleController = TextEditingController(text: 'Administrador');
 
   // Controladores para empresa
-  final _companyNameController = TextEditingController(text: 'Industrial de Molinos');
+  final _companyNameController = TextEditingController(
+    text: 'Industrial de Molinos',
+  );
   final _rucController = TextEditingController(text: '20123456789');
-  final _companyEmailController = TextEditingController(text: 'contacto@industrialmolinos.com');
+  final _companyEmailController = TextEditingController(
+    text: 'contacto@industrialmolinos.com',
+  );
   final _companyPhoneController = TextEditingController(text: '+51 1 234 5678');
-  final _addressController = TextEditingController(text: 'Av. Industrial 123, Lima, Perú');
+  final _addressController = TextEditingController(
+    text: 'Av. Industrial 123, Lima, Perú',
+  );
 
   final List<Map<String, dynamic>> _sections = [
     {'icon': Icons.person, 'label': 'Perfil'},
@@ -130,10 +139,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   padding: const EdgeInsets.only(left: 48),
                   child: Text(
                     'Gestiona tus preferencias y cuenta',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                 ),
               ],
@@ -194,7 +200,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       child: Material(
-        color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : Colors.transparent,
+        color: isSelected
+            ? AppTheme.primaryColor.withOpacity(0.1)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           onTap: onTap,
@@ -204,7 +212,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             decoration: BoxDecoration(
               border: Border(
                 left: BorderSide(
-                  color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                  color: isSelected
+                      ? AppTheme.primaryColor
+                      : Colors.transparent,
                   width: 3,
                 ),
               ),
@@ -222,7 +232,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? AppTheme.primaryColor : Colors.grey[800],
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : Colors.grey[800],
                   ),
                 ),
               ],
@@ -333,7 +345,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.person, size: 48, color: AppTheme.primaryColor),
+                    child: const Icon(
+                      Icons.person,
+                      size: 48,
+                      color: AppTheme.primaryColor,
+                    ),
                   ),
                   Positioned(
                     bottom: 0,
@@ -345,7 +361,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
-                      child: const Icon(Icons.edit, size: 14, color: Colors.white),
+                      child: const Icon(
+                        Icons.edit,
+                        size: 14,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -358,7 +378,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   children: [
                     Text(
                       '${_nameController.text} ${_lastNameController.text}',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -476,7 +499,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   color: AppTheme.primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.business, size: 48, color: AppTheme.primaryColor),
+                child: const Icon(
+                  Icons.business,
+                  size: 48,
+                  color: AppTheme.primaryColor,
+                ),
               ),
               const SizedBox(width: 24),
               Expanded(
@@ -485,7 +512,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   children: [
                     const Text(
                       'Logo de la Empresa',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -576,7 +606,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildDocumentSerieRow(String docType, String serie, String lastNumber) {
+  Widget _buildDocumentSerieRow(
+    String docType,
+    String serie,
+    String lastNumber,
+  ) {
     return Row(
       children: [
         Expanded(
@@ -584,8 +618,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(docType, style: const TextStyle(fontWeight: FontWeight.w500)),
-              Text('Último: $serie-$lastNumber', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+              Text(
+                docType,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+              Text(
+                'Último: $serie-$lastNumber',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              ),
             ],
           ),
         ),
@@ -595,7 +635,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             decoration: InputDecoration(
               labelText: 'Serie',
               border: const OutlineInputBorder(),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
               filled: true,
               fillColor: Colors.grey[50],
             ),
@@ -638,13 +681,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               _buildSettingRow(
                 'Idioma de la Interfaz',
                 'Selecciona el idioma principal de la plataforma.',
-                trailing: _buildDropdown(_language, ['Español', 'English', 'Português'], (v) => setState(() => _language = v!)),
+                trailing: _buildDropdown(_language, [
+                  'Español',
+                  'English',
+                  'Português',
+                ], (v) => setState(() => _language = v!)),
               ),
               const Divider(height: 32),
               _buildSettingRow(
                 'Moneda',
                 'Moneda predeterminada para precios y totales.',
-                trailing: _buildDropdown(_currency, ['USD (\$)', 'PEN (S/)', 'EUR (€)'], (v) => setState(() => _currency = v!)),
+                trailing: _buildDropdown(_currency, [
+                  'USD (\$)',
+                  'PEN (S/)',
+                  'EUR (€)',
+                ], (v) => setState(() => _currency = v!)),
               ),
             ],
           ),
@@ -677,7 +728,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   child: TextField(
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                     ),
                     controller: TextEditingController(text: '10'),
                     keyboardType: TextInputType.number,
@@ -714,14 +768,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildThemeButton(Icons.light_mode, 'Claro', !_darkMode, () => setState(() => _darkMode = false)),
-          _buildThemeButton(Icons.dark_mode, 'Oscuro', _darkMode, () => setState(() => _darkMode = true)),
+          _buildThemeButton(
+            Icons.light_mode,
+            'Claro',
+            !_darkMode,
+            () => setState(() => _darkMode = false),
+          ),
+          _buildThemeButton(
+            Icons.dark_mode,
+            'Oscuro',
+            _darkMode,
+            () => setState(() => _darkMode = true),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildThemeButton(IconData icon, String label, bool selected, VoidCallback onTap) {
+  Widget _buildThemeButton(
+    IconData icon,
+    String label,
+    bool selected,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -729,11 +798,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         decoration: BoxDecoration(
           color: selected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          boxShadow: selected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : null,
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: selected ? Colors.grey[800] : Colors.grey[500]),
+            Icon(
+              icon,
+              size: 16,
+              color: selected ? Colors.grey[800] : Colors.grey[500],
+            ),
             const SizedBox(width: 6),
             Text(
               label,
@@ -811,7 +891,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     color: Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                  child: const Icon(
+                    Icons.warning_amber,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
                 ),
               ),
               const Divider(height: 32),
@@ -829,7 +913,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     color: Colors.red.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.receipt_long, color: Colors.red, size: 20),
+                  child: const Icon(
+                    Icons.receipt_long,
+                    color: Colors.red,
+                    size: 20,
+                  ),
                 ),
               ),
               const Divider(height: 32),
@@ -847,7 +935,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.task_alt, color: Colors.blue, size: 20),
+                  child: const Icon(
+                    Icons.task_alt,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -886,7 +978,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   color: Colors.green.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.cloud_done, color: Colors.green, size: 32),
+                child: const Icon(
+                  Icons.cloud_done,
+                  color: Colors.green,
+                  size: 32,
+                ),
               ),
               const SizedBox(width: 20),
               Expanded(
@@ -895,7 +991,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   children: [
                     const Text(
                       'Datos Sincronizados',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -912,7 +1011,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               FilledButton.icon(
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Sincronizando...'), backgroundColor: Colors.blue),
+                    const SnackBar(
+                      content: Text('Sincronizando...'),
+                      backgroundColor: Colors.blue,
+                    ),
                   );
                 },
                 icon: const Icon(Icons.sync),
@@ -963,7 +1065,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildBackupAction(IconData icon, String title, String subtitle, String buttonLabel, Color color, VoidCallback onTap) {
+  Widget _buildBackupAction(
+    IconData icon,
+    String title,
+    String subtitle,
+    String buttonLabel,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return Row(
       children: [
         Container(
@@ -980,7 +1089,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-              Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              Text(
+                subtitle,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
             ],
           ),
         ),
@@ -1030,12 +1142,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         const SizedBox(height: 24),
         _buildCard(
-          title: 'Sesiones Activas',
+          title: 'Sesión Actual',
           child: Column(
             children: [
-              _buildSessionRow('Este dispositivo', 'Windows · Chrome', 'Activo ahora', true),
-              const Divider(height: 24),
-              _buildSessionRow('Móvil', 'Android · App', 'Hace 2 días', false),
+              _buildSettingRow(
+                ref.watch(authProvider).user?.email ?? 'Sin sesión',
+                'Sesión activa',
+                trailing: FilledButton.tonalIcon(
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Cerrar Sesión'),
+                        content: const Text(
+                          '¿Estás seguro que deseas cerrar sesión?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancelar'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.red,
+                            ),
+                            child: const Text('Cerrar Sesión'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true && mounted) {
+                      await ref.read(authProvider.notifier).signOut();
+                    }
+                  },
+                  icon: const Icon(Icons.logout, size: 18),
+                  label: const Text('Cerrar Sesión'),
+                ),
+              ),
             ],
           ),
         ),
@@ -1081,59 +1225,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildSessionRow(String device, String details, String lastActive, bool current) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: current ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(
-            current ? Icons.computer : Icons.phone_android,
-            color: current ? Colors.green : Colors.grey,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(device, style: const TextStyle(fontWeight: FontWeight.w500)),
-                  if (current) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Text(
-                        'Actual',
-                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              Text('$details · $lastActive', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-            ],
-          ),
-        ),
-        if (!current)
-          TextButton(
-            onPressed: () {},
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Cerrar'),
-          ),
-      ],
-    );
-  }
-
   Widget _buildDangerAction(String title, String subtitle, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
@@ -1143,8 +1234,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.w500, color: Colors.red[700])),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red[700],
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
               ],
             ),
           ),
@@ -1189,14 +1289,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: child,
-          ),
+          Padding(padding: const EdgeInsets.all(20), child: child),
         ],
       ),
     );
@@ -1214,14 +1314,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey[400]) : null,
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, color: Colors.grey[400])
+            : null,
         filled: !enabled,
         fillColor: enabled ? null : Colors.grey[100],
       ),
     );
   }
 
-  Widget _buildDropdown(String value, List<String> options, Function(String?) onChanged) {
+  Widget _buildDropdown(
+    String value,
+    List<String> options,
+    Function(String?) onChanged,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -1231,27 +1337,34 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          items: options.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+          items: options
+              .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+              .toList(),
           onChanged: onChanged,
         ),
       ),
     );
   }
 
-  Widget _buildSettingRow(String title, String subtitle, {required Widget trailing, Widget? leading}) {
+  Widget _buildSettingRow(
+    String title,
+    String subtitle, {
+    required Widget trailing,
+    Widget? leading,
+  }) {
     return Row(
       children: [
-        if (leading != null) ...[
-          leading,
-          const SizedBox(width: 16),
-        ],
+        if (leading != null) ...[leading, const SizedBox(width: 16)],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
               const SizedBox(height: 2),
-              Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+              Text(
+                subtitle,
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
             ],
           ),
         ),
@@ -1306,7 +1419,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$title completado'), backgroundColor: Colors.red),
+                SnackBar(
+                  content: Text('$title completado'),
+                  backgroundColor: Colors.red,
+                ),
               );
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -1359,7 +1475,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Contraseña actualizada'), backgroundColor: Colors.green),
+                const SnackBar(
+                  content: Text('Contraseña actualizada'),
+                  backgroundColor: Colors.green,
+                ),
               );
             },
             child: const Text('Guardar'),

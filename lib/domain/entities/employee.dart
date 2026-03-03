@@ -23,8 +23,15 @@ class Employee {
   final String? bloodType;
   final String? photoUrl;
   final String? notes;
+  final String payType;
+  final double dailyRate;
+  final double attendanceBonus;
+  final int attendanceBonusDays;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  /// true si el empleado cobra por día (no por horas)
+  bool get isDailyPay => payType == 'daily';
 
   Employee({
     required this.id,
@@ -43,6 +50,10 @@ class Employee {
     this.salaryType = 'mensual',
     this.status = EmployeeStatus.activo,
     this.workSchedule = 'tiempo_completo',
+    this.payType = 'hourly',
+    this.dailyRate = 0,
+    this.attendanceBonus = 0,
+    this.attendanceBonusDays = 6,
     this.emergencyContact,
     this.emergencyPhone,
     this.bloodType,
@@ -90,11 +101,13 @@ class Employee {
     // Determinar status basado en is_active o status string
     EmployeeStatus employeeStatus;
     if (json.containsKey('is_active')) {
-      employeeStatus = (json['is_active'] == true) ? EmployeeStatus.activo : EmployeeStatus.inactivo;
+      employeeStatus = (json['is_active'] == true)
+          ? EmployeeStatus.activo
+          : EmployeeStatus.inactivo;
     } else {
       employeeStatus = _parseStatus(json['status'] as String?);
     }
-    
+
     return Employee(
       id: json['id'] as String,
       firstName: json['first_name'] as String,
@@ -106,7 +119,7 @@ class Employee {
       address: json['address'] as String?,
       position: json['position'] as String? ?? 'Sin cargo',
       department: json['department'] as String?,
-      hireDate: json['hire_date'] != null 
+      hireDate: json['hire_date'] != null
           ? DateTime.parse(json['hire_date'] as String)
           : DateTime.now(),
       terminationDate: json['termination_date'] != null
@@ -118,15 +131,23 @@ class Employee {
       salaryType: json['salary_type'] as String? ?? 'mensual',
       status: employeeStatus,
       workSchedule: json['work_schedule'] as String? ?? 'tiempo_completo',
+      payType: json['pay_type'] as String? ?? 'hourly',
+      dailyRate: json['daily_rate'] != null
+          ? (json['daily_rate'] as num).toDouble()
+          : 0,
+      attendanceBonus: json['attendance_bonus'] != null
+          ? (json['attendance_bonus'] as num).toDouble()
+          : 0,
+      attendanceBonusDays: json['attendance_bonus_days'] as int? ?? 6,
       emergencyContact: json['emergency_contact'] as String?,
       emergencyPhone: json['emergency_phone'] as String?,
       bloodType: json['blood_type'] as String?,
       photoUrl: json['photo_url'] as String?,
       notes: json['notes'] as String?,
-      createdAt: json['created_at'] != null 
+      createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : DateTime.now(),
-      updatedAt: json['updated_at'] != null 
+      updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : DateTime.now(),
     );
@@ -146,6 +167,10 @@ class Employee {
       'hire_date': hireDate.toIso8601String().split('T')[0],
       'termination_date': terminationDate?.toIso8601String().split('T')[0],
       'salary': salary,
+      'pay_type': payType,
+      'daily_rate': dailyRate,
+      'attendance_bonus': attendanceBonus,
+      'attendance_bonus_days': attendanceBonusDays,
       'is_active': status == EmployeeStatus.activo,
       'notes': notes,
     };
@@ -347,17 +372,21 @@ class EmployeeTask {
       'priority': _taskPriorityToString(priority),
       'category': category,
     };
-    
+
     // Solo incluir campos opcionales si tienen valor
     if (description != null) json['description'] = description;
-    if (dueDate != null) json['due_date'] = dueDate!.toIso8601String().split('T')[0];
-    if (completedDate != null) json['completed_date'] = completedDate!.toIso8601String();
+    if (dueDate != null) {
+      json['due_date'] = dueDate!.toIso8601String().split('T')[0];
+    }
+    if (completedDate != null) {
+      json['completed_date'] = completedDate!.toIso8601String();
+    }
     if (estimatedTime != null) json['estimated_time'] = estimatedTime;
     if (actualTime != null) json['actual_time'] = actualTime;
     if (notes != null) json['notes'] = notes;
     if (assignedBy != null) json['assigned_by'] = assignedBy;
     if (activityId != null) json['activity_id'] = activityId;
-    
+
     return json;
   }
 
@@ -550,8 +579,8 @@ class EmployeeTimeSheet {
     this.periodId,
     required this.weekStart,
     required this.weekEnd,
-    // Horario: L-V 7:30-12 y 1-4:30 (-14min) + Sáb 7:30-1 = 2660 min semanales (44.33h)
-    this.scheduledMinutes = 2660,
+    // Horario: L-V 7:30-12 y 1-4:30 + Sáb 7:30-1 = 2640 min semanales (44h)
+    this.scheduledMinutes = 2640,
     this.workedMinutes = 0,
     this.overtimeMinutes = 0,
     this.deficitMinutes = 0,
@@ -578,7 +607,7 @@ class EmployeeTimeSheet {
       periodId: json['period_id'] as String?,
       weekStart: DateTime.parse(json['week_start'] as String),
       weekEnd: DateTime.parse(json['week_end'] as String),
-      scheduledMinutes: (json['scheduled_minutes'] as int?) ?? 2660,
+      scheduledMinutes: (json['scheduled_minutes'] as int?) ?? 2640,
       workedMinutes: (json['worked_minutes'] as int?) ?? 0,
       overtimeMinutes: (json['overtime_minutes'] as int?) ?? 0,
       deficitMinutes: (json['deficit_minutes'] as int?) ?? 0,

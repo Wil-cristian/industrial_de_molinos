@@ -1,3 +1,4 @@
+﻿import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_datasource.dart';
 
@@ -81,8 +82,8 @@ class InventoryReport {
   final String itemType; // 'product', 'material' o 'recipe'
   final double currentStock;
   final double minStock;
-  final double unitPrice;      // Precio de venta
-  final double costPrice;      // Precio de compra/fabricación
+  final double unitPrice; // Precio de venta
+  final double costPrice; // Precio de compra/fabricación
   final double totalValue;
   final bool isLowStock;
   final bool isOutOfStock;
@@ -108,15 +109,13 @@ class InventoryReport {
 
   /// Margen de ganancia (markup sobre costo)
   /// Fórmula: (Precio Venta - Costo) / Costo * 100
-  double get marginPercent => costPrice > 0 
-      ? ((unitPrice - costPrice) / costPrice * 100) 
-      : 0;
+  double get marginPercent =>
+      costPrice > 0 ? ((unitPrice - costPrice) / costPrice * 100) : 0;
 
   /// Margen bruto (sobre precio de venta)
   /// Fórmula: (Precio Venta - Costo) / Precio Venta * 100
-  double get grossMarginPercent => unitPrice > 0 
-      ? ((unitPrice - costPrice) / unitPrice * 100) 
-      : 0;
+  double get grossMarginPercent =>
+      unitPrice > 0 ? ((unitPrice - costPrice) / unitPrice * 100) : 0;
 
   /// Valor del stock al costo
   double get stockCostValue => currentStock * costPrice;
@@ -218,7 +217,7 @@ class ReportsDataSource {
         growthPercentage: growthPercentage,
       );
     } catch (e) {
-      print('❌ Error obteniendo stats de ventas: $e');
+      AppLogger.error('❌ Error obteniendo stats de ventas: $e');
       return SalesStats(
         totalSales: 0,
         transactionCount: 0,
@@ -264,7 +263,7 @@ class ReportsDataSource {
       // calcular desde materials/products
       return 35.0; // Margen estimado para negocio industrial
     } catch (e) {
-      print('⚠️ Error calculando margen bruto: $e');
+      AppLogger.warning('⚠️ Error calculando margen bruto: $e');
       return 35.0; // Margen estimado si hay error
     }
   }
@@ -334,7 +333,7 @@ class ReportsDataSource {
 
       return chartData;
     } catch (e) {
-      print('❌ Error obteniendo gráfico de ventas: $e');
+      AppLogger.error('❌ Error obteniendo gráfico de ventas: $e');
       return [];
     }
   }
@@ -362,7 +361,9 @@ class ReportsDataSource {
           .lte('invoices.issue_date', endDate.toIso8601String())
           .neq('invoices.status', 'cancelled');
 
-      print('📊 Items encontrados para top productos: ${response.length}');
+      AppLogger.debug(
+        '📊 Items encontrados para top productos: ${response.length}',
+      );
 
       // Agrupar por nombre de producto (ya que puede no tener product_id)
       final Map<String, TopProduct> productMap = {};
@@ -403,14 +404,14 @@ class ReportsDataSource {
       final sorted = productMap.values.toList()
         ..sort((a, b) => b.totalSales.compareTo(a.totalSales));
 
-      print('📊 Productos agrupados: ${sorted.length}');
+      AppLogger.debug('📊 Productos agrupados: ${sorted.length}');
       for (var p in sorted.take(3)) {
-        print('   - ${p.productName}: ${p.totalSales}');
+        AppLogger.debug(' - ${p.productName}: ${p.totalSales}');
       }
 
       return sorted.take(limit).toList();
     } catch (e) {
-      print('❌ Error obteniendo productos más vendidos: $e');
+      AppLogger.error('❌ Error obteniendo productos más vendidos: $e');
       return [];
     }
   }
@@ -476,7 +477,7 @@ class ReportsDataSource {
 
       return sorted;
     } catch (e) {
-      print('❌ Error obteniendo ventas por cliente: $e');
+      AppLogger.error('❌ Error obteniendo ventas por cliente: $e');
       return [];
     }
   }
@@ -578,7 +579,7 @@ class ReportsDataSource {
 
       return reports;
     } catch (e) {
-      print('❌ Error obteniendo reporte de inventario: $e');
+      AppLogger.error('❌ Error obteniendo reporte de inventario: $e');
       return [];
     }
   }
@@ -594,13 +595,23 @@ class ReportsDataSource {
       int outOfStockCount = products.where((p) => p.isOutOfStock).length;
       double totalValue = products.fold(0.0, (sum, p) => sum + p.totalValue);
       double totalStock = products.fold(0.0, (sum, p) => sum + p.currentStock);
-      
+
       // Cálculos de márgenes (sobre TODOS los productos)
-      double totalStockCost = products.fold(0.0, (sum, p) => sum + p.stockCostValue);
-      double totalStockSaleValue = products.fold(0.0, (sum, p) => sum + p.stockSaleValue);
-      double totalPotentialProfit = products.fold(0.0, (sum, p) => sum + p.potentialProfit);
-      double avgMargin = products.isNotEmpty 
-          ? products.fold(0.0, (sum, p) => sum + p.marginPercent) / products.length 
+      double totalStockCost = products.fold(
+        0.0,
+        (sum, p) => sum + p.stockCostValue,
+      );
+      double totalStockSaleValue = products.fold(
+        0.0,
+        (sum, p) => sum + p.stockSaleValue,
+      );
+      double totalPotentialProfit = products.fold(
+        0.0,
+        (sum, p) => sum + p.potentialProfit,
+      );
+      double avgMargin = products.isNotEmpty
+          ? products.fold(0.0, (sum, p) => sum + p.marginPercent) /
+                products.length
           : 0.0;
 
       return {
@@ -615,7 +626,7 @@ class ReportsDataSource {
         'avgMargin': avgMargin,
       };
     } catch (e) {
-      print('❌ Error obteniendo resumen de inventario: $e');
+      AppLogger.error('❌ Error obteniendo resumen de inventario: $e');
       return {
         'totalProducts': 0,
         'lowStockCount': 0,
@@ -713,7 +724,7 @@ class ReportsDataSource {
 
       return sorted;
     } catch (e) {
-      print('❌ Error obteniendo cuentas por cobrar: $e');
+      AppLogger.error('❌ Error obteniendo cuentas por cobrar: $e');
       return [];
     }
   }
@@ -750,7 +761,7 @@ class ReportsDataSource {
         'overdueCustomers': overdueCustomers,
       };
     } catch (e) {
-      print('❌ Error obteniendo resumen de cuentas por cobrar: $e');
+      AppLogger.error('❌ Error obteniendo resumen de cuentas por cobrar: $e');
       return {
         'totalDebt': 0.0,
         'current': 0.0,

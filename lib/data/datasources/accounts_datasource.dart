@@ -1,3 +1,4 @@
+﻿import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
@@ -14,11 +15,11 @@ class AccountsDataSource {
   /// Obtener todas las cuentas
   static Future<List<Account>> getAllAccounts({bool activeOnly = true}) async {
     var query = _client.from(_accountsTable).select();
-    
+
     if (activeOnly) {
       query = query.eq('is_active', true);
     }
-    
+
     final response = await query.order('name');
     return response.map<Account>((json) => _accountFromJson(json)).toList();
   }
@@ -43,7 +44,7 @@ class AccountsDataSource {
     data.remove('id');
     data.remove('updated_at');
     data.remove('created_at');
-    
+
     final response = await _client
         .from(_accountsTable)
         .insert(data)
@@ -58,7 +59,7 @@ class AccountsDataSource {
     data.remove('id');
     data.remove('created_at');
     data['updated_at'] = DateTime.now().toIso8601String();
-    
+
     final response = await _client
         .from(_accountsTable)
         .update(data)
@@ -69,7 +70,10 @@ class AccountsDataSource {
   }
 
   /// Actualizar balance de cuenta
-  static Future<void> updateAccountBalance(String accountId, double newBalance) async {
+  static Future<void> updateAccountBalance(
+    String accountId,
+    double newBalance,
+  ) async {
     await _client
         .from(_accountsTable)
         .update({
@@ -96,32 +100,39 @@ class AccountsDataSource {
         .select()
         .order('date', ascending: false)
         .order('created_at', ascending: false);
-    return response.map<CashMovement>((json) => _movementFromJson(json)).toList();
+    return response
+        .map<CashMovement>((json) => _movementFromJson(json))
+        .toList();
   }
 
   /// Obtener movimientos por fecha
   static Future<List<CashMovement>> getMovementsByDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
-    
+
     final response = await _client
         .from(_movementsTable)
         .select()
         .gte('date', startOfDay.toIso8601String())
         .lt('date', endOfDay.toIso8601String())
         .order('created_at', ascending: false);
-    return response.map<CashMovement>((json) => _movementFromJson(json)).toList();
+    return response
+        .map<CashMovement>((json) => _movementFromJson(json))
+        .toList();
   }
 
   /// Obtener movimientos por rango de fechas
   static Future<List<CashMovement>> getMovementsByDateRange(
-    DateTime startDate, 
+    DateTime startDate,
     DateTime endDate,
   ) async {
     final start = DateTime(startDate.year, startDate.month, startDate.day);
-    final end = DateTime(endDate.year, endDate.month, endDate.day)
-        .add(const Duration(days: 1));
-    
+    final end = DateTime(
+      endDate.year,
+      endDate.month,
+      endDate.day,
+    ).add(const Duration(days: 1));
+
     final response = await _client
         .from(_movementsTable)
         .select()
@@ -129,18 +140,24 @@ class AccountsDataSource {
         .lt('date', end.toIso8601String())
         .order('date', ascending: false)
         .order('created_at', ascending: false);
-    return response.map<CashMovement>((json) => _movementFromJson(json)).toList();
+    return response
+        .map<CashMovement>((json) => _movementFromJson(json))
+        .toList();
   }
 
   /// Obtener movimientos por cuenta
-  static Future<List<CashMovement>> getMovementsByAccount(String accountId) async {
+  static Future<List<CashMovement>> getMovementsByAccount(
+    String accountId,
+  ) async {
     final response = await _client
         .from(_movementsTable)
         .select()
         .or('account_id.eq.$accountId,to_account_id.eq.$accountId')
         .order('date', ascending: false)
         .order('created_at', ascending: false);
-    return response.map<CashMovement>((json) => _movementFromJson(json)).toList();
+    return response
+        .map<CashMovement>((json) => _movementFromJson(json))
+        .toList();
   }
 
   /// Crear movimiento
@@ -148,19 +165,19 @@ class AccountsDataSource {
     final data = _movementToJson(movement);
     data.remove('id');
     data.remove('created_at');
-    
-    print('📤 Insertando movimiento: $data');
-    
+
+    AppLogger.debug('📤 Insertando movimiento: $data');
+
     final response = await _client
         .from(_movementsTable)
         .insert(data)
         .select()
         .single();
-    print('✅ Movimiento insertado: $response');
+    AppLogger.success('✅ Movimiento insertado: $response');
     return _movementFromJson(response);
   }
 
-  /// Crear traslado entre cuentas (crea dos movimientos: salida y entrada)
+  /// Crear traslado entre cuentas (usa RPC atómica para evitar race conditions)
   static Future<List<CashMovement>> createTransfer({
     required String fromAccountId,
     required String toAccountId,
@@ -169,9 +186,75 @@ class AccountsDataSource {
     required DateTime date,
     String? reference,
   }) async {
+    // Validaciones
+    if (amount <= 0) {
+      throw Exception('El monto de la transferencia debe ser mayor a 0');
+    }
+    if (fromAccountId == toAccountId) {
+      throw Exception('No se puede transferir a la misma cuenta');
+    }
+
+    try {
+      // Usar RPC atómica (SELECT FOR UPDATE + insert + balance update en una transacción)
+      final result = await _client.rpc(
+        'atomic_transfer',
+        params: {
+          'p_from_account_id': fromAccountId,
+          'p_to_account_id': toAccountId,
+          'p_amount': amount,
+          'p_description': description,
+          'p_date': date.toIso8601String().split('T')[0],
+          'p_reference': reference,
+        },
+      );
+
+      // Recuperar los movimientos creados para devolver al caller
+      final outId = result['out_movement_id'] as String;
+      final inId = result['in_movement_id'] as String;
+
+      final responses = await Future.wait([
+        _client.from(_movementsTable).select().eq('id', outId).single(),
+        _client.from(_movementsTable).select().eq('id', inId).single(),
+      ]);
+
+      return [_movementFromJson(responses[0]), _movementFromJson(responses[1])];
+    } catch (e) {
+      // Fallback: si la RPC no existe aún, usar el método clásico
+      if (e.toString().contains('function') &&
+          e.toString().contains('not exist')) {
+        return _createTransferLegacy(
+          fromAccountId: fromAccountId,
+          toAccountId: toAccountId,
+          amount: amount,
+          description: description,
+          date: date,
+          reference: reference,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  /// Fallback legacy para transferencias (read-then-write)
+  static Future<List<CashMovement>> _createTransferLegacy({
+    required String fromAccountId,
+    required String toAccountId,
+    required double amount,
+    required String description,
+    required DateTime date,
+    String? reference,
+  }) async {
+    // Verificar saldo suficiente
+    final sourceAccount = await getAccountById(fromAccountId);
+    if (sourceAccount == null) throw Exception('Cuenta origen no encontrada');
+    if (sourceAccount.balance < amount) {
+      throw Exception(
+        'Saldo insuficiente: disponible \$${sourceAccount.balance.toStringAsFixed(2)}, requerido \$${amount.toStringAsFixed(2)}',
+      );
+    }
+
     final transferId = DateTime.now().millisecondsSinceEpoch.toString();
-    
-    // Movimiento de salida (gasto en cuenta origen)
+
     final outMovement = CashMovement(
       id: '',
       accountId: fromAccountId,
@@ -184,8 +267,6 @@ class AccountsDataSource {
       date: date,
       linkedTransferId: transferId,
     );
-    
-    // Movimiento de entrada (ingreso en cuenta destino)
     final inMovement = CashMovement(
       id: '',
       accountId: toAccountId,
@@ -198,59 +279,91 @@ class AccountsDataSource {
       date: date,
       linkedTransferId: transferId,
     );
-    
-    // Insertar ambos movimientos
-    final outData = _movementToJson(outMovement);
-    outData.remove('id');
-    outData.remove('created_at');
-    
-    final inData = _movementToJson(inMovement);
-    inData.remove('id');
-    inData.remove('created_at');
-    
+
+    final outData = _movementToJson(outMovement)
+      ..remove('id')
+      ..remove('created_at');
+    final inData = _movementToJson(inMovement)
+      ..remove('id')
+      ..remove('created_at');
+
     final responses = await Future.wait([
       _client.from(_movementsTable).insert(outData).select().single(),
       _client.from(_movementsTable).insert(inData).select().single(),
     ]);
-    
-    // Actualizar balances de las cuentas
+
     final fromAccount = await getAccountById(fromAccountId);
     final toAccount = await getAccountById(toAccountId);
-    
     if (fromAccount != null) {
       await updateAccountBalance(fromAccountId, fromAccount.balance - amount);
     }
     if (toAccount != null) {
       await updateAccountBalance(toAccountId, toAccount.balance + amount);
     }
-    
-    return [
-      _movementFromJson(responses[0]),
-      _movementFromJson(responses[1]),
-    ];
+
+    return [_movementFromJson(responses[0]), _movementFromJson(responses[1])];
   }
 
-  /// Crear movimiento y actualizar balance
+  /// Crear movimiento y actualizar balance (usa RPC atómica)
   static Future<CashMovement> createMovementWithBalanceUpdate(
     CashMovement movement,
   ) async {
-    // Crear el movimiento
+    // Validaciones
+    if (movement.amount <= 0) {
+      throw Exception('El monto del movimiento debe ser mayor a 0');
+    }
+
+    try {
+      final isIncome = movement.type == MovementType.income;
+
+      final result = await _client.rpc(
+        'atomic_movement_with_balance',
+        params: {
+          'p_account_id': movement.accountId,
+          'p_type': movement.type.name,
+          'p_category':
+              movement.category.name ??
+              (isIncome ? 'other_income' : 'other_expense'),
+          'p_amount': movement.amount,
+          'p_description': movement.description,
+          'p_reference': movement.reference,
+          'p_person_name': movement.personName,
+          'p_date': movement.date.toIso8601String().split('T')[0],
+        },
+      );
+
+      final movementId = result['movement_id'] as String;
+      final response = await _client
+          .from(_movementsTable)
+          .select()
+          .eq('id', movementId)
+          .single();
+      return _movementFromJson(response);
+    } catch (e) {
+      // Fallback si la RPC no existe aún
+      if (e.toString().contains('function') &&
+          e.toString().contains('not exist')) {
+        return _createMovementWithBalanceLegacy(movement);
+      }
+      rethrow;
+    }
+  }
+
+  /// Fallback legacy para movimiento + balance (read-then-write)
+  static Future<CashMovement> _createMovementWithBalanceLegacy(
+    CashMovement movement,
+  ) async {
     final created = await createMovement(movement);
-    
-    // Obtener cuenta actual
     final account = await getAccountById(movement.accountId);
     if (account != null) {
       double newBalance = account.balance;
-      
       if (movement.type == MovementType.income) {
         newBalance += movement.amount;
       } else if (movement.type == MovementType.expense) {
         newBalance -= movement.amount;
       }
-      
       await updateAccountBalance(movement.accountId, newBalance);
     }
-    
     return created;
   }
 
@@ -259,7 +372,7 @@ class AccountsDataSource {
     final data = _movementToJson(movement);
     data.remove('id');
     data.remove('created_at');
-    
+
     final response = await _client
         .from(_movementsTable)
         .update(data)
@@ -278,36 +391,36 @@ class AccountsDataSource {
         .eq('id', id)
         .single();
     final movement = _movementFromJson(response);
-    
+
     // Revertir el balance
     final account = await getAccountById(movement.accountId);
     if (account != null) {
       double newBalance = account.balance;
-      
-      if (movement.type == MovementType.income || 
+
+      if (movement.type == MovementType.income ||
           movement.category == MovementCategory.transferIn) {
         newBalance -= movement.amount; // Revertir ingreso
-      } else if (movement.type == MovementType.expense || 
-                 movement.category == MovementCategory.transferOut) {
+      } else if (movement.type == MovementType.expense ||
+          movement.category == MovementCategory.transferOut) {
         newBalance += movement.amount; // Revertir gasto
       }
-      
+
       await updateAccountBalance(movement.accountId, newBalance);
     }
-    
+
     // Desvincular de tablas relacionadas antes de eliminar
     // Desvincular de payroll
     await _client
         .from('payroll')
         .update({'cash_movement_id': null})
         .eq('cash_movement_id', id);
-    
+
     // Desvincular de employee_loans
     await _client
         .from('employee_loans')
         .update({'cash_movement_id': null})
         .eq('cash_movement_id', id);
-    
+
     // Eliminar el movimiento
     await _client.from(_movementsTable).delete().eq('id', id);
   }
@@ -317,10 +430,10 @@ class AccountsDataSource {
   /// Calcular totales del día
   static Future<Map<String, double>> getDayTotals(DateTime date) async {
     final movements = await getMovementsByDate(date);
-    
+
     double totalIncome = 0;
     double totalExpense = 0;
-    
+
     for (final m in movements) {
       if (m.type == MovementType.income) {
         totalIncome += m.amount;
@@ -328,7 +441,7 @@ class AccountsDataSource {
         totalExpense += m.amount;
       }
     }
-    
+
     return {
       'income': totalIncome,
       'expense': totalExpense,
@@ -357,11 +470,11 @@ class AccountsDataSource {
       accountNumber: json['account_number'],
       color: json['color'],
       isActive: json['is_active'] ?? true,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : null,
-      updatedAt: json['updated_at'] != null 
-          ? DateTime.parse(json['updated_at']) 
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
           : null,
     );
   }
@@ -398,11 +511,11 @@ class AccountsDataSource {
       description: json['description'] ?? '',
       reference: json['reference'],
       personName: json['person_name'],
-      date: json['date'] != null 
-          ? DateTime.parse(json['date']) 
+      date: json['date'] != null
+          ? DateTime.parse(json['date'])
           : DateTime.now(),
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : DateTime.now(),
       linkedTransferId: json['linked_transfer_id'],
     );
@@ -430,7 +543,7 @@ class AccountsDataSource {
   /// Crear cuentas predeterminadas si no existen
   static Future<void> initializeDefaultAccounts() async {
     final accounts = await getAllAccounts(activeOnly: false);
-    
+
     if (accounts.isEmpty) {
       // Crear las 3 cuentas predeterminadas
       final defaultAccounts = [
@@ -461,7 +574,7 @@ class AccountsDataSource {
           isActive: true,
         ),
       ];
-      
+
       for (final account in defaultAccounts) {
         await createAccount(account);
       }

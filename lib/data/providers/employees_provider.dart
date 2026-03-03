@@ -10,6 +10,7 @@ class EmployeesState {
   final List<EmployeeTimeAdjustment> timeAdjustments;
   final List<EmployeeTimeSummary> timeSummaries;
   final List<EmployeeTaskTimeLog> taskTimeLogs;
+  final List<EmployeeTimeSheet> timesheets;
   final bool isLoading;
   final bool isTimeLoading;
   final String? error;
@@ -23,6 +24,7 @@ class EmployeesState {
     this.timeAdjustments = const [],
     this.timeSummaries = const [],
     this.taskTimeLogs = const [],
+    this.timesheets = const [],
     this.isLoading = false,
     this.isTimeLoading = false,
     this.error,
@@ -37,6 +39,7 @@ class EmployeesState {
     List<EmployeeTimeAdjustment>? timeAdjustments,
     List<EmployeeTimeSummary>? timeSummaries,
     List<EmployeeTaskTimeLog>? taskTimeLogs,
+    List<EmployeeTimeSheet>? timesheets,
     bool? isLoading,
     bool? isTimeLoading,
     String? error,
@@ -51,6 +54,7 @@ class EmployeesState {
       timeAdjustments: timeAdjustments ?? this.timeAdjustments,
       timeSummaries: timeSummaries ?? this.timeSummaries,
       taskTimeLogs: taskTimeLogs ?? this.taskTimeLogs,
+      timesheets: timesheets ?? this.timesheets,
       isLoading: isLoading ?? this.isLoading,
       isTimeLoading: isTimeLoading ?? this.isTimeLoading,
       error: error,
@@ -357,6 +361,48 @@ class EmployeesNotifier extends Notifier<EmployeesState> {
     }
   }
 
+  /// Cargar timesheets de un empleado
+  Future<void> loadTimesheets(String employeeId) async {
+    try {
+      final sheets = await EmployeesDatasource.getTimesheets(
+        employeeId: employeeId,
+      );
+      state = state.copyWith(timesheets: sheets);
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+    }
+  }
+
+  /// Cerrar un timesheet
+  Future<bool> closeTimesheet(String timesheetId) async {
+    final success = await EmployeesDatasource.closeTimesheet(timesheetId);
+    if (success && state.selectedEmployee != null) {
+      await loadTimesheets(state.selectedEmployee!.id);
+    }
+    return success;
+  }
+
+  /// Aprobar un timesheet
+  Future<bool> approveTimesheet(String timesheetId, String approvedBy) async {
+    final success = await EmployeesDatasource.approveTimesheet(
+      timesheetId,
+      approvedBy,
+    );
+    if (success && state.selectedEmployee != null) {
+      await loadTimesheets(state.selectedEmployee!.id);
+    }
+    return success;
+  }
+
+  /// Reabrir un timesheet
+  Future<bool> reopenTimesheet(String timesheetId) async {
+    final success = await EmployeesDatasource.reopenTimesheet(timesheetId);
+    if (success && state.selectedEmployee != null) {
+      await loadTimesheets(state.selectedEmployee!.id);
+    }
+    return success;
+  }
+
   /// Crear un ajuste manual de horas para el empleado
   Future<bool> createTimeAdjustment({
     required String employeeId,
@@ -392,6 +438,38 @@ class EmployeesNotifier extends Notifier<EmployeesState> {
     }
   }
 
+  /// Eliminar todos los ajustes de un empleado en una fecha específica.
+  /// Se usa al cambiar el estado de asistencia de un día (revertir ausencia, etc.)
+  Future<int> deleteTimeAdjustmentsForDate({
+    required String employeeId,
+    required DateTime date,
+  }) async {
+    try {
+      final deleted = await EmployeesDatasource.deleteTimeAdjustmentsForDate(
+        employeeId: employeeId,
+        date: date,
+      );
+      // Remover de estado local inmediatamente
+      final updatedAdjustments = state.timeAdjustments
+          .where(
+            (a) =>
+                !(a.employeeId == employeeId &&
+                    a.adjustmentDate.year == date.year &&
+                    a.adjustmentDate.month == date.month &&
+                    a.adjustmentDate.day == date.day),
+          )
+          .toList();
+      state = state.copyWith(timeAdjustments: updatedAdjustments);
+      if (deleted > 0) {
+        await loadTimeOverview(employeeId);
+      }
+      return deleted;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return 0;
+    }
+  }
+
   /// Registrar entrada de tiempo (check-in)
   Future<EmployeeTimeEntry?> registerTimeEntry({
     required String employeeId,
@@ -406,9 +484,7 @@ class EmployeesNotifier extends Notifier<EmployeesState> {
       );
 
       if (entry != null) {
-        state = state.copyWith(
-          timeEntries: [entry, ...state.timeEntries],
-        );
+        state = state.copyWith(timeEntries: [entry, ...state.timeEntries]);
       }
       return entry;
     } catch (e) {
@@ -443,7 +519,9 @@ class EmployeesNotifier extends Notifier<EmployeesState> {
               checkIn: e.checkIn,
               checkOut: checkOut ?? e.checkOut,
               breakMinutes: e.breakMinutes,
-              workedMinutes: hoursWorked != null ? (hoursWorked * 60).round() : e.workedMinutes,
+              workedMinutes: hoursWorked != null
+                  ? (hoursWorked * 60).round()
+                  : e.workedMinutes,
               overtimeMinutes: e.overtimeMinutes,
               deficitMinutes: e.deficitMinutes,
               status: 'aprobado',

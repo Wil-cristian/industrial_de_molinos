@@ -1,6 +1,8 @@
 // Entidad: Factura/Comprobante
 enum InvoiceType { invoice, receipt, creditNote, debitNote }
+
 enum InvoiceStatus { draft, issued, paid, partial, cancelled, overdue }
+
 enum PaymentMethod { cash, card, transfer, credit, check, yape, plin }
 
 class Invoice {
@@ -55,8 +57,9 @@ class Invoice {
   double get pendingAmount => total - paidAmount;
 
   // Está vencida
-  bool get isOverdue => dueDate != null && 
-      dueDate!.isBefore(DateTime.now()) && 
+  bool get isOverdue =>
+      dueDate != null &&
+      dueDate!.isBefore(DateTime.now()) &&
       status != InvoiceStatus.paid &&
       status != InvoiceStatus.cancelled;
 
@@ -110,6 +113,15 @@ class Invoice {
   }
 
   factory Invoice.fromJson(Map<String, dynamic> json) {
+    // Parsear items si vienen incluidos en el JSON
+    final itemsList = json['items'];
+    List<InvoiceItem> parsedItems = [];
+    if (itemsList != null && itemsList is List) {
+      parsedItems = itemsList
+          .map((e) => InvoiceItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
     return Invoice(
       id: json['id'] ?? '',
       type: _parseInvoiceType(json['type']),
@@ -119,20 +131,26 @@ class Invoice {
       customerName: json['customer_name'] ?? '',
       customerDocument: json['customer_document'] ?? '',
       issueDate: DateTime.parse(json['issue_date']),
-      dueDate: json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
+      dueDate: json['due_date'] != null
+          ? DateTime.parse(json['due_date'])
+          : null,
       subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
       taxAmount: (json['tax_amount'] as num?)?.toDouble() ?? 0,
       discount: (json['discount'] as num?)?.toDouble() ?? 0,
       total: (json['total'] as num?)?.toDouble() ?? 0,
       paidAmount: (json['paid_amount'] as num?)?.toDouble() ?? 0,
       status: _parseInvoiceStatus(json['status']),
-      paymentMethod: json['payment_method'] != null 
-          ? _parsePaymentMethod(json['payment_method']) 
+      paymentMethod: json['payment_method'] != null
+          ? _parsePaymentMethod(json['payment_method'])
           : null,
       notes: json['notes'],
-      items: [],
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
+      items: parsedItems,
+      createdAt: DateTime.parse(
+        json['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        json['updated_at'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 
@@ -160,34 +178,56 @@ class Invoice {
 
   static InvoiceType _parseInvoiceType(String? value) {
     switch (value) {
-      case 'invoice': return InvoiceType.invoice;
-      case 'receipt': return InvoiceType.receipt;
-      case 'credit_note': return InvoiceType.creditNote;
-      case 'debit_note': return InvoiceType.debitNote;
-      default: return InvoiceType.invoice;
+      case 'invoice':
+        return InvoiceType.invoice;
+      case 'receipt':
+        return InvoiceType.receipt;
+      case 'credit_note':
+        return InvoiceType.creditNote;
+      case 'debit_note':
+        return InvoiceType.debitNote;
+      default:
+        return InvoiceType.invoice;
     }
   }
 
   static InvoiceStatus _parseInvoiceStatus(String? value) {
     switch (value) {
-      case 'draft': return InvoiceStatus.draft;
-      case 'issued': return InvoiceStatus.issued;
-      case 'paid': return InvoiceStatus.paid;
-      case 'partial': return InvoiceStatus.partial;
-      case 'cancelled': return InvoiceStatus.cancelled;
-      case 'overdue': return InvoiceStatus.overdue;
-      default: return InvoiceStatus.draft;
+      case 'draft':
+        return InvoiceStatus.draft;
+      case 'issued':
+        return InvoiceStatus.issued;
+      case 'paid':
+        return InvoiceStatus.paid;
+      case 'partial':
+        return InvoiceStatus.partial;
+      case 'cancelled':
+        return InvoiceStatus.cancelled;
+      case 'overdue':
+        return InvoiceStatus.overdue;
+      default:
+        return InvoiceStatus.draft;
     }
   }
 
   static PaymentMethod _parsePaymentMethod(String? value) {
     switch (value) {
-      case 'cash': return PaymentMethod.cash;
-      case 'card': return PaymentMethod.card;
-      case 'transfer': return PaymentMethod.transfer;
-      case 'credit': return PaymentMethod.credit;
-      case 'check': return PaymentMethod.check;
-      default: return PaymentMethod.cash;
+      case 'cash':
+        return PaymentMethod.cash;
+      case 'card':
+        return PaymentMethod.card;
+      case 'transfer':
+        return PaymentMethod.transfer;
+      case 'credit':
+        return PaymentMethod.credit;
+      case 'check':
+        return PaymentMethod.check;
+      case 'yape':
+        return PaymentMethod.yape;
+      case 'plin':
+        return PaymentMethod.plin;
+      default:
+        return PaymentMethod.cash;
     }
   }
 }
@@ -267,27 +307,4 @@ class InvoiceItem {
       'total': total,
     };
   }
-}
-
-// Pago
-class Payment {
-  final String id;
-  final String invoiceId;
-  final double amount;
-  final PaymentMethod method;
-  final String? reference;
-  final String? notes;
-  final DateTime paymentDate;
-  final DateTime createdAt;
-
-  Payment({
-    required this.id,
-    required this.invoiceId,
-    required this.amount,
-    required this.method,
-    this.reference,
-    this.notes,
-    required this.paymentDate,
-    required this.createdAt,
-  });
 }

@@ -186,7 +186,7 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
     state = state.copyWith(selectedAccountId: accountId);
   }
 
-  /// Agregar ingreso
+  /// Agregar ingreso (optimista)
   Future<bool> addIncome({
     required String accountId,
     required double amount,
@@ -195,8 +195,8 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
     String? personName,
     String? reference,
   }) async {
+    final previousState = state;
     try {
-      print('💰 Registrando ingreso: $amount en cuenta $accountId');
       final movement = CashMovement(
         id: '',
         accountId: accountId,
@@ -208,19 +208,27 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
         reference: reference,
         date: state.selectedDate,
       );
-      
+
+      // Optimista: actualizar balance local + agregar movimiento temporal
+      state = state.copyWith(
+        accounts: state.accounts.map((a) =>
+          a.id == accountId ? a.copyWith(balance: a.balance + amount) : a
+        ).toList(),
+        error: null,
+      );
+
       await AccountsDataSource.createMovementWithBalanceUpdate(movement);
-      print('✅ Ingreso registrado correctamente');
-      await load(); // Recargar todo
+
+      // Refrescar movimientos del día en background
+      _refreshMovementsInBackground();
       return true;
     } catch (e) {
-      print('❌ Error al registrar ingreso: $e');
-      state = state.copyWith(error: e.toString());
+      state = previousState.copyWith(error: e.toString());
       return false;
     }
   }
 
-  /// Agregar gasto
+  /// Agregar gasto (optimista)
   Future<bool> addExpense({
     required String accountId,
     required double amount,
@@ -229,8 +237,8 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
     String? personName,
     String? reference,
   }) async {
+    final previousState = state;
     try {
-      print('📤 Registrando gasto: cuenta=$accountId, monto=$amount, desc=$description');
       final movement = CashMovement(
         id: '',
         accountId: accountId,
@@ -242,19 +250,26 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
         reference: reference,
         date: state.selectedDate,
       );
-      
+
+      // Optimista: restar balance local
+      state = state.copyWith(
+        accounts: state.accounts.map((a) =>
+          a.id == accountId ? a.copyWith(balance: a.balance - amount) : a
+        ).toList(),
+        error: null,
+      );
+
       await AccountsDataSource.createMovementWithBalanceUpdate(movement);
-      print('✅ Gasto registrado exitosamente');
-      await load(); // Recargar todo
+
+      _refreshMovementsInBackground();
       return true;
     } catch (e) {
-      print('❌ Error al registrar gasto: $e');
-      state = state.copyWith(error: e.toString());
+      state = previousState.copyWith(error: e.toString());
       return false;
     }
   }
 
-  /// Crear traslado entre cuentas
+  /// Crear traslado entre cuentas (optimista)
   Future<bool> transfer({
     required String fromAccountId,
     required String toAccountId,
@@ -262,7 +277,18 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
     required String description,
     String? reference,
   }) async {
+    final previousState = state;
     try {
+      // Optimista: ajustar ambos balances localmente
+      state = state.copyWith(
+        accounts: state.accounts.map((a) {
+          if (a.id == fromAccountId) return a.copyWith(balance: a.balance - amount);
+          if (a.id == toAccountId) return a.copyWith(balance: a.balance + amount);
+          return a;
+        }).toList(),
+        error: null,
+      );
+
       await AccountsDataSource.createTransfer(
         fromAccountId: fromAccountId,
         toAccountId: toAccountId,
@@ -271,24 +297,60 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
         date: state.selectedDate,
         reference: reference,
       );
-      await load(); // Recargar todo
+
+      _refreshMovementsInBackground();
       return true;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = previousState.copyWith(error: e.toString());
       return false;
     }
   }
 
-  /// Eliminar movimiento
+  /// Eliminar movimiento (optimista)
   Future<bool> deleteMovement(String movementId) async {
+    final previousState = state;
     try {
+      // Encontrar el movimiento a eliminar para rollback del balance
+      final movement = state.movements.firstWhere(
+        (m) => m.id == movementId,
+        orElse: () => throw Exception('Movimiento no encontrado'),
+      );
+
+      // Optimista: quitar de la lista local + revertir balance
+      final updatedMovements = state.movements.where((m) => m.id != movementId).toList();
+      final updatedAccounts = state.accounts.map((a) {
+        if (a.id == movement.accountId) {
+          if (movement.type == MovementType.income || movement.category == MovementCategory.transferIn) {
+            return a.copyWith(balance: a.balance - movement.amount);
+          } else if (movement.type == MovementType.expense || movement.category == MovementCategory.transferOut) {
+            return a.copyWith(balance: a.balance + movement.amount);
+          }
+        }
+        return a;
+      }).toList();
+
+      state = state.copyWith(
+        movements: updatedMovements,
+        accounts: updatedAccounts,
+        error: null,
+      );
+
       await AccountsDataSource.deleteMovement(movementId);
-      await load(); // Recargar todo
       return true;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = previousState.copyWith(error: e.toString());
       return false;
     }
+  }
+
+  /// Refrescar movimientos del día sin bloquear UI
+  void _refreshMovementsInBackground() {
+    Future.microtask(() async {
+      try {
+        final movements = await AccountsDataSource.getMovementsByDate(state.selectedDate);
+        state = state.copyWith(movements: movements);
+      } catch (_) {}
+    });
   }
 
   /// Actualizar cuenta

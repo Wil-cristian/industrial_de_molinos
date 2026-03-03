@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/utils/logger.dart';
 import '../../domain/entities/quotation.dart';
 import '../datasources/quotations_datasource.dart';
 
@@ -36,19 +37,22 @@ class QuotationsState {
 
   List<Quotation> get filteredQuotations {
     var filtered = quotations;
-    
+
     if (statusFilter != null) {
       filtered = filtered.where((q) => q.status == statusFilter).toList();
     }
-    
+
     if (searchQuery.isNotEmpty) {
       final query = searchQuery.toLowerCase();
-      filtered = filtered.where((q) =>
-        q.number.toLowerCase().contains(query) ||
-        q.customerName.toLowerCase().contains(query)
-      ).toList();
+      filtered = filtered
+          .where(
+            (q) =>
+                q.number.toLowerCase().contains(query) ||
+                q.customerName.toLowerCase().contains(query),
+          )
+          .toList();
     }
-    
+
     return filtered;
   }
 
@@ -56,9 +60,11 @@ class QuotationsState {
   int get totalQuotations => quotations.length;
   int get draftCount => quotations.where((q) => q.status == 'Borrador').length;
   int get sentCount => quotations.where((q) => q.status == 'Enviada').length;
-  int get approvedCount => quotations.where((q) => q.status == 'Aprobada').length;
-  int get rejectedCount => quotations.where((q) => q.status == 'Rechazada').length;
-  
+  int get approvedCount =>
+      quotations.where((q) => q.status == 'Aprobada').length;
+  int get rejectedCount =>
+      quotations.where((q) => q.status == 'Rechazada').length;
+
   double get totalApprovedAmount => quotations
       .where((q) => q.status == 'Aprobada')
       .fold(0.0, (sum, q) => sum + q.total);
@@ -92,12 +98,10 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
   Future<Quotation?> createQuotation(Quotation quotation) async {
     try {
       final created = await QuotationsDataSource.create(quotation);
-      state = state.copyWith(
-        quotations: [created, ...state.quotations],
-      );
+      state = state.copyWith(quotations: [created, ...state.quotations]);
       return created;
     } catch (e) {
-      print('❌ QuotationsProvider.createQuotation error: $e');
+      AppLogger.error('❌ QuotationsProvider.createQuotation error: $e');
       state = state.copyWith(error: e.toString());
       return null;
     }
@@ -106,9 +110,9 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
   Future<bool> updateQuotation(Quotation quotation) async {
     try {
       final updated = await QuotationsDataSource.update(quotation);
-      final quotations = state.quotations.map((q) =>
-        q.id == quotation.id ? updated : q
-      ).toList();
+      final quotations = state.quotations
+          .map((q) => q.id == quotation.id ? updated : q)
+          .toList();
       state = state.copyWith(quotations: quotations);
       return true;
     } catch (e) {
@@ -120,9 +124,9 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
   Future<bool> updateStatus(String id, String status) async {
     try {
       await QuotationsDataSource.updateStatus(id, status);
-      final quotations = state.quotations.map((q) =>
-        q.id == id ? q.copyWith(status: status) : q
-      ).toList();
+      final quotations = state.quotations
+          .map((q) => q.id == id ? q.copyWith(status: status) : q)
+          .toList();
       state = state.copyWith(quotations: quotations);
       return true;
     } catch (e) {
@@ -144,23 +148,31 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
   }
 
   /// Aprobar cotización y crear factura automáticamente
-  Future<Map<String, dynamic>?> approveAndCreateInvoice(String quotationId, String series) async {
+  Future<Map<String, dynamic>?> approveAndCreateInvoice(
+    String quotationId,
+    String series,
+  ) async {
     try {
-      print('🔄 Provider: Llamando a datasource para aprobar cotización...');
-      final result = await QuotationsDataSource.approveAndCreateInvoice(quotationId, series: series);
-      
-      print('📊 Provider: Resultado de aprobación: $result');
-      
+      AppLogger.debug(
+        '🔄 Provider: Llamando a datasource para aprobar cotización...',
+      );
+      final result = await QuotationsDataSource.approveAndCreateInvoice(
+        quotationId,
+        series: series,
+      );
+
+      AppLogger.debug('📊 Provider: Resultado de aprobación: $result');
+
       // Actualizar estado local
-      final quotations = state.quotations.map((q) =>
-        q.id == quotationId ? q.copyWith(status: 'Aprobada') : q
-      ).toList();
+      final quotations = state.quotations
+          .map((q) => q.id == quotationId ? q.copyWith(status: 'Aprobada') : q)
+          .toList();
       state = state.copyWith(quotations: quotations);
-      
+
       // Retornar info de la factura creada
       return result;
     } catch (e) {
-      print('❌ Provider: Error al aprobar: $e');
+      AppLogger.error('❌ Provider: Error al aprobar: $e');
       state = state.copyWith(error: e.toString());
       rethrow;
     }
@@ -170,13 +182,17 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
   Future<bool> reject(String quotationId, String? reason) async {
     try {
       await QuotationsDataSource.reject(quotationId, reason: reason);
-      
+
       // Actualizar estado local
-      final quotations = state.quotations.map((q) =>
-        q.id == quotationId ? q.copyWith(status: 'Rechazada', notes: reason ?? q.notes) : q
-      ).toList();
+      final quotations = state.quotations
+          .map(
+            (q) => q.id == quotationId
+                ? q.copyWith(status: 'Rechazada', notes: reason ?? q.notes)
+                : q,
+          )
+          .toList();
       state = state.copyWith(quotations: quotations);
-      
+
       return true;
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -185,7 +201,9 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
   }
 
   /// Verificar disponibilidad de stock para una cotización
-  Future<List<Map<String, dynamic>>> checkStockAvailability(String quotationId) async {
+  Future<List<Map<String, dynamic>>> checkStockAvailability(
+    String quotationId,
+  ) async {
     try {
       return await QuotationsDataSource.checkStockAvailability(quotationId);
     } catch (e) {
@@ -197,188 +215,50 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
   void clearError() {
     state = state.copyWith(error: null);
   }
+
+  /// Anular cotización atómicamente (incluye factura asociada y material_movements)
+  Future<Map<String, dynamic>?> annulQuotation(
+    String quotationId, {
+    String reason = 'Anulada por el usuario',
+  }) async {
+    try {
+      final result = await QuotationsDataSource.annulQuotation(
+        quotationId,
+        reason: reason,
+      );
+
+      // Actualizar estado local
+      final quotations = state.quotations
+          .map((q) => q.id == quotationId ? q.copyWith(status: 'Anulada') : q)
+          .toList();
+      state = state.copyWith(quotations: quotations);
+
+      return result;
+    } catch (e) {
+      AppLogger.error('❌ Provider: Error al anular: $e');
+      state = state.copyWith(error: e.toString());
+      return null;
+    }
+  }
 }
 
 /// Provider principal de cotizaciones
-final quotationsProvider = NotifierProvider<QuotationsNotifier, QuotationsState>(() {
-  return QuotationsNotifier();
-});
+final quotationsProvider =
+    NotifierProvider<QuotationsNotifier, QuotationsState>(() {
+      return QuotationsNotifier();
+    });
 
 /// Provider para cotización individual
-final quotationByIdProvider = FutureProvider.family<Quotation?, String>((ref, id) async {
+final quotationByIdProvider = FutureProvider.family<Quotation?, String>((
+  ref,
+  id,
+) async {
   return await QuotationsDataSource.getById(id);
 });
 
 /// Provider para cotizaciones pendientes
-final pendingQuotationsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final pendingQuotationsProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   return await QuotationsDataSource.getPending();
-});
-
-/// Estado para la cotización en edición
-class QuotationEditorState {
-  final Quotation? quotation;
-  final List<QuotationItem> items;
-  final String customerName;
-  final String customerId;
-  final double laborCost;
-  final double energyCost;
-  final double gasCost;
-  final double suppliesCost;
-  final double otherCosts;
-  final double profitMargin;
-  final String notes;
-  final int currentStep;
-
-  QuotationEditorState({
-    this.quotation,
-    this.items = const [],
-    this.customerName = '',
-    this.customerId = '',
-    this.laborCost = 0,
-    this.energyCost = 0,
-    this.gasCost = 0,
-    this.suppliesCost = 0,
-    this.otherCosts = 0,
-    this.profitMargin = 20,
-    this.notes = '',
-    this.currentStep = 0,
-  });
-
-  double get materialsCost => items.fold(0.0, (sum, item) => sum + item.totalPrice);
-  double get indirectCosts => energyCost + gasCost + suppliesCost + otherCosts;
-  double get subtotal => materialsCost + laborCost + indirectCosts;
-  double get profitAmount => subtotal * (profitMargin / 100);
-  double get total => subtotal + profitAmount;
-  double get totalWeight => items.fold(0.0, (sum, item) => sum + item.totalWeight);
-
-  QuotationEditorState copyWith({
-    Quotation? quotation,
-    List<QuotationItem>? items,
-    String? customerName,
-    String? customerId,
-    double? laborCost,
-    double? energyCost,
-    double? gasCost,
-    double? suppliesCost,
-    double? otherCosts,
-    double? profitMargin,
-    String? notes,
-    int? currentStep,
-  }) {
-    return QuotationEditorState(
-      quotation: quotation ?? this.quotation,
-      items: items ?? this.items,
-      customerName: customerName ?? this.customerName,
-      customerId: customerId ?? this.customerId,
-      laborCost: laborCost ?? this.laborCost,
-      energyCost: energyCost ?? this.energyCost,
-      gasCost: gasCost ?? this.gasCost,
-      suppliesCost: suppliesCost ?? this.suppliesCost,
-      otherCosts: otherCosts ?? this.otherCosts,
-      profitMargin: profitMargin ?? this.profitMargin,
-      notes: notes ?? this.notes,
-      currentStep: currentStep ?? this.currentStep,
-    );
-  }
-}
-
-/// Notifier para el editor de cotizaciones
-class QuotationEditorNotifier extends Notifier<QuotationEditorState> {
-  @override
-  QuotationEditorState build() {
-    return QuotationEditorState();
-  }
-
-  void reset() {
-    state = QuotationEditorState();
-  }
-
-  void loadQuotation(Quotation quotation) {
-    state = QuotationEditorState(
-      quotation: quotation,
-      items: quotation.items,
-      customerName: quotation.customerName,
-      customerId: quotation.customerId,
-      laborCost: quotation.laborCost,
-      energyCost: quotation.energyCost,
-      gasCost: quotation.gasCost,
-      suppliesCost: quotation.suppliesCost,
-      otherCosts: quotation.otherCosts,
-      profitMargin: quotation.profitMargin,
-      notes: quotation.notes,
-    );
-  }
-
-  void setCustomer(String id, String name) {
-    state = state.copyWith(customerId: id, customerName: name);
-  }
-
-  void setStep(int step) {
-    state = state.copyWith(currentStep: step);
-  }
-
-  void addItem(QuotationItem item) {
-    state = state.copyWith(items: [...state.items, item]);
-  }
-
-  void updateItem(int index, QuotationItem item) {
-    final items = [...state.items];
-    items[index] = item;
-    state = state.copyWith(items: items);
-  }
-
-  void removeItem(int index) {
-    final items = [...state.items];
-    items.removeAt(index);
-    state = state.copyWith(items: items);
-  }
-
-  void setCosts({
-    double? laborCost,
-    double? energyCost,
-    double? gasCost,
-    double? suppliesCost,
-    double? otherCosts,
-    double? profitMargin,
-  }) {
-    state = state.copyWith(
-      laborCost: laborCost,
-      energyCost: energyCost,
-      gasCost: gasCost,
-      suppliesCost: suppliesCost,
-      otherCosts: otherCosts,
-      profitMargin: profitMargin,
-    );
-  }
-
-  void setNotes(String notes) {
-    state = state.copyWith(notes: notes);
-  }
-
-  Quotation buildQuotation() {
-    final now = DateTime.now();
-    return Quotation(
-      id: state.quotation?.id ?? '',
-      number: state.quotation?.number ?? '',
-      date: now,
-      validUntil: now.add(const Duration(days: 30)),
-      customerId: state.customerId,
-      customerName: state.customerName,
-      status: 'Borrador',
-      items: state.items,
-      laborCost: state.laborCost,
-      energyCost: state.energyCost,
-      gasCost: state.gasCost,
-      suppliesCost: state.suppliesCost,
-      otherCosts: state.otherCosts,
-      profitMargin: state.profitMargin,
-      notes: state.notes,
-      createdAt: state.quotation?.createdAt ?? now,
-    );
-  }
-}
-
-/// Provider para el editor de cotización
-final quotationEditorProvider = NotifierProvider<QuotationEditorNotifier, QuotationEditorState>(() {
-  return QuotationEditorNotifier();
 });

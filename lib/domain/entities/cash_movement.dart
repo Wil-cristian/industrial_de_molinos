@@ -2,46 +2,50 @@ import 'account.dart';
 
 // Tipos de movimiento de caja
 enum MovementType {
-  income,    // Ingreso
-  expense,   // Gasto
-  transfer,  // Traslado entre cuentas
+  income, // Ingreso
+  expense, // Gasto
+  transfer, // Traslado entre cuentas
 }
 
 // Categorías de movimiento
 enum MovementCategory {
   // Ingresos
-  sale,              // Venta
-  collection,        // Cobranza
-  otherIncome,       // Otros ingresos
-  
+  sale, // Venta
+  collection, // Cobranza
+  pago_prestamo, // Pago/abono de préstamo empleado
+  otherIncome, // Otros ingresos
   // Gastos
-  purchase,          // Compra de materiales/productos
-  salary,            // Salarios
-  services,          // Servicios (luz, agua, internet, etc.)
-  transport,         // Transporte / Mensajería
-  maintenance,       // Mantenimiento
-  otherExpense,      // Otros gastos
-  
+  purchase, // Compra de materiales/productos
+  salary, // Salarios
+  services, // Servicios (luz, agua, internet, etc.)
+  transport, // Transporte / Mensajería
+  maintenance, // Mantenimiento
+  prestamo_empleado, // Préstamo a empleado
+  adelanto_sueldo, // Adelanto de sueldo a empleado
+  nomina, // Pago de nómina
+  otherExpense, // Otros gastos
   // Traslados
-  transferOut,       // Salida por traslado
-  transferIn,        // Entrada por traslado
+  transferOut, // Salida por traslado
+  transferIn, // Entrada por traslado
 }
 
 // Movimiento de Caja (Ingreso, Gasto, Traslado)
 class CashMovement {
   final String id;
-  final String accountId;           // Cuenta origen
-  final String? toAccountId;        // Cuenta destino (solo para traslados)
+  final String accountId; // Cuenta origen
+  final String? toAccountId; // Cuenta destino (solo para traslados)
   final MovementType type;
   final MovementCategory category;
   final double amount;
   final String description;
-  final String? reference;          // Referencia (número de factura, recibo, etc.)
-  final String? personName;         // Nombre de la persona (cliente, proveedor, empleado)
+  final String? reference; // Referencia (número de factura, recibo, etc.)
+  final String?
+  personName; // Nombre de la persona (cliente, proveedor, empleado)
   final DateTime date;
   final DateTime createdAt;
-  final String? linkedTransferId;   // ID del movimiento relacionado (para traslados)
-  
+  final String?
+  linkedTransferId; // ID del movimiento relacionado (para traslados)
+
   // Para mostrar en UI (no persistido)
   final Account? account;
   final Account? toAccount;
@@ -131,11 +135,11 @@ class CashMovement {
       description: json['description'] ?? '',
       reference: json['reference'],
       personName: json['personName'],
-      date: json['date'] != null 
-          ? DateTime.parse(json['date']) 
+      date: json['date'] != null
+          ? DateTime.parse(json['date'])
           : DateTime.now(),
-      createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt']) 
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
       linkedTransferId: json['linkedTransferId'],
     );
@@ -158,6 +162,8 @@ class CashMovement {
         return 'Venta';
       case MovementCategory.collection:
         return 'Cobranza';
+      case MovementCategory.pago_prestamo:
+        return 'Pago Préstamo';
       case MovementCategory.otherIncome:
         return 'Otros Ingresos';
       case MovementCategory.purchase:
@@ -170,6 +176,12 @@ class CashMovement {
         return 'Transporte';
       case MovementCategory.maintenance:
         return 'Mantenimiento';
+      case MovementCategory.prestamo_empleado:
+        return 'Préstamo';
+      case MovementCategory.adelanto_sueldo:
+        return 'Adelanto Sueldo';
+      case MovementCategory.nomina:
+        return 'Nómina';
       case MovementCategory.otherExpense:
         return 'Otros Gastos';
       case MovementCategory.transferOut:
@@ -179,15 +191,17 @@ class CashMovement {
     }
   }
 
-  bool get isIncome => type == MovementType.income || category == MovementCategory.transferIn;
-  bool get isExpense => type == MovementType.expense || category == MovementCategory.transferOut;
+  bool get isIncome =>
+      type == MovementType.income || category == MovementCategory.transferIn;
+  bool get isExpense =>
+      type == MovementType.expense || category == MovementCategory.transferOut;
 }
 
 // Reporte Diario de Caja
 class DailyCashReport {
   final DateTime date;
-  final Map<String, double> openingBalances;  // Saldo inicial por cuenta
-  final Map<String, double> closingBalances;  // Saldo final por cuenta
+  final Map<String, double> openingBalances; // Saldo inicial por cuenta
+  final Map<String, double> closingBalances; // Saldo final por cuenta
   final List<CashMovement> movements;
   final double totalIncome;
   final double totalExpense;
@@ -212,19 +226,19 @@ class DailyCashReport {
   });
 
   double get netChange => totalIncome - totalExpense;
-  
-  double get totalOpeningBalance => 
+
+  double get totalOpeningBalance =>
       openingBalances.values.fold(0.0, (sum, balance) => sum + balance);
-  
-  double get totalClosingBalance => 
+
+  double get totalClosingBalance =>
       closingBalances.values.fold(0.0, (sum, balance) => sum + balance);
 
   int get movementCount => movements.length;
-  
-  int get incomeCount => 
+
+  int get incomeCount =>
       movements.where((m) => m.type == MovementType.income).length;
-  
-  int get expenseCount => 
+
+  int get expenseCount =>
       movements.where((m) => m.type == MovementType.expense).length;
 
   Map<String, dynamic> toJson() {
@@ -248,16 +262,18 @@ class DailyCashReport {
       date: DateTime.parse(json['date']),
       openingBalances: Map<String, double>.from(json['openingBalances'] ?? {}),
       closingBalances: Map<String, double>.from(json['closingBalances'] ?? {}),
-      movements: (json['movements'] as List?)
-          ?.map((m) => CashMovement.fromJson(m))
-          .toList() ?? [],
+      movements:
+          (json['movements'] as List?)
+              ?.map((m) => CashMovement.fromJson(m))
+              .toList() ??
+          [],
       totalIncome: (json['totalIncome'] ?? 0).toDouble(),
       totalExpense: (json['totalExpense'] ?? 0).toDouble(),
       totalTransfersIn: (json['totalTransfersIn'] ?? 0).toDouble(),
       totalTransfersOut: (json['totalTransfersOut'] ?? 0).toDouble(),
       isClosed: json['isClosed'] ?? false,
-      closedAt: json['closedAt'] != null 
-          ? DateTime.parse(json['closedAt']) 
+      closedAt: json['closedAt'] != null
+          ? DateTime.parse(json['closedAt'])
           : null,
       notes: json['notes'],
     );
