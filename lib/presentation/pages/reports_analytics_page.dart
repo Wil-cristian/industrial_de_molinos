@@ -23,10 +23,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     Future.microtask(() {
       ref.read(analyticsProvider.notifier).loadAll();
-      ref.read(salesReportProvider.notifier).loadSalesReport();
       ref.read(inventoryReportProvider.notifier).loadInventoryReport();
       ref.read(receivablesReportProvider.notifier).loadReceivablesReport();
       ref.read(debtManagementProvider.notifier).loadOverdueDebts();
@@ -42,7 +41,6 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
   @override
   Widget build(BuildContext context) {
     final analyticsState = ref.watch(analyticsProvider);
-    final salesState = ref.watch(salesReportProvider);
     final inventoryState = ref.watch(inventoryReportProvider);
     final receivablesState = ref.watch(receivablesReportProvider);
     final debtState = ref.watch(debtManagementProvider);
@@ -104,7 +102,6 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               ),
                               tabs: const [
                                 Tab(text: 'Analytics'),
-                                Tab(text: 'Ventas'),
                                 Tab(text: 'Inventario'),
                                 Tab(text: 'Cobranzas'),
                                 Tab(text: 'Mora'),
@@ -120,7 +117,6 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         controller: _tabController,
                         children: [
                           _buildAnalyticsTab(analyticsState),
-                          _buildSalesTab(salesState),
                           _buildInventoryTab(inventoryState),
                           _buildCobranzasTab(analyticsState, receivablesState),
                           _buildMoraInteresesTab(debtState),
@@ -224,6 +220,18 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       ? '${Helpers.formatCurrency(overdueAmount)} vencido'
                       : 'Todo al día',
                   isWarning: overdueAmount > 0,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildKPICard(
+                  'Ticket Promedio',
+                  Helpers.formatCurrency(
+                    state.healthSnapshot?.avgInvoiceValue ?? 0,
+                  ),
+                  Icons.receipt,
+                  Colors.teal,
+                  subtitle: '${state.healthSnapshot?.totalInvoices ?? 0} facturas',
                 ),
               ),
             ],
@@ -2773,422 +2781,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         ],
       ),
     );
-  }
-
-  // ============================================================
-  // TAB 2: VENTAS
-  // ============================================================
-  Widget _buildSalesTab(SalesReportState state) {
-    if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final stats = state.stats;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Reporte de Ventas',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => ref
-                        .read(salesReportProvider.notifier)
-                        .loadSalesReport(),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Actualizar'),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.download, color: Colors.white),
-                    label: const Text(
-                      'Exportar',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // KPIs
-          Row(
-            children: [
-              Expanded(
-                child: _buildKPICard(
-                  'Ventas Totales',
-                  Helpers.formatCurrency(stats?.totalSales ?? 0),
-                  Icons.attach_money,
-                  Colors.green,
-                  subtitle: '${stats?.transactionCount ?? 0} transacciones',
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildKPICard(
-                  'Ticket Promedio',
-                  Helpers.formatCurrency(stats?.averageTicket ?? 0),
-                  Icons.receipt,
-                  Colors.blue,
-                  subtitle: 'por recibo',
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildKPICard(
-                  'Margen Bruto',
-                  '${(stats?.grossMargin ?? 0).toStringAsFixed(1)}%',
-                  Icons.trending_up,
-                  Colors.orange,
-                  subtitle: 'rentabilidad',
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildKPICard(
-                  'Crecimiento',
-                  '${(stats?.growthPercentage ?? 0).toStringAsFixed(1)}%',
-                  Icons.show_chart,
-                  (stats?.growthPercentage ?? 0) >= 0
-                      ? Colors.green
-                      : Colors.red,
-                  subtitle: 'vs periodo anterior',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // Chart
-          _buildSalesChart(state),
-          const SizedBox(height: 24),
-          // Productos y Clientes
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _buildTopProductsSalesCard(state)),
-              const SizedBox(width: 16),
-              Expanded(child: _buildSalesByCustomerCard(state)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSalesChart(SalesReportState state) {
-    return Container(
-      height: 350,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Evolución de Ventas',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const Spacer(),
-              _buildLegendItem('Actual', Colors.blue),
-              const SizedBox(width: 16),
-              _buildLegendItem('Anterior', Colors.grey),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: state.chartData.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.bar_chart,
-                          size: 48,
-                          color: Colors.grey[300],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'No hay datos de ventas',
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : (() {
-                    final maxVal = state.chartData.isEmpty
-                        ? 0.0
-                        : state.chartData
-                              .map(
-                                (e) => e.currentValue > e.previousValue
-                                    ? e.currentValue
-                                    : e.previousValue,
-                              )
-                              .fold(0.0, (a, b) => a > b ? a : b);
-                    final maxY = maxVal > 0 ? maxVal * 1.2 : 10000.0;
-                    return BarChart(
-                      BarChartData(
-                        alignment: BarChartAlignment.spaceAround,
-                        maxY: maxY,
-                        barGroups: state.chartData.asMap().entries.map((entry) {
-                          return BarChartGroupData(
-                            x: entry.key,
-                            barRods: [
-                              BarChartRodData(
-                                toY: entry.value.currentValue,
-                                color: Colors.blue,
-                                width: 12,
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(4),
-                                ),
-                              ),
-                              BarChartRodData(
-                                toY: entry.value.previousValue,
-                                color: Colors.grey[400],
-                                width: 12,
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(4),
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                        titlesData: FlTitlesData(
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 60,
-                              getTitlesWidget: (value, meta) {
-                                if (value == meta.max || value == meta.min) {
-                                  return const SizedBox();
-                                }
-                                return Text(
-                                  '\$ ${(value / 1000).toStringAsFixed(0)}K',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 11,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              getTitlesWidget: (value, meta) {
-                                final idx = value.toInt();
-                                if (idx >= 0 && idx < state.chartData.length) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Text(
-                                      state.chartData[idx].label,
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return const Text('');
-                              },
-                            ),
-                          ),
-                          rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                          topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                        ),
-                        gridData: FlGridData(
-                          show: true,
-                          drawVerticalLine: false,
-                          getDrawingHorizontalLine: (value) =>
-                              FlLine(color: Colors.grey[200]!, strokeWidth: 1),
-                        ),
-                        borderData: FlBorderData(show: false),
-                      ),
-                    );
-                  })(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopProductsSalesCard(SalesReportState state) {
-    return Container(
-      height: 350,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Productos más Vendidos',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: state.topProducts.isEmpty
-                ? const Center(child: Text('Sin datos'))
-                : ListView.builder(
-                    itemCount: state.topProducts.length,
-                    itemBuilder: (context, index) {
-                      final product = state.topProducts[index];
-                      final maxTotal = state.topProducts.first.totalSales;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    product.productName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                Text(
-                                  Helpers.formatCurrency(product.totalSales),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            LinearProgressIndicator(
-                              value: maxTotal > 0
-                                  ? product.totalSales / maxTotal
-                                  : 0,
-                              backgroundColor: Colors.grey[200],
-                              valueColor: AlwaysStoppedAnimation(
-                                Colors.primaries[index %
-                                    Colors.primaries.length],
-                              ),
-                            ),
-                            Text(
-                              '${product.quantity.toStringAsFixed(0)} unidades',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSalesByCustomerCard(SalesReportState state) {
-    return Container(
-      height: 350,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Ventas por Cliente',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: state.salesByCustomer.isEmpty
-                ? const Center(child: Text('Sin datos'))
-                : ListView.builder(
-                    itemCount: state.salesByCustomer.length,
-                    itemBuilder: (context, index) {
-                      final customer = state.salesByCustomer[index];
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          backgroundColor: Colors
-                              .primaries[index % Colors.primaries.length]
-                              .withValues(alpha: 0.2),
-                          child: Text(
-                            customer.customerName.isNotEmpty
-                                ? customer.customerName[0].toUpperCase()
-                                : '?',
-                            style: TextStyle(
-                              color: Colors
-                                  .primaries[index % Colors.primaries.length],
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          customer.customerName,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text('${customer.transactionCount} facturas'),
-                        trailing: Text(
-                          Helpers.formatCurrency(customer.totalSales),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // TAB 3: INVENTARIO
+  }  // ============================================================
+  // TAB 2: INVENTARIO
   // ============================================================
   Widget _buildInventoryTab(InventoryReportState state) {
     if (state.isLoading) {
@@ -3691,7 +3285,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
   }
 
   // ============================================================
-  // TAB 4: COBRANZAS
+  // TAB 3: COBRANZAS
   // ============================================================
   Widget _buildCobranzasTab(
     AnalyticsState analyticsState,
@@ -4176,7 +3770,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
   }
 
   // ============================================================
-  // TAB 5: MORA E INTERESES
+  // TAB 4: MORA E INTERESES
   // ============================================================
   Widget _buildMoraInteresesTab(DebtManagementState debtState) {
     if (debtState.isLoading) {
