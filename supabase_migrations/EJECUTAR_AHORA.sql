@@ -137,7 +137,7 @@ CREATE POLICY "proveedores_policy" ON proveedores FOR ALL USING (true) WITH CHEC
 -- =====================================================
 INSERT INTO accounts (name, type, balance, color, is_active) VALUES
 ('Caja', 'cash', 0, '#4CAF50', true),
-('Cuenta Daniela', 'bank', 0, '#2196F3', true),
+('Davivienda', 'bank', 0, '#2196F3', true),
 ('Cuenta Industrial de Molinos', 'bank', 0, '#9C27B0', true);
 
 -- =====================================================

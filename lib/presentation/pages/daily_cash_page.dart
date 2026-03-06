@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
@@ -8,8 +9,42 @@ import '../../data/providers/accounts_provider.dart';
 import '../../data/providers/customers_provider.dart';
 import '../../data/providers/suppliers_provider.dart';
 import '../../data/datasources/accounts_datasource.dart';
+import '../../data/datasources/storage_datasource.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
+
+String _categoryLabel(MovementCategory category) {
+  switch (category) {
+    case MovementCategory.sale:
+      return 'Venta';
+    case MovementCategory.collection:
+      return 'Cobranza';
+    case MovementCategory.pago_prestamo:
+      return 'Pago Préstamo';
+    case MovementCategory.otherIncome:
+      return 'Otros Ingresos';
+    case MovementCategory.cuidado_personal:
+      return 'Cuidado Personal';
+    case MovementCategory.servicios_publicos:
+      return 'Servicios Públicos';
+    case MovementCategory.papeleria:
+      return 'Papelería';
+    case MovementCategory.nomina:
+      return 'Nómina';
+    case MovementCategory.impuestos:
+      return 'Impuestos';
+    case MovementCategory.consumibles:
+      return 'Consumibles';
+    case MovementCategory.transporte:
+      return 'Transporte';
+    case MovementCategory.gastos_reducibles:
+      return 'Gastos Reducibles';
+    case MovementCategory.transferOut:
+      return 'Traslado Salida';
+    case MovementCategory.transferIn:
+      return 'Traslado Entrada';
+  }
+}
 
 class DailyCashPage extends ConsumerStatefulWidget {
   const DailyCashPage({super.key});
@@ -19,6 +54,8 @@ class DailyCashPage extends ConsumerStatefulWidget {
 }
 
 class _DailyCashPageState extends ConsumerState<DailyCashPage> {
+  bool _isActive = false;
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +69,17 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dailyCashProvider);
+
+    // Auto-reload when this page becomes active (IndexedStack keeps pages alive)
+    final location = GoRouterState.of(context).uri.path;
+    if (location == '/daily-cash' && !_isActive) {
+      _isActive = true;
+      Future.microtask(() {
+        if (mounted) ref.read(dailyCashProvider.notifier).load();
+      });
+    } else if (location != '/daily-cash') {
+      _isActive = false;
+    }
 
     return Scaffold(
       body: Stack(
@@ -176,6 +224,13 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 8),
+                            // Botón recargar
+                            IconButton(
+                              onPressed: () => ref.read(dailyCashProvider.notifier).load(),
+                              icon: const Icon(Icons.refresh),
+                              tooltip: 'Recargar datos',
+                            ),
                           ],
                         ),
                       ),
@@ -193,6 +248,12 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                               // Resumen del día
                               _buildDaySummary(context, state),
                               const SizedBox(height: 4),
+
+                              // Desglose por categoría
+                              if (state.movements.isNotEmpty)
+                                _buildCategoryBreakdown(context, state),
+                              if (state.movements.isNotEmpty)
+                                const SizedBox(height: 4),
 
                               // Lista de movimientos
                               _buildMovementsList(context, state),
@@ -501,6 +562,144 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     );
   }
 
+  Widget _buildCategoryBreakdown(BuildContext context, DailyCashState state) {
+    final expenseByCat = state.expenseByCategory;
+    final incomeByCat = state.incomeByCategory;
+
+    if (expenseByCat.isEmpty && incomeByCat.isEmpty) return const SizedBox();
+
+    // Sorted entries by amount descending
+    final expenseEntries = expenseByCat.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final incomeEntries = incomeByCat.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Desglose por Categoría',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            if (incomeEntries.isNotEmpty) ...[
+              Text(
+                'Ingresos',
+                style: TextStyle(
+                  color: AppTheme.successColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 6),
+              ...incomeEntries.map(
+                (e) => _buildCategoryRow(
+                  e.key.name,
+                  _categoryLabel(e.key),
+                  e.value,
+                  state.dayIncome,
+                  AppTheme.successColor,
+                ),
+              ),
+              if (expenseEntries.isNotEmpty) const Divider(height: 16),
+            ],
+            if (expenseEntries.isNotEmpty) ...[
+              Text(
+                'Gastos',
+                style: TextStyle(
+                  color: AppTheme.errorColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 6),
+              ...expenseEntries.map(
+                (e) => _buildCategoryRow(
+                  e.key.name,
+                  _categoryLabel(e.key),
+                  e.value,
+                  state.dayExpense,
+                  AppTheme.errorColor,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryRow(
+    String key,
+    String label,
+    double amount,
+    double total,
+    Color color,
+  ) {
+    final percentage = total > 0 ? (amount / total) : 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(label, style: const TextStyle(fontSize: 13)),
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                Container(
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                FractionallySizedBox(
+                  widthFactor: percentage,
+                  child: Container(
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 120,
+            child: Text(
+              Formatters.currency(amount),
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: color,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 50,
+            child: Text(
+              '${(percentage * 100).toStringAsFixed(0)}%',
+              textAlign: TextAlign.right,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMovementsList(BuildContext context, DailyCashState state) {
     return Card(
       child: Padding(
@@ -574,13 +773,14 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     final account = state.getAccountById(movement.accountId);
     final isIncome = movement.isIncome;
     final isTransfer = movement.type == MovementType.transfer;
+    final isTransferIn = movement.category == MovementCategory.transferIn;
 
     Color iconColor;
     IconData icon;
 
     if (isTransfer) {
       iconColor = Colors.orange;
-      icon = Icons.swap_horiz;
+      icon = isTransferIn ? Icons.arrow_downward : Icons.arrow_upward;
     } else if (isIncome) {
       iconColor = AppTheme.successColor;
       icon = Icons.arrow_downward;
@@ -662,28 +862,63 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${isIncome ? '+' : '-'}${Formatters.currency(movement.amount)}',
+                '${isIncome || isTransferIn ? '+' : '-'}${Formatters.currency(movement.amount)}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: isIncome ? AppTheme.successColor : AppTheme.errorColor,
+                  color: isTransfer
+                      ? Colors.orange
+                      : (isIncome
+                            ? AppTheme.successColor
+                            : AppTheme.errorColor),
                 ),
               ),
               Text(
                 Formatters.time(movement.createdAt),
                 style: TextStyle(color: Colors.grey[500], fontSize: 11),
               ),
+              if (movement.attachments.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.attach_file,
+                        size: 12,
+                        color: Colors.blue[400],
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${movement.attachments.length}',
+                        style: TextStyle(color: Colors.blue[400], fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
           const SizedBox(width: 8),
           PopupMenuButton<String>(
             icon: Icon(Icons.more_vert, color: Colors.grey[400]),
             onSelected: (value) {
-              if (value == 'delete') {
+              if (value == 'detail') {
+                _showMovementDetail(context, movement, state);
+              } else if (value == 'delete') {
                 _confirmDeleteMovement(context, movement);
               }
             },
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'detail',
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                    SizedBox(width: 8),
+                    Text('Ver Detalle'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'delete',
                 child: Row(
@@ -1067,15 +1302,6 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               ),
               const SizedBox(height: 24),
               ListTile(
-                leading: const Icon(Icons.edit),
-                title: const Text('Ajustar Saldo'),
-                subtitle: const Text('Corregir balance manualmente'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showAdjustBalanceDialog(context, account);
-                },
-              ),
-              ListTile(
                 leading: const Icon(Icons.history),
                 title: const Text('Ver Historial'),
                 subtitle: const Text('Todos los movimientos de esta cuenta'),
@@ -1086,59 +1312,6 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  void _showAdjustBalanceDialog(BuildContext context, Account account) {
-    final controller = TextEditingController(
-      text: account.balance.toStringAsFixed(2),
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Ajustar Saldo - ${account.name}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Ingrese el saldo real de la cuenta:'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'Nuevo Saldo',
-                  prefixText: 'L ',
-                  border: OutlineInputBorder(),
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newBalance =
-                    double.tryParse(controller.text) ?? account.balance;
-                ref
-                    .read(dailyCashProvider.notifier)
-                    .adjustBalance(account.id, newBalance);
-                Navigator.pop(context);
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
         );
       },
     );
@@ -1194,6 +1367,279 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
       },
     );
   }
+
+  void _showMovementDetail(
+    BuildContext context,
+    CashMovement movement,
+    DailyCashState state,
+  ) {
+    final account = state.getAccountById(movement.accountId);
+    final isIncome = movement.isIncome;
+    final isTransfer = movement.type == MovementType.transfer;
+    final color = isTransfer
+        ? Colors.orange
+        : (isIncome ? AppTheme.successColor : AppTheme.errorColor);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                  color: color,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  movement.description,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 500,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Monto destacado
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: color.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          '${isIncome ? '+' : '-'}${Formatters.currency(movement.amount)}',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            movement.categoryLabel,
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Información del movimiento
+                  _detailRow(
+                    Icons.account_balance_wallet,
+                    'Cuenta',
+                    account?.name ?? 'N/A',
+                  ),
+                  if (movement.reference != null &&
+                      movement.reference!.isNotEmpty)
+                    _detailRow(Icons.tag, 'Referencia', movement.reference!),
+                  if (movement.personName != null &&
+                      movement.personName!.isNotEmpty)
+                    _detailRow(Icons.person, 'Persona', movement.personName!),
+                  _detailRow(
+                    Icons.calendar_today,
+                    'Fecha',
+                    Formatters.date(movement.date),
+                  ),
+                  _detailRow(
+                    Icons.access_time,
+                    'Hora',
+                    Formatters.time(movement.createdAt),
+                  ),
+                  _detailRow(Icons.category, 'Tipo', movement.typeLabel),
+
+                  // Adjuntos
+                  if (movement.attachments.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.attach_file,
+                          size: 18,
+                          color: Colors.blue[600],
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Adjuntos (${movement.attachments.length})',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.blue[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...movement.attachments.map((attachment) {
+                      final publicUrl = StorageDatasource.getPublicUrl(
+                        attachment.path,
+                      );
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (attachment.isImage)
+                              ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(8),
+                                ),
+                                child: Image.network(
+                                  publicUrl,
+                                  height: 200,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    height: 80,
+                                    color: Colors.grey[200],
+                                    child: const Center(
+                                      child: Icon(Icons.broken_image, size: 32),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ListTile(
+                              dense: true,
+                              leading: Icon(
+                                attachment.isImage
+                                    ? Icons.image
+                                    : (attachment.isPdf
+                                          ? Icons.picture_as_pdf
+                                          : Icons.insert_drive_file),
+                                color: attachment.isImage
+                                    ? Colors.blue
+                                    : (attachment.isPdf
+                                          ? Colors.red
+                                          : Colors.grey[600]),
+                                size: 20,
+                              ),
+                              title: Text(
+                                attachment.name,
+                                style: const TextStyle(fontSize: 12),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                _formatFileSize(attachment.size),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ] else ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Sin archivos adjuntos',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: Colors.grey[500]),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 90,
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
 }
 
 // ===================== DIALOGO AGREGAR MOVIMIENTO =====================
@@ -1220,7 +1666,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
   @override
   void initState() {
     super.initState();
-    // Seleccionar la primera cuenta por defecto después del primer frame
+    // Seleccionar la primera cuenta por defecto y cargar referencia automática
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final accounts = ref.read(dailyCashProvider).accounts;
       if (accounts.isNotEmpty && _selectedAccountId == null) {
@@ -1228,7 +1674,18 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
           _selectedAccountId = accounts.first.id;
         });
       }
+      // Auto-generar número de referencia consecutivo
+      _loadNextReference();
     });
+  }
+
+  Future<void> _loadNextReference() async {
+    final nextNum = await AccountsDataSource.getNextReferenceNumber();
+    if (mounted) {
+      setState(() {
+        _referenceController.text = 'MOV-${nextNum.toString().padLeft(4, '0')}';
+      });
+    }
   }
 
   List<MovementCategory> get _incomeCategories => [
@@ -1238,12 +1695,14 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
   ];
 
   List<MovementCategory> get _expenseCategories => [
-    MovementCategory.purchase,
-    MovementCategory.salary,
-    MovementCategory.services,
-    MovementCategory.transport,
-    MovementCategory.maintenance,
-    MovementCategory.otherExpense,
+    MovementCategory.cuidado_personal,
+    MovementCategory.servicios_publicos,
+    MovementCategory.papeleria,
+    MovementCategory.nomina,
+    MovementCategory.impuestos,
+    MovementCategory.consumibles,
+    MovementCategory.transporte,
+    MovementCategory.gastos_reducibles,
   ];
 
   @override
@@ -1329,7 +1788,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                   items: categories.map((cat) {
                     return DropdownMenuItem<MovementCategory>(
                       value: cat,
-                      child: Text(_getCategoryLabel(cat)),
+                      child: Text(_categoryLabel(cat)),
                     );
                   }).toList(),
                   onChanged: (value) {
@@ -1385,19 +1844,22 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                // Persona (opcional) - Autocomplete de clientes y proveedores
+                // Persona (opcional) - Clientes para ingresos, Proveedores para gastos
                 Consumer(
                   builder: (context, ref, _) {
                     final customersState = ref.watch(customersProvider);
                     final suppliersState = ref.watch(suppliersProvider);
 
-                    // Combinar nombres de clientes y proveedores
+                    // Mostrar clientes para ingresos, proveedores para gastos
                     final allNames = <String>[];
-                    for (final c in customersState.customers) {
-                      allNames.add('👤 ${c.displayName}'); // Cliente
-                    }
-                    for (final s in suppliersState.suppliers) {
-                      allNames.add('🏢 ${s.displayName}'); // Proveedor
+                    if (_isIncome) {
+                      for (final c in customersState.customers) {
+                        allNames.add('👤 ${c.displayName}'); // Cliente
+                      }
+                    } else {
+                      for (final s in suppliersState.suppliers) {
+                        allNames.add('🏢 ${s.displayName}'); // Proveedor
+                      }
                     }
 
                     return Autocomplete<String>(
@@ -1631,20 +2093,29 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isSaving ? null : () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
         ElevatedButton(
-          onPressed: _save,
+          onPressed: _isSaving ? null : _save,
           style: ElevatedButton.styleFrom(
             backgroundColor: _isIncome
                 ? AppTheme.successColor
                 : AppTheme.errorColor,
           ),
-          child: Text(
-            _isIncome ? 'Registrar Ingreso' : 'Registrar Gasto',
-            style: const TextStyle(color: Colors.white),
-          ),
+          child: _isSaving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  _isIncome ? 'Registrar Ingreso' : 'Registrar Gasto',
+                  style: const TextStyle(color: Colors.white),
+                ),
         ),
       ],
     );
@@ -1678,31 +2149,6 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
           SnackBar(content: Text('Error al seleccionar archivos: $e')),
         );
       }
-    }
-  }
-
-  String _getCategoryLabel(MovementCategory category) {
-    switch (category) {
-      case MovementCategory.sale:
-        return 'Venta';
-      case MovementCategory.collection:
-        return 'Cobranza';
-      case MovementCategory.otherIncome:
-        return 'Otros Ingresos';
-      case MovementCategory.purchase:
-        return 'Compra';
-      case MovementCategory.salary:
-        return 'Salario';
-      case MovementCategory.services:
-        return 'Servicios';
-      case MovementCategory.transport:
-        return 'Transporte';
-      case MovementCategory.maintenance:
-        return 'Mantenimiento';
-      case MovementCategory.otherExpense:
-        return 'Otros Gastos';
-      default:
-        return category.name;
     }
   }
 
@@ -1805,16 +2251,37 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
     );
   }
 
+  bool _isSaving = false;
+
   void _save() async {
-    setState(() => _errorMessage = null);
+    setState(() {
+      _errorMessage = null;
+      _isSaving = false;
+    });
     if (!_formKey.currentState!.validate()) return;
 
     final notifier = ref.read(dailyCashProvider.notifier);
     final amount = double.parse(_amountController.text);
-    bool success;
+
+    // Validar saldo suficiente para gastos
+    if (!_isIncome && _selectedAccountId != null) {
+      final state = ref.read(dailyCashProvider);
+      final account = state.getAccountById(_selectedAccountId!);
+      if (account != null && account.balance < amount) {
+        setState(
+          () => _errorMessage =
+              'Saldo insuficiente. Disponible: \$${account.balance.toStringAsFixed(0)} en ${account.name}',
+        );
+        return;
+      }
+    }
+
+    setState(() => _isSaving = true);
+
+    String? movementId;
     try {
       if (_isIncome) {
-        success = await notifier.addIncome(
+        movementId = await notifier.addIncome(
           accountId: _selectedAccountId!,
           amount: amount,
           description: _descriptionController.text,
@@ -1827,7 +2294,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
               : _referenceController.text,
         );
       } else {
-        success = await notifier.addExpense(
+        movementId = await notifier.addExpense(
           accountId: _selectedAccountId!,
           amount: amount,
           description: _descriptionController.text,
@@ -1840,25 +2307,77 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
               : _referenceController.text,
         );
       }
-      if (success && mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isIncome ? 'Ingreso registrado' : 'Gasto registrado',
+
+      if (movementId != null) {
+        // Subir archivos adjuntos a Supabase Storage
+        if (_attachedFiles.isNotEmpty) {
+          try {
+            // Asegurar que el bucket existe
+            await StorageDatasource.ensureBucketExists();
+
+            if (mounted) {
+              setState(
+                () => _errorMessage =
+                    'Subiendo ${_attachedFiles.length} archivo(s)...',
+              );
+            }
+
+            final attachments = await StorageDatasource.uploadFiles(
+              files: _attachedFiles,
+              movementId: movementId,
+            );
+            // Guardar las referencias en la DB
+            await StorageDatasource.saveAttachmentsToMovement(
+              movementId,
+              attachments,
+            );
+
+            // Refrescar movimientos para mostrar el ícono de adjuntos
+            notifier.refreshMovements();
+          } catch (uploadError) {
+            // El movimiento ya se guardó, avisamos del error
+            if (mounted) {
+              setState(() => _isSaving = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Movimiento guardado, pero error al subir archivos: $uploadError',
+                  ),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+            }
+          }
+        }
+
+        if (mounted) {
+          Navigator.pop(context);
+          final hasFiles = _attachedFiles.isNotEmpty;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _isIncome
+                    ? 'Ingreso registrado${hasFiles ? ' con adjuntos' : ''}'
+                    : 'Gasto registrado${hasFiles ? ' con adjuntos' : ''}',
+              ),
+              backgroundColor: AppTheme.successColor,
             ),
-            backgroundColor: AppTheme.successColor,
-          ),
-        );
-      } else if (!success) {
-        setState(
-          () => _errorMessage =
-              (ref.read(dailyCashProvider).error ??
-              'No se pudo registrar el movimiento.'),
-        );
+          );
+        }
+      } else {
+        setState(() {
+          _isSaving = false;
+          _errorMessage =
+              ref.read(dailyCashProvider).error ??
+              'No se pudo registrar el movimiento.';
+        });
       }
     } catch (e) {
-      setState(() => _errorMessage = 'Error: ${e.toString()}');
+      setState(() {
+        _isSaving = false;
+        _errorMessage = 'Error: ${e.toString()}';
+      });
     }
   }
 }
@@ -2042,6 +2561,23 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
 
     final notifier = ref.read(dailyCashProvider.notifier);
     final amount = double.parse(_amountController.text);
+
+    // Validar saldo suficiente en cuenta origen
+    if (_fromAccountId != null) {
+      final state = ref.read(dailyCashProvider);
+      final fromAccount = state.getAccountById(_fromAccountId!);
+      if (fromAccount != null && fromAccount.balance < amount) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Saldo insuficiente. Disponible: \$${fromAccount.balance.toStringAsFixed(0)} en ${fromAccount.name}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
 
     final success = await notifier.transfer(
       fromAccountId: _fromAccountId!,

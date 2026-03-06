@@ -23,7 +23,7 @@ void main() {
         id: 'mov-002',
         accountId: 'acc-001',
         type: MovementType.expense,
-        category: MovementCategory.purchase,
+        category: MovementCategory.consumibles,
         amount: 800.0,
         description: 'Compra de material',
         date: DateTime(2025, 3, 15),
@@ -66,28 +66,28 @@ void main() {
       expect(
         CashMovement(
           id: '1', accountId: 'a', type: MovementType.expense,
-          category: MovementCategory.salary, amount: 1, description: '', date: DateTime.now(),
+          category: MovementCategory.nomina, amount: 1, description: '', date: DateTime.now(),
         ).categoryLabel,
         'Salario',
       );
       expect(
         CashMovement(
           id: '1', accountId: 'a', type: MovementType.expense,
-          category: MovementCategory.services, amount: 1, description: '', date: DateTime.now(),
+          category: MovementCategory.servicios_publicos, amount: 1, description: '', date: DateTime.now(),
         ).categoryLabel,
         'Servicios',
       );
       expect(
         CashMovement(
           id: '1', accountId: 'a', type: MovementType.expense,
-          category: MovementCategory.transport, amount: 1, description: '', date: DateTime.now(),
+          category: MovementCategory.transporte, amount: 1, description: '', date: DateTime.now(),
         ).categoryLabel,
         'Transporte',
       );
       expect(
         CashMovement(
           id: '1', accountId: 'a', type: MovementType.expense,
-          category: MovementCategory.maintenance, amount: 1, description: '', date: DateTime.now(),
+          category: MovementCategory.gastos_reducibles, amount: 1, description: '', date: DateTime.now(),
         ).categoryLabel,
         'Mantenimiento',
       );
@@ -211,7 +211,7 @@ void main() {
       final movements = [
         CashMovement(id: '1', accountId: 'a', type: MovementType.income, category: MovementCategory.sale, amount: 100, description: '', date: DateTime.now()),
         CashMovement(id: '2', accountId: 'a', type: MovementType.income, category: MovementCategory.collection, amount: 200, description: '', date: DateTime.now()),
-        CashMovement(id: '3', accountId: 'a', type: MovementType.expense, category: MovementCategory.purchase, amount: 50, description: '', date: DateTime.now()),
+        CashMovement(id: '3', accountId: 'a', type: MovementType.expense, category: MovementCategory.consumibles, amount: 50, description: '', date: DateTime.now()),
       ];
       final report = DailyCashReport(
         date: DateTime.now(),

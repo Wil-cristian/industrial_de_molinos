@@ -84,6 +84,7 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
                     Icons.money_off,
                   ),
                   const SizedBox(width: 16),
+
                   FilledButton.icon(
                     onPressed: () => _showCreateOrderDialog(),
                     icon: const Icon(Icons.add_shopping_cart, size: 18),
@@ -1671,7 +1672,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                                   amount: payAmount,
                                   description:
                                       'Pago OC ${_order.orderNumber} — ${_order.supplierName}',
-                                  category: MovementCategory.purchase,
+                                  category: MovementCategory.consumibles,
                                   personName: _order.supplierName,
                                   reference: _order.orderNumber,
                                 );

@@ -58,38 +58,38 @@ DELETE FROM customers WHERE document_number IN (
 -- ExtraÃ­dos de los 32 recibos fÃ­sicos escaneados
 -- Todos son clientes de SupÃ­a/Caldas y alrededores (minerÃ­a artesanal)
 
-INSERT INTO customers (id, type, document_type, name, trade_name, phone, is_active, notes, created_at)
+INSERT INTO customers (id, type, document_type, document_number, name, trade_name, phone, is_active, notes, created_at)
 VALUES
     -- Clientes recurrentes (aparecen en mÃºltiples recibos)
-    ('c2000001-0ea1-0000-0000-000000000001', 'individual', 'cc', 'Jhon Jairo Arenas', NULL, NULL, true, 'Cliente recurrente - Piezas fundidas, bolas, caucho', '2025-12-01'),
-    ('c2000001-0ea1-0000-0000-000000000002', 'individual', 'cc', 'Elkin Mario Zapata', NULL, NULL, true, 'Cliente recurrente - Placas de desgaste', '2025-12-01'),
-    ('c2000001-0ea1-0000-0000-000000000003', 'individual', 'cc', 'Wilmer Ramos Canaval', NULL, NULL, true, 'Cliente recurrente - Discos, remoledores', '2025-12-01'),
+    ('c2000001-0ea1-0000-0000-000000000001', 'individual', 'cc', 'CC-JJARENAS-001', 'Jhon Jairo Arenas', NULL, NULL, true, 'Cliente recurrente - Piezas fundidas, bolas, caucho', '2025-12-01'),
+    ('c2000001-0ea1-0000-0000-000000000002', 'individual', 'cc', 'CC-EZAPATA-002', 'Elkin Mario Zapata', NULL, NULL, true, 'Cliente recurrente - Placas de desgaste', '2025-12-01'),
+    ('c2000001-0ea1-0000-0000-000000000003', 'individual', 'cc', 'CC-WRAMOS-003', 'Wilmer Ramos Canaval', NULL, NULL, true, 'Cliente recurrente - Discos, remoledores', '2025-12-01'),
     
     -- Clientes regulares
-    ('c2000001-0ea1-0000-0000-000000000004', 'individual', 'cc', 'Reinaldo Mesa', NULL, NULL, true, 'Eclipas/grapas para molino', '2025-12-24'),
-    ('c2000001-0ea1-0000-0000-000000000005', 'individual', 'cc', 'Benaimo Carro', NULL, NULL, true, 'Removedores', '2025-12-24'),
-    ('c2000001-0ea1-0000-0000-000000000006', 'individual', 'cc', 'Alex Caballero', NULL, NULL, true, 'Volantes', '2025-12-27'),
-    ('c2000001-0ea1-0000-0000-000000000007', 'individual', 'cc', 'JuliÃ¡n AndrÃ©s LondoÃ±o', NULL, NULL, true, 'Placas 27" SB 7/8', '2025-12-29'),
-    ('c2000001-0ea1-0000-0000-000000000008', 'business', 'nit', 'Buseta', 'Buseta', NULL, true, 'Placas de manganeso', '2025-12-24'),
-    ('c2000001-0ea1-0000-0000-000000000009', 'individual', 'cc', 'Guillermo Ortiz', NULL, NULL, true, 'Coches mineros', '2025-12-17'),
-    ('c2000001-0ea1-0000-0000-000000000010', 'individual', 'cc', 'William Giraldo', NULL, NULL, true, 'Tubos especiales', '2025-12-18'),
-    ('c2000001-0ea1-0000-0000-000000000011', 'individual', 'cc', 'Oscar Ardila', 'La Palomera', NULL, true, 'Cabezotes trituradora, discos - La Palomera', '2025-12-05'),
-    ('c2000001-0ea1-0000-0000-000000000012', 'individual', 'cc', 'Jose Bernardo Castro MarÃ­n', NULL, NULL, true, 'Remoledores', '2025-12-17'),
-    ('c2000001-0ea1-0000-0000-000000000013', 'individual', 'cc', 'Parmenio RodrÃ­guez Rojas', NULL, NULL, true, 'Bola acero', '2025-12-13'),
-    ('c2000001-0ea1-0000-0000-000000000014', 'individual', 'cc', 'Daniel Sierra', NULL, NULL, true, 'Trituradora completa', '2025-12-15'),
-    ('c2000001-0ea1-0000-0000-000000000015', 'individual', 'cc', 'Jhon Morales', NULL, NULL, true, 'Bola 3" en volumen', '2025-12-11'),
-    ('c2000001-0ea1-0000-0000-000000000016', 'business', 'nit', 'Cliente Sur de BolÃ­var', 'Sur de BolÃ­var', NULL, true, 'Pedido grande - Remoledores, trituradoras, bola, placas, sist. arrastre', '2025-12-12'),
-    ('c2000001-0ea1-0000-0000-000000000017', 'individual', 'cc', 'Wilmer Ramos', NULL, NULL, true, 'Discos partidos', '2025-12-12'),
-    ('c2000001-0ea1-0000-0000-000000000018', 'individual', 'cc', 'Carlos Arturo Zuluaga', NULL, NULL, true, 'Caja molino. CC: 98532099', '2025-12-11'),
-    ('c2000001-0ea1-0000-0000-000000000019', 'individual', 'cc', 'Milton', NULL, NULL, true, 'Volantes', '2025-12-11'),
-    ('c2000001-0ea1-0000-0000-000000000020', 'individual', 'cc', 'Ruben Dario Hernandez', NULL, NULL, true, 'Remoledores', '2025-12-09'),
-    ('c2000001-0ea1-0000-0000-000000000021', 'business', 'nit', 'El Ceibo', 'El Ceibo', NULL, true, 'Chumaceras en volumen', '2025-12-09'),
-    ('c2000001-0ea1-0000-0000-000000000022', 'individual', 'cc', 'Jairo DÃ­az', NULL, '3242069706', true, 'Volantes', '2025-12-04'),
-    ('c2000001-0ea1-0000-0000-000000000023', 'individual', 'cc', 'Manuel Salazar', NULL, NULL, true, 'Tapas, ejes, chumaceras', '2025-12-04'),
-    ('c2000001-0ea1-0000-0000-000000000024', 'business', 'nit', 'Riel', 'Riel', NULL, true, 'Riel de cubil al por mayor', '2025-12-02'),
-    ('c2000001-0ea1-0000-0000-000000000025', 'individual', 'cc', 'Guille', NULL, NULL, true, 'Coches mineros', '2025-12-01'),
-    ('c2000001-0ea1-0000-0000-000000000026', 'individual', 'cc', 'Alex Canalete', NULL, NULL, true, 'Tapas fundidas', '2025-12-01'),
-    ('c2000001-0ea1-0000-0000-000000000027', 'individual', 'cc', 'Danfer', NULL, NULL, true, 'Discos', '2025-12-01')
+    ('c2000001-0ea1-0000-0000-000000000004', 'individual', 'cc', 'CC-RMESA-004', 'Reinaldo Mesa', NULL, NULL, true, 'Eclipas/grapas para molino', '2025-12-24'),
+    ('c2000001-0ea1-0000-0000-000000000005', 'individual', 'cc', 'CC-BCARRO-005', 'Benaimo Carro', NULL, NULL, true, 'Removedores', '2025-12-24'),
+    ('c2000001-0ea1-0000-0000-000000000006', 'individual', 'cc', 'CC-ACABALLERO-006', 'Alex Caballero', NULL, NULL, true, 'Volantes', '2025-12-27'),
+    ('c2000001-0ea1-0000-0000-000000000007', 'individual', 'cc', 'CC-JLONDONO-007', 'JuliÃ¡n AndrÃ©s LondoÃ±o', NULL, NULL, true, 'Placas 27" SB 7/8', '2025-12-29'),
+    ('c2000001-0ea1-0000-0000-000000000008', 'business', 'nit', 'NIT-BUSETA-008', 'Buseta', 'Buseta', NULL, true, 'Placas de manganeso', '2025-12-24'),
+    ('c2000001-0ea1-0000-0000-000000000009', 'individual', 'cc', 'CC-GORTIZ-009', 'Guillermo Ortiz', NULL, NULL, true, 'Coches mineros', '2025-12-17'),
+    ('c2000001-0ea1-0000-0000-000000000010', 'individual', 'cc', 'CC-WGIRALDO-010', 'William Giraldo', NULL, NULL, true, 'Tubos especiales', '2025-12-18'),
+    ('c2000001-0ea1-0000-0000-000000000011', 'individual', 'cc', 'CC-OARDILA-011', 'Oscar Ardila', 'La Palomera', NULL, true, 'Cabezotes trituradora, discos - La Palomera', '2025-12-05'),
+    ('c2000001-0ea1-0000-0000-000000000012', 'individual', 'cc', 'CC-JCASTRO-012', 'Jose Bernardo Castro MarÃ­n', NULL, NULL, true, 'Remoledores', '2025-12-17'),
+    ('c2000001-0ea1-0000-0000-000000000013', 'individual', 'cc', 'CC-PRODRIGUEZ-013', 'Parmenio RodrÃ­guez Rojas', NULL, NULL, true, 'Bola acero', '2025-12-13'),
+    ('c2000001-0ea1-0000-0000-000000000014', 'individual', 'cc', 'CC-DSIERRA-014', 'Daniel Sierra', NULL, NULL, true, 'Trituradora completa', '2025-12-15'),
+    ('c2000001-0ea1-0000-0000-000000000015', 'individual', 'cc', 'CC-JMORALES-015', 'Jhon Morales', NULL, NULL, true, 'Bola 3" en volumen', '2025-12-11'),
+    ('c2000001-0ea1-0000-0000-000000000016', 'business', 'nit', 'NIT-SURBOLIVAR-016', 'Cliente Sur de BolÃ­var', 'Sur de BolÃ­var', NULL, true, 'Pedido grande - Remoledores, trituradoras, bola, placas, sist. arrastre', '2025-12-12'),
+    ('c2000001-0ea1-0000-0000-000000000017', 'individual', 'cc', 'CC-WRAMOS2-017', 'Wilmer Ramos', NULL, NULL, true, 'Discos partidos', '2025-12-12'),
+    ('c2000001-0ea1-0000-0000-000000000018', 'individual', 'cc', '98532099', 'Carlos Arturo Zuluaga', NULL, NULL, true, 'Caja molino. CC: 98532099', '2025-12-11'),
+    ('c2000001-0ea1-0000-0000-000000000019', 'individual', 'cc', 'CC-MILTON-019', 'Milton', NULL, NULL, true, 'Volantes', '2025-12-11'),
+    ('c2000001-0ea1-0000-0000-000000000020', 'individual', 'cc', 'CC-RHERNANDEZ-020', 'Ruben Dario Hernandez', NULL, NULL, true, 'Remoledores', '2025-12-09'),
+    ('c2000001-0ea1-0000-0000-000000000021', 'business', 'nit', 'NIT-ELCEIBO-021', 'El Ceibo', 'El Ceibo', NULL, true, 'Chumaceras en volumen', '2025-12-09'),
+    ('c2000001-0ea1-0000-0000-000000000022', 'individual', 'cc', 'CC-JDIAZ-022', 'Jairo DÃ­az', NULL, '3242069706', true, 'Volantes', '2025-12-04'),
+    ('c2000001-0ea1-0000-0000-000000000023', 'individual', 'cc', 'CC-MSALAZAR-023', 'Manuel Salazar', NULL, NULL, true, 'Tapas, ejes, chumaceras', '2025-12-04'),
+    ('c2000001-0ea1-0000-0000-000000000024', 'business', 'nit', 'NIT-RIEL-024', 'Riel', 'Riel', NULL, true, 'Riel de cubil al por mayor', '2025-12-02'),
+    ('c2000001-0ea1-0000-0000-000000000025', 'individual', 'cc', 'CC-GUILLE-025', 'Guille', NULL, NULL, true, 'Coches mineros', '2025-12-01'),
+    ('c2000001-0ea1-0000-0000-000000000026', 'individual', 'cc', 'CC-ACANALETE-026', 'Alex Canalete', NULL, NULL, true, 'Tapas fundidas', '2025-12-01'),
+    ('c2000001-0ea1-0000-0000-000000000027', 'individual', 'cc', 'CC-DANFER-027', 'Danfer', NULL, NULL, true, 'Discos', '2025-12-01')
 ON CONFLICT DO NOTHING;
 
 
@@ -331,87 +331,87 @@ ON CONFLICT (series, number) DO NOTHING;
 -- PASO 4: INSERTAR ITEMS DE FACTURA (detalle por producto)
 -- ============================================================
 
-INSERT INTO invoice_items (invoice_id, product_name, description, quantity, unit_price, total_price)
+INSERT INTO invoice_items (invoice_id, product_name, description, quantity, unit_price, subtotal, total)
 VALUES
     -- REC-0312: Coches mineros
-    ('1acc0ea1-0000-0000-0000-000000000312', 'Coches mineros', 'Coche minero artesanal', 6, 1756891, 10541345),
+    ('1acc0ea1-0000-0000-0000-000000000312', 'Coches mineros', 'Coche minero artesanal', 6, 1756891, 10541345, 10541345),
     -- REC-0313: Tapas 40"
-    ('1acc0ea1-0000-0000-0000-000000000313', 'Tapas de 40" c 1"', 'Tapa circular Ã˜40" calibre 1"', 2, 1326000, 2652000),
+    ('1acc0ea1-0000-0000-0000-000000000313', 'Tapas de 40" c 1"', 'Tapa circular Ø40" calibre 1"', 2, 1326000, 2652000, 2652000),
     -- REC-0314: Discos 52cm
-    ('1acc0ea1-0000-0000-0000-000000000314', 'Discos 52 cm c 1"', 'Disco circular 52cm calibre 1"', 2, 350000, 700000),
+    ('1acc0ea1-0000-0000-0000-000000000314', 'Discos 52 cm c 1"', 'Disco circular 52cm calibre 1"', 2, 350000, 700000, 700000),
     -- REC-0315: Riel
-    ('1acc0ea1-0000-0000-0000-000000000315', 'Riel de cubil', 'Riel de cubil', 2000, 7300, 14600000),
+    ('1acc0ea1-0000-0000-0000-000000000315', 'Riel de cubil', 'Riel de cubil', 2000, 7300, 14600000, 14600000),
     -- REC-0316: Tarro breke
-    ('1acc0ea1-0000-0000-0000-000000000316', 'Tarro para breke minero', 'Tarro breke minero, tapa c 3/16', 1, 1800000, 1800000),
+    ('1acc0ea1-0000-0000-0000-000000000316', 'Tarro para breke minero', 'Tarro breke minero, tapa c 3/16', 1, 1800000, 1800000, 1800000),
     -- REC-0317: Volante 18"
-    ('1acc0ea1-0000-0000-0000-000000000317', 'Volante de 18"', 'Volante fundido Ã˜18"', 1, 280000, 280000),
+    ('1acc0ea1-0000-0000-0000-000000000317', 'Volante de 18"', 'Volante fundido Ø18"', 1, 280000, 280000, 280000),
     -- REC-0320: Remoledor 36"
-    ('1acc0ea1-0000-0000-0000-000000000320', 'Remoledor de 36"Ã—110cm C1"', 'Remoledor 36"Ã—110cm C1", eje 3"Ã—22cm, pie amigos 5Ã—40', 1, 7850000, 7850000),
+    ('1acc0ea1-0000-0000-0000-000000000320', 'Remoledor de 36"×110cm C1"', 'Remoledor 36"×110cm C1", eje 3"×22cm, pie amigos 5×40', 1, 7850000, 7850000, 7850000),
     -- REC-0321: Tapas+Eje+Chumaceras
-    ('1acc0ea1-0000-0000-0000-000000000321', 'Tapas Ã˜32" c media', 'Tapas diÃ¡metro 32" calibre media', 2, 437000, 874000),
-    ('1acc0ea1-0000-0000-0000-000000000321', 'Eje 2"Ã—4 metros', 'Eje de 2" Ã— 4 metros', 4, 248000, 992000),
-    ('1acc0ea1-0000-0000-0000-000000000321', 'Chumaceras', 'Chumacera estÃ¡ndar', 3, 75000, 225000),
+    ('1acc0ea1-0000-0000-0000-000000000321', 'Tapas Ø32" c media', 'Tapas diámetro 32" calibre media', 2, 437000, 874000, 874000),
+    ('1acc0ea1-0000-0000-0000-000000000321', 'Eje 2"×4 metros', 'Eje de 2" × 4 metros', 4, 248000, 992000, 992000),
+    ('1acc0ea1-0000-0000-0000-000000000321', 'Chumaceras', 'Chumacera estándar', 3, 75000, 225000, 225000),
     -- REC-0322: Discos 36"
-    ('1acc0ea1-0000-0000-0000-000000000322', 'Discos laterales c 3/4 36"', 'Disco lateral cal 3/4 Ã˜36"', 2, 805278, 1610556),
+    ('1acc0ea1-0000-0000-0000-000000000322', 'Discos laterales c 3/4 36"', 'Disco lateral cal 3/4 Ø36"', 2, 805278, 1610556, 1610556),
     -- REC-0324: Remoledor 22"
-    ('1acc0ea1-0000-0000-0000-000000000324', 'Remoledor de 22" c1"Ã—50cm', 'Remoledor 22" c1"Ã—50cm, tapas Ã˜47cm media, eje 1.5"Ã—17cm, boca 20Ã—20', 1, 2400000, 2400000),
+    ('1acc0ea1-0000-0000-0000-000000000324', 'Remoledor de 22" c1"×50cm', 'Remoledor 22" c1"×50cm, tapas Ø47cm media, eje 1.5"×17cm, boca 20×20', 1, 2400000, 2400000, 2400000),
     -- REC-0325: Chumaceras
-    ('1acc0ea1-0000-0000-0000-000000000325', 'Chumaceras', 'Chumacera industrial', 12, 215000, 2580000),
+    ('1acc0ea1-0000-0000-0000-000000000325', 'Chumaceras', 'Chumacera industrial', 12, 215000, 2580000, 2580000),
     -- REC-0326: Bola 1"
-    ('1acc0ea1-0000-0000-0000-000000000326', 'Bola 1"', 'Bola de acero 1"', 15, 6700, 100500),
+    ('1acc0ea1-0000-0000-0000-000000000326', 'Bola 1"', 'Bola de acero 1"', 15, 6700, 100500, 100500),
     -- REC-0327: Caja
-    ('1acc0ea1-0000-0000-0000-000000000327', 'Caja', 'Caja para molino', 1, 3300000, 3300000),
+    ('1acc0ea1-0000-0000-0000-000000000327', 'Caja', 'Caja para molino', 1, 3300000, 3300000, 3300000),
     -- REC-0328: Volantes
-    ('1acc0ea1-0000-0000-0000-000000000328', 'Volante 20"', 'Volante fundido Ã˜20"', 1, 320000, 320000),
-    ('1acc0ea1-0000-0000-0000-000000000328', 'Volante de 18"', 'Volante fundido Ã˜18"', 1, 180000, 180000),
+    ('1acc0ea1-0000-0000-0000-000000000328', 'Volante 20"', 'Volante fundido Ø20"', 1, 320000, 320000, 320000),
+    ('1acc0ea1-0000-0000-0000-000000000328', 'Volante de 18"', 'Volante fundido Ø18"', 1, 180000, 180000, 180000),
     -- REC-0329: Bola 3"
-    ('1acc0ea1-0000-0000-0000-000000000329', 'Bola 3"', 'Bola de acero 3" (importaciÃ³n)', 600, 6300, 3780000),
-    -- REC-0330: Pedido grande Sur de BolÃ­var
-    ('1acc0ea1-0000-0000-0000-000000000330', 'Remoledor continuo 42"', 'Remoledor 42" ext cal 14mmÃ—150cm, tapas atornilladas, bases metÃ¡licas tipo A, rod 6312, sist arrastre poleas/bandas', 1, 0, 0),
-    ('1acc0ea1-0000-0000-0000-000000000330', 'Trituradora #2', 'Trituradora modelo #2 completa', 1, 0, 0),
-    ('1acc0ea1-0000-0000-0000-000000000330', 'Bola', 'Bola de acero importaciÃ³n', 1600, 3031, 4849600),
-    ('1acc0ea1-0000-0000-0000-000000000330', 'Remoledor 36"Ã—1m c1"', 'Remoledor 36"Ã—1m c1" emplacado metÃ¡lico cambio, chumaceras 2"', 1, 0, 0),
-    ('1acc0ea1-0000-0000-0000-000000000330', 'Sistema arrastre 42"', 'Sistema de arrastre para remoledor 42"', 1, 0, 0),
-    ('1acc0ea1-0000-0000-0000-000000000330', 'Sistema arrastre 36"', 'Sistema de arrastre para remoledor 36"', 1, 0, 0),
-    ('1acc0ea1-0000-0000-0000-000000000330', 'Placas 26.5Ã—93 c 3/6 20mm', 'Placas de desgaste 26.5Ã—93 cal 3/6 20mm', 10, 0, 0),
+    ('1acc0ea1-0000-0000-0000-000000000329', 'Bola 3"', 'Bola de acero 3" (importación)', 600, 6300, 3780000, 3780000),
+    -- REC-0330: Pedido grande Sur de Bolívar
+    ('1acc0ea1-0000-0000-0000-000000000330', 'Remoledor continuo 42"', 'Remoledor 42" ext cal 14mm×150cm, tapas atornilladas, bases metálicas tipo A, rod 6312, sist arrastre poleas/bandas', 1, 0, 0, 0),
+    ('1acc0ea1-0000-0000-0000-000000000330', 'Trituradora #2', 'Trituradora modelo #2 completa', 1, 0, 0, 0),
+    ('1acc0ea1-0000-0000-0000-000000000330', 'Bola', 'Bola de acero importación', 1600, 3031, 4849600, 4849600),
+    ('1acc0ea1-0000-0000-0000-000000000330', 'Remoledor 36"×1m c1"', 'Remoledor 36"×1m c1" emplacado metálico cambio, chumaceras 2"', 1, 0, 0, 0),
+    ('1acc0ea1-0000-0000-0000-000000000330', 'Sistema arrastre 42"', 'Sistema de arrastre para remoledor 42"', 1, 0, 0, 0),
+    ('1acc0ea1-0000-0000-0000-000000000330', 'Sistema arrastre 36"', 'Sistema de arrastre para remoledor 36"', 1, 0, 0, 0),
+    ('1acc0ea1-0000-0000-0000-000000000330', 'Placas 26.5×93 c 3/6 20mm', 'Placas de desgaste 26.5×93 cal 3/6 20mm', 10, 0, 0, 0),
     -- REC-0331: Discos 39"
-    ('1acc0ea1-0000-0000-0000-000000000331', 'Discos 39" c 3/4 partidos en 4', 'Disco Ã˜39" cal 3/4 partido en 4', 2, 900000, 1800000),
+    ('1acc0ea1-0000-0000-0000-000000000331', 'Discos 39" c 3/4 partidos en 4', 'Disco Ø39" cal 3/4 partido en 4', 2, 900000, 1800000, 1800000),
     -- REC-0333: Bola mixta
-    ('1acc0ea1-0000-0000-0000-000000000333', 'Bola Acero', 'Bola de acero nacional', 15, 6900, 103500),
-    ('1acc0ea1-0000-0000-0000-000000000333', 'Bola ImportaciÃ³n', 'Bola de acero importaciÃ³n', 24, 6000, 144000),
+    ('1acc0ea1-0000-0000-0000-000000000333', 'Bola Acero', 'Bola de acero nacional', 15, 6900, 103500, 103500),
+    ('1acc0ea1-0000-0000-0000-000000000333', 'Bola Importación', 'Bola de acero importación', 24, 6000, 144000, 144000),
     -- REC-0334: Placas Elkin
-    ('1acc0ea1-0000-0000-0000-000000000334', 'Placas 66Ã—24 c 7/8', 'Placa de desgaste 66Ã—24 cal 7/8', 9, 0, 0),
-    ('1acc0ea1-0000-0000-0000-000000000334', 'Placas 19Ã—24 c 7/8', 'Placa de desgaste 19Ã—24 cal 7/8', 2, 0, 0),
+    ('1acc0ea1-0000-0000-0000-000000000334', 'Placas 66×24 c 7/8', 'Placa de desgaste 66×24 cal 7/8', 9, 0, 0, 0),
+    ('1acc0ea1-0000-0000-0000-000000000334', 'Placas 19×24 c 7/8', 'Placa de desgaste 19×24 cal 7/8', 2, 0, 0, 0),
     -- REC-0335: Trituradora
-    ('1acc0ea1-0000-0000-0000-000000000335', 'Trituradora #2', 'Trituradora modelo #2 completa', 1, 16000000, 16000000),
+    ('1acc0ea1-0000-0000-0000-000000000335', 'Trituradora #2', 'Trituradora modelo #2 completa', 1, 16000000, 16000000, 16000000),
     -- REC-0336: Cabezote
-    ('1acc0ea1-0000-0000-0000-000000000336', 'Cabezote trituradora', 'Cabezote trituradora c/cigÃ¼eÃ±al, balineras 22217-22317, sin placa Mn, sin chumaceras', 1, 6000000, 6000000),
+    ('1acc0ea1-0000-0000-0000-000000000336', 'Cabezote trituradora', 'Cabezote trituradora c/cigüeñal, balineras 22217-22317, sin placa Mn, sin chumaceras', 1, 6000000, 6000000, 6000000),
     -- REC-0338: Remoledor
-    ('1acc0ea1-0000-0000-0000-000000000338', 'Remoledor de 22" cal 7/8Ã—50cm', 'Remoledor 22" ext cal 7/8Ã—50cm largo', 1, 1920000, 1920000),
+    ('1acc0ea1-0000-0000-0000-000000000338', 'Remoledor de 22" cal 7/8×50cm', 'Remoledor 22" ext cal 7/8×50cm largo', 1, 1920000, 1920000, 1920000),
     -- REC-0339: Coches
-    ('1acc0ea1-0000-0000-0000-000000000339', 'Coches', 'Coche minero', 6, 1350000, 8100000),
+    ('1acc0ea1-0000-0000-0000-000000000339', 'Coches', 'Coche minero', 6, 1350000, 8100000, 8100000),
     -- REC-0340: Tubo
-    ('1acc0ea1-0000-0000-0000-000000000340', 'Tubo de 22" cal 7/8 Ã— 70cm', 'Tubo 22" calibre 7/8 largo 70cm', 1, 1500000, 1500000),
+    ('1acc0ea1-0000-0000-0000-000000000340', 'Tubo de 22" cal 7/8 × 70cm', 'Tubo 22" calibre 7/8 largo 70cm', 1, 1500000, 1500000, 1500000),
     -- REC-0341: Bola
-    ('1acc0ea1-0000-0000-0000-000000000341', 'Bola 1"', 'Bola de acero 1"', 50, 6900, 345000),
+    ('1acc0ea1-0000-0000-0000-000000000341', 'Bola 1"', 'Bola de acero 1"', 50, 6900, 345000, 345000),
     -- REC-0342: Placas
-    ('1acc0ea1-0000-0000-0000-000000000342', 'Placas 26Ã—92 c media', 'Placa de desgaste 26Ã—92 cal media', 10, 143400, 1434000),
+    ('1acc0ea1-0000-0000-0000-000000000342', 'Placas 26×92 c media', 'Placa de desgaste 26×92 cal media', 10, 143400, 1434000, 1434000),
     -- REC-0343: Placas Elkin 2
-    ('1acc0ea1-0000-0000-0000-000000000343', 'Placas 20Ã—40 c 7/8', 'Placa de desgaste 20Ã—40 cal 7/8', 2, 0, 0),
-    ('1acc0ea1-0000-0000-0000-000000000343', 'Placas 29Ã—67 c 7/8', 'Placa de desgaste 29Ã—67 cal 7/8', 9, 0, 0),
+    ('1acc0ea1-0000-0000-0000-000000000343', 'Placas 20×40 c 7/8', 'Placa de desgaste 20×40 cal 7/8', 2, 0, 0, 0),
+    ('1acc0ea1-0000-0000-0000-000000000343', 'Placas 29×67 c 7/8', 'Placa de desgaste 29×67 cal 7/8', 9, 0, 0, 0),
     -- REC-0344: Eclipas
-    ('1acc0ea1-0000-0000-0000-000000000344', 'Eclipas', 'Eclipa (grapa/clip) para molino', 42, 37000, 1554000),
+    ('1acc0ea1-0000-0000-0000-000000000344', 'Eclipas', 'Eclipa (grapa/clip) para molino', 42, 37000, 1554000, 1554000),
     -- REC-0345: Removedores
-    ('1acc0ea1-0000-0000-0000-000000000345', 'Removedor 22" ext c/8" 50cm', 'Removedor Ã˜22" exterior calibre 8" largo 50cm', 1, 1920000, 1920000),
-    ('1acc0ea1-0000-0000-0000-000000000345', 'Removedor 16"Ã—50cm contracarga 30"Ã—30', 'Removedor 16"Ã—50cm con contracarga 30"Ã—30', 1, 2200000, 2200000),
+    ('1acc0ea1-0000-0000-0000-000000000345', 'Removedor 22" ext c/8" 50cm', 'Removedor Ø22" exterior calibre 8" largo 50cm', 1, 1920000, 1920000, 1920000),
+    ('1acc0ea1-0000-0000-0000-000000000345', 'Removedor 16"×50cm contracarga 30"×30', 'Removedor 16"×50cm con contracarga 30"×30', 1, 2200000, 2200000, 2200000),
     -- REC-0346: Volantes
-    ('1acc0ea1-0000-0000-0000-000000000346', 'Volantes de 18"', 'Volante fundido Ã˜18"', 2, 380000, 760000),
-    ('1acc0ea1-0000-0000-0000-000000000346', 'Volante de 24"', 'Volante fundido Ã˜24"', 1, 800000, 800000),
+    ('1acc0ea1-0000-0000-0000-000000000346', 'Volantes de 18"', 'Volante fundido Ø18"', 2, 380000, 760000, 760000),
+    ('1acc0ea1-0000-0000-0000-000000000346', 'Volante de 24"', 'Volante fundido Ø24"', 1, 800000, 800000, 800000),
     -- REC-0347: Placas
-    ('1acc0ea1-0000-0000-0000-000000000347', 'Placas de 27" SB 7/8', 'Placa 27" SB cal 7/8', 4, 164500, 658000),
+    ('1acc0ea1-0000-0000-0000-000000000347', 'Placas de 27" SB 7/8', 'Placa 27" SB cal 7/8', 4, 164500, 658000, 658000),
     -- REC-0349: Piezas + Caucho
-    ('1acc0ea1-0000-0000-0000-000000000349', 'Piezas 26Ã—107 partidas en 2', 'Pieza fundida/cortada 26Ã—107', 10, 280000, 2800000),
-    ('1acc0ea1-0000-0000-0000-000000000349', 'Caucho', 'Caucho industrial', 25, 13000, 325000);
+    ('1acc0ea1-0000-0000-0000-000000000349', 'Piezas 26×107 partidas en 2', 'Pieza fundida/cortada 26×107', 10, 280000, 2800000, 2800000),
+    ('1acc0ea1-0000-0000-0000-000000000349', 'Caucho', 'Caucho industrial', 25, 13000, 325000, 325000);
 
 
 -- ============================================================
@@ -468,7 +468,7 @@ SELECT
         ELSE 'Otros'
     END AS categoria,
     COUNT(*) AS items,
-    SUM(total_price) AS total_ventas
+    SUM(ii.total) AS total_ventas
 FROM invoice_items ii
 JOIN invoices i ON ii.invoice_id = i.id
 WHERE i.series = 'REC'

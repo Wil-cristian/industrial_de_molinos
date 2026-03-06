@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/providers/iva_provider.dart';
 import '../../data/datasources/iva_datasource.dart';
+import '../widgets/invoice_scan_dialog.dart';
 
 class IvaControlPage extends ConsumerStatefulWidget {
   const IvaControlPage({super.key});
@@ -120,6 +121,19 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
               if (state.currentSettlement != null) ...[
                 _buildMiniSummary(state.currentSettlement!),
               ],
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: () => _showScanInvoiceDialog(),
+                icon: const Icon(Icons.document_scanner, size: 18),
+                label: const Text('Escanear Factura'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                ),
+              ),
               if (state.isLoading)
                 const Padding(
                   padding: EdgeInsets.only(left: 8),
@@ -152,6 +166,17 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
         ],
       ),
     );
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  ESCANEAR FACTURA CON IA
+  // ════════════════════════════════════════════════════════════
+  Future<void> _showScanInvoiceDialog() async {
+    final period = await InvoiceScanDialog.show(context);
+    if (period != null && mounted) {
+      // Cambiar al periodo de la factura y recargar
+      ref.read(ivaProvider.notifier).changePeriod(period);
+    }
   }
 
   Widget _buildMiniSummary(BimonthlySettlement s) {
@@ -387,6 +412,11 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
     final isVenta = inv.invoiceType == 'VENTA';
     final color = isVenta ? AppTheme.successColor : Colors.blue;
     final dateStr = DateFormat('dd/MM/yyyy').format(inv.invoiceDate);
+    final hasExtras =
+        inv.cufe != null ||
+        inv.companyDocument != null ||
+        inv.rteFteAmount > 0 ||
+        inv.reteIcaAmount > 0;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 4),
@@ -400,112 +430,179 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
+          child: Column(
             children: [
-              // Tipo badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  inv.invoiceType,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Número factura
-              SizedBox(
-                width: 100,
-                child: Text(
-                  inv.invoiceNumber,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              // Fecha
-              SizedBox(
-                width: 80,
-                child: Text(
-                  dateStr,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-              ),
-              // Empresa
-              Expanded(
-                child: Text(
-                  inv.company,
-                  style: const TextStyle(fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              // Base
-              SizedBox(
-                width: 100,
-                child: Text(
-                  _currencyFormat.format(inv.baseAmount),
-                  style: const TextStyle(fontSize: 11),
-                  textAlign: TextAlign.right,
-                ),
-              ),
-              // IVA
-              SizedBox(
-                width: 90,
-                child: Text(
-                  _currencyFormat.format(inv.ivaAmount),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
-                  textAlign: TextAlign.right,
-                ),
-              ),
-              // Total
-              SizedBox(
-                width: 110,
-                child: Text(
-                  _currencyFormat.format(inv.totalAmount),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.right,
-                ),
-              ),
-              // ReteIVA star
-              if (inv.hasReteiva)
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Tooltip(
-                    message:
-                        'ReteIVA: ${_currencyFormat.format(inv.reteivaAmount)}',
-                    child: const Icon(
-                      Icons.star,
-                      size: 14,
-                      color: Colors.amber,
+              Row(
+                children: [
+                  // Tipo badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      inv.invoiceType,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
                     ),
                   ),
-                ),
-              // Delete
-              IconButton(
-                icon: const Icon(
-                  Icons.delete_outline,
-                  size: 16,
-                  color: Colors.red,
-                ),
-                onPressed: () => _confirmDelete(inv),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  const SizedBox(width: 8),
+                  // Número factura
+                  SizedBox(
+                    width: 100,
+                    child: Text(
+                      inv.invoiceNumber,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  // Fecha
+                  SizedBox(
+                    width: 80,
+                    child: Text(
+                      dateStr,
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                  ),
+                  // Empresa
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          inv.company,
+                          style: const TextStyle(fontSize: 12),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (inv.companyDocument != null &&
+                            inv.companyDocument!.isNotEmpty)
+                          Text(
+                            'NIT: ${inv.companyDocument}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  // Base
+                  SizedBox(
+                    width: 100,
+                    child: Text(
+                      _currencyFormat.format(inv.baseAmount),
+                      style: const TextStyle(fontSize: 11),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                  // IVA
+                  SizedBox(
+                    width: 90,
+                    child: Text(
+                      _currencyFormat.format(inv.ivaAmount),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                  // Total
+                  SizedBox(
+                    width: 110,
+                    child: Text(
+                      _currencyFormat.format(inv.totalAmount),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                  // Indicadores
+                  if (inv.hasReteiva)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Tooltip(
+                        message:
+                            'ReteIVA: ${_currencyFormat.format(inv.reteivaAmount)}',
+                        child: const Icon(
+                          Icons.star,
+                          size: 14,
+                          color: Colors.amber,
+                        ),
+                      ),
+                    ),
+                  // Delete
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 16,
+                      color: Colors.red,
+                    ),
+                    onPressed: () => _confirmDelete(inv),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
+                  ),
+                ],
               ),
+              // Extra info row (CUFE, retentions) for scanned invoices
+              if (hasExtras)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 50),
+                      if (inv.cufe != null && inv.cufe!.isNotEmpty)
+                        Expanded(
+                          child: Text(
+                            'CUFE: ${inv.cufe!.length > 30 ? '${inv.cufe!.substring(0, 30)}...' : inv.cufe}',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.grey[500],
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ),
+                      if (inv.rteFteAmount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Text(
+                            'RteFte: ${_currencyFormat.format(inv.rteFteAmount)}',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.orange[700],
+                            ),
+                          ),
+                        ),
+                      if (inv.reteIcaAmount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Text(
+                            'ReteICA: ${_currencyFormat.format(inv.reteIcaAmount)}',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.purple[400],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
@@ -856,6 +953,10 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
     final isEdit = existing != null;
     final numCtrl = TextEditingController(text: existing?.invoiceNumber ?? '');
     final companyCtrl = TextEditingController(text: existing?.company ?? '');
+    final nitCtrl = TextEditingController(
+      text: existing?.companyDocument ?? '',
+    );
+    final cufeCtrl = TextEditingController(text: existing?.cufe ?? '');
     final baseCtrl = TextEditingController(
       text: existing != null ? existing.baseAmount.toStringAsFixed(0) : '',
     );
@@ -865,12 +966,33 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
     final totalCtrl = TextEditingController(
       text: existing != null ? existing.totalAmount.toStringAsFixed(0) : '',
     );
+    final rteFteCtrl = TextEditingController(
+      text: existing != null && existing.rteFteAmount > 0
+          ? existing.rteFteAmount.toStringAsFixed(0)
+          : '',
+    );
+    final reteIcaCtrl = TextEditingController(
+      text: existing != null && existing.reteIcaAmount > 0
+          ? existing.reteIcaAmount.toStringAsFixed(0)
+          : '',
+    );
     final notesCtrl = TextEditingController(text: existing?.notes ?? '');
 
     String type = existing?.invoiceType ?? 'COMPRA';
     DateTime date = existing?.invoiceDate ?? DateTime.now();
     bool hasReteiva = existing?.hasReteiva ?? false;
     final ivaRate = ref.read(ivaProvider).config?.ivaRate ?? 0.19;
+
+    // Parse items from notes (pipe-delimited from scan)
+    final List<String> scannedItems = [];
+    if (existing?.notes != null && existing!.notes!.contains('|')) {
+      scannedItems.addAll(
+        existing.notes!
+            .split('|')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty),
+      );
+    }
 
     showDialog(
       context: context,
@@ -989,13 +1111,23 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                       ),
                     ),
                     const SizedBox(height: 10),
-                    // Empresa
+                    // Empresa + NIT
                     TextField(
                       controller: companyCtrl,
                       decoration: const InputDecoration(
                         labelText: 'Empresa / Persona',
                         border: OutlineInputBorder(),
                         isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: nitCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'NIT / Documento',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        prefixIcon: Icon(Icons.badge_outlined, size: 18),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -1086,6 +1218,103 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                       dense: true,
                     ),
                     const SizedBox(height: 6),
+                    // Retenciones RteFte + ReteICA
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: rteFteCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'ReteFuente',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: reteIcaCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'ReteICA',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    // CUFE
+                    TextField(
+                      controller: cufeCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'CUFE',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        prefixIcon: Icon(Icons.fingerprint, size: 18),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 10),
+                    // Scanned items detail
+                    if (scannedItems.isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.receipt_long,
+                                  size: 14,
+                                  color: Colors.blue[700],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Ítems de la Factura (${scannedItems.length})',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 8),
+                            ...scannedItems.map(
+                              (item) => Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Text(
+                                  '• $item',
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
                     // Notas
                     TextField(
                       controller: notesCtrl,
@@ -1123,6 +1352,8 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                   }
 
                   final reteivaAmt = hasReteiva ? iva * 0.15 : 0.0;
+                  final rteFte = double.tryParse(rteFteCtrl.text) ?? 0;
+                  final reteIca = double.tryParse(reteIcaCtrl.text) ?? 0;
                   final period = getBimonthlyPeriod(date);
 
                   final invoice = IvaInvoice(
@@ -1130,12 +1361,20 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                     invoiceNumber: numCtrl.text.trim(),
                     invoiceDate: date,
                     company: companyCtrl.text.trim(),
+                    companyDocument: nitCtrl.text.trim().isEmpty
+                        ? null
+                        : nitCtrl.text.trim(),
+                    cufe: cufeCtrl.text.trim().isEmpty
+                        ? null
+                        : cufeCtrl.text.trim(),
                     invoiceType: type,
                     baseAmount: base,
                     ivaAmount: iva,
                     totalAmount: total,
                     hasReteiva: hasReteiva,
                     reteivaAmount: reteivaAmt,
+                    rteFteAmount: rteFte,
+                    reteIcaAmount: reteIca,
                     bimonthlyPeriod: period,
                     notes: notesCtrl.text.trim().isEmpty
                         ? null

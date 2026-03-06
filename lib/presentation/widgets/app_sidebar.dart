@@ -24,6 +24,7 @@ class _AppSidebarState extends State<AppSidebar> {
       label: 'Caja',
       route: '/daily-cash',
     ),
+    NavItemData(icon: Icons.shopping_bag, label: 'Compras', route: '/expenses'),
     NavItemData(
       icon: Icons.layers,
       label: 'Productos',

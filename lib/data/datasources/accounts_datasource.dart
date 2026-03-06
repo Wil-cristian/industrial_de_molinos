@@ -2,6 +2,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
+import 'storage_datasource.dart';
 import 'supabase_datasource.dart';
 
 class AccountsDataSource {
@@ -92,6 +93,30 @@ class AccountsDataSource {
   }
 
   // ===================== MOVIMIENTOS =====================
+
+  /// Obtener el siguiente número de referencia consecutivo
+  static Future<int> getNextReferenceNumber() async {
+    try {
+      final response = await _client
+          .from(_movementsTable)
+          .select('reference')
+          .not('reference', 'is', null)
+          .order('created_at', ascending: false)
+          .limit(50);
+
+      int maxNum = 0;
+      for (final row in response) {
+        final ref = row['reference'] as String?;
+        if (ref != null) {
+          final num = int.tryParse(ref.replaceAll(RegExp(r'[^0-9]'), ''));
+          if (num != null && num > maxNum) maxNum = num;
+        }
+      }
+      return maxNum + 1;
+    } catch (e) {
+      return 1;
+    }
+  }
 
   /// Obtener todos los movimientos
   static Future<List<CashMovement>> getAllMovements() async {
@@ -503,10 +528,7 @@ class AccountsDataSource {
         (e) => e.name == json['type'],
         orElse: () => MovementType.income,
       ),
-      category: MovementCategory.values.firstWhere(
-        (e) => e.name == json['category'],
-        orElse: () => MovementCategory.otherIncome,
-      ),
+      category: parseCategoryFromJson(json['category'] ?? ''),
       amount: (json['amount'] ?? 0).toDouble(),
       description: json['description'] ?? '',
       reference: json['reference'],
@@ -518,6 +540,13 @@ class AccountsDataSource {
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
       linkedTransferId: json['linked_transfer_id'],
+      attachments: json['attachments'] != null && json['attachments'] is List
+          ? (json['attachments'] as List)
+                .map(
+                  (a) => AttachmentInfo.fromJson(Map<String, dynamic>.from(a)),
+                )
+                .toList()
+          : [],
     );
   }
 
@@ -557,9 +586,9 @@ class AccountsDataSource {
         ),
         Account(
           id: '',
-          name: 'Cuenta Daniela',
+          name: 'Davivienda',
           type: AccountType.bank,
-          bankName: 'Banco',
+          bankName: 'Davivienda',
           balance: 0,
           color: '#2196F3', // Azul
           isActive: true,

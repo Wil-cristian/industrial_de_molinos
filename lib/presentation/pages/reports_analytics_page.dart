@@ -7,6 +7,9 @@ import '../../core/utils/helpers.dart';
 import '../../data/providers/reports_provider.dart';
 import '../../data/providers/analytics_provider.dart';
 import '../../data/providers/debt_management_provider.dart';
+import '../../data/providers/accounts_provider.dart';
+import '../../data/datasources/accounts_datasource.dart';
+import '../../domain/entities/cash_movement.dart';
 
 class ReportsAnalyticsPage extends ConsumerStatefulWidget {
   const ReportsAnalyticsPage({super.key});
@@ -23,7 +26,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     Future.microtask(() {
       ref.read(analyticsProvider.notifier).loadAll();
       ref.read(inventoryReportProvider.notifier).loadInventoryReport();
@@ -51,10 +54,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         children: [
           // Header compacto con tabs en línea
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 4,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -88,42 +88,42 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   ),
                 ),
                 const SizedBox(width: 12),
-                          // TabBar inline
-                          Expanded(
-                            child: TabBar(
-                              controller: _tabController,
-                              labelColor: AppTheme.primaryColor,
-                              unselectedLabelColor: Colors.grey[600],
-                              indicatorColor: AppTheme.primaryColor,
-                              indicatorWeight: 2,
-                              isScrollable: true,
-                              labelPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              tabs: const [
-                                Tab(text: 'Analytics'),
-                                Tab(text: 'Inventario'),
-                                Tab(text: 'Cobranzas'),
-                                Tab(text: 'Mora'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Contenido de tabs
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildAnalyticsTab(analyticsState),
-                          _buildInventoryTab(inventoryState),
-                          _buildCobranzasTab(analyticsState, receivablesState),
-                          _buildMoraInteresesTab(debtState),
-                        ],
-                      ),
-                    ),
-                  ],
+                // TabBar inline
+                Expanded(
+                  child: TabBar(
+                    controller: _tabController,
+                    labelColor: AppTheme.primaryColor,
+                    unselectedLabelColor: Colors.grey[600],
+                    indicatorColor: AppTheme.primaryColor,
+                    indicatorWeight: 2,
+                    isScrollable: true,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    tabs: const [
+                      Tab(text: 'Analytics'),
+                      Tab(text: 'Inventario'),
+                      Tab(text: 'Cobranzas'),
+                      Tab(text: 'Mora'),
+                      Tab(text: 'Flujo Caja'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Contenido de tabs
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildAnalyticsTab(analyticsState),
+                _buildInventoryTab(inventoryState),
+                _buildCobranzasTab(analyticsState, receivablesState),
+                _buildMoraInteresesTab(debtState),
+                _buildCashFlowTab(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -231,7 +231,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   ),
                   Icons.receipt,
                   Colors.teal,
-                  subtitle: '${state.healthSnapshot?.totalInvoices ?? 0} facturas',
+                  subtitle:
+                      '${state.healthSnapshot?.totalInvoices ?? 0} facturas',
                 ),
               ),
             ],
@@ -1026,10 +1027,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 6,
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6),
         ],
       ),
       child: Column(
@@ -2202,7 +2200,11 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               const Spacer(),
               Tooltip(
                 message: 'Score basado en cobros, inventario y mora',
-                child: Icon(Icons.info_outline, size: 16, color: Colors.grey[400]),
+                child: Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: Colors.grey[400],
+                ),
               ),
             ],
           ),
@@ -2252,7 +2254,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
   // Gráfico: Crédito vs Ganancia vs Inventario (mensual)
   Widget _buildCreditProfitInventoryChart(AnalyticsState state) {
     final data = state.businessHealthTrend;
-    final hasData = data.isNotEmpty && data.any((d) => d.revenue > 0 || d.creditExtended > 0);
+    final hasData =
+        data.isNotEmpty &&
+        data.any((d) => d.revenue > 0 || d.creditExtended > 0);
 
     return Container(
       height: 400,
@@ -2293,13 +2297,29 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           if (state.healthSnapshot != null)
             Row(
               children: [
-                _buildMiniMetric('Crédito Activo', state.healthSnapshot!.totalReceivables, Colors.red),
+                _buildMiniMetric(
+                  'Crédito Activo',
+                  state.healthSnapshot!.totalReceivables,
+                  Colors.red,
+                ),
                 const SizedBox(width: 16),
-                _buildMiniMetric('Ventas Totales', state.healthSnapshot!.totalRevenue, Colors.green),
+                _buildMiniMetric(
+                  'Ventas Totales',
+                  state.healthSnapshot!.totalRevenue,
+                  Colors.green,
+                ),
                 const SizedBox(width: 16),
-                _buildMiniMetric('Inventario', state.healthSnapshot!.totalInventoryValue, Colors.orange),
+                _buildMiniMetric(
+                  'Inventario',
+                  state.healthSnapshot!.totalInventoryValue,
+                  Colors.orange,
+                ),
                 const SizedBox(width: 16),
-                _buildMiniMetric('Cobrado', state.healthSnapshot!.totalCollected, Colors.teal),
+                _buildMiniMetric(
+                  'Cobrado',
+                  state.healthSnapshot!.totalCollected,
+                  Colors.teal,
+                ),
               ],
             ),
           const SizedBox(height: 12),
@@ -2309,11 +2329,18 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.show_chart, size: 48, color: Colors.grey[300]),
+                        Icon(
+                          Icons.show_chart,
+                          size: 48,
+                          color: Colors.grey[300],
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           'Sin datos de ventas para comparar.\nCrea facturas para ver esta gráfica.',
-                          style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 12,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -2338,7 +2365,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               }
                               return Text(
                                 _formatCompact(value),
-                                style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: Colors.grey[500],
+                                ),
                               );
                             },
                           ),
@@ -2353,7 +2383,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
                                     data[idx].monthName,
-                                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey[500],
+                                    ),
                                   ),
                                 );
                               }
@@ -2361,15 +2394,26 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             },
                           ),
                         ),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                       ),
                       borderData: FlBorderData(show: false),
                       lineBarsData: [
                         // Línea: Crédito otorgado (rojo)
                         LineChartBarData(
-                          spots: data.asMap().entries
-                              .map((e) => FlSpot(e.key.toDouble(), e.value.creditExtended))
+                          spots: data
+                              .asMap()
+                              .entries
+                              .map(
+                                (e) => FlSpot(
+                                  e.key.toDouble(),
+                                  e.value.creditExtended,
+                                ),
+                              )
                               .toList(),
                           isCurved: true,
                           color: Colors.red,
@@ -2382,8 +2426,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         ),
                         // Línea: Ingresos (verde)
                         LineChartBarData(
-                          spots: data.asMap().entries
-                              .map((e) => FlSpot(e.key.toDouble(), e.value.revenue))
+                          spots: data
+                              .asMap()
+                              .entries
+                              .map(
+                                (e) =>
+                                    FlSpot(e.key.toDouble(), e.value.revenue),
+                              )
                               .toList(),
                           isCurved: true,
                           color: Colors.green,
@@ -2392,8 +2441,15 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         ),
                         // Línea: Ganancia estimada (azul, dashed)
                         LineChartBarData(
-                          spots: data.asMap().entries
-                              .map((e) => FlSpot(e.key.toDouble(), e.value.estimatedProfit))
+                          spots: data
+                              .asMap()
+                              .entries
+                              .map(
+                                (e) => FlSpot(
+                                  e.key.toDouble(),
+                                  e.value.estimatedProfit,
+                                ),
+                              )
                               .toList(),
                           isCurved: true,
                           color: Colors.blue,
@@ -2403,8 +2459,15 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         ),
                         // Línea: Inventario (naranja)
                         LineChartBarData(
-                          spots: data.asMap().entries
-                              .map((e) => FlSpot(e.key.toDouble(), e.value.inventoryValue))
+                          spots: data
+                              .asMap()
+                              .entries
+                              .map(
+                                (e) => FlSpot(
+                                  e.key.toDouble(),
+                                  e.value.inventoryValue,
+                                ),
+                              )
                               .toList(),
                           isCurved: true,
                           color: Colors.orange,
@@ -2420,11 +2483,24 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         touchTooltipData: LineTouchTooltipData(
                           getTooltipItems: (spots) {
                             return spots.map((spot) {
-                              final labels = ['Crédito', 'Ingresos', 'Ganancia', 'Inventario'];
-                              final colors = [Colors.red, Colors.green, Colors.blue, Colors.orange];
+                              final labels = [
+                                'Crédito',
+                                'Ingresos',
+                                'Ganancia',
+                                'Inventario',
+                              ];
+                              final colors = [
+                                Colors.red,
+                                Colors.green,
+                                Colors.blue,
+                                Colors.orange,
+                              ];
                               return LineTooltipItem(
                                 '${labels[spot.barIndex]}: ${Helpers.formatCurrency(spot.y)}',
-                                TextStyle(color: colors[spot.barIndex], fontSize: 11),
+                                TextStyle(
+                                  color: colors[spot.barIndex],
+                                  fontSize: 11,
+                                ),
                               );
                             }).toList();
                           },
@@ -2446,7 +2522,11 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           Text(label, style: TextStyle(fontSize: 9, color: Colors.grey[500])),
           Text(
             Helpers.formatCurrency(value),
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -2490,8 +2570,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               ),
               const Spacer(),
               Tooltip(
-                message: 'Veces que el inventario se renueva al año.\nMayor rotación = mejor eficiencia.',
-                child: Icon(Icons.info_outline, size: 16, color: Colors.grey[400]),
+                message:
+                    'Veces que el inventario se renueva al año.\nMayor rotación = mejor eficiencia.',
+                child: Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: Colors.grey[400],
+                ),
               ),
             ],
           ),
@@ -2506,7 +2591,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   )
                 : ListView.separated(
                     itemCount: items.length,
-                    separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
+                    separatorBuilder: (_, __) =>
+                        Divider(height: 1, color: Colors.grey[200]),
                     itemBuilder: (context, index) {
                       final item = items[index];
                       Color statusColor;
@@ -2545,12 +2631,18 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 children: [
                                   Text(
                                     item.productName,
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   Text(
                                     item.productCode,
-                                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey[500],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -2564,12 +2656,19 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: item.annualTurnoverRate > 4 ? Colors.green : (item.annualTurnoverRate > 1 ? Colors.orange : Colors.red),
+                                      color: item.annualTurnoverRate > 4
+                                          ? Colors.green
+                                          : (item.annualTurnoverRate > 1
+                                                ? Colors.orange
+                                                : Colors.red),
                                     ),
                                   ),
                                   Text(
                                     'Rotación/año',
-                                    style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      color: Colors.grey[500],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -2580,16 +2679,25 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    item.daysOfInventory >= 999 ? '∞' : '${item.daysOfInventory}d',
+                                    item.daysOfInventory >= 999
+                                        ? '∞'
+                                        : '${item.daysOfInventory}d',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: item.daysOfInventory > 180 ? Colors.red : (item.daysOfInventory > 90 ? Colors.orange : Colors.green),
+                                      color: item.daysOfInventory > 180
+                                          ? Colors.red
+                                          : (item.daysOfInventory > 90
+                                                ? Colors.orange
+                                                : Colors.green),
                                     ),
                                   ),
                                   Text(
                                     'Días inv.',
-                                    style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      color: Colors.grey[500],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -2601,11 +2709,17 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 children: [
                                   Text(
                                     Helpers.formatCurrency(item.stockValue),
-                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                   Text(
                                     'Valor stock',
-                                    style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      color: Colors.grey[500],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -2644,7 +2758,11 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         children: [
           Row(
             children: [
-              const Icon(Icons.precision_manufacturing, color: Colors.brown, size: 20),
+              const Icon(
+                Icons.precision_manufacturing,
+                color: Colors.brown,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               const Text(
                 'Eficiencia Materia Prima',
@@ -2652,8 +2770,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               ),
               const Spacer(),
               Tooltip(
-                message: 'Consumo y duración estimada de materiales.\nSemáforo de reabastecimiento automático.',
-                child: Icon(Icons.info_outline, size: 16, color: Colors.grey[400]),
+                message:
+                    'Consumo y duración estimada de materiales.\nSemáforo de reabastecimiento automático.',
+                child: Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: Colors.grey[400],
+                ),
               ),
             ],
           ),
@@ -2668,7 +2791,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   )
                 : ListView.separated(
                     itemCount: items.length,
-                    separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
+                    separatorBuilder: (_, __) =>
+                        Divider(height: 1, color: Colors.grey[200]),
                     itemBuilder: (context, index) {
                       final item = items[index];
                       Color statusColor;
@@ -2714,25 +2838,38 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 children: [
                                   Text(
                                     item.materialName,
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   Text(
                                     '${item.category ?? ''} · ${item.currentStock.toStringAsFixed(1)} ${item.unit ?? 'UND'}',
-                                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey[500],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: statusColor.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 statusLabel,
-                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: statusColor),
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: statusColor,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -2741,17 +2878,25 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    item.daysOfStockRemaining >= 999 ? '∞' : '${item.daysOfStockRemaining}d',
+                                    item.daysOfStockRemaining >= 999
+                                        ? '∞'
+                                        : '${item.daysOfStockRemaining}d',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: item.daysOfStockRemaining <= 7 ? Colors.red
-                                          : (item.daysOfStockRemaining <= 15 ? Colors.orange : Colors.green),
+                                      color: item.daysOfStockRemaining <= 7
+                                          ? Colors.red
+                                          : (item.daysOfStockRemaining <= 15
+                                                ? Colors.orange
+                                                : Colors.green),
                                     ),
                                   ),
                                   Text(
                                     'Duración',
-                                    style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      color: Colors.grey[500],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -2763,11 +2908,17 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 children: [
                                   Text(
                                     '${item.dailyConsumptionRate.toStringAsFixed(1)}/${item.unit ?? 'd'}',
-                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                   Text(
                                     'Consumo/día',
-                                    style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      color: Colors.grey[500],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -2781,7 +2932,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         ],
       ),
     );
-  }  // ============================================================
+  } // ============================================================
+
   // TAB 2: INVENTARIO
   // ============================================================
   Widget _buildInventoryTab(InventoryReportState state) {
@@ -2798,11 +2950,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
     final productsCount = state.products
         .where((p) => p.itemType == 'product' || p.itemType == 'recipe')
         .length;
-    
+
     // Usar valores del summary (que incluye TODOS los productos)
     final totalStockCost = (state.summary['totalStockCost'] ?? 0.0) as double;
-    final totalStockValue = (state.summary['totalStockSaleValue'] ?? 0.0) as double;
-    final totalPotentialProfit = (state.summary['totalPotentialProfit'] ?? 0.0) as double;
+    final totalStockValue =
+        (state.summary['totalStockSaleValue'] ?? 0.0) as double;
+    final totalPotentialProfit =
+        (state.summary['totalPotentialProfit'] ?? 0.0) as double;
     final avgMargin = (state.summary['avgMargin'] ?? 0.0) as double;
 
     return SingleChildScrollView(
@@ -3087,11 +3241,11 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 ),
               ],
               rows: state.products.map((product) {
-                final marginColor = product.marginPercent > 30 
-                    ? Colors.green 
-                    : product.marginPercent > 15 
-                        ? Colors.orange 
-                        : Colors.red;
+                final marginColor = product.marginPercent > 30
+                    ? Colors.green
+                    : product.marginPercent > 15
+                    ? Colors.orange
+                    : Colors.red;
                 return DataRow(
                   cells: [
                     DataCell(
@@ -3148,8 +3302,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         product.itemType == 'material'
                             ? 'Material'
                             : product.itemType == 'recipe'
-                                ? 'Receta'
-                                : 'Producto',
+                            ? 'Receta'
+                            : 'Producto',
                         style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                       ),
                     ),
@@ -3178,13 +3332,19 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                     DataCell(
                       Text(
                         Helpers.formatCurrency(product.unitPrice),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                     // Margen %
                     DataCell(
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: marginColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -3193,11 +3353,11 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              product.marginPercent > 30 
-                                  ? Icons.trending_up 
-                                  : product.marginPercent > 15 
-                                      ? Icons.trending_flat 
-                                      : Icons.trending_down,
+                              product.marginPercent > 30
+                                  ? Icons.trending_up
+                                  : product.marginPercent > 15
+                                  ? Icons.trending_flat
+                                  : Icons.trending_down,
                               size: 14,
                               color: marginColor,
                             ),
@@ -3220,7 +3380,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         Helpers.formatCurrency(product.profitPerUnit),
                         style: TextStyle(
                           fontSize: 12,
-                          color: product.profitPerUnit > 0 ? Colors.green[700] : Colors.red,
+                          color: product.profitPerUnit > 0
+                              ? Colors.green[700]
+                              : Colors.red,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -3233,11 +3395,17 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         children: [
                           Text(
                             Helpers.formatCurrency(product.stockSaleValue),
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                           Text(
                             'Costo: ${Helpers.formatCurrency(product.stockCostValue)}',
-                            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[500],
+                            ),
                           ),
                         ],
                       ),
@@ -4479,6 +4647,539 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         ),
         const SizedBox(width: 6),
         Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+      ],
+    );
+  }
+
+  // ============================================================
+  // TAB 5: FLUJO DE CAJA - DESGLOSE POR CATEGORÍA
+  // ============================================================
+  Widget _buildCashFlowTab() {
+    return _CashFlowTabContent();
+  }
+}
+
+class _CashFlowTabContent extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_CashFlowTabContent> createState() =>
+      _CashFlowTabContentState();
+}
+
+class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
+  DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
+  DateTime _endDate = DateTime.now();
+  List<CashMovement> _movements = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMovements();
+  }
+
+  Future<void> _loadMovements() async {
+    setState(() => _isLoading = true);
+    try {
+      final movements = await AccountsDataSource.getMovementsByDateRange(
+        _startDate,
+        _endDate,
+      );
+      setState(() {
+        _movements = movements;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Map<MovementCategory, double> _groupByCategory(MovementType type) {
+    final result = <MovementCategory, double>{};
+    for (final m in _movements.where((m) => m.type == type)) {
+      result[m.category] = (result[m.category] ?? 0) + m.amount;
+    }
+    return result;
+  }
+
+  String _catLabel(MovementCategory c) {
+    switch (c) {
+      case MovementCategory.sale:
+        return 'Venta';
+      case MovementCategory.collection:
+        return 'Cobranza';
+      case MovementCategory.pago_prestamo:
+        return 'Pago Préstamo';
+      case MovementCategory.otherIncome:
+        return 'Otros Ingresos';
+      case MovementCategory.cuidado_personal: return 'Cuidado Personal';
+      case MovementCategory.servicios_publicos: return 'Servicios Públicos';
+      case MovementCategory.papeleria: return 'Papelería';
+      case MovementCategory.nomina: return 'Nómina';
+      case MovementCategory.impuestos: return 'Impuestos';
+      case MovementCategory.consumibles: return 'Consumibles';
+      case MovementCategory.transporte: return 'Transporte';
+      case MovementCategory.gastos_reducibles: return 'Gastos Reducibles';
+      case MovementCategory.transferOut:
+        return 'Traslado Salida';
+      case MovementCategory.transferIn:
+        return 'Traslado Entrada';
+    }
+  }
+
+  Color _catColor(MovementCategory c) {
+    switch (c) {
+      case MovementCategory.sale:
+        return Colors.green;
+      case MovementCategory.collection:
+        return Colors.teal;
+      case MovementCategory.pago_prestamo:
+        return Colors.lightGreen;
+      case MovementCategory.otherIncome:
+        return Colors.green.shade300;
+      case MovementCategory.cuidado_personal: return Colors.pink;
+      case MovementCategory.servicios_publicos: return Colors.purple;
+      case MovementCategory.papeleria: return Colors.indigo;
+      case MovementCategory.nomina: return Colors.deepOrange;
+      case MovementCategory.impuestos: return Colors.red.shade800;
+      case MovementCategory.consumibles: return Colors.red;
+      case MovementCategory.transporte: return Colors.blue;
+      case MovementCategory.gastos_reducibles: return Colors.grey;
+      case MovementCategory.transferOut:
+        return Colors.orange.shade300;
+      case MovementCategory.transferIn:
+        return Colors.orange.shade700;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final expenses = _groupByCategory(MovementType.expense);
+    final incomes = _groupByCategory(MovementType.income);
+    final totalExpense = expenses.values.fold(0.0, (s, v) => s + v);
+    final totalIncome = incomes.values.fold(0.0, (s, v) => s + v);
+    final expenseEntries = expenses.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final incomeEntries = incomes.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Filtro de fechas
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.date_range, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Período:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton(
+                    onPressed: () async {
+                      final picked = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2025, 1, 1),
+                        lastDate: DateTime.now(),
+                        initialDateRange: DateTimeRange(
+                          start: _startDate,
+                          end: _endDate,
+                        ),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _startDate = picked.start;
+                          _endDate = picked.end;
+                        });
+                        _loadMovements();
+                      }
+                    },
+                    child: Text(
+                      '${Helpers.formatDate(_startDate)}  →  ${Helpers.formatDate(_endDate)}',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Resumen rápido
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.successColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Ingresos: ${Formatters.currency(totalIncome)}',
+                      style: TextStyle(
+                        color: AppTheme.successColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.errorColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Gastos: ${Formatters.currency(totalExpense)}',
+                      style: TextStyle(
+                        color: AppTheme.errorColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: (totalIncome - totalExpense) >= 0
+                          ? AppTheme.successColor.withOpacity(0.1)
+                          : AppTheme.errorColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Neto: ${Formatters.currency(totalIncome - totalExpense)}',
+                      style: TextStyle(
+                        color: (totalIncome - totalExpense) >= 0
+                            ? AppTheme.successColor
+                            : AppTheme.errorColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Gráfico de torta + tablas
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Gastos por categoría
+              Expanded(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.arrow_upward,
+                              color: AppTheme.errorColor,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Gastos por Categoría',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: AppTheme.errorColor,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              Formatters.currency(totalExpense),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: AppTheme.errorColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(),
+                        if (expenseEntries.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Center(
+                              child: Text('Sin gastos en este período'),
+                            ),
+                          )
+                        else ...[
+                          // Gráfico de torta
+                          SizedBox(
+                            height: 200,
+                            child: PieChart(
+                              PieChartData(
+                                sections: expenseEntries.map((e) {
+                                  final pct = totalExpense > 0
+                                      ? (e.value / totalExpense * 100)
+                                      : 0.0;
+                                  return PieChartSectionData(
+                                    value: e.value,
+                                    color: _catColor(e.key),
+                                    title: '${pct.toStringAsFixed(0)}%',
+                                    titleStyle: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                    radius: 80,
+                                  );
+                                }).toList(),
+                                sectionsSpace: 2,
+                                centerSpaceRadius: 30,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Tabla detallada
+                          ...expenseEntries.map((e) {
+                            final pct = totalExpense > 0
+                                ? (e.value / totalExpense * 100)
+                                : 0.0;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      color: _catColor(e.key),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _catLabel(e.key),
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                  Text(
+                                    Formatters.currency(e.value),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  SizedBox(
+                                    width: 45,
+                                    child: Text(
+                                      '${pct.toStringAsFixed(1)}%',
+                                      textAlign: TextAlign.right,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Ingresos por categoría
+              Expanded(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.arrow_downward,
+                              color: AppTheme.successColor,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Ingresos por Categoría',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: AppTheme.successColor,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              Formatters.currency(totalIncome),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: AppTheme.successColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(),
+                        if (incomeEntries.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Center(
+                              child: Text('Sin ingresos en este período'),
+                            ),
+                          )
+                        else ...[
+                          SizedBox(
+                            height: 200,
+                            child: PieChart(
+                              PieChartData(
+                                sections: incomeEntries.map((e) {
+                                  final pct = totalIncome > 0
+                                      ? (e.value / totalIncome * 100)
+                                      : 0.0;
+                                  return PieChartSectionData(
+                                    value: e.value,
+                                    color: _catColor(e.key),
+                                    title: '${pct.toStringAsFixed(0)}%',
+                                    titleStyle: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                    radius: 80,
+                                  );
+                                }).toList(),
+                                sectionsSpace: 2,
+                                centerSpaceRadius: 30,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ...incomeEntries.map((e) {
+                            final pct = totalIncome > 0
+                                ? (e.value / totalIncome * 100)
+                                : 0.0;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      color: _catColor(e.key),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _catLabel(e.key),
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                  Text(
+                                    Formatters.currency(e.value),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  SizedBox(
+                                    width: 45,
+                                    child: Text(
+                                      '${pct.toStringAsFixed(1)}%',
+                                      textAlign: TextAlign.right,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Total movimientos
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildFlowStat(
+                    'Total Movimientos',
+                    '${_movements.length}',
+                    AppTheme.accentColor,
+                  ),
+                  _buildFlowStat(
+                    'Ingresos',
+                    '${_movements.where((m) => m.type == MovementType.income).length}',
+                    AppTheme.successColor,
+                  ),
+                  _buildFlowStat(
+                    'Gastos',
+                    '${_movements.where((m) => m.type == MovementType.expense).length}',
+                    AppTheme.errorColor,
+                  ),
+                  _buildFlowStat(
+                    'Traslados',
+                    '${_movements.where((m) => m.type == MovementType.transfer).length}',
+                    Colors.orange,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFlowStat(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }

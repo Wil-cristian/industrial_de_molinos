@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
+import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/customers_datasource.dart';
+import '../../data/datasources/invoices_datasource.dart';
+import '../../domain/entities/account.dart';
 import '../../data/providers/customers_provider.dart';
 import '../../data/providers/invoices_provider.dart';
 import '../../data/providers/quotations_provider.dart';
@@ -457,7 +460,36 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: creditLimit > 0
+                  ? Colors.blue.withValues(alpha: 0.1)
+                  : Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  creditLimit > 0 ? Icons.credit_card : Icons.payments,
+                  size: 12,
+                  color: creditLimit > 0 ? Colors.blue : Colors.green[700],
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  creditLimit > 0 ? 'Crédito' : 'Contado',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: creditLimit > 0 ? Colors.blue : Colors.green[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
           Container(
             width: 8,
             height: 8,
@@ -1026,16 +1058,35 @@ class _CustomerHistoryDialog extends ConsumerStatefulWidget {
 class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  List<Map<String, dynamic>> _customerPayments = [];
+  bool _loadingPayments = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     // Cargar datos
     Future.microtask(() {
       ref.read(invoicesProvider.notifier).refresh();
       ref.read(quotationsProvider.notifier).loadQuotations();
     });
+    _loadCustomerPayments();
+  }
+
+  Future<void> _loadCustomerPayments() async {
+    try {
+      final payments = await InvoicesDataSource.getPaymentsByCustomerId(
+        widget.customer.id,
+      );
+      if (mounted) {
+        setState(() {
+          _customerPayments = payments;
+          _loadingPayments = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingPayments = false);
+    }
   }
 
   @override
@@ -1167,6 +1218,8 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                 labelColor: AppTheme.primaryColor,
                 unselectedLabelColor: Colors.grey[600],
                 indicatorColor: AppTheme.primaryColor,
+                isScrollable: true,
+                tabAlignment: TabAlignment.center,
                 tabs: [
                   Tab(
                     child: Row(
@@ -1185,6 +1238,16 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                         const Icon(Icons.receipt_long, size: 18),
                         const SizedBox(width: 6),
                         Text('Recibos (${customerInvoices.length})'),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.payments_outlined, size: 18),
+                        const SizedBox(width: 6),
+                        Text('Pagos (${_customerPayments.length})'),
                       ],
                     ),
                   ),
@@ -1211,7 +1274,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                   _buildDatosTab(customer),
                   // Tab 2: Facturas
                   _buildFacturasTab(customerInvoices),
-                  // Tab 3: Cotizaciones
+                  // Tab 3: Pagos
+                  _buildPagosTab(),
+                  // Tab 4: Cotizaciones
                   _buildCotizacionesTab(customerQuotations),
                 ],
               ),
@@ -1257,6 +1322,26 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
               Formatters.currency(customer.availableCredit),
               valueColor: Colors.green,
             ),
+          ]),
+          const SizedBox(height: 20),
+          _buildSection('Forma de Pago', [
+            _buildInfoRow(
+              Icons.payment,
+              'Método',
+              customer.creditLimit > 0 ? 'Crédito' : 'Contado',
+              valueColor: customer.creditLimit > 0 ? Colors.blue : Colors.green,
+            ),
+            if (customer.creditLimit > 0) ...[
+              _buildInfoRow(Icons.calendar_today, 'Plazo', 'Crédito a 30 días'),
+              _buildInfoRow(
+                Icons.account_balance_wallet,
+                'Cupo Disponible',
+                Formatters.currency(customer.availableCredit),
+                valueColor: customer.availableCredit > 0
+                    ? Colors.green
+                    : Colors.red,
+              ),
+            ],
           ]),
           const SizedBox(height: 20),
           _buildSection('Estado', [
@@ -1395,43 +1480,704 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
               ),
             ],
           ),
-          subtitle: Row(
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                Formatters.date(inv.issueDate),
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isPaid
-                      ? Colors.green[100]
-                      : (isOverdue ? Colors.red[100] : Colors.orange[100]),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  isPaid ? 'Pagada' : (isOverdue ? 'Vencida' : 'Pendiente'),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: isPaid
-                        ? Colors.green[700]
-                        : (isOverdue ? Colors.red[700] : Colors.orange[700]),
+              Row(
+                children: [
+                  Text(
+                    Formatters.date(inv.issueDate),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isPaid
+                          ? Colors.green[100]
+                          : (isOverdue ? Colors.red[100] : Colors.orange[100]),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      isPaid ? 'Pagada' : (isOverdue ? 'Vencida' : 'Pendiente'),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: isPaid
+                            ? Colors.green[700]
+                            : (isOverdue
+                                  ? Colors.red[700]
+                                  : Colors.orange[700]),
+                      ),
+                    ),
+                  ),
+                  if (inv.paymentMethod != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo[50],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getPaymentMethodIcon(
+                              inv.paymentMethod?.toString().split('.').last,
+                            ),
+                            size: 12,
+                            color: Colors.indigo[700],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _getPaymentMethodLabel(
+                              inv.paymentMethod?.toString().split('.').last,
+                            ),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.indigo[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (!isPaid && inv.dueDate != null) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      'Vence: ${Formatters.date(inv.dueDate!)}',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    ),
+                  ],
+                ],
               ),
-              if (!isPaid && inv.dueDate != null) ...[
-                const SizedBox(width: 8),
-                Text(
-                  'Vence: ${Formatters.date(inv.dueDate!)}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              if (!isPaid) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      'Pendiente: ${Formatters.currency(inv.pendingAmount)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.red[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const Spacer(),
+                    SizedBox(
+                      height: 28,
+                      child: FilledButton.icon(
+                        onPressed: () => _showPaymentDialog(inv),
+                        icon: const Icon(Icons.payment, size: 14),
+                        label: const Text(
+                          'Pagar',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],
           ),
         );
       },
+    );
+  }
+
+  void _showPaymentDialog(Invoice inv) async {
+    // Cargar cuentas disponibles
+    List<Account> accounts = [];
+    try {
+      accounts = await AccountsDataSource.getAllAccounts();
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    final amountController = TextEditingController(
+      text: inv.pendingAmount.toStringAsFixed(0),
+    );
+    final referenceController = TextEditingController();
+    final notesController = TextEditingController();
+    String selectedMethod = 'cash';
+    Account? selectedAccount = accounts.isNotEmpty ? accounts.first : null;
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.payment, color: Colors.green[700]),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Registrar Pago',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      Text(
+                        'Recibo: ${inv.series}-${inv.number}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 420,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Info de la factura
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange[200]!),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Total factura',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                Formatters.currency(inv.total),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Pagado',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                Formatters.currency(inv.paidAmount),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'Pendiente',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                Formatters.currency(inv.pendingAmount),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Monto
+                    TextFormField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Monto a pagar',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.attach_money),
+                        helperText:
+                            'Máximo: ${Formatters.currency(inv.pendingAmount)}',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Cuenta destino
+                    if (accounts.isNotEmpty) ...[
+                      DropdownButtonFormField<Account>(
+                        value: selectedAccount,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Cuenta destino',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.account_balance),
+                        ),
+                        items: accounts
+                            .map(
+                              (a) => DropdownMenuItem(
+                                value: a,
+                                child: Text(
+                                  '${a.name} (${Formatters.currency(a.balance)})',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setDialogState(() => selectedAccount = v),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    // Referencia
+                    TextFormField(
+                      controller: referenceController,
+                      decoration: const InputDecoration(
+                        labelText: 'Referencia (opcional)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.tag),
+                        hintText: 'Ej: Nro. transferencia',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Notas
+                    TextFormField(
+                      controller: notesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Notas (opcional)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.notes),
+                      ),
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton.icon(
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        final amount =
+                            double.tryParse(amountController.text) ?? 0;
+                        if (amount <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Ingresa un monto válido mayor a 0',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        if (amount > inv.pendingAmount + 0.01) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'El monto excede el pendiente (${Formatters.currency(inv.pendingAmount)})',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        setDialogState(() => isSaving = true);
+                        try {
+                          await InvoicesDataSource.registerPayment(
+                            invoiceId: inv.id,
+                            amount: amount,
+                            method: selectedMethod,
+                            accountId: selectedAccount?.id,
+                            reference: referenceController.text.isNotEmpty
+                                ? referenceController.text
+                                : null,
+                            notes: notesController.text.isNotEmpty
+                                ? notesController.text
+                                : null,
+                          );
+                          if (mounted) {
+                            Navigator.pop(dialogContext);
+                            // Recargar datos
+                            ref.read(invoicesProvider.notifier).refresh();
+                            ref
+                                .read(customersProvider.notifier)
+                                .loadCustomers();
+                            _loadCustomerPayments();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Pago de ${Formatters.currency(amount)} registrado en ${inv.series}-${inv.number}',
+                                ),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          setDialogState(() => isSaving = false);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                icon: isSaving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.check),
+                label: Text(isSaving ? 'Guardando...' : 'Registrar Pago'),
+                style: FilledButton.styleFrom(backgroundColor: Colors.green),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  String _getPaymentMethodLabel(String? method) {
+    switch (method) {
+      case 'cash':
+        return 'Efectivo';
+      case 'card':
+        return 'Tarjeta';
+      case 'transfer':
+        return 'Transferencia';
+      case 'credit':
+        return 'Crédito';
+      case 'check':
+        return 'Cheque';
+      case 'yape':
+        return 'Yape';
+      case 'plin':
+        return 'Plin';
+      default:
+        return method ?? 'N/A';
+    }
+  }
+
+  IconData _getPaymentMethodIcon(String? method) {
+    switch (method) {
+      case 'cash':
+        return Icons.payments;
+      case 'card':
+        return Icons.credit_card;
+      case 'transfer':
+        return Icons.swap_horiz;
+      case 'credit':
+        return Icons.account_balance_wallet;
+      case 'check':
+        return Icons.description;
+      case 'yape':
+      case 'plin':
+        return Icons.phone_android;
+      default:
+        return Icons.payment;
+    }
+  }
+
+  Color _getPaymentMethodColor(String? method) {
+    switch (method) {
+      case 'cash':
+        return Colors.green;
+      case 'card':
+        return Colors.blue;
+      case 'transfer':
+        return Colors.indigo;
+      case 'credit':
+        return Colors.orange;
+      case 'check':
+        return Colors.brown;
+      case 'yape':
+        return Colors.purple;
+      case 'plin':
+        return Colors.teal;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildPagosTab() {
+    if (_loadingPayments) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_customerPayments.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.payments_outlined, size: 60, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text(
+              'Sin pagos registrados',
+              style: TextStyle(color: Colors.grey[500], fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Los pagos aparecerán aquí cuando se registren',
+              style: TextStyle(color: Colors.grey[400], fontSize: 13),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Calcular total pagado
+    final totalPagado = _customerPayments.fold<double>(
+      0,
+      (sum, p) => sum + (double.tryParse(p['amount']?.toString() ?? '0') ?? 0),
+    );
+
+    return Column(
+      children: [
+        // Resumen de pagos
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.green[200]!),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green[700], size: 20),
+              const SizedBox(width: 10),
+              Text(
+                'Total Pagado:',
+                style: TextStyle(
+                  color: Colors.green[800],
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                Formatters.currency(totalPagado),
+                style: TextStyle(
+                  color: Colors.green[800],
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Lista de pagos
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.all(12),
+            itemCount: _customerPayments.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 6),
+            itemBuilder: (context, index) {
+              final payment = _customerPayments[index];
+              final amount =
+                  double.tryParse(payment['amount']?.toString() ?? '0') ?? 0;
+              final method = payment['method'] as String?;
+              final reference = payment['reference'] as String?;
+              final notes = payment['notes'] as String?;
+              final invoiceNumber =
+                  payment['invoice_number'] as String? ?? 'N/A';
+              final paymentDate = payment['payment_date'] != null
+                  ? DateTime.tryParse(payment['payment_date'].toString())
+                  : null;
+
+              final methodColor = _getPaymentMethodColor(method);
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey[200]!),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Fila principal: método, factura, monto
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: methodColor.withOpacity(0.1),
+                            child: Icon(
+                              _getPaymentMethodIcon(method),
+                              color: methodColor,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: methodColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        _getPaymentMethodLabel(method),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: methodColor,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Icon(
+                                      Icons.receipt,
+                                      size: 13,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      invoiceNumber,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                if (paymentDate != null)
+                                  Text(
+                                    Formatters.date(paymentDate),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[500],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            Formatters.currency(amount),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Referencia y notas
+                      if (reference != null && reference.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.tag, size: 14, color: Colors.grey[400]),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Ref: $reference',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      if (notes != null && notes.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.notes,
+                              size: 14,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                notes,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

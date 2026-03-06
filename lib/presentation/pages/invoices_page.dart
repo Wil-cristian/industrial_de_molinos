@@ -1021,54 +1021,163 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  ...paymentHistory.map(
-                                    (payment) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 6),
-                                      child: Row(
+                                  ...paymentHistory.asMap().entries.map((
+                                    entry,
+                                  ) {
+                                    final idx = entry.key;
+                                    final payment = entry.value;
+                                    final reference =
+                                        payment['reference']?.toString() ?? '';
+                                    final notes =
+                                        payment['notes']?.toString() ?? '';
+                                    final method =
+                                        payment['method']?.toString() ?? '';
+                                    final createdAt =
+                                        payment['created_at']?.toString() ?? '';
+                                    String dateStr =
+                                        payment['payment_date']
+                                            ?.toString()
+                                            .split('T')[0] ??
+                                        '';
+                                    // Formatear hora si existe
+                                    String timeStr = '';
+                                    if (createdAt.contains('T')) {
+                                      try {
+                                        final dt = DateTime.parse(createdAt);
+                                        timeStr =
+                                            '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+                                      } catch (_) {}
+                                    }
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 6),
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.green.withOpacity(0.2),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Icon(
-                                            Icons.check_circle,
-                                            color: Colors.green[400],
-                                            size: 16,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              payment['payment_date']
-                                                      ?.toString()
-                                                      .split('T')[0] ??
-                                                  '',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey[600],
+                                          Row(
+                                            children: [
+                                              Container(
+                                                width: 22,
+                                                height: 22,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green[50],
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Center(
+                                                  child: Text(
+                                                    '${idx + 1}',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.green[700],
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
-                                            ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  '$dateStr${timeStr.isNotEmpty ? '  $timeStr' : ''}',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.grey[700],
+                                                  ),
+                                                ),
+                                              ),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blue[50],
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  method.toUpperCase(),
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.blue[700],
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Text(
+                                                Formatters.currency(
+                                                  payment['amount'] ?? 0,
+                                                ),
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.green[700],
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          Text(
-                                            payment['method']
-                                                    ?.toString()
-                                                    .toUpperCase() ??
-                                                '',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.grey[500],
+                                          if (reference.isNotEmpty ||
+                                              notes.isNotEmpty) ...[
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                const SizedBox(width: 30),
+                                                if (reference.isNotEmpty) ...[
+                                                  Icon(
+                                                    Icons.tag,
+                                                    size: 12,
+                                                    color: Colors.grey[400],
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    reference,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.grey[500],
+                                                    ),
+                                                  ),
+                                                ],
+                                                if (reference.isNotEmpty &&
+                                                    notes.isNotEmpty)
+                                                  const SizedBox(width: 12),
+                                                if (notes.isNotEmpty) ...[
+                                                  Icon(
+                                                    Icons.notes,
+                                                    size: 12,
+                                                    color: Colors.grey[400],
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Expanded(
+                                                    child: Text(
+                                                      notes,
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Colors.grey[500],
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Text(
-                                            Formatters.currency(
-                                              payment['amount'] ?? 0,
-                                            ),
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.green[700],
-                                            ),
-                                          ),
+                                          ],
                                         ],
                                       ),
-                                    ),
-                                  ),
+                                    );
+                                  }),
                                 ],
                               ),
                             ),
@@ -2589,7 +2698,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                             ),
                           )
                         else
-                          ..._paymentHistory.map((payment) {
+                          ..._paymentHistory.asMap().entries.map((entry) {
+                            final idx = entry.key;
+                            final payment = entry.value;
                             final amount =
                                 (payment['amount'] as num?)?.toDouble() ?? 0;
                             final date =
@@ -2600,6 +2711,17 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                             final method = payment['method']?.toString() ?? '';
                             final reference =
                                 payment['reference']?.toString() ?? '';
+                            final notes = payment['notes']?.toString() ?? '';
+                            final createdAt =
+                                payment['created_at']?.toString() ?? '';
+                            String timeStr = '';
+                            if (createdAt.contains('T')) {
+                              try {
+                                final dt = DateTime.parse(createdAt);
+                                timeStr =
+                                    '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+                              } catch (_) {}
+                            }
                             return Container(
                               margin: const EdgeInsets.only(bottom: 8),
                               padding: const EdgeInsets.all(12),
@@ -2608,53 +2730,157 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(color: Colors.green[100]!),
                               ),
-                              child: Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: Colors.green[100],
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      Icons.check,
-                                      color: Colors.green[700],
-                                      size: 18,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          date,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.grey[700],
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: Colors.green[100],
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
                                         ),
-                                        Text(
-                                          '${method.isNotEmpty ? method.toUpperCase() : "Pago"}${reference.isNotEmpty ? " • $reference" : ""}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[500],
+                                        child: Center(
+                                          child: Text(
+                                            '${idx + 1}',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.green[700],
+                                              fontSize: 13,
+                                            ),
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  date,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.grey[700],
+                                                  ),
+                                                ),
+                                                if (timeStr.isNotEmpty) ...[
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    timeStr,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.grey[400],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Row(
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 1,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.blue[50],
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    method.isNotEmpty
+                                                        ? method.toUpperCase()
+                                                        : 'PAGO',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Colors.blue[700],
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (reference.isNotEmpty) ...[
+                                                  const SizedBox(width: 8),
+                                                  Icon(
+                                                    Icons.tag,
+                                                    size: 12,
+                                                    color: Colors.grey[400],
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  Flexible(
+                                                    child: Text(
+                                                      reference,
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Colors.grey[500],
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        Helpers.formatCurrency(amount),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green[700],
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    Helpers.formatCurrency(amount),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green[700],
-                                      fontSize: 14,
+                                  if (notes.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      margin: const EdgeInsets.only(left: 42),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[50],
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.notes,
+                                            size: 13,
+                                            color: Colors.grey[400],
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Expanded(
+                                            child: Text(
+                                              notes,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey[600],
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             );

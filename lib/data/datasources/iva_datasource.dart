@@ -151,6 +151,13 @@ class IvaInvoice {
   final String? notes;
   final DateTime? createdAt;
 
+  // Campos adicionales (migración 053)
+  final String? companyDocument; // NIT del emisor
+  final String? cufe; // Código Único Facturación Electrónica
+  final String? purchaseOrderId; // Vínculo con purchase_orders
+  final double rteFteAmount; // Retención en la Fuente
+  final double reteIcaAmount; // Retención ICA
+
   IvaInvoice({
     this.id,
     required this.invoiceNumber,
@@ -165,6 +172,11 @@ class IvaInvoice {
     required this.bimonthlyPeriod,
     this.notes,
     this.createdAt,
+    this.companyDocument,
+    this.cufe,
+    this.purchaseOrderId,
+    this.rteFteAmount = 0,
+    this.reteIcaAmount = 0,
   });
 
   factory IvaInvoice.fromJson(Map<String, dynamic> json) {
@@ -184,6 +196,12 @@ class IvaInvoice {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
+      // Campos migración 053
+      companyDocument: json['company_document'] as String?,
+      cufe: json['cufe'] as String?,
+      purchaseOrderId: json['purchase_order_id'] as String?,
+      rteFteAmount: (json['rte_fte_amount'] as num?)?.toDouble() ?? 0,
+      reteIcaAmount: (json['rete_ica_amount'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -199,6 +217,12 @@ class IvaInvoice {
     'reteiva_amount': reteivaAmount,
     'bimonthly_period': bimonthlyPeriod,
     'notes': notes,
+    // Campos migración 053
+    'company_document': companyDocument,
+    'cufe': cufe,
+    'purchase_order_id': purchaseOrderId,
+    'rte_fte_amount': rteFteAmount,
+    'rete_ica_amount': reteIcaAmount,
   };
 
   IvaInvoice copyWith({
@@ -214,6 +238,11 @@ class IvaInvoice {
     double? reteivaAmount,
     String? bimonthlyPeriod,
     String? notes,
+    String? companyDocument,
+    String? cufe,
+    String? purchaseOrderId,
+    double? rteFteAmount,
+    double? reteIcaAmount,
   }) {
     return IvaInvoice(
       id: id ?? this.id,
@@ -229,6 +258,11 @@ class IvaInvoice {
       bimonthlyPeriod: bimonthlyPeriod ?? this.bimonthlyPeriod,
       notes: notes ?? this.notes,
       createdAt: createdAt,
+      companyDocument: companyDocument ?? this.companyDocument,
+      cufe: cufe ?? this.cufe,
+      purchaseOrderId: purchaseOrderId ?? this.purchaseOrderId,
+      rteFteAmount: rteFteAmount ?? this.rteFteAmount,
+      reteIcaAmount: reteIcaAmount ?? this.reteIcaAmount,
     );
   }
 }
@@ -247,6 +281,9 @@ class BimonthlySettlement {
   final double reteiva;
   final double totalAPagar;
   final double tarifaSimple;
+  // Retenciones adicionales (migración 053)
+  final double rteFte;
+  final double reteIca;
 
   BimonthlySettlement({
     required this.period,
@@ -261,6 +298,8 @@ class BimonthlySettlement {
     required this.reteiva,
     required this.totalAPagar,
     required this.tarifaSimple,
+    this.rteFte = 0,
+    this.reteIca = 0,
   });
 
   factory BimonthlySettlement.fromJson(Map<String, dynamic> json) {
@@ -277,6 +316,8 @@ class BimonthlySettlement {
       reteiva: (json['reteiva'] as num?)?.toDouble() ?? 0,
       totalAPagar: (json['total_a_pagar'] as num?)?.toDouble() ?? 0,
       tarifaSimple: (json['tarifa_simple'] as num?)?.toDouble() ?? 0.02,
+      rteFte: (json['rte_fte'] as num?)?.toDouble() ?? 0,
+      reteIca: (json['rete_ica'] as num?)?.toDouble() ?? 0,
     );
   }
 }
@@ -366,6 +407,9 @@ class BimonthlySummaryView {
   final int numCompras;
   final double totalReteiva;
   final int totalFacturas;
+  // Campos de retenciones (migración 053)
+  final double totalRteFte;
+  final double totalReteIca;
 
   BimonthlySummaryView({
     required this.bimonthlyPeriod,
@@ -382,6 +426,8 @@ class BimonthlySummaryView {
     required this.numCompras,
     required this.totalReteiva,
     required this.totalFacturas,
+    this.totalRteFte = 0,
+    this.totalReteIca = 0,
   });
 
   factory BimonthlySummaryView.fromJson(Map<String, dynamic> json) {
@@ -400,6 +446,8 @@ class BimonthlySummaryView {
       numCompras: (json['num_compras'] as num?)?.toInt() ?? 0,
       totalReteiva: (json['total_reteiva'] as num?)?.toDouble() ?? 0,
       totalFacturas: (json['total_facturas'] as num?)?.toInt() ?? 0,
+      totalRteFte: (json['total_rte_fte'] as num?)?.toDouble() ?? 0,
+      totalReteIca: (json['total_rete_ica'] as num?)?.toDouble() ?? 0,
     );
   }
 }

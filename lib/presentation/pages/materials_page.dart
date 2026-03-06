@@ -143,10 +143,11 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    SizedBox(
-                      width: 180,
+                    Expanded(
+                      flex: 2,
                       child: DropdownButtonFormField<String>(
                         value: _selectedCategory,
+                        isExpanded: true,
                         decoration: InputDecoration(
                           labelText: 'Categoría',
                           border: OutlineInputBorder(
@@ -166,7 +167,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                           ...state.categories.map(
                             (cat) => DropdownMenuItem(
                               value: cat,
-                              child: Text(_getCategoryName(cat)),
+                              child: Text(
+                                _getCategoryName(cat),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ),
                         ],
@@ -753,11 +757,16 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
           : '',
     );
 
-    String category =
-        material?.category ??
-        (_selectedCategory != 'todos' ? _selectedCategory : 'general');
     // Pre-asignar la unidad desde la categoría seleccionada
     final catState = ref.read(materialCategoryProvider);
+
+    String category =
+        material?.category ??
+        (_selectedCategory != 'todos'
+            ? _selectedCategory
+            : (catState.categories.isNotEmpty
+                  ? catState.categories.first.slug
+                  : ''));
     final initialCat = catState.categories.where((c) => c.slug == category);
     String unit =
         material?.unit ??
@@ -795,11 +804,14 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     materialCategoryProvider,
                                   );
                                   final cats = catState.categories;
-                                  // Asegurar que el valor seleccionado existe
+                                  // Asegurar que el valor seleccionado existe en la lista
+                                  final fallback = cats.isNotEmpty
+                                      ? cats.first.slug
+                                      : '';
                                   final validCategory =
                                       cats.any((c) => c.slug == category)
                                       ? category
-                                      : 'general';
+                                      : fallback;
                                   if (validCategory != category) {
                                     Future.microtask(
                                       () => setDialogState(
@@ -807,6 +819,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       ),
                                     );
                                   }
+                                  if (cats.isEmpty) return const SizedBox();
                                   return DropdownButtonFormField<String>(
                                     value: validCategory,
                                     decoration: const InputDecoration(

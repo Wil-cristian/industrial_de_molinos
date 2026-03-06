@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
+import '../../data/datasources/accounts_datasource.dart';
+import '../../data/datasources/suppliers_datasource.dart';
 import '../../data/providers/suppliers_provider.dart';
 import '../../data/providers/purchase_orders_provider.dart';
 import '../../data/providers/providers.dart';
 import '../../domain/entities/supplier.dart';
 import '../../domain/entities/purchase_order.dart';
+import '../../domain/entities/cash_movement.dart';
+import '../../domain/entities/account.dart';
 
 class SuppliersPage extends ConsumerStatefulWidget {
   final bool openNewDialog;
@@ -411,6 +415,9 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
             case 'edit':
               _showEditSupplierDialog(supplier);
               break;
+            case 'pay_debt':
+              _showPayDebtDialog(supplier);
+              break;
             case 'delete':
               _confirmDelete(supplier);
               break;
@@ -427,6 +434,17 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
               ],
             ),
           ),
+          if (supplier.hasDebt)
+            const PopupMenuItem(
+              value: 'pay_debt',
+              child: Row(
+                children: [
+                  Icon(Icons.payments, size: 20, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text('Registrar Pago', style: TextStyle(color: Colors.green)),
+                ],
+              ),
+            ),
           const PopupMenuItem(
             value: 'delete',
             child: Row(
@@ -747,6 +765,352 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                 }
               },
               child: Text(isEditing ? 'Guardar' : 'Crear'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPayDebtDialog(Supplier supplier) {
+    final amountCtrl = TextEditingController(
+      text: supplier.currentDebt.toStringAsFixed(0),
+    );
+    final descCtrl = TextEditingController(
+      text: 'Pago a proveedor: ${supplier.displayName}',
+    );
+    String? selectedAccountId;
+    bool isPartial = false;
+    bool isProcessing = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.payments, color: Colors.green.shade700),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('Registrar Pago a Proveedor')),
+            ],
+          ),
+          content: SizedBox(
+            width: 500,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Info del proveedor
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.business, color: Colors.orange.shade700),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              supplier.displayName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Deuda actual: \$${Helpers.formatNumber(supplier.currentDebt)}',
+                              style: TextStyle(
+                                color: Colors.orange.shade800,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Tipo de pago
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildPayOption(
+                        ctx,
+                        icon: Icons.check_circle,
+                        label: 'Pago Total',
+                        selected: !isPartial,
+                        onTap: () {
+                          setDialogState(() {
+                            isPartial = false;
+                            amountCtrl.text = supplier.currentDebt
+                                .toStringAsFixed(0);
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildPayOption(
+                        ctx,
+                        icon: Icons.pie_chart,
+                        label: 'Abono Parcial',
+                        selected: isPartial,
+                        onTap: () {
+                          setDialogState(() {
+                            isPartial = true;
+                            amountCtrl.clear();
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Monto
+                TextField(
+                  controller: amountCtrl,
+                  decoration: InputDecoration(
+                    labelText: isPartial ? 'Monto del abono' : 'Monto total',
+                    prefixText: '\$ ',
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  keyboardType: TextInputType.number,
+                  readOnly: !isPartial,
+                ),
+                const SizedBox(height: 12),
+
+                // Descripción
+                TextField(
+                  controller: descCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Cuenta de pago
+                FutureBuilder<List<Account>>(
+                  future: AccountsDataSource.getAllAccounts(),
+                  builder: (context, snapshot) {
+                    final accounts = snapshot.data ?? [];
+                    return DropdownButtonFormField<String>(
+                      value: selectedAccountId,
+                      decoration: const InputDecoration(
+                        labelText: 'Cuenta de pago *',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        prefixIcon: Icon(
+                          Icons.account_balance_wallet,
+                          size: 18,
+                        ),
+                      ),
+                      items: accounts
+                          .map(
+                            (a) => DropdownMenuItem(
+                              value: a.id,
+                              child: Text(
+                                '${a.name} (\$${Formatters.currency(a.balance)})',
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) =>
+                          setDialogState(() => selectedAccountId = v),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // Info
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Colors.blue.shade700,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Se creará un movimiento de egreso en caja, '
+                          'un asiento contable automático y se reducirá la deuda.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton.icon(
+              onPressed: isProcessing || selectedAccountId == null
+                  ? null
+                  : () async {
+                      final amount = double.tryParse(amountCtrl.text) ?? 0;
+                      if (amount <= 0) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(
+                            content: Text('El monto debe ser mayor a 0'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
+                      if (amount > supplier.currentDebt) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'El monto no puede exceder la deuda (\$${Helpers.formatNumber(supplier.currentDebt)})',
+                            ),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => isProcessing = true);
+
+                      try {
+                        // 1. Crear movimiento de egreso (dispara asiento contable automático)
+                        final refNumber =
+                            await AccountsDataSource.getNextReferenceNumber();
+                        final movement = CashMovement(
+                          id: '',
+                          accountId: selectedAccountId!,
+                          type: MovementType.expense,
+                          category: MovementCategory.consumibles,
+                          amount: amount,
+                          description: descCtrl.text.trim(),
+                          reference: refNumber.toString().padLeft(6, '0'),
+                          personName: supplier.displayName,
+                          date: DateTime.now(),
+                        );
+                        await AccountsDataSource.createMovementWithBalanceUpdate(
+                          movement,
+                        );
+
+                        // 2. Reducir deuda del proveedor (monto negativo)
+                        await SuppliersDataSource.updateDebt(
+                          supplier.id,
+                          -amount,
+                        );
+
+                        // 3. Recargar proveedores
+                        if (mounted) {
+                          ref.read(suppliersProvider.notifier).loadSuppliers();
+                        }
+
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                          final remaining = supplier.currentDebt - amount;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                remaining <= 0
+                                    ? '✅ Pago total a ${supplier.displayName} registrado. Deuda saldada.'
+                                    : '✅ Abono de \$${Helpers.formatNumber(amount)} registrado. '
+                                          'Deuda restante: \$${Helpers.formatNumber(remaining)}',
+                              ),
+                              backgroundColor: Colors.green.shade700,
+                              duration: const Duration(seconds: 4),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setDialogState(() => isProcessing = false);
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              icon: isProcessing
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.payments, size: 18),
+              label: Text(isProcessing ? 'Procesando...' : 'Registrar Pago'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.green.shade700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPayOption(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? Colors.green.shade600 : Colors.grey.shade300,
+            width: selected ? 2 : 1,
+          ),
+          color: selected ? Colors.green.shade50 : Colors.transparent,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected ? Colors.green.shade700 : Colors.grey.shade500,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                color: selected ? Colors.green.shade700 : Colors.grey.shade600,
+              ),
             ),
           ],
         ),

@@ -1,4 +1,34 @@
 import 'account.dart';
+import '../../data/datasources/storage_datasource.dart';
+
+/// Mapea valores de categoría del DB (incluyendo nombres viejos) al enum actual.
+MovementCategory parseCategoryFromJson(String value) {
+  // Mapeo directo por nombre de enum actual
+  for (final cat in MovementCategory.values) {
+    if (cat.name == value) return cat;
+  }
+  // Compatibilidad con valores antiguos del DB
+  switch (value) {
+    case 'purchase':
+      return MovementCategory.consumibles;
+    case 'salary':
+      return MovementCategory.nomina;
+    case 'services':
+      return MovementCategory.servicios_publicos;
+    case 'transport':
+      return MovementCategory.transporte;
+    case 'maintenance':
+      return MovementCategory.gastos_reducibles;
+    case 'prestamo_empleado':
+      return MovementCategory.gastos_reducibles;
+    case 'adelanto_sueldo':
+      return MovementCategory.nomina;
+    case 'otherExpense':
+      return MovementCategory.gastos_reducibles;
+    default:
+      return MovementCategory.otherIncome;
+  }
+}
 
 // Tipos de movimiento de caja
 enum MovementType {
@@ -15,15 +45,14 @@ enum MovementCategory {
   pago_prestamo, // Pago/abono de préstamo empleado
   otherIncome, // Otros ingresos
   // Gastos
-  purchase, // Compra de materiales/productos
-  salary, // Salarios
-  services, // Servicios (luz, agua, internet, etc.)
-  transport, // Transporte / Mensajería
-  maintenance, // Mantenimiento
-  prestamo_empleado, // Préstamo a empleado
-  adelanto_sueldo, // Adelanto de sueldo a empleado
-  nomina, // Pago de nómina
-  otherExpense, // Otros gastos
+  cuidado_personal, // Implementos de cuidado personal
+  servicios_publicos, // Servicios públicos (luz, agua, internet)
+  papeleria, // Papelería
+  nomina, // Nómina
+  impuestos, // Impuestos
+  consumibles, // Consumibles (materiales, productos)
+  transporte, // Transporte
+  gastos_reducibles, // Gastos reducibles
   // Traslados
   transferOut, // Salida por traslado
   transferIn, // Entrada por traslado
@@ -46,6 +75,9 @@ class CashMovement {
   final String?
   linkedTransferId; // ID del movimiento relacionado (para traslados)
 
+  // Archivos adjuntos (fotos, recibos, etc.) almacenados en Supabase Storage
+  final List<AttachmentInfo> attachments;
+
   // Para mostrar en UI (no persistido)
   final Account? account;
   final Account? toAccount;
@@ -63,6 +95,7 @@ class CashMovement {
     required this.date,
     DateTime? createdAt,
     this.linkedTransferId,
+    this.attachments = const [],
     this.account,
     this.toAccount,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -80,6 +113,7 @@ class CashMovement {
     DateTime? date,
     DateTime? createdAt,
     String? linkedTransferId,
+    List<AttachmentInfo>? attachments,
     Account? account,
     Account? toAccount,
   }) {
@@ -96,6 +130,7 @@ class CashMovement {
       date: date ?? this.date,
       createdAt: createdAt ?? this.createdAt,
       linkedTransferId: linkedTransferId ?? this.linkedTransferId,
+      attachments: attachments ?? this.attachments,
       account: account ?? this.account,
       toAccount: toAccount ?? this.toAccount,
     );
@@ -115,6 +150,7 @@ class CashMovement {
       'date': date.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'linkedTransferId': linkedTransferId,
+      'attachments': attachments.map((a) => a.toJson()).toList(),
     };
   }
 
@@ -127,10 +163,8 @@ class CashMovement {
         (e) => e.name == json['type'],
         orElse: () => MovementType.income,
       ),
-      category: MovementCategory.values.firstWhere(
-        (e) => e.name == json['category'],
-        orElse: () => MovementCategory.otherIncome,
-      ),
+      category: parseCategoryFromJson(json['category'] ?? ''),
+
       amount: (json['amount'] ?? 0).toDouble(),
       description: json['description'] ?? '',
       reference: json['reference'],
@@ -142,6 +176,13 @@ class CashMovement {
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
       linkedTransferId: json['linkedTransferId'],
+      attachments: json['attachments'] != null && json['attachments'] is List
+          ? (json['attachments'] as List)
+                .map(
+                  (a) => AttachmentInfo.fromJson(Map<String, dynamic>.from(a)),
+                )
+                .toList()
+          : [],
     );
   }
 
@@ -166,24 +207,22 @@ class CashMovement {
         return 'Pago Préstamo';
       case MovementCategory.otherIncome:
         return 'Otros Ingresos';
-      case MovementCategory.purchase:
-        return 'Compra';
-      case MovementCategory.salary:
-        return 'Salario';
-      case MovementCategory.services:
-        return 'Servicios';
-      case MovementCategory.transport:
-        return 'Transporte';
-      case MovementCategory.maintenance:
-        return 'Mantenimiento';
-      case MovementCategory.prestamo_empleado:
-        return 'Préstamo';
-      case MovementCategory.adelanto_sueldo:
-        return 'Adelanto Sueldo';
+      case MovementCategory.cuidado_personal:
+        return 'Cuidado Personal';
+      case MovementCategory.servicios_publicos:
+        return 'Servicios Públicos';
+      case MovementCategory.papeleria:
+        return 'Papelería';
       case MovementCategory.nomina:
         return 'Nómina';
-      case MovementCategory.otherExpense:
-        return 'Otros Gastos';
+      case MovementCategory.impuestos:
+        return 'Impuestos';
+      case MovementCategory.consumibles:
+        return 'Consumibles';
+      case MovementCategory.transporte:
+        return 'Transporte';
+      case MovementCategory.gastos_reducibles:
+        return 'Gastos Reducibles';
       case MovementCategory.transferOut:
         return 'Traslado Salida';
       case MovementCategory.transferIn:

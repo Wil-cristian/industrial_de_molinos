@@ -62,6 +62,20 @@ class PurchaseOrder {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  // Campos de factura de proveedor (migración 053)
+  final String? supplierInvoiceNumber; // Ej: "FE 4196"
+  final DateTime? supplierInvoiceDate;
+  final String? cufe; // Código Único Facturación Electrónica DIAN
+  final double taxRate; // Tasa IVA general (19%, 5%, 0%)
+  final double retentionRteFte; // Retención en la Fuente
+  final double retentionIca; // Retención ICA
+  final double retentionIva; // ReteIVA
+  final double freightAmount; // Fletes
+  final List<Map<String, dynamic>> attachments; // Archivos adjuntos
+  final String? ivaInvoiceId; // Vínculo con iva_invoices
+  final int creditDays; // Días de crédito
+  final DateTime? dueDate; // Fecha de vencimiento
+
   // Datos de join
   final String? supplierName;
   final List<PurchaseOrderItem> items;
@@ -84,6 +98,18 @@ class PurchaseOrder {
     this.createdBy,
     required this.createdAt,
     required this.updatedAt,
+    this.supplierInvoiceNumber,
+    this.supplierInvoiceDate,
+    this.cufe,
+    this.taxRate = 19.00,
+    this.retentionRteFte = 0,
+    this.retentionIca = 0,
+    this.retentionIva = 0,
+    this.freightAmount = 0,
+    this.attachments = const [],
+    this.ivaInvoiceId,
+    this.creditDays = 0,
+    this.dueDate,
     this.supplierName,
     this.items = const [],
   });
@@ -91,6 +117,12 @@ class PurchaseOrder {
   double get balance => total - amountPaid;
   bool get isFullyPaid => amountPaid >= total;
   int get itemCount => items.length;
+  double get totalRetentions => retentionRteFte + retentionIca + retentionIva;
+  bool get hasInvoice =>
+      supplierInvoiceNumber != null && supplierInvoiceNumber!.isNotEmpty;
+  bool get hasAttachments => attachments.isNotEmpty;
+  bool get isOverdue =>
+      dueDate != null && DateTime.now().isAfter(dueDate!) && !isFullyPaid;
 
   PurchaseOrder copyWith({
     String? id,
@@ -110,6 +142,18 @@ class PurchaseOrder {
     String? createdBy,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? supplierInvoiceNumber,
+    DateTime? supplierInvoiceDate,
+    String? cufe,
+    double? taxRate,
+    double? retentionRteFte,
+    double? retentionIca,
+    double? retentionIva,
+    double? freightAmount,
+    List<Map<String, dynamic>>? attachments,
+    String? ivaInvoiceId,
+    int? creditDays,
+    DateTime? dueDate,
     String? supplierName,
     List<PurchaseOrderItem>? items,
   }) {
@@ -131,12 +175,36 @@ class PurchaseOrder {
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      supplierInvoiceNumber:
+          supplierInvoiceNumber ?? this.supplierInvoiceNumber,
+      supplierInvoiceDate: supplierInvoiceDate ?? this.supplierInvoiceDate,
+      cufe: cufe ?? this.cufe,
+      taxRate: taxRate ?? this.taxRate,
+      retentionRteFte: retentionRteFte ?? this.retentionRteFte,
+      retentionIca: retentionIca ?? this.retentionIca,
+      retentionIva: retentionIva ?? this.retentionIva,
+      freightAmount: freightAmount ?? this.freightAmount,
+      attachments: attachments ?? this.attachments,
+      ivaInvoiceId: ivaInvoiceId ?? this.ivaInvoiceId,
+      creditDays: creditDays ?? this.creditDays,
+      dueDate: dueDate ?? this.dueDate,
       supplierName: supplierName ?? this.supplierName,
       items: items ?? this.items,
     );
   }
 
   factory PurchaseOrder.fromJson(Map<String, dynamic> json) {
+    // Parsear attachments JSONB
+    List<Map<String, dynamic>> parseAttachments(dynamic value) {
+      if (value == null) return [];
+      if (value is List) {
+        return value
+            .map((e) => e is Map<String, dynamic> ? e : <String, dynamic>{})
+            .toList();
+      }
+      return [];
+    }
+
     return PurchaseOrder(
       id: json['id'] as String,
       orderNumber: json['order_number'] as String,
@@ -165,6 +233,23 @@ class PurchaseOrder {
       createdBy: json['created_by'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      // Nuevos campos de factura (migración 053)
+      supplierInvoiceNumber: json['supplier_invoice_number'] as String?,
+      supplierInvoiceDate: json['supplier_invoice_date'] != null
+          ? DateTime.parse(json['supplier_invoice_date'] as String)
+          : null,
+      cufe: json['cufe'] as String?,
+      taxRate: (json['tax_rate'] as num?)?.toDouble() ?? 19.00,
+      retentionRteFte: (json['retention_rte_fte'] as num?)?.toDouble() ?? 0,
+      retentionIca: (json['retention_ica'] as num?)?.toDouble() ?? 0,
+      retentionIva: (json['retention_iva'] as num?)?.toDouble() ?? 0,
+      freightAmount: (json['freight_amount'] as num?)?.toDouble() ?? 0,
+      attachments: parseAttachments(json['attachments']),
+      ivaInvoiceId: json['iva_invoice_id'] as String?,
+      creditDays: (json['credit_days'] as num?)?.toInt() ?? 0,
+      dueDate: json['due_date'] != null
+          ? DateTime.parse(json['due_date'] as String)
+          : null,
       supplierName: json['proveedores'] != null
           ? json['proveedores']['name'] as String?
           : null,
@@ -191,6 +276,22 @@ class PurchaseOrder {
       'notes': notes,
       'expected_date': expectedDate?.toIso8601String().split('T').first,
       'created_by': createdBy,
+      // Campos de factura (migración 053)
+      'supplier_invoice_number': supplierInvoiceNumber,
+      'supplier_invoice_date': supplierInvoiceDate
+          ?.toIso8601String()
+          .split('T')
+          .first,
+      'cufe': cufe,
+      'tax_rate': taxRate,
+      'retention_rte_fte': retentionRteFte,
+      'retention_ica': retentionIca,
+      'retention_iva': retentionIva,
+      'freight_amount': freightAmount,
+      'attachments': attachments,
+      'iva_invoice_id': ivaInvoiceId,
+      'credit_days': creditDays,
+      'due_date': dueDate?.toIso8601String().split('T').first,
     };
   }
 }
@@ -208,6 +309,14 @@ class PurchaseOrderItem {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  // Campos de factura por ítem (migración 053)
+  final double taxRate; // IVA por ítem (19%, 5%, 0%)
+  final double taxAmount; // Monto IVA del ítem
+  final double discount; // Descuento por ítem
+  final String? referenceCode; // Código del proveedor (ej: "BALLDIA1.5")
+  final String? description; // Descripción libre
+  final double itemTotal; // Total con IVA
+
   // Datos de join
   final String? materialName;
   final String? materialCode;
@@ -224,12 +333,21 @@ class PurchaseOrderItem {
     this.notes,
     required this.createdAt,
     required this.updatedAt,
+    this.taxRate = 19.00,
+    this.taxAmount = 0,
+    this.discount = 0,
+    this.referenceCode,
+    this.description,
+    this.itemTotal = 0,
     this.materialName,
     this.materialCode,
   });
 
   bool get isFullyReceived => quantityReceived >= quantity;
   double get pendingQuantity => quantity - quantityReceived;
+  double get calculatedSubtotal => quantity * unitPrice;
+  double get calculatedTax => (calculatedSubtotal - discount) * (taxRate / 100);
+  double get calculatedTotal => calculatedSubtotal - discount + calculatedTax;
 
   PurchaseOrderItem copyWith({
     String? id,
@@ -243,6 +361,12 @@ class PurchaseOrderItem {
     String? notes,
     DateTime? createdAt,
     DateTime? updatedAt,
+    double? taxRate,
+    double? taxAmount,
+    double? discount,
+    String? referenceCode,
+    String? description,
+    double? itemTotal,
     String? materialName,
     String? materialCode,
   }) {
@@ -258,6 +382,12 @@ class PurchaseOrderItem {
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      taxRate: taxRate ?? this.taxRate,
+      taxAmount: taxAmount ?? this.taxAmount,
+      discount: discount ?? this.discount,
+      referenceCode: referenceCode ?? this.referenceCode,
+      description: description ?? this.description,
+      itemTotal: itemTotal ?? this.itemTotal,
       materialName: materialName ?? this.materialName,
       materialCode: materialCode ?? this.materialCode,
     );
@@ -276,6 +406,13 @@ class PurchaseOrderItem {
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      // Campos de factura (migración 053)
+      taxRate: (json['tax_rate'] as num?)?.toDouble() ?? 19.00,
+      taxAmount: (json['tax_amount'] as num?)?.toDouble() ?? 0,
+      discount: (json['discount'] as num?)?.toDouble() ?? 0,
+      referenceCode: json['reference_code'] as String?,
+      description: json['description'] as String?,
+      itemTotal: (json['total'] as num?)?.toDouble() ?? 0,
       materialName: json['materials'] != null
           ? json['materials']['name'] as String?
           : null,
@@ -295,6 +432,13 @@ class PurchaseOrderItem {
       'subtotal': quantity * unitPrice,
       'quantity_received': quantityReceived,
       'notes': notes,
+      // Campos de factura (migración 053)
+      'tax_rate': taxRate,
+      'tax_amount': taxAmount,
+      'discount': discount,
+      'reference_code': referenceCode,
+      'description': description,
+      'total': itemTotal,
     };
   }
 }

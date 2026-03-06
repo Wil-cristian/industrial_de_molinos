@@ -40,57 +40,82 @@ class DailyCashState {
   }
 
   // Getters calculados
-  
+
   /// Balance total de todas las cuentas
   double get totalBalance => accounts.fold(0.0, (sum, a) => sum + a.balance);
-  
+
   /// Movimientos filtrados por cuenta seleccionada
   List<CashMovement> get filteredMovements {
     if (selectedAccountId == null) return movements;
-    return movements.where((m) => 
-      m.accountId == selectedAccountId || 
-      m.toAccountId == selectedAccountId
-    ).toList();
+    return movements
+        .where(
+          (m) =>
+              m.accountId == selectedAccountId ||
+              m.toAccountId == selectedAccountId,
+        )
+        .toList();
   }
-  
+
   /// Total de ingresos del día (excluyendo traslados)
   double get dayIncome => movements
       .where((m) => m.type == MovementType.income)
       .fold(0.0, (sum, m) => sum + m.amount);
-  
+
   /// Total de gastos del día (excluyendo traslados)
   double get dayExpense => movements
       .where((m) => m.type == MovementType.expense)
       .fold(0.0, (sum, m) => sum + m.amount);
-  
+
   /// Saldo neto del día
   double get dayNet => dayIncome - dayExpense;
-  
+
   /// Cantidad de movimientos
   int get movementCount => movements.length;
-  
+
   /// Ingresos del día por cuenta
   Map<String, double> get incomeByAccount {
     final result = <String, double>{};
     for (final account in accounts) {
       result[account.id] = movements
-          .where((m) => m.accountId == account.id && m.type == MovementType.income)
+          .where(
+            (m) => m.accountId == account.id && m.type == MovementType.income,
+          )
           .fold(0.0, (sum, m) => sum + m.amount);
     }
     return result;
   }
-  
+
   /// Gastos del día por cuenta
   Map<String, double> get expenseByAccount {
     final result = <String, double>{};
     for (final account in accounts) {
       result[account.id] = movements
-          .where((m) => m.accountId == account.id && m.type == MovementType.expense)
+          .where(
+            (m) => m.accountId == account.id && m.type == MovementType.expense,
+          )
           .fold(0.0, (sum, m) => sum + m.amount);
     }
     return result;
   }
-  
+
+  /// Gastos del día agrupados por categoría
+  Map<MovementCategory, double> get expenseByCategory {
+    final result = <MovementCategory, double>{};
+    for (final m in movements.where((m) => m.type == MovementType.expense)) {
+      result[m.category] = (result[m.category] ?? 0) + m.amount;
+    }
+    return result;
+  }
+
+  /// Ingresos del día agrupados por categoría
+  Map<MovementCategory, double> get incomeByCategory {
+    final result = <MovementCategory, double>{};
+    for (final m in movements.where((m) => m.type == MovementType.income)) {
+      result[m.category] = (result[m.category] ?? 0) + m.amount;
+    }
+    return result;
+  }
+
   /// Obtener cuenta por ID
   Account? getAccountById(String id) {
     try {
@@ -111,9 +136,9 @@ class DailyCashState {
     ),
     Account(
       id: 'default-daniela',
-      name: 'Cuenta Daniela',
+      name: 'Davivienda',
       type: AccountType.bank,
-      bankName: 'Banco',
+      bankName: 'Davivienda',
       balance: 0,
       color: '#2196F3',
     ),
@@ -142,20 +167,22 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
     try {
       // Inicializar cuentas predeterminadas si es necesario
       await AccountsDataSource.initializeDefaultAccounts();
-      
+
       final results = await Future.wait([
         AccountsDataSource.getAllAccounts(),
         AccountsDataSource.getMovementsByDate(state.selectedDate),
       ]);
-      
+
       final loadedAccounts = results[0] as List<Account>;
       print('📦 Cuentas cargadas: ${loadedAccounts.length}');
       for (final acc in loadedAccounts) {
         print('   - ${acc.name} (ID: ${acc.id})');
       }
-      
+
       state = state.copyWith(
-        accounts: loadedAccounts.isNotEmpty ? loadedAccounts : DailyCashState.defaultAccounts,
+        accounts: loadedAccounts.isNotEmpty
+            ? loadedAccounts
+            : DailyCashState.defaultAccounts,
         movements: results[1] as List<CashMovement>,
         isLoading: false,
       );
@@ -163,7 +190,7 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
       print('❌ Error cargando cuentas: $e');
       // Si hay error, mantener las cuentas por defecto
       state = state.copyWith(
-        isLoading: false, 
+        isLoading: false,
         error: e.toString(),
         accounts: DailyCashState.defaultAccounts,
       );
@@ -187,7 +214,8 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
   }
 
   /// Agregar ingreso (optimista)
-  Future<bool> addIncome({
+  /// Retorna el ID del movimiento creado, o null si falla.
+  Future<String?> addIncome({
     required String accountId,
     required double amount,
     required String description,
@@ -211,25 +239,32 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
 
       // Optimista: actualizar balance local + agregar movimiento temporal
       state = state.copyWith(
-        accounts: state.accounts.map((a) =>
-          a.id == accountId ? a.copyWith(balance: a.balance + amount) : a
-        ).toList(),
+        accounts: state.accounts
+            .map(
+              (a) => a.id == accountId
+                  ? a.copyWith(balance: a.balance + amount)
+                  : a,
+            )
+            .toList(),
         error: null,
       );
 
-      await AccountsDataSource.createMovementWithBalanceUpdate(movement);
+      final created = await AccountsDataSource.createMovementWithBalanceUpdate(
+        movement,
+      );
 
       // Refrescar movimientos del día en background
       _refreshMovementsInBackground();
-      return true;
+      return created.id;
     } catch (e) {
       state = previousState.copyWith(error: e.toString());
-      return false;
+      return null;
     }
   }
 
   /// Agregar gasto (optimista)
-  Future<bool> addExpense({
+  /// Retorna el ID del movimiento creado, o null si falla.
+  Future<String?> addExpense({
     required String accountId,
     required double amount,
     required String description,
@@ -253,19 +288,25 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
 
       // Optimista: restar balance local
       state = state.copyWith(
-        accounts: state.accounts.map((a) =>
-          a.id == accountId ? a.copyWith(balance: a.balance - amount) : a
-        ).toList(),
+        accounts: state.accounts
+            .map(
+              (a) => a.id == accountId
+                  ? a.copyWith(balance: a.balance - amount)
+                  : a,
+            )
+            .toList(),
         error: null,
       );
 
-      await AccountsDataSource.createMovementWithBalanceUpdate(movement);
+      final created = await AccountsDataSource.createMovementWithBalanceUpdate(
+        movement,
+      );
 
       _refreshMovementsInBackground();
-      return true;
+      return created.id;
     } catch (e) {
       state = previousState.copyWith(error: e.toString());
-      return false;
+      return null;
     }
   }
 
@@ -282,8 +323,10 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
       // Optimista: ajustar ambos balances localmente
       state = state.copyWith(
         accounts: state.accounts.map((a) {
-          if (a.id == fromAccountId) return a.copyWith(balance: a.balance - amount);
-          if (a.id == toAccountId) return a.copyWith(balance: a.balance + amount);
+          if (a.id == fromAccountId)
+            return a.copyWith(balance: a.balance - amount);
+          if (a.id == toAccountId)
+            return a.copyWith(balance: a.balance + amount);
           return a;
         }).toList(),
         error: null,
@@ -317,12 +360,16 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
       );
 
       // Optimista: quitar de la lista local + revertir balance
-      final updatedMovements = state.movements.where((m) => m.id != movementId).toList();
+      final updatedMovements = state.movements
+          .where((m) => m.id != movementId)
+          .toList();
       final updatedAccounts = state.accounts.map((a) {
         if (a.id == movement.accountId) {
-          if (movement.type == MovementType.income || movement.category == MovementCategory.transferIn) {
+          if (movement.type == MovementType.income ||
+              movement.category == MovementCategory.transferIn) {
             return a.copyWith(balance: a.balance - movement.amount);
-          } else if (movement.type == MovementType.expense || movement.category == MovementCategory.transferOut) {
+          } else if (movement.type == MovementType.expense ||
+              movement.category == MovementCategory.transferOut) {
             return a.copyWith(balance: a.balance + movement.amount);
           }
         }
@@ -347,11 +394,16 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
   void _refreshMovementsInBackground() {
     Future.microtask(() async {
       try {
-        final movements = await AccountsDataSource.getMovementsByDate(state.selectedDate);
+        final movements = await AccountsDataSource.getMovementsByDate(
+          state.selectedDate,
+        );
         state = state.copyWith(movements: movements);
       } catch (_) {}
     });
   }
+
+  /// Refrescar movimientos (público, para llamar después de subir adjuntos)
+  void refreshMovements() => _refreshMovementsInBackground();
 
   /// Actualizar cuenta
   Future<bool> updateAccount(Account account) async {
@@ -379,16 +431,22 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
 }
 
 /// Provider para Caja Diaria
-final dailyCashProvider = NotifierProvider<DailyCashNotifier, DailyCashState>(() {
-  return DailyCashNotifier();
-});
-
-/// Provider para obtener movimientos de un rango de fechas (para reportes)
-final movementsByDateRangeProvider = FutureProvider.family<List<CashMovement>, ({DateTime start, DateTime end})>(
-  (ref, dates) async {
-    return AccountsDataSource.getMovementsByDateRange(dates.start, dates.end);
+final dailyCashProvider = NotifierProvider<DailyCashNotifier, DailyCashState>(
+  () {
+    return DailyCashNotifier();
   },
 );
+
+/// Provider para obtener movimientos de un rango de fechas (para reportes)
+final movementsByDateRangeProvider =
+    FutureProvider.family<List<CashMovement>, ({DateTime start, DateTime end})>(
+      (ref, dates) async {
+        return AccountsDataSource.getMovementsByDateRange(
+          dates.start,
+          dates.end,
+        );
+      },
+    );
 
 /// Provider para obtener el balance total
 final totalBalanceProvider = FutureProvider<double>((ref) async {

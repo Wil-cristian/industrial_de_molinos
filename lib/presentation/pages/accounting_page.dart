@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/accounting_provider.dart';
@@ -18,6 +19,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
   DateTime? _startDate;
   DateTime? _endDate;
   String? _selectedAccountCode;
+  bool _isActive = false;
 
   @override
   void initState() {
@@ -63,6 +65,17 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(accountingProvider);
+
+    // Auto-reload when this page becomes active (IndexedStack keeps pages alive)
+    final location = GoRouterState.of(context).uri.path;
+    if (location == '/accounting' && !_isActive) {
+      _isActive = true;
+      Future.microtask(() {
+        if (mounted) ref.read(accountingProvider.notifier).loadAll();
+      });
+    } else if (location != '/accounting') {
+      _isActive = false;
+    }
 
     return Scaffold(
       backgroundColor: Colors.grey[50],

@@ -178,6 +178,12 @@ class PurchaseOrdersDataSource {
       'subtotal': item.quantity * item.unitPrice,
       'quantity_received': item.quantityReceived,
       'notes': item.notes,
+      'tax_rate': item.taxRate,
+      'tax_amount': item.taxAmount,
+      'discount': item.discount,
+      'reference_code': item.referenceCode,
+      'description': item.description,
+      'total': item.itemTotal,
       'updated_at': DateTime.now().toIso8601String(),
     };
 
@@ -210,6 +216,22 @@ class PurchaseOrdersDataSource {
   /// Crear órdenes de compra a partir de materiales faltantes de una cotización
   /// Agrupa por proveedor preferido (supplier_materials.is_preferred)
   /// Retorna lista de órdenes creadas
+  ///
+  /// Crear registro IVA automáticamente desde una orden de compra aprobada.
+  /// Usa la función SQL create_iva_from_purchase_order() de la migración 053.
+  static Future<String?> createIvaFromPurchaseOrder(String orderId) async {
+    try {
+      final response = await _client.rpc(
+        'create_iva_from_purchase_order',
+        params: {'p_order_id': orderId},
+      );
+      return response as String?;
+    } catch (e) {
+      AppLogger.error('❌ Error creando registro IVA desde OC: $e');
+      return null;
+    }
+  }
+
   static Future<List<PurchaseOrder>> createFromShortage({
     required List<Map<String, dynamic>> missingMaterials,
     required String quotationNumber,

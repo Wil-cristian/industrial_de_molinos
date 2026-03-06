@@ -14,6 +14,7 @@ import 'presentation/pages/new_quotation_page.dart';
 import 'presentation/pages/new_sale_page.dart';
 import 'presentation/pages/materials_page.dart';
 import 'presentation/pages/daily_cash_page.dart';
+import 'presentation/pages/expenses_page.dart';
 import 'presentation/pages/composite_products_page.dart';
 import 'presentation/pages/customer_history_page.dart';
 import 'presentation/pages/calendar_page.dart';
@@ -106,7 +107,17 @@ final GoRouter router = GoRouter(
             ),
           ],
         ),
-        // Branch 2: Productos (redirige a Compuestos unificado)
+        // Branch 2: Compras y Gastos
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/expenses',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: ExpensesPage()),
+            ),
+          ],
+        ),
+        // Branch 3: Productos (redirige a Compuestos unificado)
         StatefulShellBranch(
           routes: [
             GoRoute(

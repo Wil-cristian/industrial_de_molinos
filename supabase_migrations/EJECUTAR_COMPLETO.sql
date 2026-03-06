@@ -95,8 +95,8 @@ SELECT 'Caja', 'cash', 0, '#4CAF50', true
 WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE name = 'Caja');
 
 INSERT INTO accounts (name, type, balance, bank_name, color, is_active)
-SELECT 'Cuenta Daniela', 'bank', 0, 'Banco', '#2196F3', true
-WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE name = 'Cuenta Daniela');
+SELECT 'Davivienda', 'bank', 0, 'Davivienda', '#2196F3', true
+WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE name = 'Davivienda');
 
 INSERT INTO accounts (name, type, balance, bank_name, color, is_active)
 SELECT 'Cuenta Industrial de Molinos', 'bank', 0, 'Banco', '#9C27B0', true

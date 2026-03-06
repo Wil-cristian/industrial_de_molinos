@@ -133,11 +133,14 @@ class Helpers {
   static String formatNumber(double value, {int decimals = 2}) =>
       Formatters.number(value, decimals: decimals);
 
-  static String formatDate(DateTime date) => Formatters.date(date);
+  static String formatDate(DateTime? date) =>
+      date != null ? Formatters.date(date) : 'N/A';
 
-  static String formatDateTime(DateTime date) => Formatters.dateTime(date);
+  static String formatDateTime(DateTime? date) =>
+      date != null ? Formatters.dateTime(date) : 'N/A';
 
-  static String formatDateLong(DateTime date) => Formatters.dateLong(date);
+  static String formatDateLong(DateTime? date) =>
+      date != null ? Formatters.dateLong(date) : 'N/A';
 
   static String formatPercentage(double value) => Formatters.percentage(value);
 }

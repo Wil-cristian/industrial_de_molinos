@@ -8972,10 +8972,6 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     final nominasPendientes = payrollState.payrolls
         .where((p) => p.status != 'pagado')
         .toList();
-    final totalPendienteCreadas = nominasPendientes.fold(
-      0.0,
-      (sum, p) => sum + p.netPay,
-    );
 
     // Empleados sin nómina creada en este periodo
     final empleadosConNomina = payrollState.payrolls
@@ -8984,21 +8980,20 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     final empleadosSinNomina = empleadosActivos
         .where((e) => !empleadosConNomina.contains(e.id))
         .toList();
-    final totalSinCrear = empleadosSinNomina.fold(
-      0.0,
-      (sum, e) => sum + (e.salary ?? 0) / 2,
-    );
 
-    // Bono de asistencia: para nóminas creadas, calcular cuántos tienen bono
+    // Bono de asistencia: para nóminas creadas, verificar si tienen bono
+    // (bono = diferencia entre totalEarnings y baseSalary, ya que baseSalary es quincenal)
     int empleadosConBono = 0;
     double totalBonoCreadas = 0;
     for (final p in payrollState.payrolls) {
-      final diferencia = p.totalEarnings - (p.baseSalary / 2);
+      // baseSalary ya es quincenal (salary/2), así que comparamos totalEarnings vs baseSalary
+      final diferencia = p.totalEarnings - p.baseSalary;
       if (diferencia >= 149000) {
         empleadosConBono++;
-        totalBonoCreadas += 150000;
+        totalBonoCreadas += diferencia; // Usar la diferencia real (puede ser bono + HE)
       }
     }
+    // Para empleados sin nómina, estimar bono de asistencia estándar
     final bonoEstimadoSinCrear = empleadosSinNomina.length * 150000.0;
     final totalBonoQuincenal = totalBonoCreadas + bonoEstimadoSinCrear;
 
@@ -9011,9 +9006,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
       (sum, p) => sum + p.totalDeductions,
     );
 
-    // Neto a Pagar = Pagado + Pendiente (siempre cuadra)
-    final totalPendiente = totalPendienteCreadas + totalSinCrear;
-    final netoAPagar = totalPagado + totalPendiente;
+    // Neto a Pagar = Costo Bruto - Deducciones (fórmula correcta)
+    final netoAPagar = costoTotalConBono - totalDeducciones;
+    // Pendiente = lo que falta por pagar
+    final totalPendiente = netoAPagar - totalPagado;
     final progreso = netoAPagar > 0
         ? (totalPagado / netoAPagar).clamp(0.0, 1.0)
         : 0.0;
@@ -11374,7 +11370,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             id: '',
                             accountId: selectedAccountId!,
                             type: MovementType.expense,
-                            category: MovementCategory.adelanto_sueldo,
+                            category: MovementCategory.nomina,
                             amount: amount,
                             description:
                                 'Adelanto de sueldo - ${employee.fullName}${notesController.text.isNotEmpty ? " | ${notesController.text}" : ""}',
@@ -14383,6 +14379,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                   '${effectiveCutDate.year}-${effectiveCutDate.month.toString().padLeft(2, '0')}-${effectiveCutDate.day.toString().padLeft(2, '0')}',
                             });
 
+                            // Agregar detalles SIN recargar estado (skipReload: true)
+                            // para evitar reloads intermedios que sobreescriben totales
+
                             // Intentar agregar BONO DE ASISTENCIA como detalle
                             if (bonoAsistencia > 0) {
                               final bonoConcept = currentPayrollState.concepts
@@ -14395,6 +14394,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                       payrollId: payroll.id,
                                       conceptId: bonoConcept.id,
                                       amount: bonoAsistencia,
+                                      skipReload: true,
                                       notes: isDailyPay
                                           ? 'Bono semanal ($weekBonusCount sem × ${Helpers.formatCurrency(empAttendanceBonus)})'
                                           : 'Bono asistencia quincenal (asistencia perfecta)',
@@ -14415,6 +14415,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                     hours: overtimeHours,
                                     type: overtimeType,
                                     hourlyRate: baseSalary / hoursPerMonth,
+                                    skipReload: true,
                                   );
                             }
 
@@ -14426,6 +14427,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                     payrollId: payroll.id,
                                     hours: underHours,
                                     hourlyRate: baseSalary / hoursPerMonth,
+                                    skipReload: true,
                                   );
                             }
 
@@ -14457,14 +14459,15 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               );
                             }
 
-                            // FORZAR totales finales (por si addConcept los recalculó mal)
+                            // FORZAR totales finales con los valores correctos de la UI
+                            // (los detalles ya están en BD, esto asegura que net_pay sea correcto)
                             await PayrollDatasource.updatePayroll(payroll.id, {
                               'total_earnings': totalEarnings,
                               'total_deductions': totalDeductions,
                               'net_pay': netPay,
                             });
 
-                            // Recargar nóminas para reflejar totales actualizados
+                            // ÚNICO reload: cargar nóminas del periodo correcto
                             await ref
                                 .read(payrollProvider.notifier)
                                 .loadPayrollsForPeriod(selectedPeriod.id);

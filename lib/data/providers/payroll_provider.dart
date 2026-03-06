@@ -215,6 +215,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
   }
 
   /// Agregar concepto a nómina (ingreso o descuento)
+  /// Si [skipReload] es true, no recarga estado (útil en creación masiva).
   Future<bool> addConceptToPayroll({
     required String payrollId,
     required String conceptId,
@@ -222,6 +223,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
     double quantity = 1,
     double unitValue = 0,
     String? notes,
+    bool skipReload = false,
   }) async {
     try {
       final concept = state.concepts.firstWhere((c) => c.id == conceptId);
@@ -235,15 +237,18 @@ class PayrollNotifier extends Notifier<PayrollState> {
         notes: notes,
       );
 
-      // Recargar la nómina seleccionada
-      await selectPayroll(payrollId);
+      // Si skipReload, no recargar estado (el llamador hará reload al final)
+      if (!skipReload) {
+        // Recargar la nómina seleccionada
+        await selectPayroll(payrollId);
 
-      // Recargar lista de nóminas
-      if (state.currentPeriod != null) {
-        final payrolls = await PayrollDatasource.getPayrolls(
-          periodId: state.currentPeriod!.id,
-        );
-        state = state.copyWith(payrolls: payrolls);
+        // Recargar lista de nóminas
+        if (state.currentPeriod != null) {
+          final payrolls = await PayrollDatasource.getPayrolls(
+            periodId: state.currentPeriod!.id,
+          );
+          state = state.copyWith(payrolls: payrolls);
+        }
       }
 
       return true;
@@ -522,6 +527,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
     required String
     type, // 'normal', '25' (diurna), '75' (nocturna), '100' (dom/fest), '150' (dom/fest noct)
     required double hourlyRate,
+    bool skipReload = false,
   }) async {
     final conceptCode = type == 'normal' ? 'HORA_EXTRA' : 'HORA_EXTRA_$type';
     final concept = state.concepts.firstWhere(
@@ -569,6 +575,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
       quantity: hours,
       unitValue: hourlyRate * multiplier,
       notes: '${hours.toStringAsFixed(1)} hrs $typeLabel$recargoText',
+      skipReload: skipReload,
     );
   }
 
@@ -582,6 +589,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
     required double hours,
     required double hourlyRate,
     String? notes,
+    bool skipReload = false,
   }) async {
     final concept = state.deductionConcepts.firstWhere(
       (c) => c.code == 'DESC_FALTAS',
@@ -595,6 +603,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
       quantity: hours,
       unitValue: hourlyRate,
       notes: notes ?? '${hours.toStringAsFixed(1)} horas faltantes',
+      skipReload: skipReload,
     );
   }
 

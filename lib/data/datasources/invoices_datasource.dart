@@ -333,7 +333,7 @@ class InvoicesDataSource {
             id: '',
             accountId: accountId,
             type: MovementType.expense,
-            category: MovementCategory.otherExpense,
+            category: MovementCategory.gastos_reducibles,
             amount: amount,
             description:
                 'Reversión por anulación - ${invoice.series}-${invoice.number}',
@@ -519,6 +519,42 @@ class InvoicesDataSource {
         .eq('invoice_id', invoiceId)
         .order('payment_date', ascending: false);
     return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Obtener todos los pagos de un cliente (a través de sus facturas)
+  static Future<List<Map<String, dynamic>>> getPaymentsByCustomerId(
+    String customerId,
+  ) async {
+    // Primero obtener las facturas del cliente
+    final invoices = await _client
+        .from('invoices')
+        .select('id, series, number')
+        .eq('customer_id', customerId);
+
+    final invoiceList = List<Map<String, dynamic>>.from(invoices);
+    if (invoiceList.isEmpty) return [];
+
+    final invoiceIds = invoiceList.map((i) => i['id'] as String).toList();
+
+    // Crear un mapa de invoice_id -> número de factura
+    final invoiceMap = <String, String>{};
+    for (final inv in invoiceList) {
+      invoiceMap[inv['id']] = '${inv['series']}-${inv['number']}';
+    }
+
+    // Obtener todos los pagos de esas facturas
+    final payments = await _client
+        .from('payments')
+        .select()
+        .inFilter('invoice_id', invoiceIds)
+        .order('payment_date', ascending: false);
+
+    // Enriquecer cada pago con el número de factura
+    final result = List<Map<String, dynamic>>.from(payments).map((p) {
+      return {...p, 'invoice_number': invoiceMap[p['invoice_id']] ?? 'N/A'};
+    }).toList();
+
+    return result;
   }
 
   /// Obtener resumen de ventas
