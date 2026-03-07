@@ -5,9 +5,13 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/providers.dart';
 import '../../data/providers/suppliers_provider.dart';
+import '../../data/datasources/inventory_datasource.dart';
+import '../../data/providers/employees_provider.dart';
 import '../../data/providers/purchase_orders_provider.dart';
+import '../../domain/entities/employee.dart';
 import '../../domain/entities/material.dart' as mat;
 import '../../domain/entities/material_category.dart';
+import '../../domain/entities/supplier.dart';
 
 class MaterialsPage extends ConsumerStatefulWidget {
   final bool openNewDialog;
@@ -550,6 +554,21 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     value: 'stock',
                     child: Text('Ajustar Stock'),
                   ),
+                  if (material.category == 'consumible')
+                    const PopupMenuItem(
+                      value: 'employee_exit',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.person_remove_outlined,
+                            size: 16,
+                            color: Colors.deepOrange,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Salida por Empleado'),
+                        ],
+                      ),
+                    ),
                   const PopupMenuItem(value: 'delete', child: Text('Eliminar')),
                 ],
                 onSelected: (value) => _handleMenuAction(value, material),
@@ -569,10 +588,230 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
       case 'stock':
         _showAdjustStockDialog(material);
         break;
+      case 'employee_exit':
+        _showEmployeeExitDialog(material);
+        break;
       case 'delete':
         _confirmDelete(material);
         break;
     }
+  }
+
+  void _showEmployeeExitDialog(mat.Material material) async {
+    // Cargar empleados antes de abrir el diálogo para que estén disponibles
+    if (ref.read(employeesProvider).employees.isEmpty) {
+      await ref.read(employeesProvider.notifier).loadEmployees(activeOnly: true);
+    }
+    if (!mounted) return;
+
+    final employees = ref.read(employeesProvider).employees;
+    final qtyCtrl = TextEditingController();
+    final notesCtrl = TextEditingController();
+    Employee? selectedEmployee;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.person_remove_outlined, color: Colors.deepOrange),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Salida por Empleado',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Info del material
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          material.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Text(
+                        'Stock: ${material.stock.toStringAsFixed(2)} ${material.unit}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Dropdown empleados
+                if (employees.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.warning_amber, color: Colors.orange, size: 18),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'No hay empleados registrados. Agrega empleados primero.',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  DropdownButtonFormField<Employee>(
+                    value: selectedEmployee,
+                    decoration: const InputDecoration(
+                      labelText: 'Empleado *',
+                      prefixIcon: Icon(Icons.person, size: 20),
+                    ),
+                    isExpanded: true,
+                    items: employees
+                        .map(
+                          (e) => DropdownMenuItem<Employee>(
+                            value: e,
+                            child: Text(e.fullName),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) =>
+                        setDialogState(() => selectedEmployee = v),
+                  ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: qtyCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Cantidad (${material.unit}) *',
+                    prefixText: '- ',
+                    prefixIcon: const Icon(
+                      Icons.remove_circle_outline,
+                      size: 20,
+                    ),
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: notesCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Motivo / Notas (opcional)',
+                    prefixIcon: Icon(Icons.notes, size: 20),
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton.icon(
+              icon: const Icon(Icons.check, size: 18),
+              label: const Text('Registrar Salida'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+              ),
+              onPressed: () async {
+                final qty = double.tryParse(qtyCtrl.text) ?? 0;
+                if (qty <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Ingresa una cantidad válida'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+                if (selectedEmployee == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Selecciona un empleado'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+                if (qty > material.stock) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Stock insuficiente. Disponible: ${material.stock.toStringAsFixed(2)} ${material.unit}',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                final messenger = ScaffoldMessenger.of(context);
+                Navigator.pop(context);
+
+                // Descuentar stock del inventario
+                await ref
+                    .read(inventoryProvider.notifier)
+                    .adjustStock(material.id, -qty);
+
+                // Registrar movimiento en material_movements
+                try {
+                  await InventoryDataSource.client
+                      .from('material_movements')
+                      .insert({
+                        'material_id': material.id,
+                        'type': 'salida',
+                        'quantity': qty,
+                        'previous_stock': material.stock,
+                        'new_stock': material.stock - qty,
+                        'reason':
+                            'Retiro por empleado: ${selectedEmployee!.fullName}'
+                            '${notesCtrl.text.isNotEmpty ? ' — ${notesCtrl.text}' : ''}',
+                        'reference':
+                            'EMP-${selectedEmployee!.id.length >= 8 ? selectedEmployee!.id.substring(0, 8).toUpperCase() : selectedEmployee!.id.toUpperCase()}',
+                      });
+                } catch (_) {
+                  // Movimiento no es crítico — continuar aunque falle
+                }
+
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Salida registrada: $qty ${material.unit} → ${selectedEmployee!.fullName}',
+                      ),
+                      backgroundColor: Colors.deepOrange,
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showMaterialDetail(mat.Material material) {
@@ -691,6 +930,283 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
 
   void _showAddMaterialDialog() {
     _showMaterialFormDialog(null);
+  }
+
+  /// Diálogo completo para crear un proveedor desde el formulario de material.
+  /// Llama [onCreated] con el nombre del proveedor creado para actualizar el dropdown.
+  void _showQuickCreateSupplierDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    required void Function(String supplierName) onCreated,
+  }) {
+    final nameCtrl = TextEditingController();
+    final docNumberCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final addressCtrl = TextEditingController();
+    final contactCtrl = TextEditingController();
+    final bankNameCtrl = TextEditingController();
+    final bankAccountCtrl = TextEditingController();
+    String docType = 'NIT';
+    SupplierType type = SupplierType.business;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.store, color: Colors.blue),
+              SizedBox(width: 8),
+              Text('Nuevo Proveedor'),
+            ],
+          ),
+          content: SizedBox(
+            width: 550,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SegmentedButton<SupplierType>(
+                    segments: const [
+                      ButtonSegment(
+                        value: SupplierType.business,
+                        label: Text('Empresa'),
+                        icon: Icon(Icons.business, size: 18),
+                      ),
+                      ButtonSegment(
+                        value: SupplierType.individual,
+                        label: Text('Persona'),
+                        icon: Icon(Icons.person, size: 18),
+                      ),
+                    ],
+                    selected: {type},
+                    onSelectionChanged: (v) =>
+                        setDialogState(() => type = v.first),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 120,
+                        child: DropdownButtonFormField<String>(
+                          value: docType,
+                          decoration: const InputDecoration(
+                            labelText: 'Tipo doc.',
+                            isDense: true,
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'NIT', child: Text('NIT')),
+                            DropdownMenuItem(value: 'CC', child: Text('CC')),
+                            DropdownMenuItem(value: 'CE', child: Text('CE')),
+                            DropdownMenuItem(value: 'RUC', child: Text('RUC')),
+                            DropdownMenuItem(value: 'RUT', child: Text('RUT')),
+                          ],
+                          onChanged: (v) => setDialogState(() => docType = v!),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: docNumberCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Número de documento *',
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: 'Nombre *'),
+                    textCapitalization: TextCapitalization.words,
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: phoneCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Teléfono',
+                            prefixIcon: Icon(Icons.phone, size: 18),
+                          ),
+                          keyboardType: TextInputType.phone,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: emailCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email, size: 18),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: addressCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Dirección',
+                      prefixIcon: Icon(Icons.location_on, size: 18),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: contactCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Persona de contacto',
+                      prefixIcon: Icon(Icons.person_outline, size: 18),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.account_balance,
+                              size: 18,
+                              color: Colors.blue[700],
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Datos Bancarios (opcional)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: bankNameCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Banco',
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: bankAccountCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Número de cuenta',
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (nameCtrl.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('El nombre es requerido'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+                if (docNumberCtrl.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('El número de documento es requerido'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+                final now = DateTime.now();
+                final newSupplier = Supplier(
+                  id: '',
+                  type: type,
+                  documentType: docType,
+                  documentNumber: docNumberCtrl.text.trim(),
+                  name: nameCtrl.text.trim(),
+                  tradeName: null,
+                  phone: phoneCtrl.text.trim().isNotEmpty
+                      ? phoneCtrl.text.trim()
+                      : null,
+                  email: emailCtrl.text.trim().isNotEmpty
+                      ? emailCtrl.text.trim()
+                      : null,
+                  address: addressCtrl.text.trim().isNotEmpty
+                      ? addressCtrl.text.trim()
+                      : null,
+                  contactPerson: contactCtrl.text.trim().isNotEmpty
+                      ? contactCtrl.text.trim()
+                      : null,
+                  bankName: bankNameCtrl.text.trim().isNotEmpty
+                      ? bankNameCtrl.text.trim()
+                      : null,
+                  bankAccount: bankAccountCtrl.text.trim().isNotEmpty
+                      ? bankAccountCtrl.text.trim()
+                      : null,
+                  currentDebt: 0,
+                  isActive: true,
+                  createdAt: now,
+                  updatedAt: now,
+                );
+                final created = await ref
+                    .read(suppliersProvider.notifier)
+                    .createSupplier(newSupplier);
+                if (created != null && ctx.mounted) {
+                  Navigator.pop(ctx);
+                  await ref.read(suppliersProvider.notifier).loadSuppliers();
+                  onCreated(created.name);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Proveedor "${created.name}" creado y seleccionado',
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Crear Proveedor'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showEditMaterialDialog(mat.Material material) {
@@ -1215,43 +1731,79 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                 onChanged: (_) => setDialogState(() {}),
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: TextField(
-                                controller: unit == 'KG'
-                                    ? priceKgCtrl
-                                    : priceUnitCtrl,
-                                decoration: InputDecoration(
-                                  labelText: 'Precio de VENTA',
-                                  helperText: 'Lo que cobras al cliente',
-                                  helperStyle: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey[600],
-                                  ),
-                                  prefixText: '\$ ',
-                                  prefixIcon: Icon(
-                                    Icons.sell,
-                                    color: Colors.green[700],
-                                    size: 20,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.green.withOpacity(0.05),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
+                            if (category != 'consumible') ...[
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: TextField(
+                                  controller: unit == 'KG'
+                                      ? priceKgCtrl
+                                      : priceUnitCtrl,
+                                  decoration: InputDecoration(
+                                    labelText: 'Precio de VENTA',
+                                    helperText: 'Lo que cobras al cliente',
+                                    helperStyle: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey[600],
                                     ),
-                                onChanged: (_) => setDialogState(() {}),
+                                    prefixText: '\$ ',
+                                    prefixIcon: Icon(
+                                      Icons.sell,
+                                      color: Colors.green[700],
+                                      size: 20,
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.green.withOpacity(0.05),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  onChanged: (_) => setDialogState(() {}),
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                         // Indicador de margen calculado EN TIEMPO REAL
                         Builder(
                           builder: (context) {
+                            if (category == 'consumible') {
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.orange.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline,
+                                        size: 16,
+                                        color: Colors.orange[700],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Material de uso interno — sin precio de venta',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.orange[800],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
                             final costPrice =
                                 double.tryParse(costPriceCtrl.text) ?? 0;
                             final salePrice =
@@ -1444,12 +1996,18 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   icon: const Icon(
                                     Icons.add_circle_outline,
                                     size: 20,
+                                    color: Colors.blue,
                                   ),
-                                  tooltip: 'Ir a Proveedores',
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                    context.go('/customers');
-                                  },
+                                  tooltip: 'Crear nuevo proveedor',
+                                  onPressed: () =>
+                                      _showQuickCreateSupplierDialog(
+                                        context,
+                                        ref,
+                                        onCreated: (newSupplierName) {
+                                          supplierCtrl.text = newSupplierName;
+                                          setDialogState(() {});
+                                        },
+                                      ),
                                 ),
                               ),
                               isExpanded: true,

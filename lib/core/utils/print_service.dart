@@ -722,6 +722,682 @@ class PrintService {
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // INFORME MENSUAL DE RENTABILIDAD
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Genera y comparte el informe mensual de rentabilidad como PDF.
+  /// [profitLoss]       → Últimos meses de P&L (máx 6).
+  /// [topProducts]      → Productos más vendidos.
+  /// [activeLoans]      → Préstamos activos de empleados.
+  /// [expenseByCategory]→ Mapa categ → monto del mes seleccionado.
+  /// [month] / [year]   → Período del informe.
+  static Future<void> shareMonthlyReport({
+    required List<Map<String, dynamic>> profitLoss,
+    required List<Map<String, dynamic>> topProducts,
+    required List<Map<String, dynamic>> activeLoans,
+    required Map<String, double> expenseByCategory,
+    required int month,
+    required int year,
+  }) async {
+    final pdf = await _buildMonthlyReportPdf(
+      profitLoss: profitLoss,
+      topProducts: topProducts,
+      activeLoans: activeLoans,
+      expenseByCategory: expenseByCategory,
+      month: month,
+      year: year,
+    );
+    final monthNames = [
+      '',
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    await Printing.sharePdf(
+      bytes: await pdf.save(),
+      filename: 'Informe_${monthNames[month]}_$year.pdf',
+    );
+  }
+
+  static Future<pw.Document> _buildMonthlyReportPdf({
+    required List<Map<String, dynamic>> profitLoss,
+    required List<Map<String, dynamic>> topProducts,
+    required List<Map<String, dynamic>> activeLoans,
+    required Map<String, double> expenseByCategory,
+    required int month,
+    required int year,
+  }) async {
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: await _loadFont('Helvetica'),
+        bold: await _loadFont('Helvetica-Bold'),
+      ),
+    );
+
+    final logo = await _loadLogo();
+    final monthNames = [
+      '',
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    final monthName = monthNames[month];
+
+    // ── Datos del mes actual ──
+    final currentMonthData = profitLoss
+        .where(
+          (p) => (p['month'] as int?) == month && (p['year'] as int?) == year,
+        )
+        .toList();
+    final revenue = currentMonthData.isNotEmpty
+        ? (currentMonthData.first['revenue'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
+    final totalExpenses = currentMonthData.isNotEmpty
+        ? ((currentMonthData.first['fixed_expenses'] as num?)?.toDouble() ??
+                  0) +
+              ((currentMonthData.first['variable_expenses'] as num?)
+                      ?.toDouble() ??
+                  0)
+        : 0.0;
+    final grossProfit = currentMonthData.isNotEmpty
+        ? (currentMonthData.first['gross_profit'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
+    final profitMargin = revenue > 0 ? (grossProfit / revenue * 100) : 0.0;
+
+    // ── Proyección mes siguiente (simple: promedio de últimos 3 meses) ──
+    final recent = profitLoss.take(3).toList();
+    final avgRevenue = recent.isNotEmpty
+        ? recent.fold(
+                0.0,
+                (s, p) => s + ((p['revenue'] as num?)?.toDouble() ?? 0),
+              ) /
+              recent.length
+        : 0.0;
+    final avgExpenses = recent.isNotEmpty
+        ? recent.fold(
+                0.0,
+                (s, p) =>
+                    s +
+                    ((p['fixed_expenses'] as num?)?.toDouble() ?? 0) +
+                    ((p['variable_expenses'] as num?)?.toDouble() ?? 0),
+              ) /
+              recent.length
+        : 0.0;
+    final projRevenue = avgRevenue * 1.05; // +5% optimista
+    final projExpenses = avgExpenses;
+    final projProfit = projRevenue - projExpenses;
+
+    // ── Totales de préstamos ──
+    final totalLoanAmount = activeLoans.fold(
+      0.0,
+      (s, l) => s + ((l['total_amount'] as num?)?.toDouble() ?? 0),
+    );
+    final totalLoanRemaining = activeLoans.fold(
+      0.0,
+      (s, l) => s + ((l['remaining_amount'] as num?)?.toDouble() ?? 0),
+    );
+    final totalLoanPaid = totalLoanAmount - totalLoanRemaining;
+
+    // ── Nombres de categorías ──
+    final categoryLabels = <String, String>{
+      'cuidado_personal': 'Cuidado Personal',
+      'servicios_publicos': 'Servicios Públicos',
+      'papeleria': 'Papelería',
+      'nomina': 'Nómina',
+      'impuestos': 'Impuestos',
+      'consumibles': 'Consumibles',
+      'transporte': 'Transporte',
+      'gastos_reducibles': 'Gastos Reducibles',
+    };
+
+    final darkBlue = PdfColors.blue900;
+    final lightBlue = const PdfColor(0.23, 0.47, 0.75);
+    final accentGreen = PdfColors.green700;
+    final accentRed = PdfColors.red700;
+    final bgGrey = PdfColors.grey100;
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.letter,
+        margin: const pw.EdgeInsets.all(36),
+        header: (context) =>
+            _buildPdfHeader(logo, 'INFORME MENSUAL', '$monthName $year'),
+        footer: (context) => _buildPdfFooter(context),
+        build: (context) => [
+          pw.SizedBox(height: 12),
+
+          // ════ SECCIÓN 1: KPIs PRINCIPALES ════
+          _buildReportSectionTitle('RESUMEN EJECUTIVO', darkBlue),
+          pw.SizedBox(height: 8),
+          pw.Row(
+            children: [
+              pw.Expanded(
+                flex: 1,
+                child: _buildKpiBox('VENTAS', revenue, lightBlue),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                flex: 1,
+                child: _buildKpiBox('COSTOS TOTALES', totalExpenses, accentRed),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                flex: 1,
+                child: _buildKpiBox(
+                  'GANANCIA BRUTA',
+                  grossProfit,
+                  grossProfit >= 0 ? accentGreen : accentRed,
+                ),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                flex: 1,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(10),
+                  decoration: pw.BoxDecoration(
+                    color: bgGrey,
+                    borderRadius: pw.BorderRadius.circular(6),
+                    border: pw.Border.all(color: PdfColors.grey300),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                      pw.Text(
+                        '% UTILIDAD',
+                        style: pw.TextStyle(
+                          fontSize: 8,
+                          color: PdfColors.grey600,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        '${profitMargin.toStringAsFixed(1)}%',
+                        style: pw.TextStyle(
+                          fontSize: 20,
+                          fontWeight: pw.FontWeight.bold,
+                          color: profitMargin >= 0 ? accentGreen : accentRed,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 16),
+
+          // ════ SECCIÓN 2: DESGLOSE DE COSTOS ════
+          _buildReportSectionTitle(
+            'DESGLOSE DE COSTOS POR CATEGORÍA',
+            darkBlue,
+          ),
+          pw.SizedBox(height: 8),
+          _buildExpenseCategoryTable(
+            expenseByCategory,
+            categoryLabels,
+            totalExpenses,
+          ),
+          pw.SizedBox(height: 16),
+
+          // ════ SECCIÓN 3: HISTÓRICO MENSUAL ════
+          if (profitLoss.isNotEmpty) ...[
+            _buildReportSectionTitle(
+              'COMPARATIVO MENSUAL (ÚLTIMOS MESES)',
+              darkBlue,
+            ),
+            pw.SizedBox(height: 8),
+            _buildMonthlyComparisonTable(profitLoss, monthNames),
+            pw.SizedBox(height: 16),
+          ],
+
+          // ════ SECCIÓN 4: PRODUCTOS ESTRELLA ════
+          if (topProducts.isNotEmpty) ...[
+            _buildReportSectionTitle('PRODUCTOS ESTRELLA', darkBlue),
+            pw.SizedBox(height: 8),
+            _buildTopProductsTable(topProducts.take(8).toList()),
+            pw.SizedBox(height: 16),
+          ],
+
+          // ════ SECCIÓN 5: PRÉSTAMOS EMPLEADOS ════
+          _buildReportSectionTitle('PRÉSTAMOS A EMPLEADOS', darkBlue),
+          pw.SizedBox(height: 8),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              color: bgGrey,
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: PdfColors.grey300),
+            ),
+            child: activeLoans.isEmpty
+                ? pw.Text(
+                    'No hay préstamos activos registrados.',
+                    style: const pw.TextStyle(
+                      fontSize: 10,
+                      color: PdfColors.grey600,
+                    ),
+                  )
+                : pw.Column(
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildLoanKpi(
+                            'Préstamos Activos',
+                            '${activeLoans.length}',
+                            lightBlue,
+                          ),
+                          _buildLoanKpi(
+                            'Total Prestado',
+                            _formatCurrency(totalLoanAmount),
+                            accentRed,
+                          ),
+                          _buildLoanKpi(
+                            'Total Pagado',
+                            _formatCurrency(totalLoanPaid),
+                            accentGreen,
+                          ),
+                          _buildLoanKpi(
+                            'Saldo Pendiente',
+                            _formatCurrency(totalLoanRemaining),
+                            PdfColors.orange700,
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(height: 10),
+                      _buildActiveLoansTable(activeLoans),
+                    ],
+                  ),
+          ),
+          pw.SizedBox(height: 16),
+
+          // ════ SECCIÓN 6: PROYECCIONES ════
+          _buildReportSectionTitle('PROYECCIONES PRÓXIMO MES', darkBlue),
+          pw.SizedBox(height: 8),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor(0.95, 0.97, 1.0),
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: lightBlue),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Basado en el promedio de los últimos ${recent.length} meses con ajuste de tendencia (+5%)',
+                  style: const pw.TextStyle(
+                    fontSize: 8,
+                    color: PdfColors.grey600,
+                  ),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      child: _buildKpiBox(
+                        'VENTAS PROYECTADAS',
+                        projRevenue,
+                        lightBlue,
+                      ),
+                    ),
+                    pw.SizedBox(width: 8),
+                    pw.Expanded(
+                      child: _buildKpiBox(
+                        'COSTOS ESTIMADOS',
+                        projExpenses,
+                        accentRed,
+                      ),
+                    ),
+                    pw.SizedBox(width: 8),
+                    pw.Expanded(
+                      child: _buildKpiBox(
+                        'GANANCIA ESTIMADA',
+                        projProfit,
+                        projProfit >= 0 ? accentGreen : accentRed,
+                      ),
+                    ),
+                    pw.SizedBox(width: 8),
+                    pw.Expanded(
+                      child: pw.Container(
+                        padding: const pw.EdgeInsets.all(10),
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.white,
+                          borderRadius: pw.BorderRadius.circular(6),
+                          border: pw.Border.all(color: PdfColors.grey300),
+                        ),
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.center,
+                          children: [
+                            pw.Text(
+                              '% MARGEN PROY.',
+                              style: pw.TextStyle(
+                                fontSize: 8,
+                                color: PdfColors.grey600,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                            pw.SizedBox(height: 4),
+                            pw.Text(
+                              projRevenue > 0
+                                  ? '${(projProfit / projRevenue * 100).toStringAsFixed(1)}%'
+                                  : '—',
+                              style: pw.TextStyle(
+                                fontSize: 20,
+                                fontWeight: pw.FontWeight.bold,
+                                color: projProfit >= 0
+                                    ? accentGreen
+                                    : accentRed,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 24),
+
+          // ── Firma ──
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSignatureLine('Elaborado por'),
+              _buildSignatureLine('Gerencia'),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    return pdf;
+  }
+
+  // ── Helpers del informe mensual ──
+
+  static pw.Widget _buildReportSectionTitle(String title, PdfColor color) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: pw.BoxDecoration(
+        color: color,
+        borderRadius: pw.BorderRadius.circular(4),
+      ),
+      child: pw.Text(
+        title,
+        style: pw.TextStyle(
+          fontSize: 10,
+          fontWeight: pw.FontWeight.bold,
+          color: PdfColors.white,
+        ),
+      ),
+    );
+  }
+
+  static pw.Widget _buildKpiBox(String label, double value, PdfColor color) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey100,
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: PdfColors.grey300),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: 8,
+              color: PdfColors.grey600,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            _formatCurrency(value),
+            style: pw.TextStyle(
+              fontSize: 11,
+              fontWeight: pw.FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildLoanKpi(String label, String value, PdfColor color) {
+    return pw.Column(
+      children: [
+        pw.Text(
+          value,
+          style: pw.TextStyle(
+            fontSize: 13,
+            fontWeight: pw.FontWeight.bold,
+            color: color,
+          ),
+        ),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          label,
+          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+        ),
+      ],
+    );
+  }
+
+  static pw.Widget _buildExpenseCategoryTable(
+    Map<String, double> expenseByCategory,
+    Map<String, String> labels,
+    double total,
+  ) {
+    final rows = <List<String>>[];
+    for (final entry in labels.entries) {
+      final amount = expenseByCategory[entry.key] ?? 0;
+      final pct = total > 0 ? (amount / total * 100).toStringAsFixed(1) : '0.0';
+      rows.add([entry.value, _formatCurrency(amount), '$pct%']);
+    }
+    rows.add(['TOTAL', _formatCurrency(total), '100%']);
+
+    return pw.TableHelper.fromTextArray(
+      headerDecoration: const pw.BoxDecoration(color: PdfColors.blue900),
+      headerStyle: pw.TextStyle(
+        color: PdfColors.white,
+        fontWeight: pw.FontWeight.bold,
+        fontSize: 9,
+      ),
+      cellStyle: const pw.TextStyle(fontSize: 9),
+      columnWidths: {
+        0: const pw.FlexColumnWidth(3),
+        1: const pw.FlexColumnWidth(2),
+        2: const pw.FlexColumnWidth(1),
+      },
+      headers: ['Categoría', 'Monto', '% del Total'],
+      data: rows,
+      cellAlignments: {
+        0: pw.Alignment.centerLeft,
+        1: pw.Alignment.centerRight,
+        2: pw.Alignment.center,
+      },
+      headerAlignments: {
+        0: pw.Alignment.centerLeft,
+        1: pw.Alignment.centerRight,
+        2: pw.Alignment.center,
+      },
+      oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+    );
+  }
+
+  static pw.Widget _buildMonthlyComparisonTable(
+    List<Map<String, dynamic>> profitLoss,
+    List<String> monthNames,
+  ) {
+    final rows = profitLoss.take(6).map((p) {
+      final m = (p['month'] as int?) ?? 0;
+      final y = (p['year'] as int?) ?? 0;
+      final rev = (p['revenue'] as num?)?.toDouble() ?? 0;
+      final fix = (p['fixed_expenses'] as num?)?.toDouble() ?? 0;
+      final vari = (p['variable_expenses'] as num?)?.toDouble() ?? 0;
+      final costs = fix + vari;
+      final profit = (p['gross_profit'] as num?)?.toDouble() ?? 0;
+      final pct = rev > 0 ? '${(profit / rev * 100).toStringAsFixed(1)}%' : '—';
+      return [
+        '${m > 0 ? monthNames[m] : '?'} $y',
+        _formatCurrency(costs),
+        _formatCurrency(rev),
+        _formatCurrency(profit),
+        pct,
+      ];
+    }).toList();
+
+    return pw.TableHelper.fromTextArray(
+      headerDecoration: const pw.BoxDecoration(color: PdfColors.blue900),
+      headerStyle: pw.TextStyle(
+        color: PdfColors.white,
+        fontWeight: pw.FontWeight.bold,
+        fontSize: 9,
+      ),
+      cellStyle: const pw.TextStyle(fontSize: 9),
+      columnWidths: {
+        0: const pw.FlexColumnWidth(2),
+        1: const pw.FlexColumnWidth(2),
+        2: const pw.FlexColumnWidth(2),
+        3: const pw.FlexColumnWidth(2),
+        4: const pw.FlexColumnWidth(1.2),
+      },
+      headers: ['Mes', 'Costos', 'Ventas', 'G. Bruta', '% Utilidad'],
+      data: rows,
+      cellAlignments: {
+        0: pw.Alignment.centerLeft,
+        1: pw.Alignment.centerRight,
+        2: pw.Alignment.centerRight,
+        3: pw.Alignment.centerRight,
+        4: pw.Alignment.center,
+      },
+      headerAlignments: {
+        0: pw.Alignment.centerLeft,
+        1: pw.Alignment.centerRight,
+        2: pw.Alignment.centerRight,
+        3: pw.Alignment.centerRight,
+        4: pw.Alignment.center,
+      },
+      oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+    );
+  }
+
+  static pw.Widget _buildTopProductsTable(List<Map<String, dynamic>> products) {
+    final rows = products.asMap().entries.map((e) {
+      final i = e.key + 1;
+      final p = e.value;
+      return [
+        '#$i',
+        p['product_name']?.toString() ?? p['product_key']?.toString() ?? '—',
+        (p['times_sold'] as num?)?.toString() ?? '0',
+        _formatCurrency((p['total_revenue'] as num?)?.toDouble() ?? 0),
+        _formatCurrency((p['avg_price'] as num?)?.toDouble() ?? 0),
+      ];
+    }).toList();
+
+    return pw.TableHelper.fromTextArray(
+      headerDecoration: const pw.BoxDecoration(color: PdfColors.blue900),
+      headerStyle: pw.TextStyle(
+        color: PdfColors.white,
+        fontWeight: pw.FontWeight.bold,
+        fontSize: 9,
+      ),
+      cellStyle: const pw.TextStyle(fontSize: 9),
+      columnWidths: {
+        0: const pw.FixedColumnWidth(24),
+        1: const pw.FlexColumnWidth(4),
+        2: const pw.FlexColumnWidth(1.5),
+        3: const pw.FlexColumnWidth(2),
+        4: const pw.FlexColumnWidth(2),
+      },
+      headers: ['#', 'Producto', 'Ventas', 'Ingresos', 'Precio Prom.'],
+      data: rows,
+      cellAlignments: {
+        0: pw.Alignment.center,
+        1: pw.Alignment.centerLeft,
+        2: pw.Alignment.center,
+        3: pw.Alignment.centerRight,
+        4: pw.Alignment.centerRight,
+      },
+      headerAlignments: {
+        0: pw.Alignment.center,
+        1: pw.Alignment.centerLeft,
+        2: pw.Alignment.center,
+        3: pw.Alignment.centerRight,
+        4: pw.Alignment.centerRight,
+      },
+      oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+    );
+  }
+
+  static pw.Widget _buildActiveLoansTable(List<Map<String, dynamic>> loans) {
+    final rows = loans.map((l) {
+      return [
+        l['employee_name']?.toString() ?? 'Empleado',
+        _formatCurrency((l['total_amount'] as num?)?.toDouble() ?? 0),
+        _formatCurrency((l['paid_amount'] as num?)?.toDouble() ?? 0),
+        _formatCurrency((l['remaining_amount'] as num?)?.toDouble() ?? 0),
+        l['status']?.toString() ?? '—',
+      ];
+    }).toList();
+
+    return pw.TableHelper.fromTextArray(
+      headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
+      headerStyle: pw.TextStyle(
+        color: PdfColors.white,
+        fontWeight: pw.FontWeight.bold,
+        fontSize: 8,
+      ),
+      cellStyle: const pw.TextStyle(fontSize: 8),
+      columnWidths: {
+        0: const pw.FlexColumnWidth(3),
+        1: const pw.FlexColumnWidth(2),
+        2: const pw.FlexColumnWidth(2),
+        3: const pw.FlexColumnWidth(2),
+        4: const pw.FlexColumnWidth(1.5),
+      },
+      headers: ['Empleado', 'Total Préstamo', 'Pagado', 'Saldo', 'Estado'],
+      data: rows,
+      cellAlignments: {
+        0: pw.Alignment.centerLeft,
+        1: pw.Alignment.centerRight,
+        2: pw.Alignment.centerRight,
+        3: pw.Alignment.centerRight,
+        4: pw.Alignment.center,
+      },
+      oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // UTILIDAD: Info de impresoras disponibles
   // ═══════════════════════════════════════════════════════════════
 

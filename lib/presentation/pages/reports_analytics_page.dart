@@ -4,11 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
+import '../../core/utils/print_service.dart';
 import '../../data/providers/reports_provider.dart';
 import '../../data/providers/analytics_provider.dart';
 import '../../data/providers/debt_management_provider.dart';
-import '../../data/providers/accounts_provider.dart';
+import '../../data/providers/payroll_provider.dart';
+import '../../data/providers/employees_provider.dart';
 import '../../data/datasources/accounts_datasource.dart';
+import '../../data/datasources/inventory_datasource.dart';
 import '../../domain/entities/cash_movement.dart';
 
 class ReportsAnalyticsPage extends ConsumerStatefulWidget {
@@ -26,12 +29,14 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     Future.microtask(() {
       ref.read(analyticsProvider.notifier).loadAll();
       ref.read(inventoryReportProvider.notifier).loadInventoryReport();
       ref.read(receivablesReportProvider.notifier).loadReceivablesReport();
       ref.read(debtManagementProvider.notifier).loadOverdueDebts();
+      ref.read(payrollProvider.notifier).loadLoans();
+      ref.read(employeesProvider.notifier).loadEmployees();
     });
   }
 
@@ -88,6 +93,29 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   ),
                 ),
                 const SizedBox(width: 12),
+                // Botón Informe Mensual PDF
+                ElevatedButton.icon(
+                  onPressed: () => _showMonthlyReportDialog(context),
+                  icon: const Icon(
+                    Icons.picture_as_pdf,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                  label: const Text(
+                    'Informe Mensual',
+                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[700],
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 // TabBar inline
                 Expanded(
                   child: TabBar(
@@ -104,6 +132,16 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       Tab(text: 'Cobranzas'),
                       Tab(text: 'Mora'),
                       Tab(text: 'Flujo Caja'),
+                      Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.person_remove_outlined, size: 14),
+                            SizedBox(width: 4),
+                            Text('Gastos Empleados'),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -120,12 +158,283 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 _buildCobranzasTab(analyticsState, receivablesState),
                 _buildMoraInteresesTab(debtState),
                 _buildCashFlowTab(),
+                const _EmployeeExpensesTab(),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  // ============================================================
+  // DIÁLOGO: INFORME MENSUAL PDF
+  // ============================================================
+  void _showMonthlyReportDialog(BuildContext context) {
+    final now = DateTime.now();
+    int selectedMonth = now.month;
+    int selectedYear = now.year;
+
+    final monthNames = [
+      '',
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.picture_as_pdf, color: Colors.red[700]),
+              const SizedBox(width: 8),
+              const Text('Informe Mensual de Rentabilidad'),
+            ],
+          ),
+          content: SizedBox(
+            width: 320,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Selecciona el período del informe:',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        decoration: const InputDecoration(
+                          labelText: 'Mes',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                        ),
+                        value: selectedMonth,
+                        items: List.generate(12, (i) => i + 1)
+                            .map(
+                              (m) => DropdownMenuItem(
+                                value: m,
+                                child: Text(monthNames[m]),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setDialogState(() => selectedMonth = v!),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        decoration: const InputDecoration(
+                          labelText: 'Año',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                        ),
+                        value: selectedYear,
+                        items: [now.year - 1, now.year, now.year + 1]
+                            .map(
+                              (y) => DropdownMenuItem(
+                                value: y,
+                                child: Text(y.toString()),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setDialogState(() => selectedYear = v!),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue[200]!),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'El informe incluye:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        '• Resumen ejecutivo (ventas, costos, utilidad)',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      Text(
+                        '• Desglose de costos por categoría',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      Text(
+                        '• Comparativo de últimos meses',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      Text(
+                        '• Productos estrella',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      Text(
+                        '• Préstamos activos de empleados',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      Text(
+                        '• Proyecciones próximo mes',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await _generateMonthlyReport(selectedMonth, selectedYear);
+              },
+              icon: const Icon(Icons.download, color: Colors.white),
+              label: const Text(
+                'Generar PDF',
+                style: TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _generateMonthlyReport(int month, int year) async {
+    // Mostrar loading
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('Generando informe PDF...'),
+          ],
+        ),
+        duration: Duration(seconds: 30),
+      ),
+    );
+
+    try {
+      final analyticsState = ref.read(analyticsProvider);
+      final payrollState = ref.read(payrollProvider);
+
+      // Obtener gastos del mes seleccionado por categoría
+      final start = DateTime(year, month, 1);
+      final end = DateTime(year, month + 1, 0, 23, 59, 59);
+      final movements = await AccountsDataSource.getMovementsByDateRange(
+        start,
+        end,
+      );
+      final expenseByCategory = <String, double>{};
+      for (final m in movements.where((m) => m.type == MovementType.expense)) {
+        final key = m.category.name;
+        expenseByCategory[key] = (expenseByCategory[key] ?? 0) + m.amount;
+      }
+
+      // Convertir entidades a Map para PrintService
+      final profitLossMap = analyticsState.profitLoss
+          .map(
+            (p) => {
+              'year': p.year,
+              'month': p.month,
+              'revenue': p.revenue,
+              'fixed_expenses': p.fixedExpenses,
+              'variable_expenses': p.variableExpenses,
+              'gross_profit': p.grossProfit,
+            },
+          )
+          .toList();
+
+      final topProductsMap = analyticsState.topProducts
+          .map(
+            (p) => {
+              'product_key': p.productKey,
+              'product_name': p.productName,
+              'product_code': p.productCode,
+              'times_sold': p.timesSold,
+              'total_revenue': p.totalRevenue,
+              'avg_price': p.avgPrice,
+            },
+          )
+          .toList();
+
+      final loansMap = payrollState.activeLoans
+          .map(
+            (l) => {
+              'employee_name': l.employeeName ?? 'Empleado',
+              'total_amount': l.totalAmount,
+              'paid_amount': l.paidAmount,
+              'remaining_amount': l.remainingAmount,
+              'status': l.status,
+            },
+          )
+          .toList();
+
+      await PrintService.shareMonthlyReport(
+        profitLoss: profitLossMap,
+        topProducts: topProductsMap,
+        activeLoans: loansMap,
+        expenseByCategory: expenseByCategory,
+        month: month,
+        year: year,
+      );
+
+      messenger.hideCurrentSnackBar();
+    } catch (e) {
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error generando informe: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // ============================================================
@@ -4711,14 +5020,22 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
         return 'Pago Préstamo';
       case MovementCategory.otherIncome:
         return 'Otros Ingresos';
-      case MovementCategory.cuidado_personal: return 'Cuidado Personal';
-      case MovementCategory.servicios_publicos: return 'Servicios Públicos';
-      case MovementCategory.papeleria: return 'Papelería';
-      case MovementCategory.nomina: return 'Nómina';
-      case MovementCategory.impuestos: return 'Impuestos';
-      case MovementCategory.consumibles: return 'Consumibles';
-      case MovementCategory.transporte: return 'Transporte';
-      case MovementCategory.gastos_reducibles: return 'Gastos Reducibles';
+      case MovementCategory.cuidado_personal:
+        return 'Cuidado Personal';
+      case MovementCategory.servicios_publicos:
+        return 'Servicios Públicos';
+      case MovementCategory.papeleria:
+        return 'Papelería';
+      case MovementCategory.nomina:
+        return 'Nómina';
+      case MovementCategory.impuestos:
+        return 'Impuestos';
+      case MovementCategory.consumibles:
+        return 'Consumibles';
+      case MovementCategory.transporte:
+        return 'Transporte';
+      case MovementCategory.gastos_reducibles:
+        return 'Gastos Reducibles';
       case MovementCategory.transferOut:
         return 'Traslado Salida';
       case MovementCategory.transferIn:
@@ -4736,14 +5053,22 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
         return Colors.lightGreen;
       case MovementCategory.otherIncome:
         return Colors.green.shade300;
-      case MovementCategory.cuidado_personal: return Colors.pink;
-      case MovementCategory.servicios_publicos: return Colors.purple;
-      case MovementCategory.papeleria: return Colors.indigo;
-      case MovementCategory.nomina: return Colors.deepOrange;
-      case MovementCategory.impuestos: return Colors.red.shade800;
-      case MovementCategory.consumibles: return Colors.red;
-      case MovementCategory.transporte: return Colors.blue;
-      case MovementCategory.gastos_reducibles: return Colors.grey;
+      case MovementCategory.cuidado_personal:
+        return Colors.pink;
+      case MovementCategory.servicios_publicos:
+        return Colors.purple;
+      case MovementCategory.papeleria:
+        return Colors.indigo;
+      case MovementCategory.nomina:
+        return Colors.deepOrange;
+      case MovementCategory.impuestos:
+        return Colors.red.shade800;
+      case MovementCategory.consumibles:
+        return Colors.red;
+      case MovementCategory.transporte:
+        return Colors.blue;
+      case MovementCategory.gastos_reducibles:
+        return Colors.grey;
       case MovementCategory.transferOut:
         return Colors.orange.shade300;
       case MovementCategory.transferIn:
@@ -5241,3 +5566,471 @@ class _CumulativeLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
+
+// ============================================================
+// TAB: GASTOS POR EMPLEADOS (material_movements salidas)
+// ============================================================
+class _EmployeeExpensesTab extends ConsumerStatefulWidget {
+  const _EmployeeExpensesTab();
+
+  @override
+  ConsumerState<_EmployeeExpensesTab> createState() =>
+      _EmployeeExpensesTabState();
+}
+
+class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
+  List<Map<String, dynamic>> _records = [];
+  bool _isLoading = true;
+  String? _filterEmployeeId;
+  DateTimeRange? _dateRange;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecords();
+  }
+
+  Future<void> _loadRecords() async {
+    setState(() => _isLoading = true);
+    try {
+      var q = InventoryDataSource.client
+          .from('material_movements')
+          .select('id, quantity, reason, reference, created_at, material_id, previous_stock, new_stock, materials(name, unit, cost_price)')
+          .eq('type', 'salida')
+          .like('reason', 'Retiro por empleado:%');
+
+      if (_dateRange != null) {
+        q = q
+            .gte('created_at', _dateRange!.start.toIso8601String())
+            .lte('created_at', _dateRange!.end.add(const Duration(days: 1)).toIso8601String());
+      }
+
+      final response = await q.order('created_at', ascending: false);
+      setState(() {
+        _records = List<Map<String, dynamic>>.from(response);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  String _extractEmployeeName(String? reason) {
+    if (reason == null) return '—';
+    final prefix = 'Retiro por empleado: ';
+    if (!reason.startsWith(prefix)) return reason;
+    final rest = reason.substring(prefix.length);
+    final dashIdx = rest.indexOf(' — ');
+    return dashIdx >= 0 ? rest.substring(0, dashIdx) : rest;
+  }
+
+  String _extractNotes(String? reason) {
+    if (reason == null) return '';
+    final dashIdx = reason.indexOf(' — ');
+    return dashIdx >= 0 ? reason.substring(dashIdx + 3) : '';
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    if (_filterEmployeeId == null) return _records;
+    return _records
+        .where((r) => _extractEmployeeName(r['reason'] as String?) ==
+            _filterEmployee?.fullName)
+        .toList();
+  }
+
+  // Para filtrar por empleado seleccionado del provider
+  dynamic get _filterEmployee {
+    if (_filterEmployeeId == null) return null;
+    final employees = ref.read(employeesProvider).employees;
+    try {
+      return employees.firstWhere((e) => e.id == _filterEmployeeId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  double get _totalCost {
+    return _filtered.fold(0.0, (sum, r) {
+      final mat = r['materials'] as Map<String, dynamic>?;
+      final cost = (mat?['cost_price'] as num?)?.toDouble() ?? 0;
+      final qty = (r['quantity'] as num?)?.toDouble() ?? 0;
+      return sum + cost * qty;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final employees = ref.watch(employeesProvider).employees;
+
+    return Column(
+      children: [
+        // Filtros
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              const Icon(Icons.person_remove_outlined,
+                  color: Colors.deepOrange, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Retiros de Inventario por Empleados',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.deepOrange[700],
+                ),
+              ),
+              const Spacer(),
+              // Filtro empleado
+              SizedBox(
+                width: 200,
+                child: DropdownButtonFormField<String>(
+                  value: _filterEmployeeId,
+                  decoration: InputDecoration(
+                    labelText: 'Empleado',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 8),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  items: [
+                    const DropdownMenuItem(
+                        value: null, child: Text('Todos')),
+                    ...employees.map((e) => DropdownMenuItem(
+                          value: e.id,
+                          child: Text(e.fullName,
+                              overflow: TextOverflow.ellipsis),
+                        )),
+                  ],
+                  onChanged: (v) =>
+                      setState(() => _filterEmployeeId = v),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Filtro fechas
+              OutlinedButton.icon(
+                icon: const Icon(Icons.date_range, size: 16),
+                label: Text(
+                  _dateRange == null
+                      ? 'Todas las fechas'
+                      : '${_dateRange!.start.day}/${_dateRange!.start.month} – ${_dateRange!.end.day}/${_dateRange!.end.month}',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: () async {
+                  final picked = await showDateRangePicker(
+                    context: context,
+                    firstDate: DateTime(2024),
+                    lastDate: DateTime.now().add(const Duration(days: 1)),
+                    initialDateRange: _dateRange,
+                  );
+                  if (picked != null) {
+                    setState(() => _dateRange = picked);
+                    _loadRecords();
+                  }
+                },
+              ),
+              if (_dateRange != null) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.clear, size: 16),
+                  onPressed: () {
+                    setState(() => _dateRange = null);
+                    _loadRecords();
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                      minWidth: 28, minHeight: 28),
+                ),
+              ],
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Actualizar'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.deepOrange,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: _loadRecords,
+              ),
+            ],
+          ),
+        ),
+        // Resumen cards
+        if (!_isLoading && _records.isNotEmpty)
+          Container(
+            color: Colors.grey[50],
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                _summaryCard(
+                  'Total Retiros',
+                  '${_filtered.length}',
+                  Colors.deepOrange,
+                  Icons.move_to_inbox,
+                ),
+                const SizedBox(width: 12),
+                _summaryCard(
+                  'Costo Total',
+                  '\$${_totalCost.toStringAsFixed(0)}',
+                  Colors.red[700]!,
+                  Icons.attach_money,
+                ),
+                const SizedBox(width: 12),
+                _summaryCard(
+                  'Empleados',
+                  '${_filtered.map((r) => _extractEmployeeName(r['reason'] as String?)).toSet().length}',
+                  Colors.blueGrey,
+                  Icons.people,
+                ),
+              ],
+            ),
+          ),
+        // Tabla
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _filtered.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person_remove_outlined,
+                              size: 64, color: Colors.grey[300]),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No hay retiros registrados',
+                            style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[500]),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Usa "Salida por Empleado" en el inventario para registrar retiros',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[400]),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                  : _buildTable(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTable() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05), blurRadius: 8)
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.deepOrange.withOpacity(0.08),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(8)),
+            ),
+            child: Row(
+              children: [
+                _th('Fecha', 110),
+                _th('Empleado', null, flex: 2),
+                _th('Material', null, flex: 2),
+                _th('Cantidad', 90, align: TextAlign.right),
+                _th('Costo Unit.', 90, align: TextAlign.right),
+                _th('Total', 90, align: TextAlign.right),
+                _th('Notas', null, flex: 2),
+              ],
+            ),
+          ),
+          // Rows
+          Expanded(
+            child: ListView.separated(
+              itemCount: _filtered.length,
+              separatorBuilder: (_, __) =>
+                  Divider(height: 1, color: Colors.grey[200]),
+              itemBuilder: (context, i) {
+                final r = _filtered[i];
+                final mat = r['materials'] as Map<String, dynamic>?;
+                final matName = mat?['name'] as String? ?? '—';
+                final matUnit = mat?['unit'] as String? ?? '';
+                final costUnit =
+                    (mat?['cost_price'] as num?)?.toDouble() ?? 0;
+                final qty =
+                    (r['quantity'] as num?)?.toDouble() ?? 0;
+                final total = costUnit * qty;
+                final empName =
+                    _extractEmployeeName(r['reason'] as String?);
+                final notes =
+                    _extractNotes(r['reason'] as String?);
+                final date =
+                    DateTime.tryParse(r['created_at'] as String? ?? '');
+                final dateStr = date != null
+                    ? '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}  ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}'
+                    : '—';
+
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 110,
+                        child: Text(dateStr,
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[600])),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.deepOrange
+                                  .withOpacity(0.15),
+                              child: Text(
+                                empName.isNotEmpty
+                                    ? empName[0].toUpperCase()
+                                    : '?',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.deepOrange[700],
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(empName,
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(matName,
+                            style: const TextStyle(fontSize: 11),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                      SizedBox(
+                        width: 90,
+                        child: Text(
+                          '${qty.toStringAsFixed(qty % 1 == 0 ? 0 : 2)} $matUnit',
+                          style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 90,
+                        child: Text(
+                          '\$${costUnit.toStringAsFixed(0)}',
+                          style: TextStyle(
+                              fontSize: 11, color: Colors.grey[600]),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 90,
+                        child: Text(
+                          '\$${total.toStringAsFixed(0)}',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red[700]),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          notes,
+                          style: TextStyle(
+                              fontSize: 10, color: Colors.grey[500]),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _th(String text, double? width,
+      {int flex = 0, TextAlign align = TextAlign.left}) {
+    final child = Text(
+      text,
+      style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+          color: Colors.deepOrange[800]),
+      textAlign: align,
+    );
+    if (width != null) return SizedBox(width: width, child: child);
+    return Expanded(flex: flex, child: child);
+  }
+
+  Widget _summaryCard(
+      String label, String value, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+              Text(value,
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: color)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
