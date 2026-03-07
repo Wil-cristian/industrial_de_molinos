@@ -88,9 +88,9 @@ class CustomersDataSource {
     return _fromJson(response);
   }
 
-  /// Eliminar cliente (soft delete)
+  /// Eliminar cliente (hard delete — borra permanentemente con todas sus relaciones)
   static Future<void> delete(String id) async {
-    await _client.from(_table).update({'is_active': false}).eq('id', id);
+    await _client.from(_table).delete().eq('id', id);
   }
 
   /// Eliminar permanentemente

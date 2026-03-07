@@ -6106,6 +6106,7 @@ class _AddMaterialFromInventoryDialogState
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: _selectedCategory,
+                    isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Categoría',
                       border: OutlineInputBorder(),
@@ -6115,9 +6116,15 @@ class _AddMaterialFromInventoryDialogState
                       ),
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Todas')),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Todas', overflow: TextOverflow.ellipsis),
+                      ),
                       ..._categories.map(
-                        (c) => DropdownMenuItem(value: c, child: Text(c)),
+                        (c) => DropdownMenuItem(
+                          value: c,
+                          child: Text(c, overflow: TextOverflow.ellipsis),
+                        ),
                       ),
                     ],
                     onChanged: (value) =>

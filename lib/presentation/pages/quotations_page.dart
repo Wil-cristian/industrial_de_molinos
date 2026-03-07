@@ -5,8 +5,12 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/datasources/inventory_datasource.dart';
 import '../../data/datasources/purchase_orders_datasource.dart';
+import '../../data/datasources/supplier_materials_datasource.dart';
 import '../../data/providers/quotations_provider.dart';
+import '../../data/providers/suppliers_provider.dart';
 import '../../data/providers/invoices_provider.dart';
+import '../../data/providers/customers_provider.dart';
+import '../../data/providers/composite_products_provider.dart';
 import '../../core/utils/print_service.dart';
 
 class QuotationsPage extends ConsumerStatefulWidget {
@@ -33,7 +37,16 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
             'date': q.date,
             'validUntil': q.validUntil,
             'customer': q.customerName,
-            'customerRuc': q.customerId, // Usamos customerId como RUC
+            'customerRuc': () {
+              final customers = ref.read(customersProvider).customers;
+              try {
+                return customers
+                    .firstWhere((c) => c.id == q.customerId)
+                    .documentNumber;
+              } catch (_) {
+                return '';
+              }
+            }(),
             'description': q.notes.isNotEmpty
                 ? q.notes.split('\n').first
                 : 'Cotización ${q.number}',
@@ -61,6 +74,40 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                     'unitCostPrice': item.costPerKg,
                     'totalProfit': item.totalProfit,
                     'profitMargin': item.profitMargin,
+                    'productId': item.productId,
+                    'components': () {
+                      if (item.productId == null)
+                        return <Map<String, dynamic>>[];
+                      final cpState = ref.read(compositeProductsProvider);
+                      try {
+                        final product = cpState.products.firstWhere(
+                          (p) => p.id == item.productId,
+                        );
+                        return product.components
+                            .map<Map<String, dynamic>>(
+                              (c) => {
+                                'quantity': c.quantity,
+                                'name': c.materialName ?? 'Material',
+                                'material': c.materialCode?.isNotEmpty == true
+                                    ? c.materialCode!
+                                    : c.dimensionsDescription,
+                                'totalWeight': c.totalWeight,
+                                'totalPrice': c.totalPrice,
+                                'totalCost': c.totalCostPrice,
+                                'unitSalePrice': c.weightPerUnit > 0
+                                    ? c.pricePerUnit / c.weightPerUnit
+                                    : 0.0,
+                                'unitCostPrice': c.weightPerUnit > 0
+                                    ? c.costPricePerUnit / c.weightPerUnit
+                                    : 0.0,
+                                'totalProfit': c.profit,
+                              },
+                            )
+                            .toList();
+                      } catch (_) {
+                        return <Map<String, dynamic>>[];
+                      }
+                    }(),
                   },
                 )
                 .toList(),
@@ -132,6 +179,10 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
     // Cargar cotizaciones desde Supabase
     Future.microtask(
       () => ref.read(quotationsProvider.notifier).loadQuotations(),
+    );
+    // Cargar productos compuestos (para mostrar componentes en detalle)
+    Future.microtask(
+      () => ref.read(compositeProductsProvider.notifier).loadProducts(),
     );
   }
 
@@ -1342,16 +1393,96 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  // Stock check state
+  List<Map<String, dynamic>>? _stockData;
+  bool _loadingStock = true;
+  bool _creatingOrders = false;
+  List<String>? _createdOrderNumbers;
+  String? _orderError;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
+    _loadStock();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadStock() async {
+    final id = widget.quotation['id']?.toString() ?? '';
+    if (id.isEmpty) {
+      if (mounted) setState(() => _loadingStock = false);
+      return;
+    }
+    try {
+      final data = await InventoryDataSource.checkQuotationStock(id);
+      if (mounted)
+        setState(() {
+          _stockData = data;
+          _loadingStock = false;
+        });
+    } catch (_) {
+      if (mounted) setState(() => _loadingStock = false);
+    }
+  }
+
+  bool get _allStockOk =>
+      _stockData == null || _stockData!.every((m) => m['has_stock'] == true);
+
+  List<Map<String, dynamic>> get _missingMaterials =>
+      _stockData?.where((m) => m['has_stock'] != true).toList() ?? [];
+
+  Future<void> _createPurchaseOrders() async {
+    final missing = _missingMaterials;
+    if (missing.isEmpty) return;
+    setState(() {
+      _creatingOrders = true;
+      _orderError = null;
+    });
+    try {
+      final quotNum = widget.quotation['number']?.toString() ?? '';
+      final orders = await PurchaseOrdersDataSource.createFromShortage(
+        missingMaterials: missing,
+        quotationNumber: quotNum,
+      );
+      if (mounted) {
+        setState(() {
+          _creatingOrders = false;
+          _createdOrderNumbers = orders.map((o) => o.orderNumber).toList();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _creatingOrders = false;
+          _orderError = e.toString();
+        });
+      }
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'Borrador':
+        return Icons.edit_note;
+      case 'Enviada':
+        return Icons.send;
+      case 'Aprobada':
+        return Icons.check_circle;
+      case 'Rechazada':
+        return Icons.cancel;
+      case 'Anulada':
+        return Icons.block;
+      case 'Vencida':
+        return Icons.warning;
+      default:
+        return Icons.description;
+    }
   }
 
   Color _getStatusColor(String status) {
@@ -1386,109 +1517,107 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
         height: screenHeight * 0.9,
         child: Column(
           children: [
-            // Header compacto con fondo oscuro
+            // ── HEADER COMPACTO con tabs inline (igual que facturas) ──
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: const BoxDecoration(
                 color: headerColor,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.description, color: Colors.white, size: 24),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          q['number'],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Cotización ${q['number']}',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
+                  Icon(
+                    _getStatusIcon(q['status']),
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    q['number'],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(width: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
+                      horizontal: 10,
+                      vertical: 3,
                     ),
                     decoration: BoxDecoration(
                       color: _getStatusColor(q['status']),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       q['status'],
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 16),
+                  _buildHeaderTab('Resumen', Icons.bar_chart, 0),
+                  _buildHeaderTab('Vista Cliente', Icons.person, 1),
+                  _buildHeaderTab('Empresa', Icons.business, 2),
+                  const Spacer(),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        Helpers.formatCurrency(q['total']),
+                        Helpers.formatCurrency(
+                          (q['total'] as num?)?.toDouble() ?? 0,
+                        ),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 20,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        '${Helpers.formatNumber(q['weight'])} kg',
+                        '${Helpers.formatNumber((q['weight'] as num?)?.toDouble() ?? 0)} kg',
                         style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
+                          color: Colors.white60,
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    splashRadius: 20,
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    splashRadius: 18,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                   ),
                 ],
               ),
             ),
-            // Tabs
-            Container(
-              color: headerColor,
-              child: Row(
-                children: [
-                  const SizedBox(width: 24),
-                  _buildTab('Vista Cliente', Icons.person, 0),
-                  const SizedBox(width: 8),
-                  _buildTab('Vista Empresa', Icons.business, 1),
-                ],
-              ),
-            ),
-            // Contenido de tabs
+            // ── CONTENIDO TABS ──
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: [_buildClientView(q), _buildEnterpriseView(q)],
+                children: [
+                  _buildResumenTab(q),
+                  _buildClientView(q),
+                  _buildEnterpriseView(q),
+                ],
               ),
             ),
-            // Footer
+            // ── FOOTER ──
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
                 borderRadius: const BorderRadius.vertical(
@@ -1496,55 +1625,54 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                 ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 16,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Cliente: ${q['customer']}  •  Fecha: ${Helpers.formatDate(q['date'])}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                      ),
-                    ],
+                  Icon(Icons.calendar_today, size: 14, color: Colors.grey[500]),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Cliente: ${q['customer']}  •  Fecha: ${Helpers.formatDate(q['date'])}  •  Válida: ${Helpers.formatDate(q['validUntil'])}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
-                  Row(
-                    children: [
-                      _buildFooterButton(
-                        'Generar PDF',
-                        Icons.picture_as_pdf,
-                        Colors.blue[600]!,
-                        () {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Generando PDF de ${q['number']}...',
-                              ),
-                              backgroundColor: AppTheme.primaryColor,
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1e293b),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
+                  const Spacer(),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Generando PDF de ${q['number']}...'),
+                          backgroundColor: AppTheme.primaryColor,
                         ),
-                        icon: const Icon(Icons.check, size: 18),
-                        label: const Text('Cerrar'),
+                      );
+                    },
+                    icon: Icon(
+                      Icons.picture_as_pdf,
+                      size: 16,
+                      color: Colors.blue[600],
+                    ),
+                    label: Text(
+                      'Generar PDF',
+                      style: TextStyle(color: Colors.blue[600], fontSize: 13),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.blue[300]!),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                    ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: headerColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                    ),
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('Cerrar', style: TextStyle(fontSize: 13)),
                   ),
                 ],
               ),
@@ -1555,35 +1683,37 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
     );
   }
 
-  Widget _buildTab(String label, IconData icon, int index) {
+  Widget _buildHeaderTab(String label, IconData icon, int index) {
     final isSelected = _tabController.index == index;
     return GestureDetector(
       onTap: () => setState(() => _tabController.animateTo(index)),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Container(
+        margin: const EdgeInsets.only(right: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isSelected ? Colors.white : Colors.transparent,
-              width: 2,
-            ),
+          color: isSelected
+              ? Colors.white.withOpacity(0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? Colors.white38 : Colors.transparent,
           ),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.white : Colors.white60,
-              size: 18,
+              color: isSelected ? Colors.white : Colors.white54,
+              size: 15,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white60,
+                color: isSelected ? Colors.white : Colors.white54,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                fontSize: 14,
+                fontSize: 12,
               ),
             ),
           ],
@@ -1592,21 +1722,743 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
     );
   }
 
-  Widget _buildFooterButton(
-    String label,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: color,
-        side: BorderSide(color: color.withOpacity(0.5)),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+  // ══════════════════════════════════════════════
+  // TAB 1: RESUMEN (nuevo - igual que Detalle en FAC)
+  // ══════════════════════════════════════════════
+  Widget _buildResumenTab(Map<String, dynamic> q) {
+    final items = q['items'] as List<dynamic>? ?? [];
+    final total = (q['total'] as num?)?.toDouble() ?? 0;
+    final materialsCost = (q['materialsCost'] as num?)?.toDouble() ?? 0;
+    final laborCost = (q['laborCost'] as num?)?.toDouble() ?? 0;
+    final indirectCosts = (q['indirectCosts'] as num?)?.toDouble() ?? 0;
+    final subtotal = materialsCost + laborCost + indirectCosts;
+    final profitMargin = (q['profitMargin'] as num?)?.toDouble() ?? 20;
+    final profitAmount = total - subtotal;
+    final weight = (q['weight'] as num?)?.toDouble() ?? 0;
+
+    return Container(
+      color: const Color(0xFFF1F4F8),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            // 4 tarjetas resumen
+            Row(
+              children: [
+                _buildSummaryCard(
+                  'Subtotal',
+                  subtotal,
+                  Icons.receipt_outlined,
+                  Colors.blue,
+                ),
+                const SizedBox(width: 12),
+                _buildSummaryCard(
+                  'Ganancia',
+                  profitAmount,
+                  Icons.trending_up,
+                  Colors.green,
+                ),
+                const SizedBox(width: 12),
+                _buildSummaryCard(
+                  'Margen',
+                  profitMargin,
+                  Icons.percent,
+                  Colors.purple,
+                  isPercent: true,
+                ),
+                const SizedBox(width: 12),
+                _buildSummaryCard(
+                  'TOTAL',
+                  total,
+                  Icons.payments,
+                  Colors.teal,
+                  isHighlight: true,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Columna izq: cliente + items
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    children: [
+                      // Tarjeta cliente
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            const CircleAvatar(
+                              backgroundColor: Color(0xFF1e293b),
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    q['customer'] ?? '',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  Text(
+                                    'NIT/CC: ${q['customerRuc']?.toString().isNotEmpty == true ? q['customerRuc'] : 'N/A'}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Fecha: ${Helpers.formatDate(q['date'])}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                Text(
+                                  'Válida: ${Helpers.formatDate(q['validUntil'])}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Items
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.table_chart, size: 18),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Detalle',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    '${items.length} items',
+                                    style: TextStyle(
+                                      color: Colors.grey[500],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Divider(height: 1),
+                            if (items.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(20),
+                                child: Center(
+                                  child: Text(
+                                    'Sin items',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                              )
+                            else
+                              ...items.map((i) {
+                                final tPrice =
+                                    (i['totalPrice'] as num?)?.toDouble() ?? 0;
+                                final tCost =
+                                    (i['totalCost'] as num?)?.toDouble() ?? 0;
+                                final tProfit = tPrice - tCost;
+                                final tWeight =
+                                    (i['totalWeight'] as num?)?.toDouble() ?? 0;
+                                final comps =
+                                    i['components'] as List<dynamic>? ?? [];
+                                return Column(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          top: BorderSide(
+                                            color: Colors.grey[100]!,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 32,
+                                            height: 32,
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.primaryColor
+                                                  .withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Icon(
+                                              comps.isNotEmpty
+                                                  ? Icons.settings
+                                                  : Icons.inventory_2,
+                                              size: 16,
+                                              color: AppTheme.primaryColor,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  i['name'] ?? '',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Costo: ${Helpers.formatCurrency(tCost)}  •  ${Helpers.formatNumber(tWeight)} kg'
+                                                  '${comps.isNotEmpty ? '  •  ${comps.length} mat.' : ''}',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.grey[500],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                Helpers.formatCurrency(tPrice),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                              Text(
+                                                '+${Helpers.formatCurrency(tProfit)}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.green[600],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Sub-materiales del producto
+                                    if (comps.isNotEmpty)
+                                      ...comps.map((c) {
+                                        final cw =
+                                            (c['totalWeight'] as num?)
+                                                ?.toDouble() ??
+                                            0;
+                                        final cp =
+                                            (c['totalPrice'] as num?)
+                                                ?.toDouble() ??
+                                            0;
+                                        return Container(
+                                          padding: const EdgeInsets.only(
+                                            left: 60,
+                                            right: 16,
+                                            top: 6,
+                                            bottom: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[50],
+                                            border: Border(
+                                              top: BorderSide(
+                                                color: Colors.grey[100]!,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.subdirectory_arrow_right,
+                                                size: 14,
+                                                color: Colors.grey[400],
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '${c['quantity']}× ${c['name'] ?? ''}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[700],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              if ((c['material']
+                                                      ?.toString()
+                                                      .isNotEmpty ??
+                                                  false))
+                                                Text(
+                                                  '(${c['material']})',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.grey[500],
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                ),
+                                              const Spacer(),
+                                              Text(
+                                                '${Helpers.formatNumber(cw)} kg  •  ${Helpers.formatCurrency(cp)}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }),
+                                  ],
+                                );
+                              }),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Columna der: análisis financiero
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.analytics, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'Análisis Financiero',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildFinRow(
+                          'Materiales',
+                          materialsCost,
+                          color: Colors.orange[700],
+                        ),
+                        _buildFinRow(
+                          'Mano de Obra',
+                          laborCost,
+                          color: Colors.orange[700],
+                        ),
+                        _buildFinRow(
+                          'Costos Indirectos',
+                          indirectCosts,
+                          color: Colors.orange[700],
+                        ),
+                        const Divider(),
+                        _buildFinRow(
+                          'Costo Total',
+                          subtotal,
+                          isTotal: true,
+                          color: Colors.red[700],
+                        ),
+                        const SizedBox(height: 8),
+                        _buildFinRow(
+                          'Ganancia (${profitMargin.toStringAsFixed(0)}%)',
+                          profitAmount,
+                          color: Colors.green[700],
+                        ),
+                        const Divider(),
+                        _buildFinRow(
+                          'TOTAL',
+                          total,
+                          isTotal: true,
+                          color: const Color(0xFF1e293b),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.scale,
+                                color: Colors.blue[700],
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Peso Total: ${Helpers.formatNumber(weight)} kg',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Panel de stock
+                        _buildStockPanel(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      icon: Icon(icon, size: 18),
-      label: Text(label),
+    );
+  }
+
+  // ═══════════════════════════════════════════
+  // PANEL DE STOCK EN RESUMEN TAB
+  // ═══════════════════════════════════════════
+  Widget _buildStockPanel() {
+    if (_loadingStock) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 10),
+            Text('Verificando stock...', style: TextStyle(fontSize: 13)),
+          ],
+        ),
+      );
+    }
+
+    if (_createdOrderNumbers != null && _createdOrderNumbers!.isNotEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.green[50],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.green[200]!),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green[700], size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'Órdenes de Compra creadas:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green[800],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ..._createdOrderNumbers!.map(
+              (n) => Padding(
+                padding: const EdgeInsets.only(left: 26, top: 2),
+                child: Text(
+                  '• $n',
+                  style: TextStyle(fontSize: 12, color: Colors.green[700]),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_orderError != null) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.red[50],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.red[200]!),
+        ),
+        child: Text(
+          'Error: $_orderError',
+          style: TextStyle(fontSize: 12, color: Colors.red[700]),
+        ),
+      );
+    }
+
+    if (_stockData == null || _stockData!.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.info_outline, size: 16),
+            SizedBox(width: 8),
+            Text('Sin materiales a verificar', style: TextStyle(fontSize: 12)),
+          ],
+        ),
+      );
+    }
+
+    final missing = _missingMaterials;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _allStockOk ? Colors.green[50] : Colors.orange[50],
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: _allStockOk ? Colors.green[200]! : Colors.orange[200]!,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _allStockOk ? Icons.inventory_2 : Icons.warning_amber,
+                color: _allStockOk ? Colors.green[700] : Colors.orange[700],
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _allStockOk
+                    ? 'Stock suficiente'
+                    : '${missing.length} material(es) sin stock',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: _allStockOk ? Colors.green[800] : Colors.orange[800],
+                  fontSize: 13,
+                ),
+              ),
+              if (!_allStockOk) ...[
+                const Spacer(),
+                _creatingOrders
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : TextButton.icon(
+                        onPressed: _createPurchaseOrders,
+                        icon: const Icon(Icons.add_shopping_cart, size: 14),
+                        label: const Text(
+                          'Crear OC',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.orange[700],
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                        ),
+                      ),
+              ],
+            ],
+          ),
+          if (!_allStockOk) ...[
+            const SizedBox(height: 10),
+            ...missing.take(6).map((m) {
+              final need = (m['required_quantity'] as num?)?.toDouble() ?? 0;
+              final have = (m['available_quantity'] as num?)?.toDouble() ?? 0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.remove_circle_outline,
+                      size: 14,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        m['material_name']?.toString() ?? 'Material',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    Text(
+                      'Necesita: ${need.toStringAsFixed(1)} | Hay: ${have.toStringAsFixed(1)}',
+                      style: TextStyle(fontSize: 11, color: Colors.red[700]),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            if (missing.length > 6)
+              Text(
+                '... +${missing.length - 6} más',
+                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(
+    String label,
+    double value,
+    IconData icon,
+    MaterialColor color, {
+    bool isHighlight = false,
+    bool isPercent = false,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isHighlight ? color.shade700 : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isHighlight ? Colors.white70 : color.shade600,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isHighlight ? Colors.white70 : Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isPercent
+                  ? '${value.toStringAsFixed(1)}%'
+                  : Helpers.formatCurrency(value),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isHighlight ? Colors.white : color.shade800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFinRow(
+    String label,
+    double value, {
+    bool isTotal = false,
+    Color? color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              fontSize: isTotal ? 14 : 13,
+              color: Colors.grey[700],
+            ),
+          ),
+          Text(
+            Helpers.formatCurrency(value),
+            style: TextStyle(
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+              fontSize: isTotal ? 14 : 13,
+              color: color ?? Colors.black87,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2969,7 +3821,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
 // ──────────────────────────────────────────────────────────────────
 // Diálogo de aprobación con verificación de stock consolidado
 // ──────────────────────────────────────────────────────────────────
-class _ApproveQuotationDialog extends StatefulWidget {
+class _ApproveQuotationDialog extends ConsumerStatefulWidget {
   final Map<String, dynamic> quotation;
   final TextEditingController seriesController;
   final void Function(String series) onApprove;
@@ -2981,11 +3833,12 @@ class _ApproveQuotationDialog extends StatefulWidget {
   });
 
   @override
-  State<_ApproveQuotationDialog> createState() =>
+  ConsumerState<_ApproveQuotationDialog> createState() =>
       _ApproveQuotationDialogState();
 }
 
-class _ApproveQuotationDialogState extends State<_ApproveQuotationDialog> {
+class _ApproveQuotationDialogState
+    extends ConsumerState<_ApproveQuotationDialog> {
   List<Map<String, dynamic>>? _stockData;
   bool _loading = true;
   String? _error;
@@ -2993,7 +3846,8 @@ class _ApproveQuotationDialogState extends State<_ApproveQuotationDialog> {
   // Para creación de órdenes de compra
   bool _creatingOrders = false;
   List<String>? _createdOrderNumbers;
-  List<String>? _materialsWithoutSupplier;
+  // Cada elemento: {'material_id': ..., 'material_name': ...}
+  List<Map<String, dynamic>>? _materialsWithoutSupplier;
   String? _orderError;
 
   @override
@@ -3073,7 +3927,12 @@ class _ApproveQuotationDialogState extends State<_ApproveQuotationDialog> {
                 m['material_id'] != null &&
                 !materialsWithOrders.contains(m['material_id']),
           )
-          .map<String>((m) => m['material_name']?.toString() ?? 'Material')
+          .map<Map<String, dynamic>>(
+            (m) => {
+              'material_id': m['material_id'],
+              'material_name': m['material_name']?.toString() ?? 'Material',
+            },
+          )
           .toList();
 
       if (mounted) {
@@ -3483,25 +4342,94 @@ class _ApproveQuotationDialogState extends State<_ApproveQuotationDialog> {
                               ),
                               if (_materialsWithoutSupplier != null &&
                                   _materialsWithoutSupplier!.isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      size: 14,
-                                      color: Colors.orange[700],
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange[50],
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: Colors.orange[300]!,
                                     ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        'Sin proveedor: ${_materialsWithoutSupplier!.join(", ")}',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.orange[800],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.person_off,
+                                            size: 14,
+                                            color: Colors.orange[700],
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Sin proveedor asignado:',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.orange[800],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      ..._materialsWithoutSupplier!.map(
+                                        (m) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 4,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  m['material_name'] ??
+                                                      'Material',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.orange[900],
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              SizedBox(
+                                                height: 26,
+                                                child: OutlinedButton.icon(
+                                                  onPressed: () =>
+                                                      _assignSupplier(m),
+                                                  icon: const Icon(
+                                                    Icons.add_business,
+                                                    size: 12,
+                                                  ),
+                                                  label: const Text(
+                                                    'Asignar proveedor',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                    ),
+                                                  ),
+                                                  style: OutlinedButton.styleFrom(
+                                                    foregroundColor:
+                                                        Colors.orange[800],
+                                                    side: BorderSide(
+                                                      color:
+                                                          Colors.orange[400]!,
+                                                    ),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ],
                             ],
@@ -3623,5 +4551,137 @@ class _ApproveQuotationDialogState extends State<_ApproveQuotationDialog> {
         ],
       ),
     );
+  }
+
+  /// Muestra un diálogo para asignar un proveedor a un material sin proveedor.
+  /// Tras asignar, elimina ese material de la lista _materialsWithoutSupplier.
+  Future<void> _assignSupplier(Map<String, dynamic> material) async {
+    final materialId = material['material_id'] as String?;
+    final materialName = material['material_name'] as String? ?? 'Material';
+    if (materialId == null) return;
+
+    // Cargar proveedores si aún no se han cargado
+    final suppliersNotifier = ref.read(suppliersProvider.notifier);
+    if (ref.read(suppliersProvider).suppliers.isEmpty) {
+      await suppliersNotifier.loadSuppliers();
+    }
+    final suppliers = ref.read(suppliersProvider).suppliers;
+
+    if (!mounted) return;
+    if (suppliers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay proveedores disponibles')),
+      );
+      return;
+    }
+
+    String? selectedSupplierId;
+    final priceController = TextEditingController(text: '0');
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocalState) => AlertDialog(
+          title: Text(
+            'Asignar proveedor a $materialName',
+            style: const TextStyle(fontSize: 15),
+          ),
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Proveedor',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                  items: suppliers
+                      .map(
+                        (s) => DropdownMenuItem(
+                          value: s.id,
+                          child: Text(s.name, overflow: TextOverflow.ellipsis),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setLocalState(() {
+                    selectedSupplierId = v;
+                  }),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: priceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Precio unitario (S/)',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: selectedSupplierId == null
+                  ? null
+                  : () => Navigator.pop(ctx, true),
+              child: const Text('Asignar'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true || selectedSupplierId == null || !mounted) return;
+
+    try {
+      final price = double.tryParse(priceController.text) ?? 0;
+      await SupplierMaterialsDataSource.upsert(
+        supplierId: selectedSupplierId!,
+        materialId: materialId,
+        unitPrice: price,
+        isPreferred: true,
+      );
+      // Remover de la lista de materiales sin proveedor
+      setState(() {
+        _materialsWithoutSupplier = _materialsWithoutSupplier
+            ?.where((m) => m['material_id'] != materialId)
+            .toList();
+        if (_materialsWithoutSupplier?.isEmpty ?? false) {
+          _materialsWithoutSupplier = null;
+        }
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Proveedor asignado a $materialName'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al asignar proveedor: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

@@ -227,7 +227,8 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                             const SizedBox(width: 8),
                             // Botón recargar
                             IconButton(
-                              onPressed: () => ref.read(dailyCashProvider.notifier).load(),
+                              onPressed: () =>
+                                  ref.read(dailyCashProvider.notifier).load(),
                               icon: const Icon(Icons.refresh),
                               tooltip: 'Recargar datos',
                             ),

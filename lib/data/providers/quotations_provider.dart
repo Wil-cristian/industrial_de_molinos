@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/utils/logger.dart';
 import '../../domain/entities/quotation.dart';
 import '../datasources/quotations_datasource.dart';
+import 'inventory_provider.dart';
+import 'materials_provider.dart';
 
 /// Estado para la lista de cotizaciones
 class QuotationsState {
@@ -168,6 +170,10 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
           .map((q) => q.id == quotationId ? q.copyWith(status: 'Aprobada') : q)
           .toList();
       state = state.copyWith(quotations: quotations);
+
+      // Refrescar inventario y materiales para reflejar el stock descontado
+      ref.read(inventoryProvider.notifier).loadMaterials();
+      ref.read(materialsProvider.notifier).loadMaterials();
 
       // Retornar info de la factura creada
       return result;

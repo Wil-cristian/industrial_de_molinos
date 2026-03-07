@@ -12,6 +12,7 @@ import '../../domain/entities/product.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/material.dart' as domain;
+import '../widgets/weight_calculator_dialog.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // Color de tema para la página de ventas (azul claro)
@@ -3966,47 +3967,84 @@ class _SaleAddMaterialDialogState extends State<_SaleAddMaterialDialog> {
                             'Venta: ${Helpers.formatCurrency(_selectedMaterial!.effectivePrice)}/kg',
                             style: TextStyle(
                               color: Colors.green[700],
-                              fontSize: 12,
+                              fontSize: 11,
                             ),
                           ),
                           Text(
                             'Costo: ${Helpers.formatCurrency(_selectedMaterial!.effectiveCostPrice)}/kg',
                             style: TextStyle(
                               color: Colors.red[700],
-                              fontSize: 12,
+                              fontSize: 11,
                             ),
                           ),
                           Text(
                             'Stock: ${_selectedMaterial!.stock} ${_selectedMaterial!.unit}',
                             style: TextStyle(
                               color: Colors.grey[600],
-                              fontSize: 12,
+                              fontSize: 11,
                             ),
                           ),
-                          const Spacer(),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final result =
+                                    await WeightCalculatorDialog.show(
+                                      context,
+                                      material: _selectedMaterial!,
+                                      category: _selectedMaterial!.category,
+                                    );
+                                if (result != null) {
+                                  setState(() {
+                                    _quantityController.text = result.weight
+                                        .toStringAsFixed(2);
+                                  });
+                                }
+                              },
+                              icon: const Icon(Icons.calculate, size: 14),
+                              label: const Text(
+                                'Calcular Peso',
+                                style: TextStyle(fontSize: 11),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: _saleThemeColor,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           TextField(
                             controller: _quantityController,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
                               labelText:
                                   'Cantidad (${_selectedMaterial!.unit})',
+                              isDense: true,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               onPressed: _addMaterial,
-                              icon: const Icon(Icons.add),
-                              label: const Text('Agregar'),
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text(
+                                'Agregar',
+                                style: TextStyle(fontSize: 13),
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _saleThemeColor,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
+                                  vertical: 10,
                                 ),
                               ),
                             ),

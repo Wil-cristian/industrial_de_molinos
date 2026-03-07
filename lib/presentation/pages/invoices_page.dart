@@ -8,6 +8,7 @@ import '../../domain/entities/account.dart';
 import '../../data/providers/invoices_provider.dart';
 import '../../data/datasources/invoices_datasource.dart';
 import '../../data/datasources/accounts_datasource.dart';
+import '../../data/providers/composite_products_provider.dart';
 import '../../core/utils/print_service.dart';
 
 class InvoicesPage extends ConsumerStatefulWidget {
@@ -52,6 +53,33 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                     'quantity': item.quantity,
                     'unitPrice': item.unitPrice,
                     'total': item.total,
+                    'productId': item.productId,
+                    'components': () {
+                      if (item.productId == null)
+                        return <Map<String, dynamic>>[];
+                      final cpState = ref.read(compositeProductsProvider);
+                      try {
+                        final product = cpState.products.firstWhere(
+                          (p) => p.id == item.productId,
+                        );
+                        return product.components
+                            .map<Map<String, dynamic>>(
+                              (c) => {
+                                'quantity': c.quantity,
+                                'name': c.materialName ?? 'Material',
+                                'material': c.materialCode?.isNotEmpty == true
+                                    ? c.materialCode!
+                                    : c.dimensionsDescription,
+                                'totalWeight': c.totalWeight,
+                                'totalPrice': c.totalPrice,
+                                'totalCost': c.totalCostPrice,
+                              },
+                            )
+                            .toList();
+                      } catch (_) {
+                        return <Map<String, dynamic>>[];
+                      }
+                    }(),
                   },
                 )
                 .toList(),
@@ -83,6 +111,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
     _tabController = TabController(length: 2, vsync: this);
     // Cargar facturas desde Supabase
     Future.microtask(() => ref.read(invoicesProvider.notifier).refresh());
+    // Cargar productos compuestos (para mostrar sub-materiales en detalle)
+    Future.microtask(
+      () => ref.read(compositeProductsProvider.notifier).loadProducts(),
+    );
   }
 
   @override
@@ -2295,71 +2327,153 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                             ],
                           ),
                         ),
-                        ...products.map(
-                          (prod) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Colors.grey[100]!),
+                        ...products.map((prod) {
+                          final comps =
+                              prod['components'] as List<dynamic>? ?? [];
+                          return Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: Colors.grey[100]!,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 4,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            prod['name'] ?? '',
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          if (comps.isNotEmpty)
+                                            Text(
+                                              '${comps.length} componentes',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 60,
+                                      child: Text(
+                                        '${prod['quantity']}',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey[700],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 100,
+                                      child: Text(
+                                        Helpers.formatCurrency(
+                                          (prod['unitPrice'] as num?)
+                                                  ?.toDouble() ??
+                                              0,
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey[700],
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 110,
+                                      child: Text(
+                                        Helpers.formatCurrency(
+                                          (prod['total'] as num?)?.toDouble() ??
+                                              0,
+                                        ),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 4,
-                                  child: Text(
-                                    prod['name'] ?? '',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
+                              // Sub-componentes
+                              ...comps.map(
+                                (c) => Container(
+                                  padding: const EdgeInsets.only(
+                                    left: 32,
+                                    right: 16,
+                                    top: 5,
+                                    bottom: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: Colors.grey[100]!,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                SizedBox(
-                                  width: 60,
-                                  child: Text(
-                                    '${prod['quantity']}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.grey[700],
-                                    ),
-                                    textAlign: TextAlign.center,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.subdirectory_arrow_right,
+                                        size: 14,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          '${c['quantity']}× ${c['name'] ?? ''}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                      ),
+                                      if ((c['material']
+                                              ?.toString()
+                                              .isNotEmpty ??
+                                          false))
+                                        Text(
+                                          c['material'].toString(),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.grey[500],
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '${Helpers.formatNumber((c['totalWeight'] as num?)?.toDouble() ?? 0)} kg',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey[500],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                SizedBox(
-                                  width: 100,
-                                  child: Text(
-                                    Helpers.formatCurrency(
-                                      (prod['unitPrice'] as num?)?.toDouble() ??
-                                          0,
-                                    ),
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.grey[700],
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                                SizedBox(
-                                  width: 110,
-                                  child: Text(
-                                    Helpers.formatCurrency(
-                                      (prod['total'] as num?)?.toDouble() ?? 0,
-                                    ),
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                              ),
+                            ],
+                          );
+                        }),
                         // Totales
                         Container(
                           padding: const EdgeInsets.all(16),
