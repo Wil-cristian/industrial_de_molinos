@@ -5040,6 +5040,8 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
         return 'Traslado Salida';
       case MovementCategory.transferIn:
         return 'Traslado Entrada';
+      case MovementCategory.custom:
+        return 'Otro';
     }
   }
 
@@ -5073,6 +5075,8 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
         return Colors.orange.shade300;
       case MovementCategory.transferIn:
         return Colors.orange.shade700;
+      case MovementCategory.custom:
+        return Colors.blueGrey;
     }
   }
 

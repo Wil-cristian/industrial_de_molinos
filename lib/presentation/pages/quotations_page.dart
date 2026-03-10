@@ -76,8 +76,9 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                     'profitMargin': item.profitMargin,
                     'productId': item.productId,
                     'components': () {
-                      if (item.productId == null)
+                      if (item.productId == null) {
                         return <Map<String, dynamic>>[];
+                      }
                       final cpState = ref.read(compositeProductsProvider);
                       try {
                         final product = cpState.products.firstWhere(
@@ -1421,11 +1422,12 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
     }
     try {
       final data = await InventoryDataSource.checkQuotationStock(id);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _stockData = data;
           _loadingStock = false;
         });
+      }
     } catch (_) {
       if (mounted) setState(() => _loadingStock = false);
     }

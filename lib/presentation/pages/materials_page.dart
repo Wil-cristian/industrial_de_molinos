@@ -6,6 +6,7 @@ import '../../core/utils/helpers.dart';
 import '../../data/providers/providers.dart';
 import '../../data/providers/suppliers_provider.dart';
 import '../../data/datasources/inventory_datasource.dart';
+import '../../data/datasources/purchase_orders_datasource.dart';
 import '../../data/providers/employees_provider.dart';
 import '../../data/providers/purchase_orders_provider.dart';
 import '../../domain/entities/employee.dart';
@@ -26,6 +27,12 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
   String _searchQuery = '';
   String _selectedCategory = 'todos';
   bool _dialogOpened = false;
+
+  // Estado para creación de órdenes de compra por stock bajo
+  bool _creatingOrders = false;
+  List<String>? _createdOrderNumbers;
+  List<Map<String, dynamic>>? _materialsWithoutSupplier;
+  String? _orderError;
 
   @override
   void initState() {
@@ -109,6 +116,38 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       Colors.orange,
                       Icons.warning,
                     ),
+                    const SizedBox(width: 10),
+                    // Botón de Orden de Compra – solo visible si hay stock bajo
+                    if (state.lowStockMaterials.isNotEmpty)
+                      ElevatedButton.icon(
+                        onPressed: _creatingOrders
+                            ? null
+                            : _createPurchaseOrdersFromLowStock,
+                        icon: _creatingOrders
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.shopping_cart, size: 16),
+                        label: Text(
+                          _creatingOrders
+                              ? 'Creando...'
+                              : 'Pedir ${state.lowStockMaterials.length} Faltante${state.lowStockMaterials.length > 1 ? "s" : ""}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
                     const SizedBox(width: 16),
                     FilledButton.icon(
                       onPressed: _showAddMaterialDialog,
@@ -123,6 +162,112 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     ),
                   ],
                 ),
+                // Banner de resultado de la orden de compra
+                if (_createdOrderNumbers != null || _orderError != null) ...[
+                  const SizedBox(height: 8),
+                  if (_createdOrderNumbers != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green[300]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: Colors.green[700],
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _createdOrderNumbers!.length == 1
+                                  ? '✅ Orden de compra creada: ${_createdOrderNumbers!.first}'
+                                  : '✅ ${_createdOrderNumbers!.length} órdenes creadas: ${_createdOrderNumbers!.join(", ")}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.green[800],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          if (_materialsWithoutSupplier != null &&
+                              _materialsWithoutSupplier!.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Tooltip(
+                              message:
+                                  'Sin proveedor: ${_materialsWithoutSupplier!.map((m) => m['material_name']).join(", ")}',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.person_off,
+                                    size: 14,
+                                    color: Colors.orange[700],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${_materialsWithoutSupplier!.length} sin proveedor',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.orange[800],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 16),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => setState(() {
+                              _createdOrderNumbers = null;
+                              _materialsWithoutSupplier = null;
+                            }),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (_orderError != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red[300]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error, size: 16, color: Colors.red[700]),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Error: $_orderError',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.red[800],
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 16),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => setState(() => _orderError = null),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
                 const SizedBox(height: 12),
                 // Filtros
                 Row(
@@ -257,6 +402,75 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
         ],
       ),
     );
+  }
+
+  /// Crea órdenes de compra para los materiales que están bajo el stock mínimo.
+  Future<void> _createPurchaseOrdersFromLowStock() async {
+    final lowStock = ref.read(inventoryProvider).lowStockMaterials;
+    if (lowStock.isEmpty) return;
+
+    setState(() {
+      _creatingOrders = true;
+      _orderError = null;
+      _createdOrderNumbers = null;
+      _materialsWithoutSupplier = null;
+    });
+
+    try {
+      // Construir el mismo formato que usa createFromShortage
+      final missingMaterials = lowStock.map((m) {
+        final shortage = m.minStock - m.stock;
+        return {
+          'material_id': m.id,
+          'material_name': m.name,
+          'shortage': shortage > 0 ? shortage : m.minStock,
+          'unit': m.unit,
+        };
+      }).toList();
+
+      final orders = await PurchaseOrdersDataSource.createFromShortage(
+        missingMaterials: missingMaterials,
+        quotationNumber: 'INV-${DateTime.now().millisecondsSinceEpoch}',
+      );
+
+      // Detectar materiales sin proveedor
+      final materialsWithOrders = <String>{};
+      for (final order in orders) {
+        for (final item in order.items) {
+          materialsWithOrders.add(item.materialId);
+        }
+      }
+      final withoutSupplier = missingMaterials
+          .where(
+            (m) =>
+                m['material_id'] != null &&
+                !materialsWithOrders.contains(m['material_id']),
+          )
+          .map<Map<String, dynamic>>(
+            (m) => {
+              'material_id': m['material_id'],
+              'material_name': m['material_name']?.toString() ?? 'Material',
+            },
+          )
+          .toList();
+
+      if (mounted) {
+        setState(() {
+          _creatingOrders = false;
+          _createdOrderNumbers = orders.map((o) => o.orderNumber).toList();
+          _materialsWithoutSupplier = withoutSupplier.isNotEmpty
+              ? withoutSupplier
+              : null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _creatingOrders = false;
+          _orderError = e.toString();
+        });
+      }
+    }
   }
 
   Widget _buildQuickStat(
@@ -600,7 +814,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
   void _showEmployeeExitDialog(mat.Material material) async {
     // Cargar empleados antes de abrir el diálogo para que estén disponibles
     if (ref.read(employeesProvider).employees.isEmpty) {
-      await ref.read(employeesProvider.notifier).loadEmployees(activeOnly: true);
+      await ref
+          .read(employeesProvider.notifier)
+          .loadEmployees(activeOnly: true);
     }
     if (!mounted) return;
 
@@ -649,10 +865,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       ),
                       Text(
                         'Stock: ${material.stock.toStringAsFixed(2)} ${material.unit}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[700],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                       ),
                     ],
                   ),
@@ -668,7 +881,11 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.warning_amber, color: Colors.orange, size: 18),
+                        Icon(
+                          Icons.warning_amber,
+                          color: Colors.orange,
+                          size: 18,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -709,8 +926,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       size: 20,
                     ),
                   ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   autofocus: true,
                 ),
                 const SizedBox(height: 16),
@@ -733,9 +951,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             FilledButton.icon(
               icon: const Icon(Icons.check, size: 18),
               label: const Text('Registrar Salida'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.deepOrange,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: Colors.deepOrange),
               onPressed: () async {
                 final qty = double.tryParse(qtyCtrl.text) ?? 0;
                 if (qty <= 0) {
@@ -778,20 +994,18 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
 
                 // Registrar movimiento en material_movements
                 try {
-                  await InventoryDataSource.client
-                      .from('material_movements')
-                      .insert({
-                        'material_id': material.id,
-                        'type': 'salida',
-                        'quantity': qty,
-                        'previous_stock': material.stock,
-                        'new_stock': material.stock - qty,
-                        'reason':
-                            'Retiro por empleado: ${selectedEmployee!.fullName}'
-                            '${notesCtrl.text.isNotEmpty ? ' — ${notesCtrl.text}' : ''}',
-                        'reference':
-                            'EMP-${selectedEmployee!.id.length >= 8 ? selectedEmployee!.id.substring(0, 8).toUpperCase() : selectedEmployee!.id.toUpperCase()}',
-                      });
+                  await InventoryDataSource.client.from('material_movements').insert({
+                    'material_id': material.id,
+                    'type': 'salida',
+                    'quantity': qty,
+                    'previous_stock': material.stock,
+                    'new_stock': material.stock - qty,
+                    'reason':
+                        'Retiro por empleado: ${selectedEmployee!.fullName}'
+                        '${notesCtrl.text.isNotEmpty ? ' — ${notesCtrl.text}' : ''}',
+                    'reference':
+                        'EMP-${selectedEmployee!.id.length >= 8 ? selectedEmployee!.id.substring(0, 8).toUpperCase() : selectedEmployee!.id.toUpperCase()}',
+                  });
                 } catch (_) {
                   // Movimiento no es crítico — continuar aunque falle
                 }
@@ -842,7 +1056,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                 const Divider(),
                 // Stock
                 _detailRow(
-                  'Stock Peso',
+                  material.unit == 'KG' ? 'Stock Peso' : 'Stock',
                   '${material.stock.toStringAsFixed(2)} ${material.unit}',
                 ),
                 _detailRow(
@@ -1949,7 +2163,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                         child: TextField(
                           controller: stockCtrl,
                           decoration: InputDecoration(
-                            labelText: 'Stock Peso (kg)',
+                            labelText: unit == 'KG'
+                                ? 'Stock Peso (kg)'
+                                : 'Stock ($unit)',
                           ),
                           keyboardType: TextInputType.number,
                         ),

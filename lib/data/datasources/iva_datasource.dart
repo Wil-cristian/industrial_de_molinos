@@ -34,6 +34,18 @@ class IvaDataSource {
     return IvaInvoice.fromJson(response);
   }
 
+  /// Buscar facturas existentes por número de factura
+  static Future<List<IvaInvoice>> findByInvoiceNumber(String invoiceNumber) async {
+    final trimmed = invoiceNumber.trim();
+    if (trimmed.isEmpty) return [];
+    final response = await _client
+        .from('iva_invoices')
+        .select()
+        .eq('invoice_number', trimmed)
+        .order('created_at', ascending: false);
+    return (response as List).map((j) => IvaInvoice.fromJson(j)).toList();
+  }
+
   /// Actualizar factura IVA
   static Future<IvaInvoice> updateInvoice(IvaInvoice invoice) async {
     final data = invoice.toInsertJson();

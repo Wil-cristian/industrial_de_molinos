@@ -684,47 +684,74 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                         Divider(height: 1, color: Colors.grey[200]),
                     itemBuilder: (context, index) {
                       final comp = product.components[index];
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppTheme.primaryColor.withOpacity(
-                            0.1,
-                          ),
-                          child: Text(
-                            '${comp.quantity}×',
-                            style: TextStyle(
-                              color: AppTheme.primaryColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
                         ),
-                        title: Text(comp.materialName ?? 'Componente'),
-                        subtitle: Text(comp.dimensionsDescription),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                        child: Row(
                           children: [
-                            Text(
-                              'V: \$ ${Helpers.formatNumber(comp.totalPrice)}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryColor,
-                                fontSize: 13,
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: AppTheme.primaryColor
+                                  .withOpacity(0.1),
+                              child: Text(
+                                '${comp.quantity}×',
+                                style: TextStyle(
+                                  color: AppTheme.primaryColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
-                            Text(
-                              'C: \$ ${Helpers.formatNumber(comp.totalCostPrice)}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey[600],
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    comp.materialName ?? 'Componente',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    comp.dimensionsDescription,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            Text(
-                              '${Helpers.formatNumber(comp.totalWeight)} kg',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey[400],
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'V: \$ ${Helpers.formatNumber(comp.totalPrice)}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primaryColor,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  'C: \$ ${Helpers.formatNumber(comp.totalCostPrice)}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                Text(
+                                  '${Helpers.formatNumber(comp.totalWeight)} kg',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey[400],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -958,7 +985,7 @@ class _CompositeProductFormDialogState
   mat.Material? _selectedMaterial;
   mat.Material? _selectedDirectMaterial;
   double _calculatedWeight = 0;
-  double _wastePercentage = 3;
+  double _wastePercentage = 5;
   String _searchQuery = '';
 
   // Controllers para calculadora
@@ -970,6 +997,7 @@ class _CompositeProductFormDialogState
   final _diametroController = TextEditingController(text: '1');
   final _cantidadController = TextEditingController(text: '1');
   final _directQuantityController = TextEditingController(text: '1');
+  final _wasteController = TextEditingController(text: '5');
 
   bool get _isEditing => widget.product != null;
 
@@ -1023,6 +1051,7 @@ class _CompositeProductFormDialogState
     _diametroController.dispose();
     _cantidadController.dispose();
     _directQuantityController.dispose();
+    _wasteController.dispose();
     super.dispose();
   }
 
@@ -1484,9 +1513,7 @@ class _CompositeProductFormDialogState
                 SizedBox(
                   width: 40,
                   child: TextField(
-                    controller: TextEditingController(
-                      text: _wastePercentage.toStringAsFixed(0),
-                    ),
+                    controller: _wasteController,
                     decoration: InputDecoration(
                       suffixText: '%',
                       isDense: true,
@@ -1508,8 +1535,9 @@ class _CompositeProductFormDialogState
                     textAlign: TextAlign.center,
                     keyboardType: TextInputType.number,
                     onChanged: (v) {
-                      final val = double.tryParse(v) ?? 3;
+                      final val = double.tryParse(v) ?? 0;
                       setState(() => _wastePercentage = val.clamp(0, 50));
+                      _calculateWeight();
                     },
                   ),
                 ),
@@ -2515,7 +2543,8 @@ class _CompositeProductFormDialogState
     _diametroController.text = '1';
     _cantidadController.text = '1';
     _calculatedWeight = 0;
-    _wastePercentage = 3;
+    _wastePercentage = 5;
+    _wasteController.text = '5';
   }
 
   // ═══════════════════════════════════════════════════

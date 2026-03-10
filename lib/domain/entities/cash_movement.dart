@@ -3,6 +3,8 @@ import '../../data/datasources/storage_datasource.dart';
 
 /// Mapea valores de categoría del DB (incluyendo nombres viejos) al enum actual.
 MovementCategory parseCategoryFromJson(String value) {
+  // Categorías personalizadas (prefijo custom_)
+  if (value.startsWith('custom_')) return MovementCategory.custom;
   // Mapeo directo por nombre de enum actual
   for (final cat in MovementCategory.values) {
     if (cat.name == value) return cat;
@@ -28,6 +30,14 @@ MovementCategory parseCategoryFromJson(String value) {
     default:
       return MovementCategory.otherIncome;
   }
+}
+
+/// Extrae el nombre legible de una categoría custom del string de DB.
+String? parseCustomCategoryName(String value) {
+  if (value.startsWith('custom_')) {
+    return value.substring(7).replaceAll('_', ' ');
+  }
+  return null;
 }
 
 // Tipos de movimiento de caja
@@ -56,6 +66,8 @@ enum MovementCategory {
   // Traslados
   transferOut, // Salida por traslado
   transferIn, // Entrada por traslado
+  // Personalizada
+  custom, // Categoría creada por el usuario
 }
 
 // Movimiento de Caja (Ingreso, Gasto, Traslado)
@@ -65,6 +77,7 @@ class CashMovement {
   final String? toAccountId; // Cuenta destino (solo para traslados)
   final MovementType type;
   final MovementCategory category;
+  final String? customCategoryName; // Nombre legible para categorías custom
   final double amount;
   final String description;
   final String? reference; // Referencia (número de factura, recibo, etc.)
@@ -88,6 +101,7 @@ class CashMovement {
     this.toAccountId,
     required this.type,
     required this.category,
+    this.customCategoryName,
     required this.amount,
     required this.description,
     this.reference,
@@ -106,6 +120,7 @@ class CashMovement {
     String? toAccountId,
     MovementType? type,
     MovementCategory? category,
+    String? customCategoryName,
     double? amount,
     String? description,
     String? reference,
@@ -123,6 +138,7 @@ class CashMovement {
       toAccountId: toAccountId ?? this.toAccountId,
       type: type ?? this.type,
       category: category ?? this.category,
+      customCategoryName: customCategoryName ?? this.customCategoryName,
       amount: amount ?? this.amount,
       description: description ?? this.description,
       reference: reference ?? this.reference,
@@ -142,7 +158,10 @@ class CashMovement {
       'accountId': accountId,
       'toAccountId': toAccountId,
       'type': type.name,
-      'category': category.name,
+      'category':
+          category == MovementCategory.custom && customCategoryName != null
+          ? 'custom_${customCategoryName!.replaceAll(' ', '_')}'
+          : category.name,
       'amount': amount,
       'description': description,
       'reference': reference,
@@ -164,6 +183,7 @@ class CashMovement {
         orElse: () => MovementType.income,
       ),
       category: parseCategoryFromJson(json['category'] ?? ''),
+      customCategoryName: parseCustomCategoryName(json['category'] ?? ''),
 
       amount: (json['amount'] ?? 0).toDouble(),
       description: json['description'] ?? '',
@@ -227,6 +247,8 @@ class CashMovement {
         return 'Traslado Salida';
       case MovementCategory.transferIn:
         return 'Traslado Entrada';
+      case MovementCategory.custom:
+        return customCategoryName ?? 'Otra';
     }
   }
 

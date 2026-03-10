@@ -98,20 +98,22 @@ class DailyCashState {
     return result;
   }
 
-  /// Gastos del día agrupados por categoría
-  Map<MovementCategory, double> get expenseByCategory {
-    final result = <MovementCategory, double>{};
+  /// Gastos del día agrupados por categoría (clave = label legible)
+  Map<String, double> get expenseByCategory {
+    final result = <String, double>{};
     for (final m in movements.where((m) => m.type == MovementType.expense)) {
-      result[m.category] = (result[m.category] ?? 0) + m.amount;
+      final key = m.categoryLabel;
+      result[key] = (result[key] ?? 0) + m.amount;
     }
     return result;
   }
 
-  /// Ingresos del día agrupados por categoría
-  Map<MovementCategory, double> get incomeByCategory {
-    final result = <MovementCategory, double>{};
+  /// Ingresos del día agrupados por categoría (clave = label legible)
+  Map<String, double> get incomeByCategory {
+    final result = <String, double>{};
     for (final m in movements.where((m) => m.type == MovementType.income)) {
-      result[m.category] = (result[m.category] ?? 0) + m.amount;
+      final key = m.categoryLabel;
+      result[key] = (result[key] ?? 0) + m.amount;
     }
     return result;
   }
@@ -220,6 +222,7 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
     required double amount,
     required String description,
     required MovementCategory category,
+    String? customCategoryName,
     String? personName,
     String? reference,
   }) async {
@@ -230,6 +233,7 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
         accountId: accountId,
         type: MovementType.income,
         category: category,
+        customCategoryName: customCategoryName,
         amount: amount,
         description: description,
         personName: personName,
@@ -269,6 +273,7 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
     required double amount,
     required String description,
     required MovementCategory category,
+    String? customCategoryName,
     String? personName,
     String? reference,
   }) async {
@@ -279,6 +284,7 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
         accountId: accountId,
         type: MovementType.expense,
         category: category,
+        customCategoryName: customCategoryName,
         amount: amount,
         description: description,
         personName: personName,
@@ -323,10 +329,12 @@ class DailyCashNotifier extends Notifier<DailyCashState> {
       // Optimista: ajustar ambos balances localmente
       state = state.copyWith(
         accounts: state.accounts.map((a) {
-          if (a.id == fromAccountId)
+          if (a.id == fromAccountId) {
             return a.copyWith(balance: a.balance - amount);
-          if (a.id == toAccountId)
+          }
+          if (a.id == toAccountId) {
             return a.copyWith(balance: a.balance + amount);
+          }
           return a;
         }).toList(),
         error: null,

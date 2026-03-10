@@ -55,8 +55,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                     'total': item.total,
                     'productId': item.productId,
                     'components': () {
-                      if (item.productId == null)
+                      if (item.productId == null) {
                         return <Map<String, dynamic>>[];
+                      }
                       final cpState = ref.read(compositeProductsProvider);
                       try {
                         final product = cpState.products.firstWhere(
@@ -2877,12 +2878,15 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                           children: [
                                             Row(
                                               children: [
-                                                Text(
-                                                  date,
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Colors.grey[700],
+                                                Flexible(
+                                                  child: Text(
+                                                    date,
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.grey[700],
+                                                    ),
+                                                    overflow: TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                                 if (timeStr.isNotEmpty) ...[

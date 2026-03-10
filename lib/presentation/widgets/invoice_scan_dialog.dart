@@ -9,10 +9,31 @@ import '../../data/datasources/invoice_scanner_service.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/iva_datasource.dart';
 import '../../data/datasources/suppliers_datasource.dart';
+import '../../data/datasources/inventory_datasource.dart';
 import '../../data/providers/suppliers_provider.dart';
 import '../../domain/entities/supplier.dart';
 import '../../domain/entities/cash_movement.dart';
 import '../../domain/entities/account.dart';
+import '../../domain/entities/material.dart' as mat;
+
+/// Modelo interno para emparejar ítems de factura con materiales del inventario
+class _ItemInventoryMatch {
+  final ScannedInvoiceItem item;
+  final mat.Material? aiRecommendation; // Lo que sugirió el fuzzy match
+  mat.Material? matchedMaterial;        // Lo que el usuario eligió
+  bool createNew;                       // true = crear nuevo material
+  bool selected;
+
+  _ItemInventoryMatch({
+    required this.item,
+    this.aiRecommendation,
+    this.matchedMaterial,
+    this.createNew = false,
+    required this.selected,
+  });
+
+  bool get isNew => createNew || matchedMaterial == null;
+}
 
 /// Diálogo de escaneo de factura con IA
 /// Flujo: Seleccionar imagen → Escanear con OpenAI → Revisar datos → Registrar en contabilidad
@@ -1282,6 +1303,80 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     if (_selectedSupplierId == null && !_createNewSupplier) return;
     if (_scanResult == null) return;
 
+    // Verificar duplicados por número de factura
+    final invoiceNum = _invoiceNumberCtrl.text.trim();
+    if (invoiceNum.isNotEmpty && invoiceNum != 'SIN-NUM') {
+      try {
+        final existing = await IvaDataSource.findByInvoiceNumber(invoiceNum);
+        if (existing.isNotEmpty && mounted) {
+          final dup = existing.first;
+          final dateStr = dup.invoiceDate.day.toString().padLeft(2, '0') +
+              '/' +
+              dup.invoiceDate.month.toString().padLeft(2, '0') +
+              '/' +
+              dup.invoiceDate.year.toString();
+          final proceed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              icon: Icon(Icons.warning_amber_rounded,
+                  color: Colors.orange.shade700, size: 48),
+              title: const Text('⚠️ Factura posiblemente duplicada'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ya existe una factura con el número "$invoiceNum":',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Proveedor: ${dup.company}'),
+                        Text('Fecha: $dateStr'),
+                        Text('Total: \$${dup.totalAmount.toStringAsFixed(0)}'),
+                        Text('Tipo: ${dup.invoiceType}'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '¿Deseas registrarla de todas formas?',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade700,
+                  ),
+                  child: const Text('Registrar de todas formas',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+          if (proceed != true) return;
+        }
+      } catch (_) {
+        // Si falla la verificación, continuar (no bloquear el registro)
+      }
+    }
+
     setState(() => _step = _ScanStep.saving);
 
     try {
@@ -1413,8 +1508,9 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
       // Mostrar éxito
       final actions = <String>[];
       if (_createIvaRecord) actions.add('IVA');
-      if (_createExpenseRecord && _selectedAccountId != null)
+      if (_createExpenseRecord && _selectedAccountId != null) {
         actions.add('Caja + Libro Diario');
+      }
       if (_createNewSupplier) actions.add('Proveedor creado');
       actions.add('Deuda proveedor');
 
@@ -1430,6 +1526,14 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
 
       // Retornar el periodo bimestral de la factura para navegación
       final period = getBimonthlyPeriod(invoiceDate);
+
+      // 5. Ofrecer actualizar inventario de materiales
+      final invoiceRef = _invoiceNumberCtrl.text.isNotEmpty
+          ? _invoiceNumberCtrl.text
+          : 'SIN-NUM';
+      await _offerInventoryUpdate(invoiceRef);
+
+      if (!mounted) return;
       Navigator.of(context).pop(period);
     } catch (e) {
       if (!mounted) return;
@@ -1445,5 +1549,509 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         ),
       );
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // INVENTARIO: ofrecer actualizar stock tras guardar la factura
+  // ---------------------------------------------------------------------------
+
+  /// Intenta hacer match fuzzy entre la descripción del ítem y los materiales
+  mat.Material? _findBestMatch(
+    String description,
+    List<mat.Material> materials,
+  ) {
+    final descLower = description.toLowerCase();
+    final descWords = descLower
+        .split(RegExp(r'[\s,.\-/]+'))
+        .where((w) => w.length > 2)
+        .toList();
+
+    mat.Material? best;
+    int bestScore = 0;
+
+    for (final m in materials) {
+      final nameLower = m.name.toLowerCase();
+      int score = 0;
+
+      // Coincidencia exacta de nombre
+      if (nameLower == descLower) score += 10;
+      // El nombre contiene la descripción completa
+      if (nameLower.contains(descLower)) score += 5;
+      // La descripción contiene el nombre
+      if (descLower.contains(nameLower)) score += 4;
+      // Conteo de palabras coincidentes
+      for (final word in descWords) {
+        if (nameLower.contains(word)) score += 1;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = m;
+      }
+    }
+
+    // Solo retornar si hay alguna coincidencia razonable (≥2 puntos)
+    return bestScore >= 2 ? best : null;
+  }
+
+  /// Muestra el diálogo de confirmación para actualizar inventario.
+  /// Retorna true si el usuario confirmó y se aplicaron los cambios.
+  Future<bool> _offerInventoryUpdate(String invoiceRef) async {
+    if (_scanResult == null || _scanResult!.items.isEmpty) return false;
+    if (!mounted) return false;
+
+    // Cargar materiales existentes
+    List<mat.Material> allMaterials;
+    try {
+      allMaterials = await InventoryDataSource.getAllMaterials();
+    } catch (_) {
+      allMaterials = [];
+    }
+
+    // Construir lista de matches
+    final matches = _scanResult!.items
+        .map(
+          (item) {
+            final recommended = _findBestMatch(item.description, allMaterials);
+            return _ItemInventoryMatch(
+              item: item,
+              aiRecommendation: recommended,
+              matchedMaterial: recommended,
+              createNew: recommended == null,
+              selected: true,
+            );
+          },
+        )
+        .toList();
+
+    if (!mounted) return false;
+
+    // Mostrar diálogo de confirmación
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _InventoryUpdateDialog(
+        matches: matches,
+        invoiceRef: invoiceRef,
+        allMaterials: allMaterials,
+      ),
+    );
+
+    if (confirmed != true) return false;
+
+    // Aplicar cambios de inventario
+    try {
+      for (final match in matches.where((m) => m.selected)) {
+        final item = match.item;
+        final qty = item.quantity;
+
+        if (match.isNew) {
+          // Crear nuevo material con los datos de la factura
+          final now = DateTime.now();
+          final newMaterial = mat.Material(
+            id: '',
+            code: '',
+            name: item.description,
+            description: 'Creado automáticamente desde factura $invoiceRef',
+            category: 'consumible',
+            costPrice: item.unitPrice,
+            unitPrice: item.unitPrice,
+            stock: qty,
+            unit: item.unit.isEmpty ? 'UND' : item.unit.toUpperCase(),
+            createdAt: now,
+            updatedAt: now,
+          );
+          final created = await InventoryDataSource.createMaterial(newMaterial);
+
+          // Registrar movimiento de entrada
+          try {
+            await InventoryDataSource.client.from('material_movements').insert({
+              'material_id': created.id,
+              'type': 'entrada',
+              'quantity': qty,
+              'previous_stock': 0.0,
+              'new_stock': qty,
+              'reason': 'Ingreso por factura de compra $invoiceRef',
+              'reference': 'FAC-$invoiceRef',
+            });
+          } catch (_) {
+            // Movimiento no es crítico
+          }
+        } else {
+          final material = match.matchedMaterial!;
+          final newStock = material.stock + qty;
+          await InventoryDataSource.updateStock(material.id, newStock);
+
+          // Registrar movimiento de entrada
+          try {
+            await InventoryDataSource.client.from('material_movements').insert({
+              'material_id': material.id,
+              'type': 'entrada',
+              'quantity': qty,
+              'previous_stock': material.stock,
+              'new_stock': newStock,
+              'reason': 'Ingreso por factura de compra $invoiceRef',
+              'reference': 'FAC-$invoiceRef',
+            });
+          } catch (_) {
+            // Movimiento no es crítico
+          }
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '📦 Inventario actualizado: '
+              '${matches.where((m) => m.selected && !m.isNew).length} actualizados, '
+              '${matches.where((m) => m.selected && m.isNew).length} creados',
+            ),
+            backgroundColor: Colors.teal.shade700,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      return true;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠ Error al actualizar inventario: $e'),
+            backgroundColor: Colors.orange.shade700,
+          ),
+        );
+      }
+      return false;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Widget del diálogo de actualización de inventario (StatefulWidget independiente)
+// ---------------------------------------------------------------------------
+
+class _InventoryUpdateDialog extends StatefulWidget {
+  final List<_ItemInventoryMatch> matches;
+  final String invoiceRef;
+  final List<mat.Material> allMaterials;
+
+  const _InventoryUpdateDialog({
+    required this.matches,
+    required this.invoiceRef,
+    required this.allMaterials,
+  });
+
+  @override
+  State<_InventoryUpdateDialog> createState() => _InventoryUpdateDialogState();
+}
+
+class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
+  @override
+  Widget build(BuildContext context) {
+    final selectedCount = widget.matches.where((m) => m.selected).length;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: 700,
+        constraints: const BoxConstraints(maxHeight: 700),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.teal.shade700,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.inventory_2, color: Colors.white, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '📦 Actualizar Inventario de Materiales',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Factura ${widget.invoiceRef} · ${widget.matches.length} ítem(s) detectados',
+                          style: TextStyle(
+                            color: Colors.teal.shade100,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Info
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: Colors.blue.shade700, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'La IA sugiere materiales existentes. Puedes cambiar la selección '
+                        'o elegir "Crear nuevo material" para cada ítem.',
+                        style: TextStyle(color: Colors.blue.shade800, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Lista de ítems
+            Flexible(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                itemCount: widget.matches.length,
+                itemBuilder: (context, index) {
+                  return _buildMatchItem(widget.matches[index]);
+                },
+              ),
+            ),
+            // Botones
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Omitir'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: selectedCount == 0
+                        ? null
+                        : () => Navigator.of(context).pop(true),
+                    icon: const Icon(Icons.inventory_2, size: 18),
+                    label: Text('Actualizar Inventario ($selectedCount)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMatchItem(_ItemInventoryMatch match) {
+    final item = match.item;
+    final isNew = match.isNew;
+    final statusColor = isNew ? Colors.orange.shade700 : Colors.teal.shade700;
+    final statusBg = isNew ? Colors.orange.shade50 : Colors.teal.shade50;
+    final qtyLabel = '+${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} '
+        '${item.unit.isEmpty ? 'UND' : item.unit}';
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: match.selected ? statusBg : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: match.selected ? statusColor.withOpacity(0.4) : Colors.grey.shade200,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Fila 1: checkbox + descripción de factura + cantidad
+            Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: match.selected,
+                    activeColor: statusColor,
+                    onChanged: (val) => setState(() => match.selected = val ?? false),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    item.description,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    qtyLabel,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (match.selected) ...[
+              const SizedBox(height: 10),
+              // AI recommendation badge
+              if (match.aiRecommendation != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 34, bottom: 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.auto_awesome, size: 14, color: Colors.blue.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        'IA sugiere: ',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.blue.shade600,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          '${match.aiRecommendation!.name} '
+                          '(stock: ${match.aiRecommendation!.stock.toStringAsFixed(match.aiRecommendation!.stock % 1 == 0 ? 0 : 2)} ${match.aiRecommendation!.unit})',
+                          style: TextStyle(fontSize: 11, color: Colors.blue.shade700),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              // Dropdown de selección
+              Padding(
+                padding: const EdgeInsets.only(left: 34),
+                child: DropdownButtonFormField<String>(
+                  value: match.createNew ? '__new__' : match.matchedMaterial?.id,
+                  decoration: InputDecoration(
+                    labelText: 'Material en inventario',
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    prefixIcon: Icon(
+                      match.createNew ? Icons.add_circle_outline : Icons.check_circle_outline,
+                      color: statusColor,
+                      size: 20,
+                    ),
+                    isDense: true,
+                  ),
+                  isExpanded: true,
+                  items: [
+                    DropdownMenuItem<String>(
+                      value: '__new__',
+                      child: Row(
+                        children: [
+                          Icon(Icons.add_circle, size: 16, color: Colors.orange.shade700),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Crear nuevo material',
+                            style: TextStyle(
+                              color: Colors.orange.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ...widget.allMaterials.map((m) {
+                      final isRecommended = match.aiRecommendation?.id == m.id;
+                      return DropdownMenuItem<String>(
+                        value: m.id,
+                        child: Row(
+                          children: [
+                            if (isRecommended)
+                              Icon(Icons.auto_awesome, size: 14, color: Colors.blue.shade600)
+                            else
+                              Icon(Icons.inventory_2_outlined, size: 14, color: Colors.grey.shade500),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${m.name} (${m.stock.toStringAsFixed(m.stock % 1 == 0 ? 0 : 2)} ${m.unit})',
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: isRecommended ? FontWeight.w600 : FontWeight.normal,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == '__new__') {
+                        match.createNew = true;
+                        match.matchedMaterial = null;
+                      } else {
+                        match.createNew = false;
+                        match.matchedMaterial = widget.allMaterials.firstWhere((m) => m.id == val);
+                      }
+                    });
+                  },
+                ),
+              ),
+              // Info sobre resultado de la acción
+              Padding(
+                padding: const EdgeInsets.only(left: 34, top: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      isNew ? Icons.fiber_new : Icons.trending_up,
+                      size: 14,
+                      color: statusColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        isNew
+                            ? 'Se creará "${item.description}" con stock inicial de $qtyLabel'
+                            : 'Se sumará $qtyLabel a "${match.matchedMaterial!.name}" '
+                                  '(${match.matchedMaterial!.stock.toStringAsFixed(match.matchedMaterial!.stock % 1 == 0 ? 0 : 2)} → '
+                                  '${(match.matchedMaterial!.stock + item.quantity).toStringAsFixed((match.matchedMaterial!.stock + item.quantity) % 1 == 0 ? 0 : 2)} ${match.matchedMaterial!.unit})',
+                        style: TextStyle(fontSize: 11, color: statusColor),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

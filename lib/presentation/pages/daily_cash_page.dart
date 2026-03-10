@@ -10,10 +10,11 @@ import '../../data/providers/customers_provider.dart';
 import '../../data/providers/suppliers_provider.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/storage_datasource.dart';
+import '../../data/datasources/supabase_datasource.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
 
-String _categoryLabel(MovementCategory category) {
+String _categoryLabel(MovementCategory category, [String? customName]) {
   switch (category) {
     case MovementCategory.sale:
       return 'Venta';
@@ -43,6 +44,8 @@ String _categoryLabel(MovementCategory category) {
       return 'Traslado Salida';
     case MovementCategory.transferIn:
       return 'Traslado Entrada';
+    case MovementCategory.custom:
+      return customName ?? 'Otra';
   }
 }
 
@@ -600,8 +603,8 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               const SizedBox(height: 6),
               ...incomeEntries.map(
                 (e) => _buildCategoryRow(
-                  e.key.name,
-                  _categoryLabel(e.key),
+                  e.key,
+                  e.key,
                   e.value,
                   state.dayIncome,
                   AppTheme.successColor,
@@ -621,8 +624,8 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               const SizedBox(height: 6),
               ...expenseEntries.map(
                 (e) => _buildCategoryRow(
-                  e.key.name,
-                  _categoryLabel(e.key),
+                  e.key,
+                  e.key,
                   e.value,
                   state.dayExpense,
                   AppTheme.errorColor,
@@ -1657,17 +1660,18 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
   bool _isIncome = true;
   String? _selectedAccountId;
   MovementCategory? _selectedCategory;
+  String? _selectedCustomName; // Nombre de la categoría custom seleccionada
   String? _errorMessage;
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _personController = TextEditingController();
   final _referenceController = TextEditingController();
   final List<PlatformFile> _attachedFiles = [];
+  List<Map<String, dynamic>> _customCategories = [];
 
   @override
   void initState() {
     super.initState();
-    // Seleccionar la primera cuenta por defecto y cargar referencia automática
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final accounts = ref.read(dailyCashProvider).accounts;
       if (accounts.isNotEmpty && _selectedAccountId == null) {
@@ -1675,9 +1679,85 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
           _selectedAccountId = accounts.first.id;
         });
       }
-      // Auto-generar número de referencia consecutivo
       _loadNextReference();
+      _loadCustomCategories();
     });
+  }
+
+  Future<void> _loadCustomCategories() async {
+    try {
+      final data = await SupabaseDataSource.client
+          .from('custom_categories')
+          .select()
+          .order('name');
+      if (mounted) {
+        setState(() {
+          _customCategories = List<Map<String, dynamic>>.from(data);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _addCustomCategory() async {
+    final nameController = TextEditingController();
+    final type = _isIncome ? 'income' : 'expense';
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nueva Categoría'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            labelText: 'Nombre de la categoría',
+            border: OutlineInputBorder(),
+            hintText: 'Ej: Mantenimiento',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) Navigator.pop(ctx, name);
+            },
+            child: const Text('Crear'),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.isNotEmpty) {
+      try {
+        await SupabaseDataSource.client.from('custom_categories').insert({
+          'name': result,
+          'type': type,
+        });
+        await _loadCustomCategories();
+        if (mounted) {
+          setState(() {
+            _selectedCategory = MovementCategory.custom;
+            _selectedCustomName = result;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                e.toString().contains('idx_custom_categories_name_type')
+                    ? 'Ya existe una categoría con ese nombre'
+                    : 'Error al crear categoría',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _loadNextReference() async {
@@ -1709,7 +1789,13 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dailyCashProvider);
-    final categories = _isIncome ? _incomeCategories : _expenseCategories;
+    final builtInCategories = _isIncome
+        ? _incomeCategories
+        : _expenseCategories;
+    final typeFilter = _isIncome ? 'income' : 'expense';
+    final filteredCustom = _customCategories
+        .where((c) => c['type'] == typeFilter)
+        .toList();
 
     return AlertDialog(
       title: Row(
@@ -1779,26 +1865,86 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                 const SizedBox(height: 16),
 
                 // Categoría
-                DropdownButtonFormField<MovementCategory>(
-                  initialValue: _selectedCategory,
-                  decoration: const InputDecoration(
-                    labelText: 'Categoría *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.category),
-                  ),
-                  items: categories.map((cat) {
-                    return DropdownMenuItem<MovementCategory>(
-                      value: cat,
-                      child: Text(_categoryLabel(cat)),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() => _selectedCategory = value);
-                  },
-                  validator: (value) {
-                    if (value == null) return 'Seleccione una categoría';
-                    return null;
-                  },
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedCategory != null
+                            ? (_selectedCategory == MovementCategory.custom
+                                  ? 'custom_${_selectedCustomName ?? ''}'
+                                  : _selectedCategory!.name)
+                            : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Categoría *',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.category),
+                        ),
+                        items: [
+                          ...builtInCategories.map((cat) {
+                            return DropdownMenuItem<String>(
+                              value: cat.name,
+                              child: Text(_categoryLabel(cat)),
+                            );
+                          }),
+                          if (filteredCustom.isNotEmpty)
+                            const DropdownMenuItem<String>(
+                              enabled: false,
+                              value: '__divider__',
+                              child: Divider(),
+                            ),
+                          ...filteredCustom.map((c) {
+                            final name = c['name'] as String;
+                            return DropdownMenuItem<String>(
+                              value: 'custom_$name',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.label_outline,
+                                    size: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(name),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (value) {
+                          if (value == null || value == '__divider__') return;
+                          setState(() {
+                            if (value.startsWith('custom_')) {
+                              _selectedCategory = MovementCategory.custom;
+                              _selectedCustomName = value.substring(7);
+                            } else {
+                              _selectedCategory = MovementCategory.values
+                                  .firstWhere(
+                                    (c) => c.name == value,
+                                    orElse: () => MovementCategory.otherIncome,
+                                  );
+                              _selectedCustomName = null;
+                            }
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Seleccione una categoría';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      onPressed: _addCustomCategory,
+                      icon: const Icon(Icons.add),
+                      tooltip: 'Crear categoría',
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                        foregroundColor: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
@@ -2287,6 +2433,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
           amount: amount,
           description: _descriptionController.text,
           category: _selectedCategory!,
+          customCategoryName: _selectedCustomName,
           personName: _personController.text.isEmpty
               ? null
               : _personController.text,
@@ -2300,6 +2447,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
           amount: amount,
           description: _descriptionController.text,
           category: _selectedCategory!,
+          customCategoryName: _selectedCustomName,
           personName: _personController.text.isEmpty
               ? null
               : _personController.text,

@@ -114,7 +114,7 @@ serve(async (req: Request) => {
       throw new Error("Debes enviar 'image_url' o 'image_base64'");
     }
 
-    // Construir el contenido de imagen para OpenAI
+    // Construir el contenido de imagen/archivo para OpenAI
     let imageContent: any;
     if (image_url) {
       imageContent = {
@@ -126,10 +126,23 @@ serve(async (req: Request) => {
       const base64Data = image_base64.startsWith("data:")
         ? image_base64
         : `data:image/jpeg;base64,${image_base64}`;
-      imageContent = {
-        type: "image_url",
-        image_url: { url: base64Data, detail: "high" },
-      };
+
+      // Detectar si es PDF para usar content type 'file' en vez de 'image_url'
+      const isPdf = base64Data.startsWith("data:application/pdf");
+      if (isPdf) {
+        imageContent = {
+          type: "file",
+          file: {
+            filename: "invoice.pdf",
+            file_data: base64Data,
+          },
+        };
+      } else {
+        imageContent = {
+          type: "image_url",
+          image_url: { url: base64Data, detail: "high" },
+        };
+      }
     }
 
     // Llamar a OpenAI Vision API

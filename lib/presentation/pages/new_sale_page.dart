@@ -9,6 +9,7 @@ import '../../data/datasources/inventory_datasource.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/composite_products_datasource.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/entities/customer.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/material.dart' as domain;
@@ -65,6 +66,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             'id': c.id,
             'name': c.name,
             'ruc': c.documentNumber,
+            'documentType': c.documentType.displayName,
           },
         )
         .toList();
@@ -84,6 +86,10 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
   double get _materialsCost => _items.fold(
     0.0,
     (sum, item) => sum + (item['totalPrice'] as double? ?? 0),
+  );
+  double get _materialsTotalCost => _items.fold(
+    0.0,
+    (sum, item) => sum + (item['totalCost'] as double? ?? 0),
   );
   double get _totalWeight => _items.fold(
     0.0,
@@ -911,7 +917,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
               .map(
                 (c) => DropdownMenuItem(
                   value: c['id'] as String,
-                  child: Text('${c['name']} - RUC: ${c['ruc']}'),
+                  child: Text(
+                    '${c['name']} - ${c['documentType'] ?? 'CC'}: ${c['ruc']}',
+                  ),
                 ),
               )
               .toList(),
@@ -2346,6 +2354,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         customer: customer,
         items: _items,
         materialsCost: _materialsCost,
+        materialsPurchaseCost: _materialsTotalCost,
         laborCost: _laborCost,
         indirectCosts: _indirectCosts,
         subtotal: _subtotal,
@@ -2577,36 +2586,39 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           : DateTime.now();
 
       // 1. Crear factura con items
+      // Factor para distribuir mano de obra, costos indirectos,
+      // margen de ganancia y descuento proporcionalmente en cada item
+      final scaleFactor = _materialsCost > 0 ? _total / _materialsCost : 1.0;
+
       final invoice = await InvoicesDataSource.createWithItems(
         type: 'invoice',
-        series: 'FAC',
+        series: 'VTA',
         customer: customer,
         issueDate: DateTime.now(),
         dueDate: dueDate,
         taxRate: 0,
-        items: _items
-            .map(
-              (item) => InvoiceItem(
-                id: '',
-                invoiceId: '',
-                productId: item['productId'],
-                materialId: item['materialId'],
-                productCode: item['material'] ?? item['productCode'] ?? '',
-                productName: item['name'] ?? '',
-                description: item['dimensions'] ?? '',
-                quantity: (item['quantity'] as num?)?.toDouble() ?? 1,
-                unit: item['unit'] ?? 'und',
-                unitPrice:
-                    (item['totalPrice'] as double? ?? 0) /
-                    ((item['quantity'] as num?)?.toDouble() ?? 1),
-                discount: 0,
-                taxRate: 0,
-                subtotal: item['totalPrice'] as double? ?? 0,
-                taxAmount: 0,
-                total: item['totalPrice'] as double? ?? 0,
-              ),
-            )
-            .toList(),
+        items: _items.map((item) {
+          final qty = (item['quantity'] as num?)?.toDouble() ?? 1;
+          final itemSaleTotal =
+              (item['totalPrice'] as double? ?? 0) * scaleFactor;
+          return InvoiceItem(
+            id: '',
+            invoiceId: '',
+            productId: item['productId'],
+            materialId: item['materialId'],
+            productCode: item['material'] ?? item['productCode'] ?? '',
+            productName: item['name'] ?? '',
+            description: item['dimensions'] ?? '',
+            quantity: qty,
+            unit: item['unit'] ?? 'und',
+            unitPrice: itemSaleTotal / qty,
+            discount: 0,
+            taxRate: 0,
+            subtotal: itemSaleTotal,
+            taxAmount: 0,
+            total: itemSaleTotal,
+          );
+        }).toList(),
         notes: _notesController.text.isEmpty ? null : _notesController.text,
       );
 
@@ -4105,6 +4117,7 @@ class _SalePreviewDialog extends StatefulWidget {
   final Map<String, dynamic> customer;
   final List<Map<String, dynamic>> items;
   final double materialsCost;
+  final double materialsPurchaseCost;
   final double laborCost;
   final double indirectCosts;
   final double subtotal;
@@ -4127,6 +4140,7 @@ class _SalePreviewDialog extends StatefulWidget {
     required this.customer,
     required this.items,
     required this.materialsCost,
+    required this.materialsPurchaseCost,
     required this.laborCost,
     required this.indirectCosts,
     required this.subtotal,
@@ -4153,13 +4167,27 @@ class _SalePreviewDialog extends StatefulWidget {
 class _SalePreviewDialogState extends State<_SalePreviewDialog>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final String _saleNumber =
-      'VTA-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+  String _saleNumber = 'VTA-...';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadNextNumber();
+  }
+
+  Future<void> _loadNextNumber() async {
+    try {
+      final nextNumber = await InvoicesDataSource.generateNumber('VTA');
+      if (mounted) {
+        setState(() => _saleNumber = 'VTA-$nextNumber');
+      }
+    } catch (_) {
+      // fallback if RPC fails
+      if (mounted) {
+        setState(() => _saleNumber = 'VTA-${DateTime.now().year}-PREVIEW');
+      }
+    }
   }
 
   @override
@@ -4639,7 +4667,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
                                       child: Text(
-                                        'RUC/NIT: ${widget.customer['ruc']}',
+                                        '${widget.customer['documentType'] ?? 'CC'}: ${widget.customer['ruc']}',
                                         style: TextStyle(
                                           color: Colors.grey[600],
                                           fontSize: 13,
@@ -5127,8 +5155,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
             Row(
               children: [
                 _buildStatCard(
-                  'Materiales',
-                  '\$${Helpers.formatNumber(widget.materialsCost)}',
+                  'Costo Mat.',
+                  '\$${Helpers.formatNumber(widget.materialsPurchaseCost)}',
                   Icons.inventory_2,
                   Colors.blue,
                 ),
@@ -5147,11 +5175,24 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   Colors.orange,
                 ),
                 const SizedBox(width: 12),
-                _buildStatCard(
-                  'Margen',
-                  '${widget.profitMargin.toStringAsFixed(0)}%',
-                  Icons.trending_up,
-                  Colors.green,
+                Builder(
+                  builder: (context) {
+                    final totalCostBasis =
+                        widget.materialsPurchaseCost +
+                        widget.laborCost +
+                        widget.indirectCosts;
+                    final realMargin = totalCostBasis > 0
+                        ? ((widget.total - totalCostBasis) /
+                              totalCostBasis *
+                              100)
+                        : 0.0;
+                    return _buildStatCard(
+                      'Margen',
+                      '${realMargin.toStringAsFixed(1)}%',
+                      Icons.trending_up,
+                      realMargin >= 0 ? Colors.green : Colors.red,
+                    );
+                  },
                 ),
                 if (widget.discount > 0) ...[
                   const SizedBox(width: 12),
@@ -5405,90 +5446,72 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                         ),
                       ),
                       const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green[50],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Margen: ${widget.profitMargin.toStringAsFixed(1)}%',
-                          style: TextStyle(
-                            color: Colors.green[700],
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
+                      Builder(
+                        builder: (context) {
+                          final totalCostBasis =
+                              widget.materialsPurchaseCost +
+                              widget.laborCost +
+                              widget.indirectCosts;
+                          final realMargin = totalCostBasis > 0
+                              ? ((widget.total - totalCostBasis) /
+                                    totalCostBasis *
+                                    100)
+                              : 0.0;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: realMargin >= 0
+                                  ? Colors.green[50]
+                                  : Colors.red[50],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Margen: ${realMargin.toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                color: realMargin >= 0
+                                    ? Colors.green[700]
+                                    : Colors.red[700],
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
                   // Barra de costos
-                  if (widget.subtotal > 0)
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: (widget.materialsCost / widget.subtotal * 100)
-                              .round()
-                              .clamp(1, 100),
-                          child: Container(
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: Colors.blue[400],
-                              borderRadius: const BorderRadius.horizontal(
-                                left: Radius.circular(4),
-                              ),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Mat.',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          flex: (widget.laborCost / widget.subtotal * 100)
-                              .round()
-                              .clamp(1, 100),
-                          child: Container(
-                            height: 24,
-                            color: Colors.purple[400],
-                            child: const Center(
-                              child: Text(
-                                'M.O.',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (widget.indirectCosts > 0)
+                  Builder(
+                    builder: (context) {
+                      final totalCostBasis =
+                          widget.materialsPurchaseCost +
+                          widget.laborCost +
+                          widget.indirectCosts;
+                      if (totalCostBasis <= 0) return const SizedBox.shrink();
+                      return Row(
+                        children: [
                           Expanded(
-                            flex: (widget.indirectCosts / widget.subtotal * 100)
-                                .round()
-                                .clamp(1, 100),
+                            flex:
+                                (widget.materialsPurchaseCost /
+                                        totalCostBasis *
+                                        100)
+                                    .round()
+                                    .clamp(1, 100),
                             child: Container(
                               height: 24,
                               decoration: BoxDecoration(
-                                color: Colors.orange[400],
+                                color: Colors.blue[400],
                                 borderRadius: const BorderRadius.horizontal(
-                                  right: Radius.circular(4),
+                                  left: Radius.circular(4),
                                 ),
                               ),
                               child: const Center(
                                 child: Text(
-                                  'C.I.',
+                                  'Mat.',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 10,
@@ -5498,12 +5521,59 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                               ),
                             ),
                           ),
-                      ],
-                    ),
+                          Expanded(
+                            flex: (widget.laborCost / totalCostBasis * 100)
+                                .round()
+                                .clamp(1, 100),
+                            child: Container(
+                              height: 24,
+                              color: Colors.purple[400],
+                              child: const Center(
+                                child: Text(
+                                  'M.O.',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (widget.indirectCosts > 0)
+                            Expanded(
+                              flex:
+                                  (widget.indirectCosts / totalCostBasis * 100)
+                                      .round()
+                                      .clamp(1, 100),
+                              child: Container(
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: Colors.orange[400],
+                                  borderRadius: const BorderRadius.horizontal(
+                                    right: Radius.circular(4),
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'C.I.',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
                   const SizedBox(height: 24),
                   _buildCostLine(
-                    'Materiales',
-                    widget.materialsCost,
+                    'Materiales (Compra)',
+                    widget.materialsPurchaseCost,
                     Colors.blue,
                   ),
                   _buildCostLine(
@@ -5520,52 +5590,82 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Divider(),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Subtotal',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '\$${Helpers.formatNumber(widget.subtotal)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green[50],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.trending_up,
-                              color: Colors.green[700],
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Ganancia (${widget.profitMargin.toStringAsFixed(0)}%)',
-                              style: TextStyle(color: Colors.green[700]),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          '+\$${Helpers.formatNumber(widget.profitAmount)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green[700],
+                  Builder(
+                    builder: (context) {
+                      final totalCostBasis =
+                          widget.materialsPurchaseCost +
+                          widget.laborCost +
+                          widget.indirectCosts;
+                      final realProfit = widget.total - totalCostBasis;
+                      final realMargin = totalCostBasis > 0
+                          ? (realProfit / totalCostBasis * 100)
+                          : 0.0;
+                      return Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Costo Total',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                '\$${Helpers.formatNumber(totalCostBasis)}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: realProfit >= 0
+                                  ? Colors.green[50]
+                                  : Colors.red[50],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      realProfit >= 0
+                                          ? Icons.trending_up
+                                          : Icons.trending_down,
+                                      color: realProfit >= 0
+                                          ? Colors.green[700]
+                                          : Colors.red[700],
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Ganancia (${realMargin.toStringAsFixed(1)}%)',
+                                      style: TextStyle(
+                                        color: realProfit >= 0
+                                            ? Colors.green[700]
+                                            : Colors.red[700],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  '${realProfit >= 0 ? '+' : ''}\$${Helpers.formatNumber(realProfit)}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: realProfit >= 0
+                                        ? Colors.green[700]
+                                        : Colors.red[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   // Total box

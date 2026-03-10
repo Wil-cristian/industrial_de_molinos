@@ -339,16 +339,16 @@ class AccountsDataSource {
     }
 
     try {
-      final isIncome = movement.type == MovementType.income;
-
       final result = await _client.rpc(
         'atomic_movement_with_balance',
         params: {
           'p_account_id': movement.accountId,
           'p_type': movement.type.name,
           'p_category':
-              movement.category.name ??
-              (isIncome ? 'other_income' : 'other_expense'),
+              movement.category == MovementCategory.custom &&
+                  movement.customCategoryName != null
+              ? 'custom_${movement.customCategoryName!.replaceAll(' ', '_')}'
+              : movement.category.name,
           'p_amount': movement.amount,
           'p_description': movement.description,
           'p_reference': movement.reference,
@@ -529,6 +529,7 @@ class AccountsDataSource {
         orElse: () => MovementType.income,
       ),
       category: parseCategoryFromJson(json['category'] ?? ''),
+      customCategoryName: parseCustomCategoryName(json['category'] ?? ''),
       amount: (json['amount'] ?? 0).toDouble(),
       description: json['description'] ?? '',
       reference: json['reference'],
@@ -556,7 +557,11 @@ class AccountsDataSource {
       'account_id': movement.accountId,
       'to_account_id': movement.toAccountId,
       'type': movement.type.name,
-      'category': movement.category.name,
+      'category':
+          movement.category == MovementCategory.custom &&
+              movement.customCategoryName != null
+          ? 'custom_${movement.customCategoryName!.replaceAll(' ', '_')}'
+          : movement.category.name,
       'amount': movement.amount,
       'description': movement.description,
       'reference': movement.reference,

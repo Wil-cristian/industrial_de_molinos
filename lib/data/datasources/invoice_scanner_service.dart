@@ -346,6 +346,12 @@ class InvoiceScannerService {
         case 'webp':
           mimeType = 'image/webp';
           break;
+        case 'gif':
+          mimeType = 'image/gif';
+          break;
+        case 'pdf':
+          mimeType = 'application/pdf';
+          break;
         default:
           mimeType = 'image/jpeg';
       }
