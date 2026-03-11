@@ -7,6 +7,8 @@ import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/utils/logger.dart';
 import 'data/datasources/supabase_datasource.dart';
+import 'data/datasources/app_update_datasource.dart';
+import 'presentation/widgets/update_dialog.dart';
 import 'router.dart';
 
 void main() async {
@@ -39,8 +41,33 @@ Future<void> _testSupabaseConnection() async {
   }
 }
 
-class MolinosApp extends StatelessWidget {
+class MolinosApp extends StatefulWidget {
   const MolinosApp({super.key});
+
+  @override
+  State<MolinosApp> createState() => _MolinosAppState();
+}
+
+class _MolinosAppState extends State<MolinosApp> {
+  @override
+  void initState() {
+    super.initState();
+    _checkForUpdates();
+  }
+
+  Future<void> _checkForUpdates() async {
+    // Esperar a que la app este lista y el contexto disponible
+    await Future.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
+
+    final release = await AppUpdateService.checkForUpdate();
+    if (release != null && mounted) {
+      final ctx = router.routerDelegate.navigatorKey.currentContext;
+      if (ctx != null) {
+        UpdateDialog.show(ctx, release);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

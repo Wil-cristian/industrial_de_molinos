@@ -63,26 +63,42 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               const SizedBox(height: 3),
 
               // Notificaciones y Mini Calendario
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Panel de Notificaciones
-                  Expanded(
-                    flex: 2,
-                    child: _buildNotificationsPanel(
-                      context, 
-                      lowStockMaterials, 
-                      invoicesState,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  
-                  // Mini Calendario
-                  Expanded(
-                    flex: 1,
-                    child: _buildMiniCalendar(context),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 980;
+                  if (isNarrow) {
+                    return Column(
+                      children: [
+                        _buildNotificationsPanel(
+                          context,
+                          lowStockMaterials,
+                          invoicesState,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildMiniCalendar(context),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: _buildNotificationsPanel(
+                          context,
+                          lowStockMaterials,
+                          invoicesState,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 1,
+                        child: _buildMiniCalendar(context),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
 
@@ -96,43 +112,48 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 760;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(
-              '¡Bienvenido!',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryColor,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '¡Bienvenido!',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  isNarrow
+                      ? Formatters.date(DateTime.now())
+                      : Formatters.dateLong(DateTime.now()),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Text(
-              Formatters.dateLong(DateTime.now()),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-        Row(
-          children: [
             _buildStatusChip(
               icon: Icons.cloud_done,
               label: 'Conectado',
               color: AppTheme.successColor,
             ),
-            const SizedBox(width: 12),
             CircleAvatar(
               radius: 16,
               backgroundColor: AppTheme.primaryColor,
               child: const Icon(Icons.person, color: Colors.white, size: 18),
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -142,54 +163,114 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     dynamic productsState,
     dynamic customersState,
   ) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildSummaryCard(
-            context,
-            title: 'Ventas',
-            value: Formatters.currency(invoicesState.totalVentas),
-            icon: Icons.attach_money,
-            color: AppTheme.successColor,
-            subtitle: '${invoicesState.invoices.length} rec',
-          ),
-        ),
-        const SizedBox(width: 3),
-        Expanded(
-          child: _buildSummaryCard(
-            context,
-            title: 'Pendiente',
-            value: Formatters.currency(invoicesState.totalPendiente),
-            icon: Icons.pending_actions,
-            color: AppTheme.warningColor,
-            subtitle: '${invoicesState.countPendientes} rec',
-          ),
-        ),
-        const SizedBox(width: 3),
-        Expanded(
-          child: _buildSummaryCard(
-            context,
-            title: 'Productos',
-            value: productsState.products.length.toString(),
-            icon: Icons.inventory_2,
-            color: productsState.lowStockProducts.isNotEmpty 
-                ? AppTheme.errorColor 
-                : AppTheme.successColor,
-            subtitle: '${productsState.lowStockProducts.length} bajo',
-          ),
-        ),
-        const SizedBox(width: 3),
-        Expanded(
-          child: _buildSummaryCard(
-            context,
-            title: 'Clientes',
-            value: customersState.customers.length.toString(),
-            icon: Icons.people,
-            color: AppTheme.accentColor,
-            subtitle: 'Activos',
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 900) {
+          final cardWidth = (constraints.maxWidth - 6) / 2;
+          return Wrap(
+            spacing: 3,
+            runSpacing: 3,
+            children: [
+              SizedBox(
+                width: cardWidth,
+                child: _buildSummaryCard(
+                  context,
+                  title: 'Ventas',
+                  value: Formatters.currency(invoicesState.totalVentas),
+                  icon: Icons.attach_money,
+                  color: AppTheme.successColor,
+                  subtitle: '${invoicesState.invoices.length} rec',
+                ),
+              ),
+              SizedBox(
+                width: cardWidth,
+                child: _buildSummaryCard(
+                  context,
+                  title: 'Pendiente',
+                  value: Formatters.currency(invoicesState.totalPendiente),
+                  icon: Icons.pending_actions,
+                  color: AppTheme.warningColor,
+                  subtitle: '${invoicesState.countPendientes} rec',
+                ),
+              ),
+              SizedBox(
+                width: cardWidth,
+                child: _buildSummaryCard(
+                  context,
+                  title: 'Productos',
+                  value: productsState.products.length.toString(),
+                  icon: Icons.inventory_2,
+                  color: productsState.lowStockProducts.isNotEmpty
+                      ? AppTheme.errorColor
+                      : AppTheme.successColor,
+                  subtitle: '${productsState.lowStockProducts.length} bajo',
+                ),
+              ),
+              SizedBox(
+                width: cardWidth,
+                child: _buildSummaryCard(
+                  context,
+                  title: 'Clientes',
+                  value: customersState.customers.length.toString(),
+                  icon: Icons.people,
+                  color: AppTheme.accentColor,
+                  subtitle: 'Activos',
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: _buildSummaryCard(
+                context,
+                title: 'Ventas',
+                value: Formatters.currency(invoicesState.totalVentas),
+                icon: Icons.attach_money,
+                color: AppTheme.successColor,
+                subtitle: '${invoicesState.invoices.length} rec',
+              ),
+            ),
+            const SizedBox(width: 3),
+            Expanded(
+              child: _buildSummaryCard(
+                context,
+                title: 'Pendiente',
+                value: Formatters.currency(invoicesState.totalPendiente),
+                icon: Icons.pending_actions,
+                color: AppTheme.warningColor,
+                subtitle: '${invoicesState.countPendientes} rec',
+              ),
+            ),
+            const SizedBox(width: 3),
+            Expanded(
+              child: _buildSummaryCard(
+                context,
+                title: 'Productos',
+                value: productsState.products.length.toString(),
+                icon: Icons.inventory_2,
+                color: productsState.lowStockProducts.isNotEmpty
+                    ? AppTheme.errorColor
+                    : AppTheme.successColor,
+                subtitle: '${productsState.lowStockProducts.length} bajo',
+              ),
+            ),
+            const SizedBox(width: 3),
+            Expanded(
+              child: _buildSummaryCard(
+                context,
+                title: 'Clientes',
+                value: customersState.customers.length.toString(),
+                icon: Icons.people,
+                color: AppTheme.accentColor,
+                subtitle: 'Activos',
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -485,29 +566,33 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.indigo[50],
-                      borderRadius: BorderRadius.circular(10),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo[50],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.calendar_month, color: Colors.indigo[600], size: 20),
                     ),
-                    child: Icon(Icons.calendar_month, color: Colors.indigo[600], size: 20),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    DateFormat('MMMM yyyy', 'es').format(now),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        DateFormat('MMMM yyyy', 'es').format(now),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              // Botón para ir al calendario completo
               IconButton(
                 icon: const Icon(Icons.open_in_new, size: 18),
                 onPressed: () => context.go('/calendar'),
@@ -547,6 +632,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               crossAxisCount: 7,
               mainAxisSpacing: 4,
               crossAxisSpacing: 4,
+              childAspectRatio: 0.85,
             ),
             itemCount: 42,
             itemBuilder: (context, index) {
@@ -646,7 +732,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
             )
           else
-            ...selectedDayActivities.take(3).map((activity) => Padding(
+            ...selectedDayActivities.take(2).map((activity) => Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: GestureDetector(
                 onTap: () => context.go('/calendar'),
@@ -693,20 +779,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: activity.statusColor.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          activity.statusLabel,
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: activity.statusColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 14,
+                        color: Colors.grey[400],
                       ),
                     ],
                   ),
@@ -714,13 +790,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
             )),
           
-          if (selectedDayActivities.length > 3)
+          if (selectedDayActivities.length > 2)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: GestureDetector(
                 onTap: () => context.go('/calendar'),
                 child: Text(
-                  '+${selectedDayActivities.length - 3} más...',
+                  '+${selectedDayActivities.length - 2} más...',
                   style: TextStyle(
                     color: AppTheme.primaryColor,
                     fontSize: 11,

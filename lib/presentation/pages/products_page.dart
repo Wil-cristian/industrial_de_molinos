@@ -85,46 +85,77 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 color: Colors.white,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 900;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor, size: 20),
-                          onPressed: () => context.go('/'),
-                          visualDensity: VisualDensity.compact,
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.arrow_back,
+                                color: AppTheme.primaryColor,
+                                size: 20,
+                              ),
+                              onPressed: () => context.go('/'),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Productos / Recetas',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.primaryColor,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    '${state.products.length} productos',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Productos / Recetas',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryColor,
-                          ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: [
+                            _buildQuickStat(
+                              'Recetas',
+                              '${state.products.length}',
+                              Colors.blue,
+                              Icons.receipt_long,
+                            ),
+                            FilledButton.icon(
+                              onPressed: () => _showNewRecipeDialog(),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: Text(
+                                isNarrow ? 'Nueva' : 'Nueva Receta',
+                              ),
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${state.products.length} productos',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                        ),
-                        const Spacer(),
-                        _buildQuickStat(
-                          'Recetas',
-                          '${state.products.length}',
-                          Colors.blue,
-                          Icons.receipt_long,
-                        ),
-                        const SizedBox(width: 16),
-                        FilledButton.icon(
-                          onPressed: () => _showNewRecipeDialog(),
-                          icon: const Icon(Icons.add, size: 18),
-                          label: const Text('Nueva Receta'),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          ),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 12),
                     // Búsqueda
                     Row(
@@ -152,9 +183,11 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                       ),
                     ),
                   ],
+                    ),
+                      ],
+                    );
+                  },
                 ),
-              ],
-            ),
           ),
 
           // Lista de productos
@@ -239,18 +272,25 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
   }
 
   Widget _buildProductsGrid() {
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 1.1,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      padding: const EdgeInsets.all(8),
-      itemCount: _filteredProducts.length,
-      itemBuilder: (context, index) {
-        final product = _filteredProducts[index];
-        return _buildProductCard(product);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = width >= 1100 ? 3 : width >= 700 ? 2 : 1;
+
+        return GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            childAspectRatio: columns == 1 ? 1.5 : 1.1,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+          ),
+          padding: const EdgeInsets.all(8),
+          itemCount: _filteredProducts.length,
+          itemBuilder: (context, index) {
+            final product = _filteredProducts[index];
+            return _buildProductCard(product);
+          },
+        );
       },
     );
   }

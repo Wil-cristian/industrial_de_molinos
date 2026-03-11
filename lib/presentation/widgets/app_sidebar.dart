@@ -60,7 +60,6 @@ class _AppSidebarState extends State<AppSidebar> {
       route: '/accounting',
     ),
     NavItemData(icon: Icons.receipt_long, label: 'IVA', route: '/iva-control'),
-    NavItemData(icon: Icons.settings, label: 'Config', route: '/settings'),
   ];
 
   int get _selectedIndex {

@@ -335,52 +335,69 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       color: Colors.white,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton(
-            icon: const Icon(
-              Icons.arrow_back,
-              color: AppTheme.primaryColor,
-              size: 20,
-            ),
-            onPressed: () => context.go('/'),
-            tooltip: 'Volver al menú',
-            visualDensity: VisualDensity.compact,
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: AppTheme.primaryColor,
+                  size: 20,
+                ),
+                onPressed: () => context.go('/'),
+                tooltip: 'Volver al menú',
+                visualDensity: VisualDensity.compact,
+              ),
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Cotizaciones',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                    Text(
+                      'Gestión de cotizaciones',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Text(
-            'Cotizaciones',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primaryColor,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Gestión de cotizaciones',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-          ),
-          const Spacer(),
-          // Botones de acción
-          OutlinedButton.icon(
-            onPressed: () {
-              // Exportar cotizaciones
-            },
-            icon: const Icon(Icons.download, size: 18),
-            label: const Text('Exportar'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton.icon(
-            onPressed: () => context.go('/quotations/new'),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Nueva Cotización'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () {
+                  // Exportar cotizaciones
+                },
+                icon: const Icon(Icons.download, size: 18),
+                label: const Text('Exportar'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => context.go('/quotations/new'),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Nueva Cotización'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -390,48 +407,102 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
   Widget _buildStatsCards() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatCard(
-              'Total',
-              _totalQuotations.toString(),
-              Icons.description,
-              Colors.blue,
-              'Este mes',
-            ),
-          ),
-          const SizedBox(width: 2),
-          Expanded(
-            child: _buildStatCard(
-              'Pendientes',
-              _pendingQuotations.toString(),
-              Icons.hourglass_empty,
-              Colors.orange,
-              'Por responder',
-            ),
-          ),
-          const SizedBox(width: 2),
-          Expanded(
-            child: _buildStatCard(
-              'Aprobadas',
-              _approvedQuotations.toString(),
-              Icons.check_circle,
-              Colors.green,
-              'Listas',
-            ),
-          ),
-          const SizedBox(width: 2),
-          Expanded(
-            child: _buildStatCard(
-              'Valor',
-              Helpers.formatCurrency(_totalApprovedValue),
-              Icons.monetization_on,
-              AppTheme.primaryColor,
-              'Total',
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 900;
+          if (isNarrow) {
+            return Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                SizedBox(
+                  width: (constraints.maxWidth - 6) / 2,
+                  child: _buildStatCard(
+                    'Total',
+                    _totalQuotations.toString(),
+                    Icons.description,
+                    Colors.blue,
+                    'Este mes',
+                  ),
+                ),
+                SizedBox(
+                  width: (constraints.maxWidth - 6) / 2,
+                  child: _buildStatCard(
+                    'Pendientes',
+                    _pendingQuotations.toString(),
+                    Icons.hourglass_empty,
+                    Colors.orange,
+                    'Por responder',
+                  ),
+                ),
+                SizedBox(
+                  width: (constraints.maxWidth - 6) / 2,
+                  child: _buildStatCard(
+                    'Aprobadas',
+                    _approvedQuotations.toString(),
+                    Icons.check_circle,
+                    Colors.green,
+                    'Listas',
+                  ),
+                ),
+                SizedBox(
+                  width: (constraints.maxWidth - 6) / 2,
+                  child: _buildStatCard(
+                    'Valor',
+                    Helpers.formatCurrency(_totalApprovedValue),
+                    Icons.monetization_on,
+                    AppTheme.primaryColor,
+                    'Total',
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Total',
+                  _totalQuotations.toString(),
+                  Icons.description,
+                  Colors.blue,
+                  'Este mes',
+                ),
+              ),
+              const SizedBox(width: 2),
+              Expanded(
+                child: _buildStatCard(
+                  'Pendientes',
+                  _pendingQuotations.toString(),
+                  Icons.hourglass_empty,
+                  Colors.orange,
+                  'Por responder',
+                ),
+              ),
+              const SizedBox(width: 2),
+              Expanded(
+                child: _buildStatCard(
+                  'Aprobadas',
+                  _approvedQuotations.toString(),
+                  Icons.check_circle,
+                  Colors.green,
+                  'Listas',
+                ),
+              ),
+              const SizedBox(width: 2),
+              Expanded(
+                child: _buildStatCard(
+                  'Valor',
+                  Helpers.formatCurrency(_totalApprovedValue),
+                  Icons.monetization_on,
+                  AppTheme.primaryColor,
+                  'Total',
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

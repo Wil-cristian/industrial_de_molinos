@@ -5,6 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AppConstants {
   static const String appName = 'Industrial de Molinos';
   static const String appVersion = '1.0.0';
+  static const int appBuildNumber = 1;
+  static const String appFullVersion = '$appVersion+$appBuildNumber';
 
   // Supabase — leídas de .env en tiempo de ejecución
   static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
@@ -17,4 +19,7 @@ class AppConstants {
   // Configuración
   static const String defaultCurrency = 'USD';
   static const double defaultTaxRate = 0.0;
+
+  // URLs de actualizacion
+  static const String releasesBaseUrl = 'https://github.com';
 }

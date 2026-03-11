@@ -173,162 +173,179 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: Colors.white,
-            child: Row(
-              children: [
-                Text(
-                  'Recibos de Caja',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Stats compactas
-                _buildQuickStat(
-                  'Ventas',
-                  Formatters.currency(_totalVentas),
-                  Colors.blue,
-                  Icons.trending_up,
-                ),
-                const SizedBox(width: 8),
-                _buildQuickStat(
-                  'Cobrado',
-                  Formatters.currency(_totalCobrado),
-                  Colors.green,
-                  Icons.check_circle,
-                ),
-                const SizedBox(width: 8),
-                _buildQuickStat(
-                  'Pendiente',
-                  Formatters.currency(_totalPendiente),
-                  Colors.orange,
-                  Icons.schedule,
-                ),
-                const SizedBox(width: 12),
-                // Búsqueda compacta
-                Expanded(
-                  child: SizedBox(
-                    height: 36,
-                    child: TextField(
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
-                      decoration: InputDecoration(
-                        hintText: 'Buscar...',
-                        prefixIcon: const Icon(Icons.search, size: 18),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 980;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'Recibos de Caja',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryColor,
+                              ),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        _buildQuickStat(
+                          'Ventas',
+                          Formatters.currency(_totalVentas),
+                          Colors.blue,
+                          Icons.trending_up,
                         ),
-                        filled: true,
-                        fillColor: Colors.grey[50],
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 0,
+                        _buildQuickStat(
+                          'Cobrado',
+                          Formatters.currency(_totalCobrado),
+                          Colors.green,
+                          Icons.check_circle,
                         ),
-                        isDense: true,
-                      ),
+                        _buildQuickStat(
+                          'Pendiente',
+                          Formatters.currency(_totalPendiente),
+                          Colors.orange,
+                          Icons.schedule,
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Filtro estado
-                SizedBox(
-                  height: 36,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey[50],
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        SizedBox(
+                          width: isNarrow ? constraints.maxWidth : 260,
+                          height: 36,
+                          child: TextField(
+                            onChanged: (value) =>
+                                setState(() => _searchQuery = value),
+                            decoration: InputDecoration(
+                              hintText: 'Buscar...',
+                              prefixIcon: const Icon(Icons.search, size: 18),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 0,
+                              ),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 36,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.grey[50],
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedStatus,
+                                isDense: true,
+                                items:
+                                    [
+                                          'Todos',
+                                          'Pagada',
+                                          'Pendiente',
+                                          'Parcial',
+                                          'Vencida',
+                                          'Anulada',
+                                        ]
+                                        .map(
+                                          (s) => DropdownMenuItem(
+                                            value: s,
+                                            child: Text(
+                                              s,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                onChanged: (value) =>
+                                    setState(() => _selectedStatus = value!),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 36,
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final range = await showDateRangePicker(
+                                context: context,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
+                                initialDateRange: _dateRange,
+                              );
+                              if (range != null) {
+                                setState(() => _dateRange = range);
+                              }
+                            },
+                            icon: const Icon(Icons.calendar_today, size: 14),
+                            label: Text(
+                              _dateRange == null
+                                  ? 'Fecha'
+                                  : '${Formatters.date(_dateRange!.start)} - ${Formatters.date(_dateRange!.end)}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_dateRange != null)
+                          SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: IconButton(
+                              icon: const Icon(Icons.clear, size: 14),
+                              onPressed: () => setState(() => _dateRange = null),
+                              tooltip: 'Limpiar',
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                        SizedBox(
+                          height: 36,
+                          child: FilledButton.icon(
+                            onPressed: () => context.go('/invoices/new'),
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text(
+                              'Nuevo',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedStatus,
-                        isDense: true,
-                        items:
-                            [
-                                  'Todos',
-                                  'Pagada',
-                                  'Pendiente',
-                                  'Parcial',
-                                  'Vencida',
-                                  'Anulada',
-                                ]
-                                .map(
-                                  (s) => DropdownMenuItem(
-                                    value: s,
-                                    child: Text(
-                                      s,
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                        onChanged: (value) =>
-                            setState(() => _selectedStatus = value!),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Filtro fecha compacto
-                SizedBox(
-                  height: 36,
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final range = await showDateRangePicker(
-                        context: context,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                        initialDateRange: _dateRange,
-                      );
-                      if (range != null) {
-                        setState(() => _dateRange = range);
-                      }
-                    },
-                    icon: const Icon(Icons.calendar_today, size: 14),
-                    label: Text(
-                      _dateRange == null
-                          ? 'Fecha'
-                          : '${Formatters.date(_dateRange!.start)} - ${Formatters.date(_dateRange!.end)}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                    ),
-                  ),
-                ),
-                if (_dateRange != null) ...[
-                  const SizedBox(width: 4),
-                  SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: IconButton(
-                      icon: const Icon(Icons.clear, size: 14),
-                      onPressed: () => setState(() => _dateRange = null),
-                      tooltip: 'Limpiar',
-                      padding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
-                const SizedBox(width: 8),
-                // Botón nueva venta
-                SizedBox(
-                  height: 36,
-                  child: FilledButton.icon(
-                    onPressed: () => context.go('/invoices/new'),
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Nuevo', style: TextStyle(fontSize: 13)),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                    ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
           ),
           // Lista de recibos
@@ -409,7 +426,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
     }
 
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(MediaQuery.of(context).size.width < 600 ? 12 : 24),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -425,11 +442,13 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: SingleChildScrollView(
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(Colors.grey[50]),
-              dataRowMinHeight: 60,
-              dataRowMaxHeight: 70,
-              columnSpacing: 24,
+            scrollDirection: Axis.horizontal,
+            child: SingleChildScrollView(
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(Colors.grey[50]),
+                dataRowMinHeight: 60,
+                dataRowMaxHeight: 70,
+                columnSpacing: MediaQuery.of(context).size.width < 600 ? 12 : 24,
               columns: const [
                 DataColumn(
                   label: Text(
@@ -486,6 +505,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                   .map((invoice) => _buildInvoiceRow(invoice))
                   .toList(),
             ),
+          ),
           ),
         ),
       ),
@@ -887,9 +907,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
+            insetPadding: MediaQuery.of(context).size.width < 600 ? const EdgeInsets.all(16) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
             child: Container(
-              width: 480,
-              constraints: const BoxConstraints(maxHeight: 600),
+              width: MediaQuery.of(context).size.width < 600 ? double.maxFinite : 480,
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height < 700 ? MediaQuery.of(context).size.height * 0.85 : 600),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1808,8 +1829,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: MediaQuery.of(context).size.width < 600 ? const EdgeInsets.all(12) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: SizedBox(
-        width: 1100,
+        width: MediaQuery.of(context).size.width < 600 ? double.maxFinite : 1100,
         height: screenHeight * 0.9,
         child: Column(
           children: [
@@ -4363,8 +4385,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: MediaQuery.of(context).size.width < 600 ? const EdgeInsets.all(12) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: SizedBox(
-        width: 1100,
+        width: MediaQuery.of(context).size.width < 600 ? double.maxFinite : 1100,
         height: screenHeight * 0.9,
         child: Column(
           children: [

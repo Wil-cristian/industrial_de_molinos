@@ -186,104 +186,124 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.shopping_bag,
-            color: AppTheme.primaryColor,
-            size: 28,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Compras y Gastos',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-                Text(
-                  _dateRange != null
-                      ? '${Formatters.date(_dateRange!.start)} — ${Formatters.date(_dateRange!.end)}'
-                      : 'Todos los registros',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          ),
-          // Total
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppTheme.errorColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppTheme.errorColor.withValues(alpha: 0.3),
+          Row(
+            children: [
+              const Icon(
+                Icons.shopping_bag,
+                color: AppTheme.primaryColor,
+                size: 28,
               ),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Total Gastos',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppTheme.errorColor.withValues(alpha: 0.8),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Compras y Gastos',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      _dateRange != null
+                          ? '${Formatters.date(_dateRange!.start)} — ${Formatters.date(_dateRange!.end)}'
+                          : 'Todos los registros',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.errorColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.errorColor.withValues(alpha: 0.3),
                   ),
                 ),
-                Text(
-                  Formatters.currency(_totalExpenses),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.errorColor,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Total Gastos',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.errorColor.withValues(alpha: 0.8),
+                      ),
+                    ),
+                    Text(
+                      Formatters.currency(_totalExpenses),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.errorColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: _showDateRangeFilter,
+                icon: const Icon(Icons.calendar_today, size: 16),
+                label: Text(_dateRange != null ? 'Filtrado' : 'Filtrar fechas'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Date filter
-          OutlinedButton.icon(
-            onPressed: _showDateRangeFilter,
-            icon: const Icon(Icons.calendar_today, size: 16),
-            label: Text(_dateRange != null ? 'Filtrado' : 'Filtrar fechas'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            ),
-          ),
-          if (_dateRange != null) ...[
-            const SizedBox(width: 4),
-            IconButton(
-              onPressed: () {
-                setState(() => _dateRange = null);
-                _loadData();
-              },
-              icon: const Icon(Icons.close, size: 18),
-              tooltip: 'Quitar filtro',
-              style: IconButton.styleFrom(foregroundColor: AppTheme.errorColor),
-            ),
-          ],
-          const SizedBox(width: 8),
-          // Scan button
-          FilledButton.icon(
-            onPressed: _scanInvoice,
-            icon: const Icon(Icons.document_scanner, size: 18),
-            label: const Text('Escanear Factura'),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.deepPurple,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Refresh
-          IconButton(
-            onPressed: _loadData,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar',
+              ),
+              if (_dateRange != null)
+                IconButton(
+                  onPressed: () {
+                    setState(() => _dateRange = null);
+                    _loadData();
+                  },
+                  icon: const Icon(Icons.close, size: 18),
+                  tooltip: 'Quitar filtro',
+                  style: IconButton.styleFrom(
+                    foregroundColor: AppTheme.errorColor,
+                  ),
+                ),
+              FilledButton.icon(
+                onPressed: _scanInvoice,
+                icon: const Icon(Icons.document_scanner, size: 18),
+                label: const Text('Escanear Factura'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: _loadData,
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Actualizar',
+              ),
+            ],
           ),
         ],
       ),
@@ -298,106 +318,124 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
     final countByCat = _countByCategory;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
-      child: Row(
-        children: _expenseCategories.map((cat) {
-          final amount = byCategory[cat] ?? 0;
-          final count = countByCat[cat] ?? 0;
-          final isSelected = _selectedCategory == cat;
-          final color = _categoryColors[cat] ?? Colors.grey;
-          final icon = _categoryIcons[cat] ?? Icons.category;
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 4),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth;
+          int columns;
+          if (maxWidth >= 760) {
+            columns = _expenseCategories.length; // all 8 in one row
+          } else if (maxWidth >= 520) {
+            columns = 4;
+          } else {
+            columns = 2;
+          }
+          const spacing = 6.0;
+          final cardWidth = (maxWidth - (spacing * (columns - 1))) / columns;
 
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedCategory = isSelected ? null : cat;
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? color.withValues(alpha: 0.15)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected ? color : Colors.grey.shade200,
-                    width: isSelected ? 2 : 1,
-                  ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: color.withValues(alpha: 0.25),
-                            blurRadius: 6,
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(icon, size: 14, color: color),
-                        if (count > 0) ...[
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 5,
-                              vertical: 1,
-                            ),
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '$count',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                color: color,
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: _expenseCategories.map((cat) {
+              final amount = byCategory[cat] ?? 0;
+              final count = countByCat[cat] ?? 0;
+              final isSelected = _selectedCategory == cat;
+              final color = _categoryColors[cat] ?? Colors.grey;
+              final icon = _categoryIcons[cat] ?? Icons.category;
+
+              return SizedBox(
+                width: cardWidth,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedCategory = isSelected ? null : cat;
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? color.withValues(alpha: 0.15)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelected ? color : Colors.grey.shade200,
+                        width: isSelected ? 2 : 1,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.25),
+                                blurRadius: 6,
                               ),
-                            ),
+                            ]
+                          : null,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(icon, size: 14, color: color),
+                            if (count > 0) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '$count',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: color,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _categoryLabel(cat),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? color : Colors.grey[700],
                           ),
-                        ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          Formatters.currency(amount),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? color : Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _categoryLabel(cat),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? color : Colors.grey[700],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      Formatters.currency(amount),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: isSelected ? color : Colors.black87,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            }).toList(),
           );
-        }).toList(),
+        },
       ),
     );
   }
@@ -413,6 +451,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
       ),
       child: TabBar(
         controller: _tabController,
+        isScrollable: true,
         labelColor: AppTheme.primaryColor,
         unselectedLabelColor: Colors.grey[600],
         indicatorColor: AppTheme.primaryColor,
@@ -704,21 +743,27 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                     ),
                     Row(
                       children: [
-                        Text(
-                          inv.invoiceNumber,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                        Flexible(
+                          child: Text(
+                            inv.invoiceNumber,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (inv.companyDocument != null &&
                             inv.companyDocument!.isNotEmpty) ...[
                           const SizedBox(width: 8),
-                          Text(
-                            'NIT: ${inv.companyDocument}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[500],
+                          Flexible(
+                            child: Text(
+                              'NIT: ${inv.companyDocument}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[500],
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -838,7 +883,10 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
         children: [
           // IVA Summary row
           if (_ivaInvoices.isNotEmpty) ...[
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const Text(
                   'Resumen IVA Compras',
@@ -848,13 +896,9 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                     color: AppTheme.primaryColor,
                   ),
                 ),
-                const SizedBox(width: 20),
                 _buildIvaPill('Base', totalIvaBase, Colors.blue),
-                const SizedBox(width: 8),
                 _buildIvaPill('IVA', totalIva, Colors.orange),
-                const SizedBox(width: 8),
                 _buildIvaPill('RteFte', totalReteFte, Colors.red),
-                const SizedBox(width: 8),
                 _buildIvaPill('RteICA', totalReteIca, Colors.purple),
               ],
             ),

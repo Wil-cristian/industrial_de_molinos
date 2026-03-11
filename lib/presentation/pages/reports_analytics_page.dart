@@ -70,80 +70,85 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 ),
               ],
             ),
-            child: Row(
+            child: Column(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 20),
-                  onPressed: () => context.go('/'),
-                  color: AppTheme.primaryColor,
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Reportes y Analytics',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Botón Informe Mensual PDF
-                ElevatedButton.icon(
-                  onPressed: () => _showMonthlyReportDialog(context),
-                  icon: const Icon(
-                    Icons.picture_as_pdf,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                  label: const Text(
-                    'Informe Mensual',
-                    style: TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[700],
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // TabBar inline
-                Expanded(
-                  child: TabBar(
-                    controller: _tabController,
-                    labelColor: AppTheme.primaryColor,
-                    unselectedLabelColor: Colors.grey[600],
-                    indicatorColor: AppTheme.primaryColor,
-                    indicatorWeight: 2,
-                    isScrollable: true,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-                    tabs: const [
-                      Tab(text: 'Analytics'),
-                      Tab(text: 'Inventario'),
-                      Tab(text: 'Cobranzas'),
-                      Tab(text: 'Mora'),
-                      Tab(text: 'Flujo Caja'),
-                      Tab(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.person_remove_outlined, size: 14),
-                            SizedBox(width: 4),
-                            Text('Gastos Empleados'),
-                          ],
-                        ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, size: 20),
+                      onPressed: () => context.go('/'),
+                      color: AppTheme.primaryColor,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Reportes y Analytics',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _showMonthlyReportDialog(context),
+                      icon: const Icon(
+                        Icons.picture_as_pdf,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      label: const Text(
+                        'Informe Mensual',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red[700],
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                TabBar(
+                  controller: _tabController,
+                  labelColor: AppTheme.primaryColor,
+                  unselectedLabelColor: Colors.grey[600],
+                  indicatorColor: AppTheme.primaryColor,
+                  indicatorWeight: 2,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  tabs: const [
+                    Tab(text: 'Analytics'),
+                    Tab(text: 'Inventario'),
+                    Tab(text: 'Cobranzas'),
+                    Tab(text: 'Mora'),
+                    Tab(text: 'Flujo Caja'),
+                    Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person_remove_outlined, size: 14),
+                          SizedBox(width: 4),
+                          Text('Gastos Empleados'),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -483,95 +488,204 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ROW 1: KPIs principales
-          Row(
-            children: [
-              Expanded(
-                child: _buildKPICard(
-                  'Ingresos Totales',
-                  Helpers.formatCurrency(totalRevenue),
-                  Icons.trending_up,
-                  Colors.blue,
-                  subtitle: 'Últimos 12 meses',
-                  change: revenueChange,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildKPICard(
-                  'Utilidad Neta',
-                  Helpers.formatCurrency(totalProfit),
-                  Icons.account_balance_wallet,
-                  totalProfit >= 0 ? Colors.green : Colors.red,
-                  subtitle: 'Últimos 12 meses',
-                  change: profitChange,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildKPICard(
-                  'Clientes Activos',
-                  '$activeClients / $totalClients',
-                  Icons.people,
-                  Colors.purple,
-                  subtitle: totalClients > 0
-                      ? '${(activeClients / totalClients * 100).toStringAsFixed(0)}% del total'
-                      : 'Sin clientes',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildKPICard(
-                  'Por Cobrar',
-                  Helpers.formatCurrency(totalReceivables),
-                  Icons.receipt_long,
-                  Colors.orange,
-                  subtitle: overdueAmount > 0
-                      ? '${Helpers.formatCurrency(overdueAmount)} vencido'
-                      : 'Todo al día',
-                  isWarning: overdueAmount > 0,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildKPICard(
-                  'Ticket Promedio',
-                  Helpers.formatCurrency(
-                    state.healthSnapshot?.avgInvoiceValue ?? 0,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 1100;
+              if (narrow) {
+                final width = (constraints.maxWidth - 12) / 2;
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    SizedBox(
+                      width: width,
+                      child: _buildKPICard(
+                        'Ingresos Totales',
+                        Helpers.formatCurrency(totalRevenue),
+                        Icons.trending_up,
+                        Colors.blue,
+                        subtitle: 'Últimos 12 meses',
+                        change: revenueChange,
+                      ),
+                    ),
+                    SizedBox(
+                      width: width,
+                      child: _buildKPICard(
+                        'Utilidad Neta',
+                        Helpers.formatCurrency(totalProfit),
+                        Icons.account_balance_wallet,
+                        totalProfit >= 0 ? Colors.green : Colors.red,
+                        subtitle: 'Últimos 12 meses',
+                        change: profitChange,
+                      ),
+                    ),
+                    SizedBox(
+                      width: width,
+                      child: _buildKPICard(
+                        'Clientes Activos',
+                        '$activeClients / $totalClients',
+                        Icons.people,
+                        Colors.purple,
+                        subtitle: totalClients > 0
+                            ? '${(activeClients / totalClients * 100).toStringAsFixed(0)}% del total'
+                            : 'Sin clientes',
+                      ),
+                    ),
+                    SizedBox(
+                      width: width,
+                      child: _buildKPICard(
+                        'Por Cobrar',
+                        Helpers.formatCurrency(totalReceivables),
+                        Icons.receipt_long,
+                        Colors.orange,
+                        subtitle: overdueAmount > 0
+                            ? '${Helpers.formatCurrency(overdueAmount)} vencido'
+                            : 'Todo al día',
+                        isWarning: overdueAmount > 0,
+                      ),
+                    ),
+                    SizedBox(
+                      width: constraints.maxWidth,
+                      child: _buildKPICard(
+                        'Ticket Promedio',
+                        Helpers.formatCurrency(
+                          state.healthSnapshot?.avgInvoiceValue ?? 0,
+                        ),
+                        Icons.receipt,
+                        Colors.teal,
+                        subtitle:
+                            '${state.healthSnapshot?.totalInvoices ?? 0} facturas',
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(
+                    child: _buildKPICard(
+                      'Ingresos Totales',
+                      Helpers.formatCurrency(totalRevenue),
+                      Icons.trending_up,
+                      Colors.blue,
+                      subtitle: 'Últimos 12 meses',
+                      change: revenueChange,
+                    ),
                   ),
-                  Icons.receipt,
-                  Colors.teal,
-                  subtitle:
-                      '${state.healthSnapshot?.totalInvoices ?? 0} facturas',
-                ),
-              ),
-            ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildKPICard(
+                      'Utilidad Neta',
+                      Helpers.formatCurrency(totalProfit),
+                      Icons.account_balance_wallet,
+                      totalProfit >= 0 ? Colors.green : Colors.red,
+                      subtitle: 'Últimos 12 meses',
+                      change: profitChange,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildKPICard(
+                      'Clientes Activos',
+                      '$activeClients / $totalClients',
+                      Icons.people,
+                      Colors.purple,
+                      subtitle: totalClients > 0
+                          ? '${(activeClients / totalClients * 100).toStringAsFixed(0)}% del total'
+                          : 'Sin clientes',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildKPICard(
+                      'Por Cobrar',
+                      Helpers.formatCurrency(totalReceivables),
+                      Icons.receipt_long,
+                      Colors.orange,
+                      subtitle: overdueAmount > 0
+                          ? '${Helpers.formatCurrency(overdueAmount)} vencido'
+                          : 'Todo al día',
+                      isWarning: overdueAmount > 0,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildKPICard(
+                      'Ticket Promedio',
+                      Helpers.formatCurrency(
+                        state.healthSnapshot?.avgInvoiceValue ?? 0,
+                      ),
+                      Icons.receipt,
+                      Colors.teal,
+                      subtitle:
+                          '${state.healthSnapshot?.totalInvoices ?? 0} facturas',
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
 
           // ROW 2: Score de Salud + KPIs de Cobranzas (DSO, CEI, AR Turnover)
-          Row(
-            children: [
-              Expanded(child: _buildHealthScoreCard(state)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildDSOCard(state)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildCEIGauge(state)),
-              const SizedBox(width: 12),
-              Expanded(flex: 2, child: _buildDSOTrendChart(state)),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 1100;
+              if (narrow) {
+                final width = (constraints.maxWidth - 12) / 2;
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    SizedBox(width: width, child: _buildHealthScoreCard(state)),
+                    SizedBox(width: width, child: _buildDSOCard(state)),
+                    SizedBox(width: width, child: _buildCEIGauge(state)),
+                    SizedBox(
+                      width: constraints.maxWidth,
+                      child: _buildDSOTrendChart(state),
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: _buildHealthScoreCard(state)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildDSOCard(state)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildCEIGauge(state)),
+                  const SizedBox(width: 12),
+                  Expanded(flex: 2, child: _buildDSOTrendChart(state)),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
 
           // ROW 3: Gráficos principales
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Tendencia de Ingresos y Gastos (gráfico de área)
-              Expanded(flex: 2, child: _buildRevenueExpensesTrendCard(state)),
-              const SizedBox(width: 12),
-              // Distribución de Clientes
-              Expanded(child: _buildClientDistributionCard(state)),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 980;
+              if (narrow) {
+                return Column(
+                  children: [
+                    _buildRevenueExpensesTrendCard(state),
+                    const SizedBox(height: 12),
+                    _buildClientDistributionCard(state),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 2, child: _buildRevenueExpensesTrendCard(state)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildClientDistributionCard(state)),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
 
@@ -580,18 +694,33 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           const SizedBox(height: 16),
 
           // ROW 5: Rankings y detalles
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Clientes mejorado
-              Expanded(child: _buildTopClientsCardEnhanced(state)),
-              const SizedBox(width: 12),
-              // Productos Estrella mejorado
-              Expanded(child: _buildTopProductsCardEnhanced(state)),
-              const SizedBox(width: 12),
-              // Aging de cuentas por cobrar
-              Expanded(child: _buildAgingCard(state)),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 1100;
+              if (narrow) {
+                final mobile = constraints.maxWidth < 500;
+                final width = mobile ? constraints.maxWidth : (constraints.maxWidth - 12) / 2;
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    SizedBox(width: width, child: _buildTopClientsCardEnhanced(state)),
+                    SizedBox(width: width, child: _buildTopProductsCardEnhanced(state)),
+                    SizedBox(width: constraints.maxWidth, child: _buildAgingCard(state)),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildTopClientsCardEnhanced(state)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildTopProductsCardEnhanced(state)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildAgingCard(state)),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
 
@@ -604,13 +733,27 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           const SizedBox(height: 16),
 
           // ROW 8: Rotación de Inventario + Eficiencia de Materiales (NUEVO)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _buildInventoryTurnoverCard(state)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildMaterialEfficiencyCard(state)),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 980;
+              if (narrow) {
+                return Column(
+                  children: [
+                    _buildInventoryTurnoverCard(state),
+                    const SizedBox(height: 12),
+                    _buildMaterialEfficiencyCard(state),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildInventoryTurnoverCard(state)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildMaterialEfficiencyCard(state)),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -1037,24 +1180,28 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Text(
                 'Análisis ABC (Pareto 80/20)',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
-              const Spacer(),
               _buildABCLegend('A', Colors.green, '80% valor'),
-              const SizedBox(width: 12),
               _buildABCLegend('B', Colors.orange, '15% valor'),
-              const SizedBox(width: 12),
               _buildABCLegend('C', Colors.red, '5% valor'),
-              const SizedBox(width: 12),
-              Container(width: 20, height: 2, color: Colors.purple),
-              const SizedBox(width: 4),
-              Text(
-                '% Acum.',
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(width: 20, height: 2, color: Colors.purple),
+                  const SizedBox(width: 4),
+                  Text(
+                    '% Acum.',
+                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1446,17 +1593,17 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Text(
                 'Tendencia de Ingresos vs Gastos',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
-              const Spacer(),
               _buildLegendDot('Ingresos', Colors.blue),
-              const SizedBox(width: 12),
               _buildLegendDot('Gastos', Colors.red),
-              const SizedBox(width: 12),
               _buildLegendDot('Utilidad', Colors.green),
             ],
           ),
@@ -2275,32 +2422,31 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Text(
                 'Estado de Resultados',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
-              const Spacer(),
               // Resumen rápido
               _buildMiniStat(
                 'Ingresos',
                 Helpers.formatCurrency(totalRevenue),
                 Colors.blue,
               ),
-              const SizedBox(width: 16),
               _buildMiniStat(
                 'Gastos',
                 Helpers.formatCurrency(totalExpenses),
                 Colors.red,
               ),
-              const SizedBox(width: 16),
               _buildMiniStat(
                 'Utilidad',
                 Helpers.formatCurrency(totalProfit),
                 totalProfit >= 0 ? Colors.green : Colors.red,
               ),
-              const SizedBox(width: 16),
               _buildMiniStat(
                 'Margen',
                 '${margin.toStringAsFixed(1)}%',
@@ -2583,21 +2729,25 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const Icon(Icons.compare_arrows, color: Colors.indigo, size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                'Crédito vs Ganancia vs Inventario',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.compare_arrows, color: Colors.indigo, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Crédito vs Ganancia vs Inventario',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
-              const Spacer(),
               _buildLegendDot('Crédito Otorgado', Colors.red),
-              const SizedBox(width: 12),
               _buildLegendDot('Ingresos', Colors.green),
-              const SizedBox(width: 12),
               _buildLegendDot('Ganancia Est.', Colors.blue),
-              const SizedBox(width: 12),
               _buildLegendDot('Inventario', Colors.orange),
             ],
           ),
@@ -3792,14 +3942,18 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Text(
                 'Cuentas por Cobrar',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   OutlinedButton.icon(
                     onPressed: () {
@@ -3829,63 +3983,84 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           ),
           const SizedBox(height: 24),
           // KPIs
-          Row(
-            children: [
-              Expanded(
-                child: _buildKPICard(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cards = [
+                _buildKPICard(
                   'Total por Cobrar',
                   Helpers.formatCurrency(totalDebt),
                   Icons.account_balance_wallet,
                   Colors.blue,
                   subtitle: '${receivablesState.receivables.length} clientes',
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildKPICard(
+                _buildKPICard(
                   'Vencidas',
                   Helpers.formatCurrency(overdueTotal),
                   Icons.warning,
                   Colors.red,
                   subtitle: 'deuda vencida',
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildKPICard(
+                _buildKPICard(
                   'Al Día',
                   Helpers.formatCurrency(currentTotal),
                   Icons.check_circle,
                   Colors.green,
                   subtitle: '0-30 días',
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildKPICard(
+                _buildKPICard(
                   'Clientes Morosos',
                   '${receivablesState.receivables.where((r) => r.overdueInvoices > 0).length}',
                   Icons.person_off,
                   Colors.orange,
                   subtitle: 'con deuda',
                 ),
-              ),
-            ],
+              ];
+              if (constraints.maxWidth < 600) {
+                final w = (constraints.maxWidth - 16) / 2;
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: cards.map((c) => SizedBox(width: w, child: c)).toList(),
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: cards[0]),
+                  const SizedBox(width: 16),
+                  Expanded(child: cards[1]),
+                  const SizedBox(width: 16),
+                  Expanded(child: cards[2]),
+                  const SizedBox(width: 16),
+                  Expanded(child: cards[3]),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 24),
           // Row con gráfico de aging y tabla
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Gráfico de Aging
-              Expanded(child: _buildAgingChart(analyticsState)),
-              const SizedBox(width: 16),
-              // Tabla de clientes
-              Expanded(
-                flex: 2,
-                child: _buildReceivablesTable(receivablesState),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 600) {
+                return Column(
+                  children: [
+                    _buildAgingChart(analyticsState),
+                    const SizedBox(height: 16),
+                    _buildReceivablesTable(receivablesState),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildAgingChart(analyticsState)),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    flex: 2,
+                    child: _buildReceivablesTable(receivablesState),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -4063,18 +4238,19 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         children: [
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Row(
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const Text(
                   'Detalle de Cartera',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                const Spacer(),
                 Text(
                   '${state.receivables.length} clientes con deuda',
                   style: TextStyle(color: Colors.grey[600]),
                 ),
-                const SizedBox(width: 12),
                 // Botón para ir a Mora e Intereses
                 if (state.receivables.any(
                   (r) => r.overdue30 + r.overdue60 + r.overdue90 > 0,
@@ -4267,8 +4443,11 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -4285,6 +4464,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 ],
               ),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Selector de tasa de interés
                   Container(
@@ -4336,48 +4516,58 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           const SizedBox(height: 24),
 
           // KPIs de Mora
-          Row(
-            children: [
-              Expanded(
-                child: _buildKPICard(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final moraCards = [
+                _buildKPICard(
                   'Deuda Vencida',
                   Helpers.formatCurrency(debtState.totalOverdue),
                   Icons.money_off,
                   Colors.red,
                   subtitle: '${debtState.overdueDebts.length} facturas',
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildKPICard(
+                _buildKPICard(
                   'Intereses Acumulados',
                   Helpers.formatCurrency(debtState.totalInterest),
                   Icons.trending_up,
                   Colors.orange,
                   subtitle: 'por mora',
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildKPICard(
+                _buildKPICard(
                   'Total con Intereses',
                   Helpers.formatCurrency(debtState.totalWithInterest),
                   Icons.account_balance,
                   AppTheme.primaryColor,
                   subtitle: 'deuda total',
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildKPICard(
+                _buildKPICard(
                   'Clientes en Mora',
                   '${debtsOver30.length}',
                   Icons.person_off,
                   Colors.deepOrange,
                   subtitle: '>30 días',
                 ),
-              ),
-            ],
+              ];
+              if (constraints.maxWidth < 600) {
+                final w = (constraints.maxWidth - 16) / 2;
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: moraCards.map((c) => SizedBox(width: w, child: c)).toList(),
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: moraCards[0]),
+                  const SizedBox(width: 16),
+                  Expanded(child: moraCards[1]),
+                  const SizedBox(width: 16),
+                  Expanded(child: moraCards[2]),
+                  const SizedBox(width: 16),
+                  Expanded(child: moraCards[3]),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 24),
 
@@ -5104,15 +5294,22 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Row(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  const Icon(Icons.date_range, size: 20),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Período:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.date_range, size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Período:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
                   OutlinedButton(
                     onPressed: () async {
                       final picked = await showDateRangePicker(
@@ -5137,7 +5334,6 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                       style: const TextStyle(fontSize: 13),
                     ),
                   ),
-                  const SizedBox(width: 12),
                   // Resumen rápido
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -5157,7 +5353,6 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -5176,7 +5371,6 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -5206,12 +5400,9 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
           const SizedBox(height: 16),
 
           // Gráfico de torta + tablas
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Gastos por categoría
-              Expanded(
-                child: Card(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final gastoCard = Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -5225,15 +5416,16 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                               size: 20,
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              'Gastos por Categoría',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: AppTheme.errorColor,
+                            Expanded(
+                              child: Text(
+                                'Gastos por Categoría',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: AppTheme.errorColor,
+                                ),
                               ),
                             ),
-                            const Spacer(),
                             Text(
                               Formatters.currency(totalExpense),
                               style: TextStyle(
@@ -5253,7 +5445,6 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                             ),
                           )
                         else ...[
-                          // Gráfico de torta
                           SizedBox(
                             height: 200,
                             child: PieChart(
@@ -5280,7 +5471,6 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          // Tabla detallada
                           ...expenseEntries.map((e) {
                             final pct = totalExpense > 0
                                 ? (e.value / totalExpense * 100)
@@ -5331,12 +5521,8 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                       ],
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Ingresos por categoría
-              Expanded(
-                child: Card(
+                );
+              final ingresoCard = Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -5350,15 +5536,16 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                               size: 20,
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              'Ingresos por Categoría',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: AppTheme.successColor,
+                            Expanded(
+                              child: Text(
+                                'Ingresos por Categoría',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: AppTheme.successColor,
+                                ),
                               ),
                             ),
-                            const Spacer(),
                             Text(
                               Formatters.currency(totalIncome),
                               style: TextStyle(
@@ -5454,9 +5641,25 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                       ],
                     ),
                   ),
-                ),
-              ),
-            ],
+                );
+              if (constraints.maxWidth < 600) {
+                return Column(
+                  children: [
+                    gastoCard,
+                    const SizedBox(height: 16),
+                    ingresoCard,
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: gastoCard),
+                  const SizedBox(width: 16),
+                  Expanded(child: ingresoCard),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
 
@@ -5464,8 +5667,10 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                alignment: WrapAlignment.spaceAround,
                 children: [
                   _buildFlowStat(
                     'Total Movimientos',
@@ -5599,14 +5804,19 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
     try {
       var q = InventoryDataSource.client
           .from('material_movements')
-          .select('id, quantity, reason, reference, created_at, material_id, previous_stock, new_stock, materials(name, unit, cost_price)')
+          .select(
+            'id, quantity, reason, reference, created_at, material_id, previous_stock, new_stock, materials(name, unit, cost_price)',
+          )
           .eq('type', 'salida')
           .like('reason', 'Retiro por empleado:%');
 
       if (_dateRange != null) {
         q = q
             .gte('created_at', _dateRange!.start.toIso8601String())
-            .lte('created_at', _dateRange!.end.add(const Duration(days: 1)).toIso8601String());
+            .lte(
+              'created_at',
+              _dateRange!.end.add(const Duration(days: 1)).toIso8601String(),
+            );
       }
 
       final response = await q.order('created_at', ascending: false);
@@ -5637,8 +5847,11 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
   List<Map<String, dynamic>> get _filtered {
     if (_filterEmployeeId == null) return _records;
     return _records
-        .where((r) => _extractEmployeeName(r['reason'] as String?) ==
-            _filterEmployee?.fullName)
+        .where(
+          (r) =>
+              _extractEmployeeName(r['reason'] as String?) ==
+              _filterEmployee?.fullName,
+        )
         .toList();
   }
 
@@ -5672,133 +5885,206 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
         Container(
           color: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              const Icon(Icons.person_remove_outlined,
-                  color: Colors.deepOrange, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Retiros de Inventario por Empleados',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.deepOrange[700],
-                ),
-              ),
-              const Spacer(),
-              // Filtro empleado
-              SizedBox(
-                width: 200,
-                child: DropdownButtonFormField<String>(
-                  value: _filterEmployeeId,
-                  decoration: InputDecoration(
-                    labelText: 'Empleado',
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 8),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 760;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.person_remove_outlined,
+                        color: Colors.deepOrange,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Retiros de Inventario por Empleados',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.deepOrange[700],
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                  items: [
-                    const DropdownMenuItem(
-                        value: null, child: Text('Todos')),
-                    ...employees.map((e) => DropdownMenuItem(
-                          value: e.id,
-                          child: Text(e.fullName,
-                              overflow: TextOverflow.ellipsis),
-                        )),
-                  ],
-                  onChanged: (v) =>
-                      setState(() => _filterEmployeeId = v),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Filtro fechas
-              OutlinedButton.icon(
-                icon: const Icon(Icons.date_range, size: 16),
-                label: Text(
-                  _dateRange == null
-                      ? 'Todas las fechas'
-                      : '${_dateRange!.start.day}/${_dateRange!.start.month} – ${_dateRange!.end.day}/${_dateRange!.end.month}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                onPressed: () async {
-                  final picked = await showDateRangePicker(
-                    context: context,
-                    firstDate: DateTime(2024),
-                    lastDate: DateTime.now().add(const Duration(days: 1)),
-                    initialDateRange: _dateRange,
-                  );
-                  if (picked != null) {
-                    setState(() => _dateRange = picked);
-                    _loadRecords();
-                  }
-                },
-              ),
-              if (_dateRange != null) ...[
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.clear, size: 16),
-                  onPressed: () {
-                    setState(() => _dateRange = null);
-                    _loadRecords();
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                      minWidth: 28, minHeight: 28),
-                ),
-              ],
-              const SizedBox(width: 12),
-              FilledButton.icon(
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Actualizar'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                onPressed: _loadRecords,
-              ),
-            ],
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      SizedBox(
+                        width: narrow ? constraints.maxWidth : 220,
+                        child: DropdownButtonFormField<String>(
+                          value: _filterEmployeeId,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: 'Empleado',
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          items: [
+                            const DropdownMenuItem(
+                              value: null,
+                              child: Text('Todos'),
+                            ),
+                            ...employees.map(
+                              (e) => DropdownMenuItem(
+                                value: e.id,
+                                child: Text(
+                                  e.fullName,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
+                          onChanged: (v) => setState(() => _filterEmployeeId = v),
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.date_range, size: 16),
+                        label: Text(
+                          _dateRange == null
+                              ? 'Todas las fechas'
+                              : '${_dateRange!.start.day}/${_dateRange!.start.month} – ${_dateRange!.end.day}/${_dateRange!.end.month}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: () async {
+                          final picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2024),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 1),
+                            ),
+                            initialDateRange: _dateRange,
+                          );
+                          if (picked != null) {
+                            setState(() => _dateRange = picked);
+                            _loadRecords();
+                          }
+                        },
+                      ),
+                      if (_dateRange != null)
+                        IconButton(
+                          icon: const Icon(Icons.clear, size: 16),
+                          onPressed: () {
+                            setState(() => _dateRange = null);
+                            _loadRecords();
+                          },
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 28,
+                            minHeight: 28,
+                          ),
+                        ),
+                      FilledButton.icon(
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('Actualizar'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.deepOrange,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: _loadRecords,
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
           ),
         ),
         // Resumen cards
         if (!_isLoading && _records.isNotEmpty)
           Container(
             color: Colors.grey[50],
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                _summaryCard(
-                  'Total Retiros',
-                  '${_filtered.length}',
-                  Colors.deepOrange,
-                  Icons.move_to_inbox,
-                ),
-                const SizedBox(width: 12),
-                _summaryCard(
-                  'Costo Total',
-                  '\$${_totalCost.toStringAsFixed(0)}',
-                  Colors.red[700]!,
-                  Icons.attach_money,
-                ),
-                const SizedBox(width: 12),
-                _summaryCard(
-                  'Empleados',
-                  '${_filtered.map((r) => _extractEmployeeName(r['reason'] as String?)).toSet().length}',
-                  Colors.blueGrey,
-                  Icons.people,
-                ),
-              ],
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 760;
+                if (narrow) {
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      SizedBox(
+                        width: (constraints.maxWidth - 12) / 2,
+                        child: _summaryCard(
+                          'Total Retiros',
+                          '${_filtered.length}',
+                          Colors.deepOrange,
+                          Icons.move_to_inbox,
+                        ),
+                      ),
+                      SizedBox(
+                        width: (constraints.maxWidth - 12) / 2,
+                        child: _summaryCard(
+                          'Costo Total',
+                          '\$${_totalCost.toStringAsFixed(0)}',
+                          Colors.red[700]!,
+                          Icons.attach_money,
+                        ),
+                      ),
+                      SizedBox(
+                        width: constraints.maxWidth,
+                        child: _summaryCard(
+                          'Empleados',
+                          '${_filtered.map((r) => _extractEmployeeName(r['reason'] as String?)).toSet().length}',
+                          Colors.blueGrey,
+                          Icons.people,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    _summaryCard(
+                      'Total Retiros',
+                      '${_filtered.length}',
+                      Colors.deepOrange,
+                      Icons.move_to_inbox,
+                    ),
+                    const SizedBox(width: 12),
+                    _summaryCard(
+                      'Costo Total',
+                      '\$${_totalCost.toStringAsFixed(0)}',
+                      Colors.red[700]!,
+                      Icons.attach_money,
+                    ),
+                    const SizedBox(width: 12),
+                    _summaryCard(
+                      'Empleados',
+                      '${_filtered.map((r) => _extractEmployeeName(r['reason'] as String?)).toSet().length}',
+                      Colors.blueGrey,
+                      Icons.people,
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         // Tabla
@@ -5806,31 +6092,30 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _filtered.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.person_remove_outlined,
-                              size: 64, color: Colors.grey[300]),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No hay retiros registrados',
-                            style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[500]),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Usa "Salida por Empleado" en el inventario para registrar retiros',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[400]),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.person_remove_outlined,
+                        size: 64,
+                        color: Colors.grey[300],
                       ),
-                    )
-                  : _buildTable(),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No hay retiros registrados',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[500]),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Usa "Salida por Empleado" en el inventario para registrar retiros',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
+              : _buildTable(),
         ),
       ],
     );
@@ -5843,20 +6128,19 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05), blurRadius: 8)
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
         ],
       ),
       child: Column(
         children: [
           // Header
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.deepOrange.withOpacity(0.08),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(8)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(8),
+              ),
             ),
             child: Row(
               children: [
@@ -5881,32 +6165,34 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                 final mat = r['materials'] as Map<String, dynamic>?;
                 final matName = mat?['name'] as String? ?? '—';
                 final matUnit = mat?['unit'] as String? ?? '';
-                final costUnit =
-                    (mat?['cost_price'] as num?)?.toDouble() ?? 0;
-                final qty =
-                    (r['quantity'] as num?)?.toDouble() ?? 0;
+                final costUnit = (mat?['cost_price'] as num?)?.toDouble() ?? 0;
+                final qty = (r['quantity'] as num?)?.toDouble() ?? 0;
                 final total = costUnit * qty;
-                final empName =
-                    _extractEmployeeName(r['reason'] as String?);
-                final notes =
-                    _extractNotes(r['reason'] as String?);
-                final date =
-                    DateTime.tryParse(r['created_at'] as String? ?? '');
+                final empName = _extractEmployeeName(r['reason'] as String?);
+                final notes = _extractNotes(r['reason'] as String?);
+                final date = DateTime.tryParse(
+                  r['created_at'] as String? ?? '',
+                );
                 final dateStr = date != null
                     ? '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}  ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}'
                     : '—';
 
                 return Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       SizedBox(
                         width: 110,
-                        child: Text(dateStr,
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey[600])),
+                        child: Text(
+                          dateStr,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                          ),
+                        ),
                       ),
                       Expanded(
                         flex: 2,
@@ -5914,42 +6200,50 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                           children: [
                             CircleAvatar(
                               radius: 12,
-                              backgroundColor: Colors.deepOrange
-                                  .withOpacity(0.15),
+                              backgroundColor: Colors.deepOrange.withOpacity(
+                                0.15,
+                              ),
                               child: Text(
                                 empName.isNotEmpty
                                     ? empName[0].toUpperCase()
                                     : '?',
                                 style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.deepOrange[700],
-                                    fontWeight: FontWeight.bold),
+                                  fontSize: 10,
+                                  color: Colors.deepOrange[700],
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 6),
                             Expanded(
-                              child: Text(empName,
-                                  style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500),
-                                  overflow: TextOverflow.ellipsis),
+                              child: Text(
+                                empName,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
                       ),
                       Expanded(
                         flex: 2,
-                        child: Text(matName,
-                            style: const TextStyle(fontSize: 11),
-                            overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          matName,
+                          style: const TextStyle(fontSize: 11),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       SizedBox(
                         width: 90,
                         child: Text(
                           '${qty.toStringAsFixed(qty % 1 == 0 ? 0 : 2)} $matUnit',
                           style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -5958,7 +6252,9 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                         child: Text(
                           '\$${costUnit.toStringAsFixed(0)}',
                           style: TextStyle(
-                              fontSize: 11, color: Colors.grey[600]),
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                          ),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -5967,9 +6263,10 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                         child: Text(
                           '\$${total.toStringAsFixed(0)}',
                           style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red[700]),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red[700],
+                          ),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -5978,7 +6275,9 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                         child: Text(
                           notes,
                           style: TextStyle(
-                              fontSize: 10, color: Colors.grey[500]),
+                            fontSize: 10,
+                            color: Colors.grey[500],
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -5993,22 +6292,26 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
     );
   }
 
-  Widget _th(String text, double? width,
-      {int flex = 0, TextAlign align = TextAlign.left}) {
+  Widget _th(
+    String text,
+    double? width, {
+    int flex = 0,
+    TextAlign align = TextAlign.left,
+  }) {
     final child = Text(
       text,
       style: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 11,
-          color: Colors.deepOrange[800]),
+        fontWeight: FontWeight.w600,
+        fontSize: 11,
+        color: Colors.deepOrange[800],
+      ),
       textAlign: align,
     );
     if (width != null) return SizedBox(width: width, child: child);
     return Expanded(flex: flex, child: child);
   }
 
-  Widget _summaryCard(
-      String label, String value, Color color, IconData icon) {
+  Widget _summaryCard(String label, String value, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
@@ -6023,13 +6326,18 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-              Text(value,
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: color)),
+              Text(
+                label,
+                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
             ],
           ),
         ],
@@ -6037,4 +6345,3 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
     );
   }
 }
-

@@ -50,6 +50,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final authState = ref.watch(authProvider);
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 800;
+    final isMobile = size.width < 600;
 
     return Scaffold(
       body: Container(
@@ -66,7 +67,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ),
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(isMobile ? 16 : 24),
             child: Container(
               constraints: BoxConstraints(maxWidth: isWide ? 480 : 400),
               child: Card(
@@ -76,7 +77,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(40),
+                  padding: EdgeInsets.all(isMobile ? 24 : 40),
                   child: Form(
                     key: _formKey,
                     child: Column(

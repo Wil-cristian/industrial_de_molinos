@@ -100,18 +100,16 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
               ),
               const SizedBox(height: 12),
               // Filtros
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   _buildFilterChip('Todas', null),
-                  const SizedBox(width: 8),
                   _buildFilterChip('Borrador', 'borrador'),
-                  const SizedBox(width: 8),
                   _buildFilterChip('Enviadas', 'enviada'),
-                  const SizedBox(width: 8),
                   _buildFilterChip('Recibidas', 'recibida'),
-                  const SizedBox(width: 8),
                   _buildFilterChip('Canceladas', 'cancelada'),
-                  const Spacer(),
                   OutlinedButton.icon(
                     onPressed: () =>
                         ref.read(purchaseOrdersProvider.notifier).loadOrders(),

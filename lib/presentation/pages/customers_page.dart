@@ -110,15 +110,15 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                   visualDensity: VisualDensity.compact,
                 ),
                 const SizedBox(width: 8),
-                // Tabs
-                SizedBox(
-                  width: 450,
+                Expanded(
                   child: TabBar(
                     controller: _tabController,
                     indicatorColor: AppTheme.primaryColor,
                     labelColor: AppTheme.primaryColor,
                     unselectedLabelColor: Colors.grey[600],
                     indicatorWeight: 3,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
                     labelStyle: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -142,7 +142,6 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                     ],
                   ),
                 ),
-                const Spacer(),
               ],
             ),
           ),
@@ -175,7 +174,10 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
                     '${state.customers.length} clientes registrados',
@@ -183,8 +185,6 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                       color: Colors.grey[600],
                     ),
                   ),
-                  const Spacer(),
-                  // Stats rápidas
                   _buildQuickStat(
                     'Total Deuda',
                     Formatters.currency(
@@ -196,14 +196,12 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                     Colors.orange,
                     Icons.account_balance_wallet,
                   ),
-                  const SizedBox(width: 12),
                   _buildQuickStat(
                     'Clientes Activos',
                     state.customers.where((c) => c.isActive).length.toString(),
                     Colors.green,
                     Icons.people,
                   ),
-                  const SizedBox(width: 16),
                   FilledButton.icon(
                     onPressed: () => _showAddCustomerDialog(context),
                     icon: const Icon(Icons.person_add, size: 18),
@@ -219,118 +217,120 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
               ),
               const SizedBox(height: 12),
               // Barra de búsqueda y filtros
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextField(
-                      onChanged: (value) =>
-                          ref.read(customersProvider.notifier).search(value),
-                      decoration: InputDecoration(
-                        hintText: 'Buscar por nombre, documento o email...',
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[50],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Filtro
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.grey[50],
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedFilter,
-                        items:
-                            [
-                                  'Todos',
-                                  'Activos',
-                                  'Con Deuda',
-                                  'Empresas',
-                                  'Personas',
-                                ]
-                                .map(
-                                  (filter) => DropdownMenuItem(
-                                    value: filter,
-                                    child: Text(filter),
-                                  ),
-                                )
-                                .toList(),
-                        onChanged: (value) =>
-                            setState(() => _selectedFilter = value!),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Botón refrescar
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        ref.read(customersProvider.notifier).loadCustomers(),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Actualizar'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Botón recalcular balances
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      try {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Recalculando balances...'),
-                            duration: Duration(seconds: 1),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 980;
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 10,
+                    children: [
+                      SizedBox(
+                        width: isNarrow ? constraints.maxWidth : 420,
+                        child: TextField(
+                          onChanged: (value) =>
+                              ref.read(customersProvider.notifier).search(value),
+                          decoration: InputDecoration(
+                            hintText: 'Buscar por nombre, documento o email...',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
                           ),
-                        );
-                        await CustomersDataSource.recalculateAllBalances();
-                        ref.read(customersProvider.notifier).loadCustomers();
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('✅ Balances recalculados'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.calculate, color: Colors.orange),
-                    label: const Text('Recalcular Deudas'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.orange,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey[50],
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedFilter,
+                            items:
+                                [
+                                      'Todos',
+                                      'Activos',
+                                      'Con Deuda',
+                                      'Empresas',
+                                      'Personas',
+                                    ]
+                                    .map(
+                                      (filter) => DropdownMenuItem(
+                                        value: filter,
+                                        child: Text(filter),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (value) =>
+                                setState(() => _selectedFilter = value!),
+                          ),
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            ref.read(customersProvider.notifier).loadCustomers(),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Actualizar'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          try {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Recalculando balances...'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                            await CustomersDataSource.recalculateAllBalances();
+                            ref.read(customersProvider.notifier).loadCustomers();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('✅ Balances recalculados'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.calculate, color: Colors.orange),
+                        label: const Text('Recalcular Saldos'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.orange[700],
+                          side: BorderSide(color: Colors.orange[300]!),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -504,23 +504,33 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 4),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
             children: [
-              Icon(Icons.badge, size: 14, color: Colors.grey[400]),
-              const SizedBox(width: 4),
-              Text(
-                '${customer.documentType.displayName}: ${customer.documentNumber}',
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.badge, size: 14, color: Colors.grey[400]),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${customer.documentType.displayName}: ${customer.documentNumber}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              if (customer.phone != null) ...[
-                Icon(Icons.phone, size: 14, color: Colors.grey[400]),
-                const SizedBox(width: 4),
-                Text(
-                  customer.phone!,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              if (customer.phone != null)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.phone, size: 14, color: Colors.grey[400]),
+                    const SizedBox(width: 4),
+                    Text(
+                      customer.phone!,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
                 ),
-              ],
             ],
           ),
           if (debt > 0) ...[
@@ -693,7 +703,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
         builder: (context, setDialogState) => AlertDialog(
           title: Text(isEditMode ? 'Editar Cliente' : 'Nuevo Cliente'),
           content: SizedBox(
-            width: 500,
+            width: MediaQuery.of(context).size.width < 600 ? double.maxFinite : 500,
             child: Form(
               key: formKey,
               child: SingleChildScrollView(
@@ -1114,11 +1124,14 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
             .toList()
           ..sort((a, b) => b.date.compareTo(a.date));
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: screenWidth < 600 ? const EdgeInsets.all(16) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: Container(
-        width: 700,
-        height: 550,
+        width: screenWidth < 600 ? double.maxFinite : 700,
+        height: screenHeight < 700 ? screenHeight * 0.85 : 550,
         padding: const EdgeInsets.all(0),
         child: Column(
           children: [
@@ -1646,7 +1659,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
               ],
             ),
             content: SizedBox(
-              width: 420,
+              width: MediaQuery.of(context).size.width < 600 ? double.maxFinite : 420,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

@@ -20,8 +20,8 @@ import '../../domain/entities/material.dart' as mat;
 class _ItemInventoryMatch {
   final ScannedInvoiceItem item;
   final mat.Material? aiRecommendation; // Lo que sugirió el fuzzy match
-  mat.Material? matchedMaterial;        // Lo que el usuario eligió
-  bool createNew;                       // true = crear nuevo material
+  mat.Material? matchedMaterial; // Lo que el usuario eligió
+  bool createNew; // true = crear nuevo material
   bool selected;
 
   _ItemInventoryMatch({
@@ -1310,16 +1310,16 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         final existing = await IvaDataSource.findByInvoiceNumber(invoiceNum);
         if (existing.isNotEmpty && mounted) {
           final dup = existing.first;
-          final dateStr = dup.invoiceDate.day.toString().padLeft(2, '0') +
-              '/' +
-              dup.invoiceDate.month.toString().padLeft(2, '0') +
-              '/' +
-              dup.invoiceDate.year.toString();
+          final dateStr =
+              '${dup.invoiceDate.day.toString().padLeft(2, '0')}/${dup.invoiceDate.month.toString().padLeft(2, '0')}/${dup.invoiceDate.year}';
           final proceed = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              icon: Icon(Icons.warning_amber_rounded,
-                  color: Colors.orange.shade700, size: 48),
+              icon: Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange.shade700,
+                size: 48,
+              ),
               title: const Text('⚠️ Factura posiblemente duplicada'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1364,8 +1364,10 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange.shade700,
                   ),
-                  child: const Text('Registrar de todas formas',
-                      style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    'Registrar de todas formas',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -1609,20 +1611,16 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     }
 
     // Construir lista de matches
-    final matches = _scanResult!.items
-        .map(
-          (item) {
-            final recommended = _findBestMatch(item.description, allMaterials);
-            return _ItemInventoryMatch(
-              item: item,
-              aiRecommendation: recommended,
-              matchedMaterial: recommended,
-              createNew: recommended == null,
-              selected: true,
-            );
-          },
-        )
-        .toList();
+    final matches = _scanResult!.items.map((item) {
+      final recommended = _findBestMatch(item.description, allMaterials);
+      return _ItemInventoryMatch(
+        item: item,
+        aiRecommendation: recommended,
+        matchedMaterial: recommended,
+        createNew: recommended == null,
+        selected: true,
+      );
+    }).toList();
 
     if (!mounted) return false;
 
@@ -1809,13 +1807,20 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.auto_awesome, color: Colors.blue.shade700, size: 18),
+                    Icon(
+                      Icons.auto_awesome,
+                      color: Colors.blue.shade700,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'La IA sugiere materiales existentes. Puedes cambiar la selección '
                         'o elegir "Crear nuevo material" para cada ítem.',
-                        style: TextStyle(color: Colors.blue.shade800, fontSize: 12),
+                        style: TextStyle(
+                          color: Colors.blue.shade800,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -1825,7 +1830,10 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
             // Lista de ítems
             Flexible(
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 itemCount: widget.matches.length,
                 itemBuilder: (context, index) {
                   return _buildMatchItem(widget.matches[index]);
@@ -1852,7 +1860,10 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal.shade700,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ],
@@ -1869,7 +1880,8 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
     final isNew = match.isNew;
     final statusColor = isNew ? Colors.orange.shade700 : Colors.teal.shade700;
     final statusBg = isNew ? Colors.orange.shade50 : Colors.teal.shade50;
-    final qtyLabel = '+${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} '
+    final qtyLabel =
+        '+${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} '
         '${item.unit.isEmpty ? 'UND' : item.unit}';
 
     return Container(
@@ -1878,7 +1890,9 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
         color: match.selected ? statusBg : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: match.selected ? statusColor.withOpacity(0.4) : Colors.grey.shade200,
+          color: match.selected
+              ? statusColor.withOpacity(0.4)
+              : Colors.grey.shade200,
         ),
       ),
       child: Padding(
@@ -1895,18 +1909,25 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                   child: Checkbox(
                     value: match.selected,
                     activeColor: statusColor,
-                    onChanged: (val) => setState(() => match.selected = val ?? false),
+                    onChanged: (val) =>
+                        setState(() => match.selected = val ?? false),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     item.description,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -1930,7 +1951,11 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                   padding: const EdgeInsets.only(left: 34, bottom: 8),
                   child: Row(
                     children: [
-                      Icon(Icons.auto_awesome, size: 14, color: Colors.blue.shade600),
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 14,
+                        color: Colors.blue.shade600,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'IA sugiere: ',
@@ -1944,7 +1969,10 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                         child: Text(
                           '${match.aiRecommendation!.name} '
                           '(stock: ${match.aiRecommendation!.stock.toStringAsFixed(match.aiRecommendation!.stock % 1 == 0 ? 0 : 2)} ${match.aiRecommendation!.unit})',
-                          style: TextStyle(fontSize: 11, color: Colors.blue.shade700),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.blue.shade700,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -1955,13 +1983,20 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
               Padding(
                 padding: const EdgeInsets.only(left: 34),
                 child: DropdownButtonFormField<String>(
-                  value: match.createNew ? '__new__' : match.matchedMaterial?.id,
+                  value: match.createNew
+                      ? '__new__'
+                      : match.matchedMaterial?.id,
                   decoration: InputDecoration(
                     labelText: 'Material en inventario',
                     border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     prefixIcon: Icon(
-                      match.createNew ? Icons.add_circle_outline : Icons.check_circle_outline,
+                      match.createNew
+                          ? Icons.add_circle_outline
+                          : Icons.check_circle_outline,
                       color: statusColor,
                       size: 20,
                     ),
@@ -1973,7 +2008,11 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                       value: '__new__',
                       child: Row(
                         children: [
-                          Icon(Icons.add_circle, size: 16, color: Colors.orange.shade700),
+                          Icon(
+                            Icons.add_circle,
+                            size: 16,
+                            color: Colors.orange.shade700,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Crear nuevo material',
@@ -1992,16 +2031,26 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                         child: Row(
                           children: [
                             if (isRecommended)
-                              Icon(Icons.auto_awesome, size: 14, color: Colors.blue.shade600)
+                              Icon(
+                                Icons.auto_awesome,
+                                size: 14,
+                                color: Colors.blue.shade600,
+                              )
                             else
-                              Icon(Icons.inventory_2_outlined, size: 14, color: Colors.grey.shade500),
+                              Icon(
+                                Icons.inventory_2_outlined,
+                                size: 14,
+                                color: Colors.grey.shade500,
+                              ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 '${m.name} (${m.stock.toStringAsFixed(m.stock % 1 == 0 ? 0 : 2)} ${m.unit})',
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontWeight: isRecommended ? FontWeight.w600 : FontWeight.normal,
+                                  fontWeight: isRecommended
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
                                   fontSize: 13,
                                 ),
                               ),
@@ -2018,7 +2067,9 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                         match.matchedMaterial = null;
                       } else {
                         match.createNew = false;
-                        match.matchedMaterial = widget.allMaterials.firstWhere((m) => m.id == val);
+                        match.matchedMaterial = widget.allMaterials.firstWhere(
+                          (m) => m.id == val,
+                        );
                       }
                     });
                   },

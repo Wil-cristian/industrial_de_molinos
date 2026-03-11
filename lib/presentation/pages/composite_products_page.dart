@@ -40,126 +40,144 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
           Container(
             padding: const EdgeInsets.all(24),
             color: Colors.white,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 980;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: AppTheme.primaryColor,
-                      ),
-                      onPressed: () => context.go('/'),
-                      tooltip: 'Volver al menú',
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Productos Compuestos',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryColor,
-                                ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: AppTheme.primaryColor,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${state.products.length} productos registrados',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _buildQuickStat(
-                      'Molinos',
-                      '${state.products.where((p) => p.category == ProductCategories.molino).length}',
-                      Colors.blue,
-                      Icons.settings,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildQuickStat(
-                      'Otros',
-                      '${state.products.where((p) => p.category != ProductCategories.molino).length}',
-                      Colors.green,
-                      Icons.category,
-                    ),
-                    const SizedBox(width: 24),
-                    FilledButton.icon(
-                      onPressed: () => _showCreateProductDialog(),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Nuevo Producto'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
+                          onPressed: () => context.go('/'),
+                          tooltip: 'Volver al menú',
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // ── Filtros ──
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Buscar por nombre o código...',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                        ),
-                        onChanged: (value) => ref
-                            .read(compositeProductsProvider.notifier)
-                            .setSearchQuery(value),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: state.selectedCategory,
-                        decoration: InputDecoration(
-                          labelText: 'Categoría',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                        ),
-                        items: [
-                          const DropdownMenuItem(
-                            value: 'todos',
-                            child: Text('Todas'),
-                          ),
-                          ...ProductCategories.all.map(
-                            (cat) => DropdownMenuItem(
-                              value: cat,
-                              child: Text(
-                                ProductCategories.getDisplayName(cat),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Productos Compuestos',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primaryColor,
+                                    ),
                               ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${state.products.length} productos registrados',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        _buildQuickStat(
+                          'Molinos',
+                          '${state.products.where((p) => p.category == ProductCategories.molino).length}',
+                          Colors.blue,
+                          Icons.settings,
+                        ),
+                        _buildQuickStat(
+                          'Otros',
+                          '${state.products.where((p) => p.category != ProductCategories.molino).length}',
+                          Colors.green,
+                          Icons.category,
+                        ),
+                        FilledButton.icon(
+                          onPressed: () => _showCreateProductDialog(),
+                          icon: const Icon(Icons.add),
+                          label: Text(isNarrow ? 'Nuevo' : 'Nuevo Producto'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
                             ),
                           ),
-                        ],
-                        onChanged: (value) => ref
-                            .read(compositeProductsProvider.notifier)
-                            .setSelectedCategory(value ?? 'todos'),
-                      ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 10,
+                      children: [
+                        SizedBox(
+                          width: isNarrow
+                              ? constraints.maxWidth
+                              : constraints.maxWidth * 0.62,
+                          child: TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Buscar por nombre o código...',
+                              prefixIcon: const Icon(Icons.search),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            onChanged: (value) => ref
+                                .read(compositeProductsProvider.notifier)
+                                .setSearchQuery(value),
+                          ),
+                        ),
+                        SizedBox(
+                          width: isNarrow
+                              ? constraints.maxWidth
+                              : constraints.maxWidth * 0.34,
+                          child: DropdownButtonFormField<String>(
+                            value: state.selectedCategory,
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: 'Categoría',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            items: [
+                              const DropdownMenuItem(
+                                value: 'todos',
+                                child: Text('Todas'),
+                              ),
+                              ...ProductCategories.all.map(
+                                (cat) => DropdownMenuItem(
+                                  value: cat,
+                                  child: Text(
+                                    ProductCategories.getDisplayName(cat),
+                                  ),
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) => ref
+                                .read(compositeProductsProvider.notifier)
+                                .setSelectedCategory(value ?? 'todos'),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ],
+                );
+              },
             ),
           ),
 
@@ -173,17 +191,26 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                 ? _buildEmptyState()
                 : Padding(
                     padding: const EdgeInsets.all(24),
-                    child: GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            childAspectRatio: 1.2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                      itemCount: filteredProducts.length,
-                      itemBuilder: (context, index) {
-                        return _buildProductCard(filteredProducts[index]);
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns = constraints.maxWidth >= 1200
+                            ? 3
+                            : constraints.maxWidth >= 760
+                            ? 2
+                            : 1;
+                        return GridView.builder(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: columns,
+                                childAspectRatio: columns == 1 ? 1.6 : 1.2,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                              ),
+                          itemCount: filteredProducts.length,
+                          itemBuilder: (context, index) {
+                            return _buildProductCard(filteredProducts[index]);
+                          },
+                        );
                       },
                     ),
                   ),
@@ -251,26 +278,28 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
     IconData icon,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 8),
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
               ),
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),

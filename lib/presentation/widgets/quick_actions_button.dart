@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/responsive/responsive_helper.dart';
 
 class QuickActionsButton extends StatefulWidget {
   const QuickActionsButton({super.key});
@@ -125,6 +126,12 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
     final screenHeight = MediaQuery.of(context).size.height;
     final maxPanelHeight =
         screenHeight - 180; // Espacio para el botón y márgenes
+    final isMobile = ResponsiveHelper.isMobile(context);
+
+    // En móvil, se usa como FAB simple (sin posicionamiento absoluto)
+    if (isMobile) {
+      return _buildMobileFab(context, maxPanelHeight);
+    }
 
     return Stack(
       alignment: Alignment.bottomLeft,
@@ -271,6 +278,97 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
     );
   }
 
+  Widget _buildMobileFab(BuildContext context, double maxPanelHeight) {
+    if (!_isExpanded) {
+      return FloatingActionButton(
+        onPressed: _toggleExpanded,
+        backgroundColor: AppTheme.primaryColor,
+        child: const Icon(Icons.bolt, color: Colors.white, size: 26),
+      );
+    }
+
+    // Cuando está expandido, mostramos un bottom sheet
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_isExpanded) {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          isScrollControlled: true,
+          builder: (ctx) => Container(
+            margin: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.flash_on, color: AppTheme.primaryColor, size: 18),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text('Acciones Rápidas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+                  child: GridView.count(
+                    crossAxisCount: 3,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 4,
+                    crossAxisSpacing: 4,
+                    childAspectRatio: 1.1,
+                    children: _actions.map((action) => _MobileActionItem(
+                      icon: action.icon,
+                      label: action.label,
+                      color: action.color,
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        setState(() => _isExpanded = false);
+                        _animationController.reverse();
+                        context.go(action.route);
+                      },
+                    )).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ).whenComplete(() {
+          if (mounted) setState(() { _isExpanded = false; _animationController.reverse(); });
+        });
+      }
+    });
+
+    return FloatingActionButton(
+      onPressed: _toggleExpanded,
+      backgroundColor: AppTheme.primaryColor,
+      child: const Icon(Icons.close, color: Colors.white, size: 26),
+    );
+  }
+
   Widget _buildActionItem(
     BuildContext context,
     QuickActionItem action,
@@ -352,4 +450,51 @@ class QuickActionItem {
     required this.route,
     required this.color,
   });
+}
+
+class _MobileActionItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _MobileActionItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade700,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
 }

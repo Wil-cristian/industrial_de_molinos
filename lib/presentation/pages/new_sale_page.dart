@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/utils/helpers.dart';
 import '../../core/utils/logger.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../data/providers/providers.dart';
 import '../../data/datasources/invoices_datasource.dart';
 import '../../data/datasources/inventory_datasource.dart';
@@ -276,149 +277,169 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
   // ════════════════════════ BUILD ════════════════════════
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      body: Row(
-        children: [
-          // Panel lateral con resumen
-          Container(
-            width: 280,
-            color: Colors.white,
-            child: _buildSummaryPanel(),
-          ),
-          // Contenido principal
-          Expanded(
-            child: Column(
-              children: [
-                _buildHeader(),
-                Expanded(
-                  child: Form(
-                    key: _formKey,
-                    child: Stepper(
-                      currentStep: _currentStep,
-                      onStepContinue: _onStepContinue,
-                      onStepCancel: _onStepCancel,
-                      onStepTapped: (step) =>
-                          setState(() => _currentStep = step),
-                      controlsBuilder: (context, details) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Row(
-                            children: [
-                              if (_currentStep < 3)
-                                ElevatedButton(
-                                  onPressed: details.onStepContinue,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _saleThemeColor,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 10,
-                                    ),
-                                  ),
-                                  child: const Text('Continuar'),
-                                ),
-                              if (_currentStep == 3) ...[
-                                ElevatedButton.icon(
-                                  onPressed: _isSaving
-                                      ? null
-                                      : _showSalePreview,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _saleThemeColor,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  icon: _isSaving
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Icon(Icons.receipt_long),
-                                  label: Text(
-                                    _isSaving
-                                        ? 'Procesando...'
-                                        : 'Previsualizar Venta',
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(width: 12),
-                              if (_currentStep > 0)
-                                TextButton(
-                                  onPressed: details.onStepCancel,
-                                  child: const Text('Atrás'),
-                                ),
-                            ],
+    final isMobile = ResponsiveHelper.isMobile(context);
+
+    final mainContent = Column(
+      children: [
+        _buildHeader(),
+        Expanded(
+          child: Form(
+            key: _formKey,
+            child: Stepper(
+              currentStep: _currentStep,
+              onStepContinue: _onStepContinue,
+              onStepCancel: _onStepCancel,
+              onStepTapped: (step) => setState(() => _currentStep = step),
+              controlsBuilder: (context, details) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Row(
+                    children: [
+                      if (_currentStep < 3)
+                        ElevatedButton(
+                          onPressed: details.onStepContinue,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _saleThemeColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
                           ),
-                        );
-                      },
-                      steps: [
-                        Step(
-                          title: const Text('Cliente'),
-                          subtitle: Text(
-                            _selectedCustomerId != null
-                                ? _customers.firstWhere(
-                                    (c) => c['id'] == _selectedCustomerId,
-                                    orElse: () => <String, dynamic>{
-                                      'name': '...',
-                                    },
-                                  )['name']
-                                : 'Selecciona un cliente',
-                          ),
-                          isActive: _currentStep >= 0,
-                          state: _currentStep > 0
-                              ? StepState.complete
-                              : StepState.indexed,
-                          content: _buildCustomerStep(),
+                          child: const Text('Continuar'),
                         ),
-                        Step(
-                          title: const Text('Productos'),
-                          subtitle: Text(
-                            '${_items.length} items - ${Helpers.formatNumber(_totalWeight)} kg',
+                      if (_currentStep == 3) ...[
+                        ElevatedButton.icon(
+                          onPressed: _isSaving ? null : _showSalePreview,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _saleThemeColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
                           ),
-                          isActive: _currentStep >= 1,
-                          state: _currentStep > 1
-                              ? StepState.complete
-                              : StepState.indexed,
-                          content: _buildComponentsStep(),
-                        ),
-                        Step(
-                          title: const Text('Costos y Precios'),
-                          subtitle: Text(
-                            'M.O. + Indirectos: ${Helpers.formatCurrency(_laborCost + _indirectCosts)}',
+                          icon: _isSaving
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.receipt_long),
+                          label: Text(
+                            _isSaving ? 'Procesando...' : 'Previsualizar Venta',
                           ),
-                          isActive: _currentStep >= 2,
-                          state: _currentStep > 2
-                              ? StepState.complete
-                              : StepState.indexed,
-                          content: _buildCostsStep(),
-                        ),
-                        Step(
-                          title: const Text('Pago y Confirmación'),
-                          subtitle: Text(
-                            'Total: ${Helpers.formatCurrency(_total)}',
-                          ),
-                          isActive: _currentStep >= 3,
-                          state: _currentStep == 3
-                              ? StepState.indexed
-                              : StepState.indexed,
-                          content: _buildPaymentStep(),
                         ),
                       ],
-                    ),
+                      const SizedBox(width: 12),
+                      if (_currentStep > 0)
+                        TextButton(
+                          onPressed: details.onStepCancel,
+                          child: const Text('Atrás'),
+                        ),
+                    ],
                   ),
+                );
+              },
+              steps: [
+                Step(
+                  title: const Text('Cliente'),
+                  subtitle: Text(
+                    _selectedCustomerId != null
+                        ? _customers.firstWhere(
+                            (c) => c['id'] == _selectedCustomerId,
+                            orElse: () => <String, dynamic>{'name': '...'},
+                          )['name']
+                        : 'Selecciona un cliente',
+                  ),
+                  isActive: _currentStep >= 0,
+                  state: _currentStep > 0
+                      ? StepState.complete
+                      : StepState.indexed,
+                  content: _buildCustomerStep(),
+                ),
+                Step(
+                  title: const Text('Productos'),
+                  subtitle: Text(
+                    '${_items.length} items - ${Helpers.formatNumber(_totalWeight)} kg',
+                  ),
+                  isActive: _currentStep >= 1,
+                  state: _currentStep > 1
+                      ? StepState.complete
+                      : StepState.indexed,
+                  content: _buildComponentsStep(),
+                ),
+                Step(
+                  title: const Text('Costos y Precios'),
+                  subtitle: Text(
+                    'M.O. + Indirectos: ${Helpers.formatCurrency(_laborCost + _indirectCosts)}',
+                  ),
+                  isActive: _currentStep >= 2,
+                  state: _currentStep > 2
+                      ? StepState.complete
+                      : StepState.indexed,
+                  content: _buildCostsStep(),
+                ),
+                Step(
+                  title: const Text('Pago y Confirmación'),
+                  subtitle: Text('Total: ${Helpers.formatCurrency(_total)}'),
+                  isActive: _currentStep >= 3,
+                  state: _currentStep == 3
+                      ? StepState.indexed
+                      : StepState.indexed,
+                  content: _buildPaymentStep(),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      body: isMobile
+          ? mainContent
+          : Row(
+              children: [
+                Container(
+                  width: 280,
+                  color: Colors.white,
+                  child: _buildSummaryPanel(),
+                ),
+                Expanded(child: mainContent),
+              ],
+            ),
+      floatingActionButton: isMobile
+          ? FloatingActionButton.small(
+              backgroundColor: _saleThemeColor,
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                  builder: (_) => DraggableScrollableSheet(
+                    initialChildSize: 0.6,
+                    maxChildSize: 0.9,
+                    minChildSize: 0.3,
+                    expand: false,
+                    builder: (_, controller) => SingleChildScrollView(
+                      controller: controller,
+                      child: _buildSummaryPanel(),
+                    ),
+                  ),
+                );
+              },
+              child: const Icon(Icons.receipt_long, size: 20),
+            )
+          : null,
     );
   }
 
@@ -2416,7 +2437,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             ],
           ),
           content: SizedBox(
-            width: 400,
+            width: MediaQuery.of(context).size.width < 600
+                ? double.maxFinite
+                : 400,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2487,7 +2510,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           ],
         ),
         content: SizedBox(
-          width: 400,
+          width: MediaQuery.of(context).size.width < 600
+              ? double.maxFinite
+              : 400,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

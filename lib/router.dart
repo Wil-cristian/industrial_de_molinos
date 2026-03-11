@@ -8,7 +8,6 @@ import 'presentation/pages/dashboard_page.dart';
 import 'presentation/pages/customers_page.dart';
 import 'presentation/pages/invoices_page.dart';
 import 'presentation/pages/reports_analytics_page.dart';
-import 'presentation/pages/settings_page.dart';
 import 'presentation/pages/quotations_page.dart';
 import 'presentation/pages/new_quotation_page.dart';
 import 'presentation/pages/new_sale_page.dart';
@@ -24,8 +23,10 @@ import 'presentation/pages/login_page.dart';
 import 'presentation/pages/accounting_page.dart';
 import 'presentation/pages/iva_control_page.dart';
 import 'presentation/widgets/app_sidebar.dart';
+import 'presentation/widgets/app_bottom_nav_bar.dart';
 import 'presentation/widgets/quick_actions_button.dart';
 import 'core/theme/app_theme.dart';
+import 'core/responsive/responsive_helper.dart';
 
 // Claves de navegación para mantener el estado
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -261,17 +262,7 @@ final GoRouter router = GoRouter(
             ),
           ],
         ),
-        // Branch 13: Configuración
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/settings',
-              pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: SettingsPage()),
-            ),
-          ],
-        ),
-        // Branch 14: Productos Compuestos
+        // Branch 13: Productos Compuestos
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -303,7 +294,7 @@ final GoRouter router = GoRouter(
   ],
 );
 
-/// Shell principal que mantiene el sidebar y el contenido
+/// Shell principal adaptivo: sidebar en desktop, bottom nav en móvil
 class _MainShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
   final String currentPath;
@@ -312,14 +303,28 @@ class _MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+
+    if (isMobile) {
+      return Scaffold(
+        body: Container(
+          color: AppTheme.backgroundColor,
+          child: navigationShell,
+        ),
+        bottomNavigationBar: AppBottomNavBar(
+          currentRoute: currentPath,
+          navigationShell: navigationShell,
+        ),
+      );
+    }
+
+    // Desktop/Tablet: sidebar + contenido
     return Scaffold(
       body: Stack(
         children: [
           Row(
             children: [
-              // Sidebar persistente
               AppSidebar(currentRoute: currentPath),
-              // Contenido de la página actual
               Expanded(
                 child: Container(
                   color: AppTheme.backgroundColor,
@@ -328,7 +333,6 @@ class _MainShell extends StatelessWidget {
               ),
             ],
           ),
-          // Botón de acciones rápidas flotante (siempre visible)
           const QuickActionsButton(),
         ],
       ),

@@ -84,44 +84,48 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
         mainAxisSize: MainAxisSize.min,
         children: [
           // Título + indicadores
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.receipt_long,
-                  color: AppTheme.primaryColor,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Control IVA',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.receipt_long,
+                      color: AppTheme.primaryColor,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Control IVA',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Régimen Simple de Tributación',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                  ],
-                ),
+                      Text(
+                        'Régimen Simple de Tributación',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               // Indicador resumen
-              if (state.currentSettlement != null) ...[
+              if (state.currentSettlement != null)
                 _buildMiniSummary(state.currentSettlement!),
-              ],
-              const SizedBox(width: 8),
               FilledButton.icon(
                 onPressed: () => _showScanInvoiceDialog(),
                 icon: const Icon(Icons.document_scanner, size: 18),
@@ -135,13 +139,10 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                 ),
               ),
               if (state.isLoading)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
             ],
           ),
@@ -246,94 +247,122 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
     // Generar lista de periodos disponibles (último año)
     final periods = _generatePeriods();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      color: Colors.white,
-      child: Row(
-        children: [
-          // Selector de periodo
-          Expanded(
-            flex: 2,
-            child: DropdownButtonFormField<String>(
-              value: periods.contains(state.selectedPeriod)
-                  ? state.selectedPeriod
-                  : null,
-              decoration: const InputDecoration(
-                labelText: 'Periodo',
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                border: OutlineInputBorder(),
-              ),
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
-              items: periods.map((p) {
-                final parts = p.split('-');
-                final year = parts[0];
-                final bim = int.parse(parts[1]);
-                return DropdownMenuItem(
-                  value: p,
-                  child: Text(
-                    '${getBimesterName(bim)} $year',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                );
-              }).toList(),
-              onChanged: (v) {
-                if (v != null) ref.read(ivaProvider.notifier).changePeriod(v);
-              },
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        final periodoDropdown = DropdownButtonFormField<String>(
+          value: periods.contains(state.selectedPeriod)
+              ? state.selectedPeriod
+              : null,
+          decoration: const InputDecoration(
+            labelText: 'Periodo',
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 8,
             ),
+            border: OutlineInputBorder(),
           ),
-          const SizedBox(width: 8),
-          // Filtro tipo
-          Expanded(
-            child: DropdownButtonFormField<String?>(
-              value: state.selectedType,
-              decoration: const InputDecoration(
-                labelText: 'Tipo',
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                border: OutlineInputBorder(),
+          isExpanded: true,
+          style: const TextStyle(fontSize: 13, color: Colors.black87),
+          items: periods.map((p) {
+            final parts = p.split('-');
+            final year = parts[0];
+            final bim = int.parse(parts[1]);
+            return DropdownMenuItem(
+              value: p,
+              child: Text(
+                '${getBimesterName(bim)} $year',
+                style: const TextStyle(fontSize: 13),
               ),
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
-              items: const [
-                DropdownMenuItem(
-                  value: null,
-                  child: Text('Todos', style: TextStyle(fontSize: 13)),
+            );
+          }).toList(),
+          onChanged: (v) {
+            if (v != null) ref.read(ivaProvider.notifier).changePeriod(v);
+          },
+        );
+        final tipoDropdown = DropdownButtonFormField<String?>(
+          value: state.selectedType,
+          decoration: const InputDecoration(
+            labelText: 'Tipo',
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 8,
+            ),
+            border: OutlineInputBorder(),
+          ),
+          isExpanded: true,
+          style: const TextStyle(fontSize: 13, color: Colors.black87),
+          items: const [
+            DropdownMenuItem(
+              value: null,
+              child: Text('Todos', style: TextStyle(fontSize: 13)),
+            ),
+            DropdownMenuItem(
+              value: 'COMPRA',
+              child: Text('Compras', style: TextStyle(fontSize: 13)),
+            ),
+            DropdownMenuItem(
+              value: 'VENTA',
+              child: Text('Ventas', style: TextStyle(fontSize: 13)),
+            ),
+          ],
+          onChanged: (v) => ref.read(ivaProvider.notifier).filterByType(v),
+        );
+        final addButton = ElevatedButton.icon(
+          onPressed: () => _showInvoiceDialog(null),
+          icon: const Icon(Icons.add, size: 16),
+          label: const Text('Agregar', style: TextStyle(fontSize: 12)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        );
+
+        if (isMobile) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            color: Colors.white,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(flex: 2, child: periodoDropdown),
+                    const SizedBox(width: 8),
+                    Expanded(child: tipoDropdown),
+                  ],
                 ),
-                DropdownMenuItem(
-                  value: 'COMPRA',
-                  child: Text('Compras', style: TextStyle(fontSize: 13)),
-                ),
-                DropdownMenuItem(
-                  value: 'VENTA',
-                  child: Text('Ventas', style: TextStyle(fontSize: 13)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: _buildQuickSummary(state)),
+                    const SizedBox(width: 8),
+                    addButton,
+                  ],
                 ),
               ],
-              onChanged: (v) => ref.read(ivaProvider.notifier).filterByType(v),
             ),
+          );
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          color: Colors.white,
+          child: Row(
+            children: [
+              Expanded(flex: 2, child: periodoDropdown),
+              const SizedBox(width: 8),
+              Expanded(child: tipoDropdown),
+              const SizedBox(width: 8),
+              _buildQuickSummary(state),
+              const SizedBox(width: 8),
+              addButton,
+            ],
           ),
-          const SizedBox(width: 8),
-          // Resumen rápido
-          _buildQuickSummary(state),
-          const SizedBox(width: 8),
-          // Botón agregar
-          ElevatedButton.icon(
-            onPressed: () => _showInvoiceDialog(null),
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text('Agregar', style: TextStyle(fontSize: 12)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
