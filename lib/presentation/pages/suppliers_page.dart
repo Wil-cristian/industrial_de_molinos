@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/suppliers_datasource.dart';
@@ -67,7 +68,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
         // Header
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -83,14 +84,14 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                   _buildQuickStat(
                     'Total Deuda',
                     '\$${Helpers.formatNumber(state.suppliers.fold(0.0, (sum, s) => sum + s.currentDebt))}',
-                    Colors.orange,
+                    AppColors.warning,
                     Icons.account_balance_wallet,
                   ),
                   const SizedBox(width: 12),
                   _buildQuickStat(
                     'Activos',
                     state.suppliers.where((s) => s.isActive).length.toString(),
-                    Colors.green,
+                    AppColors.success,
                     Icons.local_shipping,
                   ),
                   const SizedBox(width: 16),
@@ -129,7 +130,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                           borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                         ),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
                       ),
                     ),
                   ),
@@ -139,7 +140,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                     decoration: BoxDecoration(
                       border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                       borderRadius: BorderRadius.circular(12),
-                      color: Colors.grey[50],
+                      color: Theme.of(context).colorScheme.surfaceContainerLowest,
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -188,11 +189,11 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
             padding: const EdgeInsets.all(4),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(4),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
                     blurRadius: 2,
                     offset: const Offset(0, 1),
                   ),
@@ -210,7 +211,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                             Icon(
                               Icons.error_outline,
                               size: 48,
-                              color: Colors.red[300],
+                              color: AppColors.danger.withOpacity(0.6),
                             ),
                             const SizedBox(height: 16),
                             Text('Error: ${state.error}'),
@@ -306,10 +307,10 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
 
   Widget _buildSupplierTile(Supplier supplier) {
     final debt = supplier.currentDebt;
-    Color statusColor = supplier.isActive ? Colors.green : Colors.grey;
+    Color statusColor = supplier.isActive ? AppColors.success : Theme.of(context).colorScheme.onSurfaceVariant;
     Color typeColor = supplier.type == SupplierType.business
-        ? Colors.blue
-        : Colors.purple;
+        ? AppColors.info
+        : const Color(0xFF7B1FA2);
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -394,13 +395,13 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.warning_amber, size: 14, color: Colors.orange),
+                Icon(Icons.warning_amber, size: 14, color: AppColors.warning),
                 const SizedBox(width: 4),
                 Text(
                   'Deuda: \$${Helpers.formatNumber(debt)}',
                   style: const TextStyle(
                     fontSize: 12,
-                    color: Colors.orange,
+                    color: AppColors.warning,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -439,9 +440,9 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
               value: 'pay_debt',
               child: Row(
                 children: [
-                  Icon(Icons.payments, size: 20, color: Colors.green),
+                  Icon(Icons.payments, size: 20, color: AppColors.success),
                   SizedBox(width: 8),
-                  Text('Registrar Pago', style: TextStyle(color: Colors.green)),
+                  Text('Registrar Pago', style: TextStyle(color: AppColors.success)),
                 ],
               ),
             ),
@@ -449,9 +450,9 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
             value: 'delete',
             child: Row(
               children: [
-                Icon(Icons.delete, size: 20, color: Colors.red),
+                Icon(Icons.delete, size: 20, color: AppColors.danger),
                 SizedBox(width: 8),
-                Text('Eliminar', style: TextStyle(color: Colors.red)),
+                Text('Eliminar', style: TextStyle(color: AppColors.danger)),
               ],
             ),
           ),
@@ -621,9 +622,9 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.05),
+                      color: AppColors.info.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                      border: Border.all(color: AppColors.info.withOpacity(0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -633,14 +634,14 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                             Icon(
                               Icons.account_balance,
                               size: 18,
-                              color: Colors.blue[700],
+                              color: AppColors.info,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Datos Bancarios (opcional)',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue[700],
+                                color: AppColors.info,
                               ),
                             ),
                           ],
@@ -687,7 +688,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('El nombre es requerido'),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppColors.warning,
                     ),
                   );
                   return;
@@ -696,7 +697,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('El documento es requerido'),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppColors.warning,
                     ),
                   );
                   return;
@@ -789,7 +790,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
         builder: (ctx, setDialogState) => AlertDialog(
           title: Row(
             children: [
-              Icon(Icons.payments, color: Colors.green.shade700),
+              Icon(Icons.payments, color: AppColors.success),
               const SizedBox(width: 8),
               const Expanded(child: Text('Registrar Pago a Proveedor')),
             ],
@@ -804,13 +805,13 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
+                    color: AppColors.warning.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.shade200),
+                    border: Border.all(color: AppColors.warning.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.business, color: Colors.orange.shade700),
+                      Icon(Icons.business, color: AppColors.warning),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
@@ -825,7 +826,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                             Text(
                               'Deuda actual: \$${Helpers.formatNumber(supplier.currentDebt)}',
                               style: TextStyle(
-                                color: Colors.orange.shade800,
+                                color: AppColors.warning,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -936,7 +937,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: AppColors.info.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -944,7 +945,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                       Icon(
                         Icons.info_outline,
                         size: 16,
-                        color: Colors.blue.shade700,
+                        color: AppColors.info,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -953,7 +954,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                           'un asiento contable automático y se reducirá la deuda.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.blue.shade700,
+                            color: AppColors.info,
                           ),
                         ),
                       ),
@@ -977,7 +978,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                         ScaffoldMessenger.of(ctx).showSnackBar(
                           const SnackBar(
                             content: Text('El monto debe ser mayor a 0'),
-                            backgroundColor: Colors.orange,
+                            backgroundColor: AppColors.warning,
                           ),
                         );
                         return;
@@ -988,7 +989,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                             content: Text(
                               'El monto no puede exceder la deuda (\$${Helpers.formatNumber(supplier.currentDebt)})',
                             ),
-                            backgroundColor: Colors.orange,
+                            backgroundColor: AppColors.warning,
                           ),
                         );
                         return;
@@ -1037,7 +1038,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                                     : '✅ Abono de \$${Helpers.formatNumber(amount)} registrado. '
                                           'Deuda restante: \$${Helpers.formatNumber(remaining)}',
                               ),
-                              backgroundColor: Colors.green.shade700,
+                              backgroundColor: AppColors.success,
                               duration: const Duration(seconds: 4),
                             ),
                           );
@@ -1066,7 +1067,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                   : const Icon(Icons.payments, size: 18),
               label: Text(isProcessing ? 'Procesando...' : 'Registrar Pago'),
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.green.shade700,
+                backgroundColor: AppColors.success,
               ),
             ),
           ],
@@ -1090,10 +1091,10 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: selected ? Colors.green.shade600 : Colors.grey.shade300,
+            color: selected ? AppColors.success : Theme.of(context).colorScheme.outlineVariant,
             width: selected ? 2 : 1,
           ),
-          color: selected ? Colors.green.shade50 : Colors.transparent,
+          color: selected ? AppColors.success.withOpacity(0.1) : Colors.transparent,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1101,7 +1102,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
             Icon(
               icon,
               size: 18,
-              color: selected ? Colors.green.shade700 : Colors.grey.shade500,
+              color: selected ? AppColors.success : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 6),
             Text(
@@ -1109,7 +1110,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                color: selected ? Colors.green.shade700 : Colors.grey.shade600,
+                color: selected ? AppColors.success : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -1147,7 +1148,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                 );
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
             child: const Text('Eliminar'),
           ),
         ],
@@ -1202,13 +1203,13 @@ class _SupplierDetailDialog extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
+                color: AppColors.danger.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 'Deuda: ${Formatters.currency(supplier.currentDebt)}',
                 style: const TextStyle(
-                  color: Colors.red,
+                  color: AppColors.danger,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
@@ -1370,7 +1371,7 @@ class _SupplierDetailDialog extends ConsumerWidget {
                         Text(
                           '→ Último: ${Formatters.currency(sm.lastPurchasePrice!)}',
                           style: const TextStyle(
-                            color: Colors.orange,
+                            color: AppColors.warning,
                             fontSize: 11,
                           ),
                         ),
@@ -1391,12 +1392,12 @@ class _SupplierDetailDialog extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (sm.isPreferred)
-                        const Icon(Icons.star, color: Colors.amber, size: 18),
+                        const Icon(Icons.star, color: const Color(0xFFF9A825), size: 18),
                       IconButton(
                         icon: Icon(
                           Icons.delete,
                           size: 16,
-                          color: Colors.red[400],
+                          color: AppColors.danger,
                         ),
                         visualDensity: VisualDensity.compact,
                         onPressed: () async {
@@ -1416,7 +1417,7 @@ class _SupplierDetailDialog extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.blue.withValues(alpha: 0.05),
+            color: AppColors.info.withOpacity(0.05),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -1544,7 +1545,7 @@ class _SupplierDetailDialog extends ConsumerWidget {
                         Text(
                           'Debe: ${Formatters.currency(order.balance)}',
                           style: TextStyle(
-                            color: Colors.red[400],
+                            color: AppColors.danger,
                             fontSize: 11,
                           ),
                         ),
@@ -1559,7 +1560,7 @@ class _SupplierDetailDialog extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha: 0.05),
+            color: AppColors.warning.withOpacity(0.05),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -1575,7 +1576,7 @@ class _SupplierDetailDialog extends ConsumerWidget {
               Text(
                 'Pendiente: ${Formatters.currency(poState.orders.fold(0.0, (s, o) => s + o.balance))}',
                 style: TextStyle(
-                  color: Colors.red[600],
+                  color: AppColors.danger,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
@@ -1682,15 +1683,15 @@ class _SupplierDetailDialog extends ConsumerWidget {
   Color _getStatusColor(PurchaseOrderStatus status) {
     switch (status) {
       case PurchaseOrderStatus.borrador:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
       case PurchaseOrderStatus.enviada:
-        return Colors.blue;
+        return AppColors.info;
       case PurchaseOrderStatus.parcial:
-        return Colors.orange;
+        return AppColors.warning;
       case PurchaseOrderStatus.recibida:
-        return Colors.green;
+        return AppColors.success;
       case PurchaseOrderStatus.cancelada:
-        return Colors.red;
+        return AppColors.danger;
     }
   }
 

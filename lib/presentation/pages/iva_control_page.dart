@@ -43,7 +43,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
     final state = ref.watch(ivaProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFFAFAFA),
       body: Column(
         children: [
           _buildHeader(state),
@@ -74,7 +74,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -117,7 +117,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                       ),
                       Text(
                         'Régimen Simple de Tributación',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                        style: TextStyle(fontSize: 11, color: const Color(0xFF9E9E9E)),
                       ),
                     ],
                   ),
@@ -151,7 +151,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
           TabBar(
             controller: _tabController,
             labelColor: Theme.of(context).colorScheme.primary,
-            unselectedLabelColor: Colors.grey,
+            unselectedLabelColor: const Color(0xFF9E9E9E),
             indicatorColor: Theme.of(context).colorScheme.primary,
             labelStyle: const TextStyle(
               fontSize: 12,
@@ -200,7 +200,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
         children: [
           Text(
             '${s.bimesterName} ${s.year}',
-            style: const TextStyle(fontSize: 9, color: Colors.grey),
+            style: const TextStyle(fontSize: 9, color: const Color(0xFF9E9E9E)),
           ),
           Text(
             _currencyFormat.format(s.totalAPagar),
@@ -264,7 +264,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             border: OutlineInputBorder(),
           ),
           isExpanded: true,
-          style: const TextStyle(fontSize: 13, color: Colors.black87),
+          style: const TextStyle(fontSize: 13, color: const Color(0xDD000000)),
           items: periods.map((p) {
             final parts = p.split('-');
             final year = parts[0];
@@ -293,7 +293,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             border: OutlineInputBorder(),
           ),
           isExpanded: true,
-          style: const TextStyle(fontSize: 13, color: Colors.black87),
+          style: const TextStyle(fontSize: 13, color: const Color(0xDD000000)),
           items: const [
             DropdownMenuItem(
               value: null,
@@ -370,7 +370,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -407,7 +407,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.receipt_long, size: 64, color: Colors.grey[300]),
+          Icon(Icons.receipt_long, size: 64, color: const Color(0xFFE0E0E0)),
           const SizedBox(height: 12),
           Text(
             'No hay facturas en este periodo',
@@ -439,7 +439,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
 
   Widget _buildInvoiceCard(IvaInvoice inv) {
     final isVenta = inv.invoiceType == 'VENTA';
-    final color = isVenta ? AppColors.success : Colors.blue;
+    final color = isVenta ? AppColors.success : const Color(0xFF1565C0);
     final dateStr = DateFormat('dd/MM/yyyy').format(inv.invoiceDate);
     final hasExtras =
         inv.cufe != null ||
@@ -500,7 +500,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                     width: 80,
                     child: Text(
                       dateStr,
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      style: const TextStyle(fontSize: 11, color: const Color(0xFF9E9E9E)),
                     ),
                   ),
                   // Empresa
@@ -569,7 +569,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                         child: const Icon(
                           Icons.star,
                           size: 14,
-                          color: Colors.amber,
+                          color: const Color(0xFFF9A825),
                         ),
                       ),
                     ),
@@ -578,7 +578,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                     icon: const Icon(
                       Icons.delete_outline,
                       size: 16,
-                      color: Colors.red,
+                      color: const Color(0xFFC62828),
                     ),
                     onPressed: () => _confirmDelete(inv),
                     padding: EdgeInsets.zero,
@@ -614,7 +614,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                             'RteFte: ${_currencyFormat.format(inv.rteFteAmount)}',
                             style: TextStyle(
                               fontSize: 9,
-                              color: Colors.orange[700],
+                              color: const Color(0xFFF57C00),
                             ),
                           ),
                         ),
@@ -625,7 +625,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                             'ReteICA: ${_currencyFormat.format(inv.reteIcaAmount)}',
                             style: TextStyle(
                               fontSize: 9,
-                              color: Colors.purple[400],
+                              color: const Color(0xFFAB47BC),
                             ),
                           ),
                         ),
@@ -691,7 +691,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                   ),
                   Text(
                     'Periodo: $bimName',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: const TextStyle(fontSize: 12, color: const Color(0xFF9E9E9E)),
                   ),
                 ],
               ),
@@ -762,12 +762,12 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             ),
             const SizedBox(height: 8),
             // Compras
-            _buildSectionHeader('COMPRAS (Descontable)', Colors.blue),
+            _buildSectionHeader('COMPRAS (Descontable)', const Color(0xFF1565C0)),
             _buildDetailRow('Base Compras', s.baseCompras),
             _buildDetailRow(
               'IVA Compras (19%)',
               s.ivaCompras,
-              color: Colors.blue,
+              color: const Color(0xFF1565C0),
             ),
             const Divider(height: 24),
             // Cálculos
@@ -781,7 +781,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
               _buildDetailRow(
                 'ReteIVA descontable',
                 -s.reteiva,
-                color: Colors.orange,
+                color: const Color(0xFFF9A825),
               ),
             const Divider(height: 24),
             // Total
@@ -849,7 +849,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: color ?? Colors.black87,
+              color: color ?? const Color(0xDD000000),
             ),
           ),
         ],
@@ -895,16 +895,16 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
       decoration: BoxDecoration(
         color: s.isSettled
             ? AppColors.success.withValues(alpha: 0.05)
-            : Colors.grey[50],
+            : const Color(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        border: Border.all(color: const Color(0xFF9E9E9E).withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
           Icon(
             s.isSettled ? Icons.check_circle : Icons.pending,
             size: 18,
-            color: s.isSettled ? AppColors.success : Colors.orange,
+            color: s.isSettled ? AppColors.success : const Color(0xFFF9A825),
           ),
           const SizedBox(width: 8),
           Text(
@@ -935,7 +935,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
               s.settledAt != null
                   ? DateFormat('dd/MM/yy').format(s.settledAt!)
                   : 'Declarado',
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
+              style: const TextStyle(fontSize: 10, color: const Color(0xFF9E9E9E)),
             ),
         ],
       ),
@@ -1304,9 +1304,9 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                         width: double.infinity,
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
+                          color: const Color(0xFFE3F2FD),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue.shade200),
+                          border: Border.all(color: const Color(0xFF90CAF9)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1316,7 +1316,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                                 Icon(
                                   Icons.receipt_long,
                                   size: 14,
-                                  color: Colors.blue[700],
+                                  color: const Color(0xFF1976D2),
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -1324,7 +1324,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.blue[700],
+                                    color: const Color(0xFF1976D2),
                                   ),
                                 ),
                               ],
@@ -1569,7 +1569,7 @@ class _CalculadoraIvaState extends State<_CalculadoraIva> {
                   const SizedBox(height: 8),
                   Text(
                     'Tarifa IVA: ${(widget.ivaRate * 100).toStringAsFixed(0)}%',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: const TextStyle(fontSize: 12, color: const Color(0xFF9E9E9E)),
                   ),
                   const SizedBox(height: 20),
                   // Desde Total
@@ -1695,7 +1695,7 @@ class _CalculadoraIvaState extends State<_CalculadoraIva> {
                     _buildResultRow(
                       'Neto a Pagar',
                       _total - _reteiva,
-                      Colors.blue,
+                      const Color(0xFF1565C0),
                       isBold: true,
                     ),
                   ],

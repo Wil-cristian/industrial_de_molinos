@@ -277,7 +277,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.grey[100],
+          color: const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
@@ -286,7 +286,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
           children: [
             Text(
               currentValue,
-              style: TextStyle(fontSize: 10, color: Colors.grey[700]),
+              style: TextStyle(fontSize: 10, color: const Color(0xFF616161)),
             ),
             const SizedBox(width: 2),
             Icon(Icons.arrow_drop_down, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -355,16 +355,16 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               color: isSelected
                   ? Theme.of(context).colorScheme.primary
                   : isToday
-                  ? Colors.blue[50]
+                  ? const Color(0xFFE3F2FD)
                   : isCurrentMonth
                   ? Colors.white
-                  : Colors.grey[50],
+                  : const Color(0xFFFAFAFA),
               border: Border.all(
                 color: isSelected
                     ? Theme.of(context).colorScheme.primary
                     : isToday
-                    ? Colors.blue
-                    : Colors.grey[300]!,
+                    ? const Color(0xFF1565C0)
+                    : const Color(0xFFE0E0E0),
                 width: isSelected ? 2 : 1,
               ),
               borderRadius: BorderRadius.circular(4),
@@ -380,8 +380,8 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                     color: isSelected
                         ? Colors.white
                         : isCurrentMonth
-                        ? Colors.black87
-                        : Colors.grey[400],
+                        ? const Color(0xDD000000)
+                        : const Color(0xFFBDBDBD),
                   ),
                 ),
                 if (activities.isNotEmpty)
@@ -480,7 +480,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 );
               }
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFC62828)),
             child: const Text('Eliminar'),
           ),
         ],
@@ -787,7 +787,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                 const SizedBox(height: 16),
                 Container(
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -800,7 +800,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                               : 'Evento único',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: const Color(0xFF757575),
                           ),
                         ),
                         value: _isRecurring,
@@ -1040,8 +1040,8 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                         : '$createdCount eventos recurrentes creados exitosamente',
                   ),
                   backgroundColor: failedCount > 0
-                      ? Colors.orange
-                      : Colors.green,
+                      ? const Color(0xFFF9A825)
+                      : const Color(0xFF2E7D32),
                 ),
               );
             } else {
@@ -1098,7 +1098,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFC62828)),
         );
       }
     }
@@ -1188,7 +1188,7 @@ class _ActivityCard extends StatelessWidget {
                 activity.description!.isNotEmpty)
               Text(
                 activity.description!,
-                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -1220,7 +1220,7 @@ class _ActivityCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.1),
+                    color: const Color(0xFFF9A825).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -1228,7 +1228,7 @@ class _ActivityCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: Colors.amber,
+                      color: const Color(0xFFF9A825),
                     ),
                   ),
                 ),

@@ -226,7 +226,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 Icon(
                   icon,
                   size: 20,
-                  color: isSelected ? cs.primary : Colors.grey[600],
+                  color: isSelected ? cs.primary : const Color(0xFF757575),
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -236,7 +236,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected
                         ? cs.primary
-                        : Colors.grey[800],
+                        : const Color(0xFF424242),
                   ),
                 ),
               ],
@@ -275,7 +275,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       child: Text(
         text,
         style: TextStyle(
-          color: onTap != null ? Colors.grey[600] : Colors.grey[800],
+          color: onTap != null ? const Color(0xFF757575) : const Color(0xFF424242),
           fontWeight: onTap != null ? FontWeight.normal : FontWeight.w600,
         ),
       ),
@@ -814,7 +814,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             Icon(
               icon,
               size: 16,
-              color: selected ? Colors.grey[800] : Colors.grey[500],
+              color: selected ? const Color(0xFF424242) : const Color(0xFF9E9E9E),
             ),
             const SizedBox(width: 6),
             Text(
@@ -822,7 +822,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                color: selected ? Colors.grey[800] : Colors.grey[500],
+                color: selected ? const Color(0xFF424242) : const Color(0xFF9E9E9E),
               ),
             ),
           ],
@@ -890,12 +890,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: const Color(0xFFF9A825).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     Icons.warning_amber,
-                    color: Colors.orange,
+                    color: const Color(0xFFF9A825),
                     size: 20,
                   ),
                 ),
@@ -912,12 +912,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: const Color(0xFFC62828).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     Icons.receipt_long,
-                    color: Colors.red,
+                    color: const Color(0xFFC62828),
                     size: 20,
                   ),
                 ),
@@ -934,12 +934,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: const Color(0xFF1565C0).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     Icons.task_alt,
-                    color: Colors.blue,
+                    color: const Color(0xFF1565C0),
                     size: 20,
                   ),
                 ),
@@ -977,7 +977,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: const Color(0xFF2E7D32).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -1036,7 +1036,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 'Exportar Datos',
                 'Descarga toda la información en formato Excel.',
                 'Exportar',
-                Colors.blue,
+                const Color(0xFF1565C0),
                 () {},
               ),
               const Divider(height: 32),
@@ -1045,7 +1045,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 'Restaurar Datos',
                 'Importa datos desde un archivo de respaldo.',
                 'Importar',
-                Colors.orange,
+                const Color(0xFFF9A825),
                 () {},
               ),
               const Divider(height: 32),
@@ -1054,7 +1054,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 'Limpiar Datos de Prueba',
                 'Elimina registros de demostración.',
                 'Limpiar',
-                Colors.red,
+                const Color(0xFFC62828),
                 () => _showConfirmDialog(
                   'Limpiar Datos',
                   '¿Eliminar todos los datos de prueba?',
@@ -1253,8 +1253,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           OutlinedButton(
             onPressed: onTap,
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
+              foregroundColor: const Color(0xFFC62828),
+              side: const BorderSide(color: const Color(0xFFC62828)),
             ),
             child: const Text('Eliminar'),
           ),
@@ -1320,7 +1320,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ? Icon(prefixIcon, color: cs.onSurfaceVariant)
             : null,
         filled: !enabled,
-        fillColor: enabled ? null : Colors.grey[100],
+        fillColor: enabled ? null : const Color(0xFFF5F5F5),
       ),
     );
   }

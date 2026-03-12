@@ -1,4 +1,4 @@
-Ôªøimport '../../core/utils/logger.dart';
+import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/customer.dart';
@@ -93,7 +93,7 @@ class InvoicesDataSource {
         .toList();
   }
 
-  /// Genera el siguiente n√∫mero de recibo para una serie
+  /// Genera el siguiente n˙mero de recibo para una serie
   static Future<String> generateNumber(String series) async {
     final response = await _client.rpc(
       'generate_invoice_number',
@@ -117,7 +117,7 @@ class InvoicesDataSource {
     String? quotationId,
     String? notes,
   }) async {
-    // Generar n√∫mero
+    // Generar n˙mero
     final number = await generateNumber(series);
 
     // Calcular montos
@@ -187,7 +187,7 @@ class InvoicesDataSource {
       notes: notes,
     );
 
-    AppLogger.debug('üíæ Creada factura: ${invoice.number}');
+    AppLogger.debug('?? Creada factura: ${invoice.number}');
 
     // Insertar items
     for (int i = 0; i < items.length; i++) {
@@ -210,12 +210,12 @@ class InvoicesDataSource {
         'sort_order': i,
       });
       AppLogger.success(
-        '‚úÖ Item insertado: ${item.productName} x${item.quantity}',
+        '? Item insertado: ${item.productName} x${item.quantity}',
       );
     }
 
     // NOTA: El descuento de inventario se hace en updateStatus() cuando
-    // el estado cambia a 'issued', NO aqu√≠ al crear el borrador.
+    // el estado cambia a 'issued', NO aquÌ al crear el borrador.
     // Esto evita el descuento doble.
 
     return invoice;
@@ -240,7 +240,7 @@ class InvoicesDataSource {
     // Obtener estado actual para manejar stock
     final currentInvoice = await getById(id);
 
-    // Si se est√° emitiendo el recibo, descontar stock
+    // Si se est· emitiendo el recibo, descontar stock
     if (status == 'issued') {
       await _updateStockForInvoice(id, decrease: true);
     }
@@ -254,7 +254,7 @@ class InvoicesDataSource {
         await _updateStockForInvoice(id, decrease: false); // Restaurar stock
       }
 
-      // Revertir pagos si hab√≠a alguno
+      // Revertir pagos si habÌa alguno
       if (currentInvoice.paidAmount > 0) {
         await _revertPayments(id, currentInvoice);
       }
@@ -262,7 +262,7 @@ class InvoicesDataSource {
 
     await _client.from('invoices').update({'status': status}).eq('id', id);
 
-    // Recalcular balance del cliente despu√©s de cualquier cambio de estado
+    // Recalcular balance del cliente despuÈs de cualquier cambio de estado
     if (currentInvoice?.customerId != null &&
         currentInvoice!.customerId!.isNotEmpty) {
       try {
@@ -270,15 +270,15 @@ class InvoicesDataSource {
           currentInvoice.customerId!,
         );
         AppLogger.success(
-          '‚úÖ Balance del cliente recalculado despu√©s de cambio de estado: $newBalance',
+          '? Balance del cliente recalculado despuÈs de cambio de estado: $newBalance',
         );
       } catch (e) {
-        AppLogger.warning('‚ö†Ô∏è No se pudo recalcular balance del cliente: $e');
+        AppLogger.warning('?? No se pudo recalcular balance del cliente: $e');
       }
     }
   }
 
-  /// Revierte los pagos de una factura anulada (usa RPC at√≥mica)
+  /// Revierte los pagos de una factura anulada (usa RPC atÛmica)
   static Future<void> _revertPayments(String invoiceId, Invoice invoice) async {
     // Verificar que no haya reversiones previas
     final existingReversals = await _client
@@ -292,21 +292,21 @@ class InvoicesDataSource {
     }
 
     try {
-      // Intentar usar la RPC at√≥mica
+      // Intentar usar la RPC atÛmica
       await _client.rpc(
         'atomic_revert_invoice_payments',
         params: {'p_invoice_id': invoiceId},
       );
       AppLogger.success(
-        '‚úÖ Pagos revertidos at√≥micamente para factura $invoiceId',
+        '? Pagos revertidos atÛmicamente para factura $invoiceId',
       );
     } catch (e) {
-      // Fallback: si la RPC no existe, usar el m√©todo cl√°sico
+      // Fallback: si la RPC no existe, usar el mÈtodo cl·sico
       if (e.toString().contains('function') &&
           e.toString().contains('not exist')) {
         await _revertPaymentsLegacy(invoiceId, invoice);
       } else {
-        AppLogger.error('‚ùå Error al revertir pagos: $e');
+        AppLogger.error('? Error al revertir pagos: $e');
         rethrow;
       }
     }
@@ -336,7 +336,7 @@ class InvoicesDataSource {
             category: MovementCategory.gastos_reducibles,
             amount: amount,
             description:
-                'Reversi√≥n por anulaci√≥n - ${invoice.series}-${invoice.number}',
+                'ReversiÛn por anulaciÛn - ${invoice.series}-${invoice.number}',
             reference: 'ANULACION-${invoice.series}-${invoice.number}',
             personName: invoice.customerName,
             date: DateTime.now(),
@@ -345,7 +345,7 @@ class InvoicesDataSource {
           await AccountsDataSource.createMovementWithBalanceUpdate(
             reverseMovement,
           );
-          AppLogger.success('‚úÖ Pago revertido: $amount de cuenta $accountId');
+          AppLogger.success('? Pago revertido: $amount de cuenta $accountId');
         }
       }
 
@@ -354,9 +354,9 @@ class InvoicesDataSource {
           .update({'paid_amount': 0})
           .eq('id', invoiceId);
 
-      AppLogger.success('‚úÖ Pagos revertidos (legacy) para factura $invoiceId');
+      AppLogger.success('? Pagos revertidos (legacy) para factura $invoiceId');
     } catch (e) {
-      AppLogger.error('‚ùå Error al revertir pagos: $e');
+      AppLogger.error('? Error al revertir pagos: $e');
       rethrow;
     }
   }
@@ -368,26 +368,26 @@ class InvoicesDataSource {
   }) async {
     if (decrease) {
       try {
-        // Usar la funci√≥n unificada de descuento (server-side, at√≥mica)
+        // Usar la funciÛn unificada de descuento (server-side, atÛmica)
         await _client.rpc(
           'deduct_inventory_for_invoice',
           params: {'p_invoice_id': invoiceId},
         );
-        AppLogger.success('‚úÖ Stock descontado v√≠a RPC para factura $invoiceId');
+        AppLogger.success('? Stock descontado vÌa RPC para factura $invoiceId');
       } catch (e) {
-        AppLogger.error('‚ùå Error al descontar inventario v√≠a RPC: $e');
-        rethrow; // No usar fallback manual ‚Äî la RPC es la fuente de verdad
+        AppLogger.error('? Error al descontar inventario vÌa RPC: $e');
+        rethrow; // No usar fallback manual ó la RPC es la fuente de verdad
       }
     } else {
-      // Restaurar stock (cancelaci√≥n)
+      // Restaurar stock (cancelaciÛn)
       try {
         await _client.rpc(
           'revert_invoice_material_deduction',
           params: {'p_invoice_id': invoiceId},
         );
-        AppLogger.success('‚úÖ Stock restaurado v√≠a RPC para factura $invoiceId');
+        AppLogger.success('? Stock restaurado vÌa RPC para factura $invoiceId');
       } catch (e) {
-        AppLogger.error('‚ùå Error al restaurar stock v√≠a RPC: $e');
+        AppLogger.error('? Error al restaurar stock vÌa RPC: $e');
         rethrow;
       }
     }
@@ -418,7 +418,7 @@ class InvoicesDataSource {
         throw Exception('No se puede registrar pago en un recibo anulado');
       }
       if (invoice.status.name == 'paid') {
-        throw Exception('El recibo ya est√° completamente pagado');
+        throw Exception('El recibo ya est· completamente pagado');
       }
 
       // Validar que no exceda el monto pendiente
@@ -429,7 +429,7 @@ class InvoicesDataSource {
         );
       }
 
-      // Insertar pago - solo campos b√°sicos que seguro existen
+      // Insertar pago - solo campos b·sicos que seguro existen
       final paymentData = <String, dynamic>{
         'invoice_id': invoiceId,
         'amount': amount,
@@ -470,7 +470,7 @@ class InvoicesDataSource {
           })
           .eq('id', invoiceId);
 
-      // Si se especific√≥ una cuenta, crear movimiento de caja
+      // Si se especificÛ una cuenta, crear movimiento de caja
       if (accountId != null && accountId.isNotEmpty) {
         final movement = CashMovement(
           id: '',
@@ -485,7 +485,7 @@ class InvoicesDataSource {
         );
 
         await AccountsDataSource.createMovementWithBalanceUpdate(movement);
-        AppLogger.success('‚úÖ Movimiento de caja creado para cuenta $accountId');
+        AppLogger.success('? Movimiento de caja creado para cuenta $accountId');
       }
 
       // Actualizar balance del cliente (recalcular desde facturas pendientes)
@@ -494,17 +494,17 @@ class InvoicesDataSource {
           final newBalance = await CustomersDataSource.recalculateBalance(
             invoice.customerId!,
           );
-          AppLogger.success('‚úÖ Balance del cliente recalculado: $newBalance');
+          AppLogger.success('? Balance del cliente recalculado: $newBalance');
         } catch (e) {
-          AppLogger.warning('‚ö†Ô∏è No se pudo actualizar balance del cliente: $e');
+          AppLogger.warning('?? No se pudo actualizar balance del cliente: $e');
         }
       }
 
       AppLogger.success(
-        '‚úÖ Pago registrado: $amount en recibo ${invoice.number}',
+        '? Pago registrado: $amount en recibo ${invoice.number}',
       );
     } catch (e) {
-      AppLogger.error('‚ùå Error registrando pago: $e');
+      AppLogger.error('? Error registrando pago: $e');
       rethrow;
     }
   }
@@ -521,7 +521,7 @@ class InvoicesDataSource {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  /// Obtener todos los pagos de un cliente (a trav√©s de sus facturas)
+  /// Obtener todos los pagos de un cliente (a travÈs de sus facturas)
   static Future<List<Map<String, dynamic>>> getPaymentsByCustomerId(
     String customerId,
   ) async {
@@ -536,7 +536,7 @@ class InvoicesDataSource {
 
     final invoiceIds = invoiceList.map((i) => i['id'] as String).toList();
 
-    // Crear un mapa de invoice_id -> n√∫mero de factura
+    // Crear un mapa de invoice_id -> n˙mero de factura
     final invoiceMap = <String, String>{};
     for (final inv in invoiceList) {
       invoiceMap[inv['id']] = '${inv['series']}-${inv['number']}';
@@ -549,7 +549,7 @@ class InvoicesDataSource {
         .inFilter('invoice_id', invoiceIds)
         .order('payment_date', ascending: false);
 
-    // Enriquecer cada pago con el n√∫mero de factura
+    // Enriquecer cada pago con el n˙mero de factura
     final result = List<Map<String, dynamic>>.from(payments).map((p) {
       return {...p, 'invoice_number': invoiceMap[p['invoice_id']] ?? 'N/A'};
     }).toList();
@@ -583,16 +583,16 @@ class InvoicesDataSource {
         'overdue_count': 0,
       };
     } catch (e) {
-      AppLogger.warning('‚ö†Ô∏è Error obteniendo resumen: $e');
+      AppLogger.warning('?? Error obteniendo resumen: $e');
       return await getMonthlyStats();
     }
   }
 
   // ==================== DELETE ====================
 
-  /// Elimina un recibo (solo si est√° en borrador)
+  /// Elimina un recibo (solo si est· en borrador)
   static Future<bool> delete(String id) async {
-    // Verificar que est√© en borrador
+    // Verificar que estÈ en borrador
     final invoice = await getById(id);
     if (invoice == null || invoice.status != InvoiceStatus.draft) {
       return false;
@@ -607,7 +607,7 @@ class InvoicesDataSource {
     await updateStatus(id, 'cancelled');
   }
 
-  // ==================== ANULACI√ìN SEGURA (BLINDAJE) ====================
+  // ==================== ANULACI”N SEGURA (BLINDAJE) ====================
 
   /// Verifica si una factura puede ser anulada (consulta server-side)
   static Future<Map<String, dynamic>> canCancelInvoice(String invoiceId) async {
@@ -618,7 +618,7 @@ class InvoicesDataSource {
       );
       return Map<String, dynamic>.from(response ?? {});
     } catch (e) {
-      AppLogger.error('‚ùå Error verificando si puede anular: $e');
+      AppLogger.error('? Error verificando si puede anular: $e');
       return {
         'can_cancel': false,
         'reasons': ['Error al verificar: $e'],
@@ -633,7 +633,7 @@ class InvoicesDataSource {
     required String reason,
   }) async {
     try {
-      AppLogger.debug('üîí Anulaci√≥n segura de factura: $invoiceId');
+      AppLogger.debug('?? AnulaciÛn segura de factura: $invoiceId');
       final response = await _client.rpc(
         'secure_cancel_invoice',
         params: {'p_invoice_id': invoiceId, 'p_reason': reason},
@@ -642,20 +642,20 @@ class InvoicesDataSource {
 
       if (result['success'] == true) {
         AppLogger.success(
-          '‚úÖ Factura anulada de forma segura: ${result['invoice_number']}',
+          '? Factura anulada de forma segura: ${result['invoice_number']}',
         );
       } else if (result['blocked'] == true) {
-        AppLogger.warning('üö´ Anulaci√≥n BLOQUEADA: ${result['reason']}');
+        AppLogger.warning('?? AnulaciÛn BLOQUEADA: ${result['reason']}');
       }
 
       return result;
     } catch (e) {
-      AppLogger.error('‚ùå Error en anulaci√≥n segura: $e');
+      AppLogger.error('? Error en anulaciÛn segura: $e');
       rethrow;
     }
   }
 
-  /// Obtiene historial de anulaciones (auditor√≠a)
+  /// Obtiene historial de anulaciones (auditorÌa)
   static Future<List<Map<String, dynamic>>> getCancellationHistory({
     int limit = 50,
   }) async {
@@ -666,14 +666,14 @@ class InvoicesDataSource {
       );
       return List<Map<String, dynamic>>.from(response ?? []);
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo historial de anulaciones: $e');
+      AppLogger.error('? Error obteniendo historial de anulaciones: $e');
       return [];
     }
   }
 
   // ==================== STATISTICS ====================
 
-  /// Obtiene estad√≠sticas de ventas del mes actual
+  /// Obtiene estadÌsticas de ventas del mes actual
   static Future<Map<String, dynamic>> getMonthlyStats() async {
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
@@ -725,7 +725,7 @@ class InvoicesDataSource {
     };
   }
 
-  /// Obtiene los √∫ltimos N recibos
+  /// Obtiene los ˙ltimos N recibos
   static Future<List<Invoice>> getRecent({int limit = 5}) async {
     final response = await _client
         .from('invoices')

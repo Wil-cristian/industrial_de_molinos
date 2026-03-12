@@ -74,7 +74,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
           // Header compacto
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -126,13 +126,13 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             _buildQuickStat(
                               'Valor Total',
                               '\$${Helpers.formatNumber(state.totalInventoryValue)}',
-                              Colors.green,
+                              AppColors.success,
                               Icons.attach_money,
                             ),
                             _buildQuickStat(
                               'Stock Bajo',
                               '${state.lowStockMaterials.length}',
-                              Colors.orange,
+                              AppColors.warning,
                               Icons.warning,
                             ),
                             if (state.lowStockMaterials.isNotEmpty)
@@ -141,12 +141,12 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     ? null
                                     : _createPurchaseOrdersFromLowStock,
                                 icon: _creatingOrders
-                                    ? const SizedBox(
+                                    ? SizedBox(
                                         width: 14,
                                         height: 14,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          color: Colors.white,
+                                          color: Theme.of(context).colorScheme.surface,
                                         ),
                                       )
                                     : const Icon(Icons.shopping_cart, size: 16),
@@ -159,7 +159,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   style: const TextStyle(fontSize: 12),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange[700],
+                                  backgroundColor: AppColors.warning,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 14,
@@ -194,16 +194,16 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green[50],
+                        color: AppColors.success.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green[300]!),
+                        border: Border.all(color: AppColors.success.withOpacity(0.7)!),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.check_circle,
                             size: 16,
-                            color: Colors.green[700],
+                            color: AppColors.success,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -213,7 +213,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   : '✅ ${_createdOrderNumbers!.length} órdenes creadas: ${_createdOrderNumbers!.join(", ")}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.green[800],
+                                color: AppColors.success,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -229,14 +229,14 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   Icon(
                                     Icons.person_off,
                                     size: 14,
-                                    color: Colors.orange[700],
+                                    color: AppColors.warning,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     '${_materialsWithoutSupplier!.length} sin proveedor',
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: Colors.orange[800],
+                                      color: AppColors.warning,
                                     ),
                                   ),
                                 ],
@@ -263,20 +263,20 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.red[50],
+                        color: AppColors.danger.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red[300]!),
+                        border: Border.all(color: AppColors.danger.withOpacity(0.6)!),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.error, size: 16, color: Colors.red[700]),
+                          Icon(Icons.error, size: 16, color: AppColors.danger),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Error: $_orderError',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.red[800],
+                                color: AppColors.danger,
                               ),
                             ),
                           ),
@@ -381,7 +381,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                         Icon(
                           Icons.error_outline,
                           size: 48,
-                          color: Colors.red[300],
+                          color: AppColors.danger.withOpacity(0.6),
                         ),
                         const SizedBox(height: 16),
                         Text('Error: ${state.error}'),
@@ -542,10 +542,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
   Widget _buildMaterialsTable() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(color: Theme.of(context).colorScheme.shadow.withOpacity(0.05), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -554,7 +554,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: Theme.of(context).colorScheme.surfaceContainerLowest,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(8),
               ),
@@ -602,7 +602,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
       style: TextStyle(
         fontWeight: FontWeight.w600,
         fontSize: 11,
-        color: Colors.grey[700],
+        color: Theme.of(context).colorScheme.onSurface,
       ),
       textAlign: align,
     );
@@ -621,16 +621,16 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
         ? ((salePrice - costPrice) / costPrice * 100)
         : 0.0;
     final marginColor = margin > 30
-        ? Colors.green
+        ? AppColors.success
         : margin > 15
-        ? Colors.orange
-        : Colors.red;
+        ? AppColors.warning
+        : AppColors.danger;
 
     return InkWell(
       onTap: () => _showMaterialDetail(material),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        color: isLowStock ? Colors.orange.withOpacity(0.05) : null,
+        color: isLowStock ? AppColors.warning.withOpacity(0.05) : null,
         child: Row(
           children: [
             SizedBox(
@@ -757,7 +757,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     style: TextStyle(
                       fontWeight: FontWeight.w500,
                       fontSize: 10,
-                      color: isLowStock ? Colors.orange[700] : null,
+                      color: isLowStock ? AppColors.warning : null,
                     ),
                     textAlign: TextAlign.right,
                   ),
@@ -770,15 +770,15 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
                   color: isLowStock
-                      ? Colors.orange.withOpacity(0.1)
-                      : Colors.green.withOpacity(0.1),
+                      ? AppColors.warning.withOpacity(0.1)
+                      : AppColors.success.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   isLowStock ? 'Bajo' : 'OK',
                   style: TextStyle(
                     fontSize: 9,
-                    color: isLowStock ? Colors.orange[700] : Colors.green[700],
+                    color: isLowStock ? AppColors.warning : AppColors.success,
                     fontWeight: FontWeight.w500,
                   ),
                   textAlign: TextAlign.center,
@@ -803,7 +803,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                           Icon(
                             Icons.person_remove_outlined,
                             size: 16,
-                            color: Colors.deepOrange,
+                            color: const Color(0xFFFF5722),
                           ),
                           SizedBox(width: 8),
                           Text('Salida por Empleado'),
@@ -858,7 +858,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
         builder: (context, setDialogState) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.person_remove_outlined, color: Colors.deepOrange),
+              Icon(Icons.person_remove_outlined, color: const Color(0xFFFF5722)),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -878,7 +878,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.08),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -892,7 +892,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       ),
                       Text(
                         'Stock: ${material.stock.toStringAsFixed(2)} ${material.unit}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface),
                       ),
                     ],
                   ),
@@ -903,14 +903,14 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: AppColors.warning.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Row(
                       children: [
                         Icon(
                           Icons.warning_amber,
-                          color: Colors.orange,
+                          color: AppColors.warning,
                           size: 18,
                         ),
                         SizedBox(width: 8),
@@ -978,14 +978,14 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             FilledButton.icon(
               icon: const Icon(Icons.check, size: 18),
               label: const Text('Registrar Salida'),
-              style: FilledButton.styleFrom(backgroundColor: Colors.deepOrange),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFF5722)),
               onPressed: () async {
                 final qty = double.tryParse(qtyCtrl.text) ?? 0;
                 if (qty <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Ingresa una cantidad válida'),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppColors.warning,
                     ),
                   );
                   return;
@@ -994,7 +994,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Selecciona un empleado'),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppColors.warning,
                     ),
                   );
                   return;
@@ -1043,7 +1043,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       content: Text(
                         'Salida registrada: $qty ${material.unit} → ${selectedEmployee!.fullName}',
                       ),
-                      backgroundColor: Colors.deepOrange,
+                      backgroundColor: const Color(0xFFFF5722),
                     ),
                   );
                 }
@@ -1097,7 +1097,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     'Dimensiones:',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[700],
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1117,7 +1117,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     'Descripción:',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[700],
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   Text(
@@ -1197,7 +1197,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
         builder: (ctx, setDialogState) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.store, color: Colors.blue),
+              Icon(Icons.store, color: AppColors.info),
               SizedBox(width: 8),
               Text('Nuevo Proveedor'),
             ],
@@ -1312,9 +1312,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.05),
+                      color: AppColors.info.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                      border: Border.all(color: AppColors.info.withOpacity(0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1324,14 +1324,14 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             Icon(
                               Icons.account_balance,
                               size: 18,
-                              color: Colors.blue[700],
+                              color: AppColors.info,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Datos Bancarios (opcional)',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue[700],
+                                color: AppColors.info,
                               ),
                             ),
                           ],
@@ -1378,7 +1378,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('El nombre es requerido'),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppColors.warning,
                     ),
                   );
                   return;
@@ -1387,7 +1387,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('El número de documento es requerido'),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppColors.warning,
                     ),
                   );
                   return;
@@ -1694,10 +1694,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.05),
+                        color: const Color(0xFF7B1FA2).withOpacity(0.05),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: Colors.purple.withOpacity(0.2),
+                          color: const Color(0xFF7B1FA2).withOpacity(0.2),
                         ),
                       ),
                       child: Column(
@@ -1708,14 +1708,14 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                               Icon(
                                 Icons.straighten,
                                 size: 18,
-                                color: Colors.purple[700],
+                                color: const Color(0xFF7B1FA2),
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 'Dimensiones del Material',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.purple[700],
+                                  color: const Color(0xFF7B1FA2),
                                 ),
                               ),
                             ],
@@ -1821,7 +1821,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                         content: Text(
                                           'Ingresa largo, ancho y espesor',
                                         ),
-                                        backgroundColor: Colors.orange,
+                                        backgroundColor: AppColors.warning,
                                       ),
                                     );
                                     return;
@@ -1853,7 +1853,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                         content: Text(
                                           'Ingresa diámetro y largo',
                                         ),
-                                        backgroundColor: Colors.orange,
+                                        backgroundColor: AppColors.warning,
                                       ),
                                     );
                                     return;
@@ -1916,9 +1916,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.05),
+                      color: AppColors.info.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                      border: Border.all(color: AppColors.info.withOpacity(0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1928,14 +1928,14 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             Icon(
                               Icons.attach_money,
                               size: 18,
-                              color: Colors.blue[700],
+                              color: AppColors.info,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Precios y Margen de Ganancia',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue[700],
+                                color: AppColors.info,
                               ),
                             ),
                           ],
@@ -1956,11 +1956,11 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   prefixText: '\$ ',
                                   prefixIcon: Icon(
                                     Icons.shopping_cart,
-                                    color: Colors.orange[700],
+                                    color: AppColors.warning,
                                     size: 20,
                                   ),
                                   filled: true,
-                                  fillColor: Colors.orange.withOpacity(0.05),
+                                  fillColor: AppColors.warning.withOpacity(0.05),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -1989,11 +1989,11 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     prefixText: '\$ ',
                                     prefixIcon: Icon(
                                       Icons.sell,
-                                      color: Colors.green[700],
+                                      color: AppColors.success,
                                       size: 20,
                                     ),
                                     filled: true,
-                                    fillColor: Colors.green.withOpacity(0.05),
+                                    fillColor: AppColors.success.withOpacity(0.05),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
@@ -2017,10 +2017,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.08),
+                                    color: AppColors.warning.withOpacity(0.08),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Colors.orange.withOpacity(0.3),
+                                      color: AppColors.warning.withOpacity(0.3),
                                     ),
                                   ),
                                   child: Row(
@@ -2028,7 +2028,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       Icon(
                                         Icons.info_outline,
                                         size: 16,
-                                        color: Colors.orange[700],
+                                        color: AppColors.warning,
                                       ),
                                       const SizedBox(width: 8),
                                       Expanded(
@@ -2036,7 +2036,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                           'Material de uso interno — sin precio de venta',
                                           style: TextStyle(
                                             fontSize: 11,
-                                            color: Colors.orange[800],
+                                            color: AppColors.warning,
                                           ),
                                         ),
                                       ),
@@ -2061,10 +2061,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
 
                             if (costPrice > 0 && salePrice > 0) {
                               final marginColor = margin > 30
-                                  ? Colors.green
+                                  ? AppColors.success
                                   : margin > 15
-                                  ? Colors.orange
-                                  : Colors.red;
+                                  ? AppColors.warning
+                                  : AppColors.danger;
                               return Padding(
                                 padding: const EdgeInsets.only(top: 12),
                                 child: Container(
@@ -2155,7 +2155,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                               child: Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.withOpacity(0.1),
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -2239,7 +2239,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   icon: const Icon(
                                     Icons.add_circle_outline,
                                     size: 20,
-                                    color: Colors.blue,
+                                    color: AppColors.info,
                                   ),
                                   tooltip: 'Crear nuevo proveedor',
                                   onPressed: () =>
@@ -2259,7 +2259,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   value: null,
                                   child: Text(
                                     'Sin proveedor',
-                                    style: TextStyle(color: Colors.grey),
+                                    style: TextStyle(color: const Color(0xFF9E9E9E)),
                                   ),
                                 ),
                                 ...suppliers.map(
@@ -2412,7 +2412,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -2531,7 +2531,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                 );
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
             child: const Text('Eliminar'),
           ),
         ],
@@ -2575,23 +2575,23 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
     // Fallback
     switch (category) {
       case 'tubo':
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case 'lamina':
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case 'eje':
-        return Colors.purple;
+        return const Color(0xFF7B1FA2);
       case 'rodamiento':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case 'tornilleria':
-        return Colors.teal;
+        return const Color(0xFF009688);
       case 'consumible':
-        return Colors.brown;
+        return const Color(0xFF795548);
       case 'pintura':
-        return Colors.pink;
+        return const Color(0xFFE91E63);
       case 'perfil':
-        return Colors.indigo;
+        return const Color(0xFF3F51B5);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 
@@ -2680,7 +2680,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       icon: Icon(
                                         Icons.edit,
                                         size: 18,
-                                        color: Colors.blue[700],
+                                        color: AppColors.info,
                                       ),
                                       onPressed: () async {
                                         await _showEditCategoryDialog(
@@ -2695,7 +2695,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       icon: Icon(
                                         Icons.delete_outline,
                                         size: 18,
-                                        color: Colors.red[700],
+                                        color: AppColors.danger,
                                       ),
                                       onPressed: () async {
                                         final confirm = await showDialog<bool>(
@@ -2857,14 +2857,14 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             color: c,
                             shape: BoxShape.circle,
                             border: isSelected
-                                ? Border.all(color: Colors.black, width: 2.5)
+                                ? Border.all(color: const Color(0xFF1B4F72), width: 2.5)
                                 : Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                           ),
                           child: isSelected
-                              ? const Icon(
+                              ? Icon(
                                   Icons.check,
                                   size: 16,
-                                  color: Colors.white,
+                                  color: Theme.of(context).colorScheme.surface,
                                 )
                               : null,
                         ),
@@ -2897,7 +2897,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       radix: 16,
                                     ),
                                   ).withOpacity(0.2)
-                                : Colors.grey[100],
+                                : Theme.of(context).colorScheme.surfaceContainerLow,
                             borderRadius: BorderRadius.circular(6),
                             border: isSelected
                                 ? Border.all(
@@ -2921,7 +2921,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       radix: 16,
                                     ),
                                   )
-                                : Colors.grey[600],
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       );
@@ -2966,7 +2966,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('El nombre es requerido'),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppColors.warning,
                     ),
                   );
                   return;
@@ -3115,14 +3115,14 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             color: c,
                             shape: BoxShape.circle,
                             border: isSelected
-                                ? Border.all(color: Colors.black, width: 2.5)
+                                ? Border.all(color: const Color(0xFF1B4F72), width: 2.5)
                                 : Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                           ),
                           child: isSelected
-                              ? const Icon(
+                              ? Icon(
                                   Icons.check,
                                   size: 16,
-                                  color: Colors.white,
+                                  color: Theme.of(context).colorScheme.surface,
                                 )
                               : null,
                         ),
@@ -3154,7 +3154,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       radix: 16,
                                     ),
                                   ).withOpacity(0.2)
-                                : Colors.grey[100],
+                                : Theme.of(context).colorScheme.surfaceContainerLow,
                             borderRadius: BorderRadius.circular(6),
                             border: isSelected
                                 ? Border.all(
@@ -3178,7 +3178,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       radix: 16,
                                     ),
                                   )
-                                : Colors.grey[600],
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       );
@@ -3222,7 +3222,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('El nombre es requerido'),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppColors.warning,
                     ),
                   );
                   return;
@@ -3352,7 +3352,7 @@ class _FractionInchFieldState extends State<_FractionInchField> {
           icon: Icon(
             Icons.format_list_numbered,
             size: 24,
-            color: widget.enabled ? Colors.blue[700] : Colors.grey[400],
+            color: widget.enabled ? AppColors.info : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           itemBuilder: (context) => commonFractions.entries
               .map(
@@ -3367,7 +3367,7 @@ class _FractionInchFieldState extends State<_FractionInchField> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.15),
+                          color: AppColors.info.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -3375,14 +3375,14 @@ class _FractionInchFieldState extends State<_FractionInchField> {
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            color: Colors.blue,
+                            color: AppColors.info,
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Text(
                         '= ${e.value}"',
-                        style: TextStyle(color: Colors.grey[700], fontSize: 11),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 11),
                       ),
                     ],
                   ),

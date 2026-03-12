@@ -186,7 +186,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                   'Activos',
                   '${state.totalAssets}',
                   Icons.business_center,
-                  Colors.blue,
+                  const Color(0xFF1565C0),
                 ),
               ),
               SizedBox(
@@ -195,7 +195,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                   'Valor',
                   '\$ ${Helpers.formatNumber(state.totalValue)}',
                   Icons.account_balance,
-                  Colors.green,
+                  const Color(0xFF2E7D32),
                 ),
               ),
               SizedBox(
@@ -204,7 +204,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                   'Inversión',
                   '\$ ${Helpers.formatNumber(state.totalInvestment)}',
                   Icons.trending_up,
-                  Colors.purple,
+                  const Color(0xFF7B1FA2),
                 ),
               ),
               SizedBox(
@@ -213,7 +213,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                   'Mant.',
                   '${state.inMaintenance}',
                   Icons.build,
-                  Colors.orange,
+                  const Color(0xFFF9A825),
                 ),
               ),
             ],
@@ -226,7 +226,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 'Activos',
                 '${state.totalAssets}',
                 Icons.business_center,
-                Colors.blue,
+                const Color(0xFF1565C0),
               ),
             ),
             const SizedBox(width: 8),
@@ -235,7 +235,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 'Valor',
                 '\$ ${Helpers.formatNumber(state.totalValue)}',
                 Icons.account_balance,
-                Colors.green,
+                const Color(0xFF2E7D32),
               ),
             ),
             const SizedBox(width: 8),
@@ -244,7 +244,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 'Inversión',
                 '\$ ${Helpers.formatNumber(state.totalInvestment)}',
                 Icons.trending_up,
-                Colors.purple,
+                const Color(0xFF7B1FA2),
               ),
             ),
             const SizedBox(width: 8),
@@ -253,7 +253,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 'Mant.',
                 '${state.inMaintenance}',
                 Icons.build,
-                Colors.orange,
+                const Color(0xFFF9A825),
               ),
             ),
           ],
@@ -275,7 +275,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: const Color(0xFF000000).withOpacity(0.05),
             blurRadius: 2,
             offset: const Offset(0, 1),
           ),
@@ -344,7 +344,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: const Color(0xFFF5F5F5),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -364,7 +364,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: const Color(0xFFF5F5F5),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -407,7 +407,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: const Color(0xFFF5F5F5),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -505,7 +505,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isSelected ? 0.1 : 0.05),
+              color: const Color(0xFF000000).withOpacity(isSelected ? 0.1 : 0.05),
               blurRadius: isSelected ? 14 : 10,
               offset: const Offset(0, 4),
             ),
@@ -643,7 +643,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(left: BorderSide(color: Colors.grey.shade200)),
+        border: Border(left: BorderSide(color: const Color(0xFFEEEEEE))),
       ),
       child: Column(
         children: [
@@ -651,7 +651,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+              border: Border(bottom: BorderSide(color: const Color(0xFFEEEEEE))),
             ),
             child: Row(
               children: [
@@ -726,25 +726,25 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
         'value': 'activo',
         'label': 'Activo',
         'icon': Icons.check_circle,
-        'color': Colors.green,
+        'color': const Color(0xFF2E7D32),
       },
       {
         'value': 'mantenimiento',
         'label': 'Mantenimiento',
         'icon': Icons.build,
-        'color': Colors.orange,
+        'color': const Color(0xFFF9A825),
       },
       {
         'value': 'baja',
         'label': 'De Baja',
         'icon': Icons.cancel,
-        'color': Colors.red,
+        'color': const Color(0xFFC62828),
       },
       {
         'value': 'vendido',
         'label': 'Vendido',
         'icon': Icons.sell,
-        'color': Colors.blue,
+        'color': const Color(0xFF1565C0),
       },
     ];
 
@@ -777,7 +777,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               selected: isActive,
               selectedColor: s['color'] as Color,
               labelStyle: TextStyle(
-                color: isActive ? Colors.white : Colors.black87,
+                color: isActive ? Colors.white : const Color(0xDD000000),
                 fontSize: 12,
               ),
               onSelected: (selected) async {
@@ -823,7 +823,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
+            color: const Color(0xFFFAFAFA),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -896,16 +896,16 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.amber.shade50,
+            color: const Color(0xFFFFF8E1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.amber.shade200),
+            border: Border.all(color: const Color(0xFFFFE082)),
           ),
           child: Text(
             asset.notes?.isNotEmpty == true ? asset.notes! : 'Sin notas',
             style: TextStyle(
               color: asset.notes?.isNotEmpty == true
-                  ? Colors.black87
-                  : Colors.grey,
+                  ? const Color(0xDD000000)
+                  : const Color(0xFF9E9E9E),
               fontSize: 13,
             ),
           ),
@@ -984,7 +984,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
+              color: const Color(0xFFFAFAFA),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -1009,7 +1009,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: const Color(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(8),
         border: Border(left: BorderSide(color: m.typeColor, width: 3)),
       ),
@@ -1067,11 +1067,11 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.event, size: 14, color: Colors.blue[400]),
+                Icon(Icons.event, size: 14, color: const Color(0xFF42A5F5)),
                 const SizedBox(width: 4),
                 Text(
                   'Próximo: ${m.nextMaintenanceDate!.day}/${m.nextMaintenanceDate!.month}/${m.nextMaintenanceDate!.year}',
-                  style: TextStyle(color: Colors.blue[400], fontSize: 12),
+                  style: TextStyle(color: const Color(0xFF42A5F5), fontSize: 12),
                 ),
               ],
             ),
@@ -1243,7 +1243,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                           trailing: const Icon(Icons.calendar_today),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
-                            side: BorderSide(color: Colors.grey.shade400),
+                            side: BorderSide(color: const Color(0xFFBDBDBD)),
                           ),
                           onTap: () async {
                             final date = await showDatePicker(
@@ -1514,7 +1514,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                     trailing: const Icon(Icons.calendar_today),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: Colors.grey.shade400),
+                      side: BorderSide(color: const Color(0xFFBDBDBD)),
                     ),
                     onTap: () async {
                       final date = await showDatePicker(
@@ -1657,12 +1657,12 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                     content: Text(
                       success ? 'Activo eliminado' : 'Error al eliminar',
                     ),
-                    backgroundColor: success ? Colors.green : Colors.red,
+                    backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
                   ),
                 );
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
             child: const Text('Eliminar'),
           ),
         ],

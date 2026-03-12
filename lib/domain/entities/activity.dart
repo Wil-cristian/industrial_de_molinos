@@ -187,7 +187,7 @@ class Activity {
     try {
       return Color(int.parse(color.replaceFirst('#', '0xFF')));
     } catch (_) {
-      return Colors.blue;
+      return const Color(0xFF1565C0);
     }
   }
 
@@ -259,15 +259,15 @@ class Activity {
   Color get statusColor {
     switch (status) {
       case ActivityStatus.pending:
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case ActivityStatus.inProgress:
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case ActivityStatus.completed:
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case ActivityStatus.cancelled:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
       case ActivityStatus.overdue:
-        return Colors.red;
+        return const Color(0xFFC62828);
     }
   }
 
@@ -287,13 +287,13 @@ class Activity {
   Color get priorityColor {
     switch (priority) {
       case ActivityPriority.low:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
       case ActivityPriority.medium:
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case ActivityPriority.high:
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case ActivityPriority.urgent:
-        return Colors.red;
+        return const Color(0xFFC62828);
     }
   }
 

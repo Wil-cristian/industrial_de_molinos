@@ -214,7 +214,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: const Color(0xFF000000).withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -275,7 +275,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                           borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                         ),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: const Color(0xFFFAFAFA),
                       ),
                     ),
                   ),
@@ -291,12 +291,12 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                                 Icon(
                                   Icons.error_outline,
                                   size: 48,
-                                  color: Colors.red[300],
+                                  color: const Color(0xFFE57373),
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
                                   'Error: ${quotationsState.error}',
-                                  style: TextStyle(color: Colors.red[700]),
+                                  style: TextStyle(color: const Color(0xFFD32F2F)),
                                 ),
                                 const SizedBox(height: 16),
                                 ElevatedButton.icon(
@@ -421,7 +421,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                     'Total',
                     _totalQuotations.toString(),
                     Icons.description,
-                    Colors.blue,
+                    const Color(0xFF1565C0),
                     'Este mes',
                   ),
                 ),
@@ -431,7 +431,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                     'Pendientes',
                     _pendingQuotations.toString(),
                     Icons.hourglass_empty,
-                    Colors.orange,
+                    const Color(0xFFF9A825),
                     'Por responder',
                   ),
                 ),
@@ -441,7 +441,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                     'Aprobadas',
                     _approvedQuotations.toString(),
                     Icons.check_circle,
-                    Colors.green,
+                    const Color(0xFF2E7D32),
                     'Listas',
                   ),
                 ),
@@ -466,7 +466,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                   'Total',
                   _totalQuotations.toString(),
                   Icons.description,
-                  Colors.blue,
+                  const Color(0xFF1565C0),
                   'Este mes',
                 ),
               ),
@@ -476,7 +476,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                   'Pendientes',
                   _pendingQuotations.toString(),
                   Icons.hourglass_empty,
-                  Colors.orange,
+                  const Color(0xFFF9A825),
                   'Por responder',
                 ),
               ),
@@ -486,7 +486,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                   'Aprobadas',
                   _approvedQuotations.toString(),
                   Icons.check_circle,
-                  Colors.green,
+                  const Color(0xFF2E7D32),
                   'Listas',
                 ),
               ),
@@ -521,7 +521,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
         borderRadius: BorderRadius.circular(3),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 2,
             offset: const Offset(0, 1),
           ),
@@ -625,7 +625,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                         child: Text(
                           isExpired ? 'Vencida' : status,
                           style: TextStyle(
-                            color: isExpired ? Colors.red : statusColor,
+                            color: isExpired ? const Color(0xFFC62828) : statusColor,
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),
@@ -698,7 +698,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                     'Válida hasta: ${Helpers.formatDate(validUntil)}',
                     style: TextStyle(
                       fontSize: 11,
-                      color: isExpired ? Colors.red : Colors.grey[500],
+                      color: isExpired ? const Color(0xFFC62828) : const Color(0xFF9E9E9E),
                     ),
                   ),
                 ],
@@ -748,10 +748,10 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                   const PopupMenuItem(
                     value: 'send',
                     child: ListTile(
-                      leading: Icon(Icons.send, color: Colors.blue),
+                      leading: Icon(Icons.send, color: const Color(0xFF1565C0)),
                       title: Text(
                         'Enviar al cliente',
-                        style: TextStyle(color: Colors.blue),
+                        style: TextStyle(color: const Color(0xFF1565C0)),
                       ),
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -761,10 +761,10 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                   const PopupMenuItem(
                     value: 'approve',
                     child: ListTile(
-                      leading: Icon(Icons.check_circle, color: Colors.green),
+                      leading: Icon(Icons.check_circle, color: const Color(0xFF2E7D32)),
                       title: Text(
                         'Aprobar y crear venta',
-                        style: TextStyle(color: Colors.green),
+                        style: TextStyle(color: const Color(0xFF2E7D32)),
                       ),
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -774,10 +774,10 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                   const PopupMenuItem(
                     value: 'reject',
                     child: ListTile(
-                      leading: Icon(Icons.cancel, color: Colors.orange),
+                      leading: Icon(Icons.cancel, color: const Color(0xFFF9A825)),
                       title: Text(
                         'Rechazar',
-                        style: TextStyle(color: Colors.orange),
+                        style: TextStyle(color: const Color(0xFFF9A825)),
                       ),
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -787,10 +787,10 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                   const PopupMenuItem(
                     value: 'cancel',
                     child: ListTile(
-                      leading: Icon(Icons.block, color: Colors.red),
+                      leading: Icon(Icons.block, color: const Color(0xFFC62828)),
                       title: Text(
                         'Anular cotización',
-                        style: TextStyle(color: Colors.red),
+                        style: TextStyle(color: const Color(0xFFC62828)),
                       ),
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -800,10 +800,10 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                   const PopupMenuItem(
                     value: 'delete',
                     child: ListTile(
-                      leading: Icon(Icons.delete, color: Colors.red),
+                      leading: Icon(Icons.delete, color: const Color(0xFFC62828)),
                       title: Text(
                         'Eliminar',
-                        style: TextStyle(color: Colors.red),
+                        style: TextStyle(color: const Color(0xFFC62828)),
                       ),
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -828,7 +828,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
               Icon(
                 Icons.description_outlined,
                 size: 64,
-                color: Colors.grey[300],
+                color: const Color(0xFFE0E0E0),
               ),
               const SizedBox(height: 16),
               Text(
@@ -866,19 +866,19 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Borrador':
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
       case 'Enviada':
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case 'Aprobada':
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case 'Rechazada':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case 'Anulada':
-        return Colors.red[800]!;
+        return const Color(0xFFC62828);
       case 'Vencida':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 
@@ -944,14 +944,14 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
             content: Text(
               'Cotización ${quotation['number']} enviada al cliente',
             ),
-            backgroundColor: Colors.blue,
+            backgroundColor: const Color(0xFF1565C0),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFC62828)),
         );
       }
     }
@@ -993,7 +993,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
             SizedBox(height: 8),
             Text(
               'Creando factura y actualizando stock',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(fontSize: 12, color: const Color(0xFF9E9E9E)),
             ),
           ],
         ),
@@ -1058,7 +1058,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.cancel, color: Colors.orange, size: 28),
+            Icon(Icons.cancel, color: const Color(0xFFF9A825), size: 28),
             const SizedBox(width: 12),
             const Text('Rechazar Cotización'),
           ],
@@ -1099,7 +1099,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
               'Rechazar',
               style: TextStyle(color: Colors.white),
             ),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF9A825)),
           ),
         ],
       ),
@@ -1116,14 +1116,14 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Cotización ${quotation['number']} rechazada'),
-            backgroundColor: Colors.orange,
+            backgroundColor: const Color(0xFFF9A825),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFC62828)),
         );
       }
     }
@@ -1138,7 +1138,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.block, color: Colors.red, size: 28),
+            Icon(Icons.block, color: const Color(0xFFC62828), size: 28),
             const SizedBox(width: 12),
             const Text('Anular Cotización'),
           ],
@@ -1152,13 +1152,13 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
+                  color: const Color(0xFFFFF3E0),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange[300]!),
+                  border: Border.all(color: const Color(0xFFFFB74D)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning_amber, color: Colors.orange[800]),
+                    Icon(Icons.warning_amber, color: const Color(0xFFEF6C00)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -1167,7 +1167,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                           Text(
                             '¡COTIZACIÓN APROBADA!',
                             style: TextStyle(
-                              color: Colors.orange[800],
+                              color: const Color(0xFFEF6C00),
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
                             ),
@@ -1177,7 +1177,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                             'Esta cotización ya fue aprobada y puede tener una factura asociada. '
                             'Revise las facturas relacionadas después de anular.',
                             style: TextStyle(
-                              color: Colors.orange[700],
+                              color: const Color(0xFFF57C00),
                               fontSize: 12,
                             ),
                           ),
@@ -1190,18 +1190,18 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red[50],
+                color: const Color(0xFFFFEBEE),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red[200]!),
+                border: Border.all(color: const Color(0xFFEF9A9A)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning, color: Colors.red[700]),
+                  Icon(Icons.warning, color: const Color(0xFFD32F2F)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Esta acción anulará la cotización ${quotation['number']} de forma permanente.',
-                      style: TextStyle(color: Colors.red[700], fontSize: 13),
+                      style: TextStyle(color: const Color(0xFFD32F2F), fontSize: 13),
                     ),
                   ),
                 ],
@@ -1237,7 +1237,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Por favor ingrese el motivo de anulación'),
-                    backgroundColor: Colors.orange,
+                    backgroundColor: const Color(0xFFF9A825),
                   ),
                 );
                 return;
@@ -1247,7 +1247,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
             },
             icon: const Icon(Icons.block, color: Colors.white),
             label: const Text('Anular', style: TextStyle(color: Colors.white)),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
           ),
         ],
       ),
@@ -1279,7 +1279,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
           builder: (ctx) => AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.shield, color: Colors.red[700], size: 28),
+                Icon(Icons.shield, color: const Color(0xFFD32F2F), size: 28),
                 const SizedBox(width: 8),
                 const Text('Anulación Bloqueada'),
               ],
@@ -1287,19 +1287,19 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
             content: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.red[50],
+                color: const Color(0xFFFFEBEE),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red[300]!),
+                border: Border.all(color: const Color(0xFFE57373)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.lock, color: Colors.red[700], size: 40),
+                  Icon(Icons.lock, color: const Color(0xFFD32F2F), size: 40),
                   const SizedBox(height: 12),
                   Text(
                     result?['reason'] ?? 'No se puede anular esta cotización.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.red[800], fontSize: 13),
+                    style: TextStyle(color: const Color(0xFFC62828), fontSize: 13),
                   ),
                 ],
               ),
@@ -1388,7 +1388,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
             'Solo se pueden eliminar cotizaciones en estado Borrador. '
             'Estado actual: ${quotation['status']}. Use "Anular" en su lugar.',
           ),
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF9A825),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -1437,7 +1437,7 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
             child: const Text(
               'Eliminar',
               style: TextStyle(color: Colors.white),
@@ -1561,19 +1561,19 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Borrador':
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
       case 'Enviada':
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case 'Aprobada':
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case 'Rechazada':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case 'Anulada':
-        return Colors.red[800]!;
+        return const Color(0xFFC62828);
       case 'Vencida':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 
@@ -1653,7 +1653,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       Text(
                         '${Helpers.formatNumber((q['weight'] as num?)?.toDouble() ?? 0)} kg',
                         style: const TextStyle(
-                          color: Colors.white60,
+                          color: const Color(0x99FFFFFF),
                           fontSize: 11,
                         ),
                       ),
@@ -1692,7 +1692,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: const Color(0xFFF5F5F5),
                 borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(16),
                 ),
@@ -1719,14 +1719,14 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                     icon: Icon(
                       Icons.picture_as_pdf,
                       size: 16,
-                      color: Colors.blue[600],
+                      color: const Color(0xFF1E88E5),
                     ),
                     label: Text(
                       'Generar PDF',
-                      style: TextStyle(color: Colors.blue[600], fontSize: 13),
+                      style: TextStyle(color: const Color(0xFF1E88E5), fontSize: 13),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.blue[300]!),
+                      side: BorderSide(color: const Color(0xFF64B5F6)),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 8,
@@ -1765,11 +1765,11 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.white.withOpacity(0.15)
+              ? const Color(0xFFFFFFFF).withOpacity(0.15)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? Colors.white38 : Colors.transparent,
+            color: isSelected ? const Color(0x62FFFFFF) : Colors.transparent,
           ),
         ),
         child: Row(
@@ -1777,14 +1777,14 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.white : Colors.white54,
+              color: isSelected ? Colors.white : const Color(0x8AFFFFFF),
               size: 15,
             ),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white54,
+                color: isSelected ? Colors.white : const Color(0x8AFFFFFF),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 12,
               ),
@@ -1822,21 +1822,21 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                   'Subtotal',
                   subtotal,
                   Icons.receipt_outlined,
-                  Colors.blue,
+                  const Color(0xFF1565C0),
                 ),
                 const SizedBox(width: 12),
                 _buildSummaryCard(
                   'Ganancia',
                   profitAmount,
                   Icons.trending_up,
-                  Colors.green,
+                  const Color(0xFF2E7D32),
                 ),
                 const SizedBox(width: 12),
                 _buildSummaryCard(
                   'Margen',
                   profitMargin,
                   Icons.percent,
-                  Colors.purple,
+                  const Color(0xFF7B1FA2),
                   isPercent: true,
                 ),
                 const SizedBox(width: 12),
@@ -1844,7 +1844,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                   'TOTAL',
                   total,
                   Icons.payments,
-                  Colors.teal,
+                  const Color(0xFF009688),
                   isHighlight: true,
                 ),
               ],
@@ -1866,7 +1866,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: const Color(0xFF000000).withOpacity(0.04),
                               blurRadius: 8,
                             ),
                           ],
@@ -1917,7 +1917,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                   'Válida: ${Helpers.formatDate(q['validUntil'])}',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.orange[700],
+                                    color: const Color(0xFFF57C00),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -1934,7 +1934,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: const Color(0xFF000000).withOpacity(0.04),
                               blurRadius: 8,
                             ),
                           ],
@@ -1973,7 +1973,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                 child: Center(
                                   child: Text(
                                     'Sin items',
-                                    style: TextStyle(color: Colors.grey),
+                                    style: TextStyle(color: const Color(0xFF9E9E9E)),
                                   ),
                                 ),
                               )
@@ -1998,7 +1998,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                       decoration: BoxDecoration(
                                         border: Border(
                                           top: BorderSide(
-                                            color: Colors.grey[100]!,
+                                            color: const Color(0xFFF5F5F5),
                                           ),
                                         ),
                                       ),
@@ -2060,7 +2060,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                                 '+${Helpers.formatCurrency(tProfit)}',
                                                 style: TextStyle(
                                                   fontSize: 11,
-                                                  color: Colors.green[600],
+                                                  color: const Color(0xFF43A047),
                                                 ),
                                               ),
                                             ],
@@ -2087,10 +2087,10 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                             bottom: 6,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.grey[50],
+                                            color: const Color(0xFFFAFAFA),
                                             border: Border(
                                               top: BorderSide(
-                                                color: Colors.grey[100]!,
+                                                color: const Color(0xFFF5F5F5),
                                               ),
                                             ),
                                           ),
@@ -2106,7 +2106,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                                 '${c['quantity']}× ${c['name'] ?? ''}',
                                                 style: TextStyle(
                                                   fontSize: 12,
-                                                  color: Colors.grey[700],
+                                                  color: const Color(0xFF616161),
                                                 ),
                                               ),
                                               const SizedBox(width: 6),
@@ -2154,7 +2154,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
+                          color: const Color(0xFF000000).withOpacity(0.04),
                           blurRadius: 8,
                         ),
                       ],
@@ -2179,30 +2179,30 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                         _buildFinRow(
                           'Materiales',
                           materialsCost,
-                          color: Colors.orange[700],
+                          color: const Color(0xFFF57C00),
                         ),
                         _buildFinRow(
                           'Mano de Obra',
                           laborCost,
-                          color: Colors.orange[700],
+                          color: const Color(0xFFF57C00),
                         ),
                         _buildFinRow(
                           'Costos Indirectos',
                           indirectCosts,
-                          color: Colors.orange[700],
+                          color: const Color(0xFFF57C00),
                         ),
                         const Divider(),
                         _buildFinRow(
                           'Costo Total',
                           subtotal,
                           isTotal: true,
-                          color: Colors.red[700],
+                          color: const Color(0xFFD32F2F),
                         ),
                         const SizedBox(height: 8),
                         _buildFinRow(
                           'Ganancia (${profitMargin.toStringAsFixed(0)}%)',
                           profitAmount,
-                          color: Colors.green[700],
+                          color: const Color(0xFF388E3C),
                         ),
                         const Divider(),
                         _buildFinRow(
@@ -2215,7 +2215,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.blue[50],
+                            color: const Color(0xFFE3F2FD),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -2223,7 +2223,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                             children: [
                               Icon(
                                 Icons.scale,
-                                color: Colors.blue[700],
+                                color: const Color(0xFF1976D2),
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
@@ -2231,7 +2231,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                 'Peso Total: ${Helpers.formatNumber(weight)} kg',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue[700],
+                                  color: const Color(0xFF1976D2),
                                 ),
                               ),
                             ],
@@ -2260,7 +2260,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: const Color(0xFFFAFAFA),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
@@ -2282,22 +2282,22 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
       return Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.green[50],
+          color: const Color(0xFFE8F5E9),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.green[200]!),
+          border: Border.all(color: const Color(0xFFA5D6A7)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green[700], size: 18),
+                Icon(Icons.check_circle, color: const Color(0xFF388E3C), size: 18),
                 const SizedBox(width: 8),
                 Text(
                   'Órdenes de Compra creadas:',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.green[800],
+                    color: const Color(0xFF2E7D32),
                   ),
                 ),
               ],
@@ -2308,7 +2308,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                 padding: const EdgeInsets.only(left: 26, top: 2),
                 child: Text(
                   '• $n',
-                  style: TextStyle(fontSize: 12, color: Colors.green[700]),
+                  style: TextStyle(fontSize: 12, color: const Color(0xFF388E3C)),
                 ),
               ),
             ),
@@ -2321,13 +2321,13 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.red[50],
+          color: const Color(0xFFFFEBEE),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.red[200]!),
+          border: Border.all(color: const Color(0xFFEF9A9A)),
         ),
         child: Text(
           'Error: $_orderError',
-          style: TextStyle(fontSize: 12, color: Colors.red[700]),
+          style: TextStyle(fontSize: 12, color: const Color(0xFFD32F2F)),
         ),
       );
     }
@@ -2336,7 +2336,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: const Color(0xFFFAFAFA),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
@@ -2355,10 +2355,10 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _allStockOk ? Colors.green[50] : Colors.orange[50],
+        color: _allStockOk ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: _allStockOk ? Colors.green[200]! : Colors.orange[200]!,
+          color: _allStockOk ? const Color(0xFFA5D6A7) : const Color(0xFFFFCC80),
         ),
       ),
       child: Column(
@@ -2368,7 +2368,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             children: [
               Icon(
                 _allStockOk ? Icons.inventory_2 : Icons.warning_amber,
-                color: _allStockOk ? Colors.green[700] : Colors.orange[700],
+                color: _allStockOk ? const Color(0xFF388E3C) : const Color(0xFFF57C00),
                 size: 18,
               ),
               const SizedBox(width: 8),
@@ -2378,7 +2378,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                     : '${missing.length} material(es) sin stock',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: _allStockOk ? Colors.green[800] : Colors.orange[800],
+                  color: _allStockOk ? const Color(0xFF2E7D32) : const Color(0xFFEF6C00),
                   fontSize: 13,
                 ),
               ),
@@ -2398,7 +2398,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                           style: TextStyle(fontSize: 12),
                         ),
                         style: TextButton.styleFrom(
-                          foregroundColor: Colors.orange[700],
+                          foregroundColor: const Color(0xFFF57C00),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 4,
@@ -2420,7 +2420,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                     const Icon(
                       Icons.remove_circle_outline,
                       size: 14,
-                      color: Colors.red,
+                      color: const Color(0xFFC62828),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
@@ -2431,7 +2431,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                     ),
                     Text(
                       'Necesita: ${need.toStringAsFixed(1)} | Hay: ${have.toStringAsFixed(1)}',
-                      style: TextStyle(fontSize: 11, color: Colors.red[700]),
+                      style: TextStyle(fontSize: 11, color: const Color(0xFFD32F2F)),
                     ),
                   ],
                 ),
@@ -2452,18 +2452,20 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
     String label,
     double value,
     IconData icon,
-    MaterialColor color, {
+    Color color, {
     bool isHighlight = false,
     bool isPercent = false,
   }) {
+    final darker = Color.lerp(color, const Color(0xFF000000), 0.3)!;
+    final darkest = Color.lerp(color, const Color(0xFF000000), 0.4)!;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isHighlight ? color.shade700 : Colors.white,
+          color: isHighlight ? darker : Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+            BoxShadow(color: const Color(0xFF000000).withOpacity(0.04), blurRadius: 8),
           ],
         ),
         child: Column(
@@ -2474,14 +2476,14 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                 Icon(
                   icon,
                   size: 18,
-                  color: isHighlight ? Colors.white70 : color.shade600,
+                  color: isHighlight ? const Color(0xB3FFFFFF) : color,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: isHighlight ? Colors.white70 : Colors.grey[600],
+                    color: isHighlight ? const Color(0xB3FFFFFF) : const Color(0xFF757575),
                   ),
                 ),
               ],
@@ -2494,7 +2496,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: isHighlight ? Colors.white : color.shade800,
+                color: isHighlight ? Colors.white : darkest,
               ),
             ),
           ],
@@ -2519,7 +2521,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             style: TextStyle(
               fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
               fontSize: isTotal ? 14 : 13,
-              color: Colors.grey[700],
+              color: const Color(0xFF616161),
             ),
           ),
           Text(
@@ -2527,7 +2529,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             style: TextStyle(
               fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
               fontSize: isTotal ? 14 : 13,
-              color: color ?? Colors.black87,
+              color: color ?? const Color(0xDD000000),
             ),
           ),
         ],
@@ -2553,7 +2555,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: const Color(0xFF000000).withOpacity(0.08),
                 blurRadius: 24,
                 offset: const Offset(0, 8),
               ),
@@ -2627,7 +2629,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
+                                      color: const Color(0xFF000000).withOpacity(0.1),
                                       blurRadius: 12,
                                     ),
                                   ],
@@ -2667,7 +2669,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                 'NIT: 901946675-1',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey,
+                                  color: const Color(0xFF9E9E9E),
                                 ),
                               ),
                             ],
@@ -2765,7 +2767,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.grey,
+                                        color: const Color(0xFF9E9E9E),
                                       ),
                                     ),
                                   ),
@@ -2805,7 +2807,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                 ),
                                 decoration: BoxDecoration(
                                   border: Border(
-                                    top: BorderSide(color: Colors.grey[100]!),
+                                    top: BorderSide(color: const Color(0xFFF5F5F5)),
                                   ),
                                 ),
                                 child: Row(
@@ -2839,7 +2841,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                         '${item['quantity']}',
                                         style: TextStyle(
                                           fontWeight: FontWeight.w500,
-                                          color: Colors.grey[700],
+                                          color: const Color(0xFF616161),
                                           fontSize: 15,
                                         ),
                                         textAlign: TextAlign.center,
@@ -2965,7 +2967,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: const Color(0xFF000000).withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -2995,12 +2997,12 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                               fit: BoxFit.contain,
                               errorBuilder: (_, __, ___) => Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.orange[100],
+                                  color: const Color(0xFFFFE0B2),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
                                   Icons.business,
-                                  color: Colors.orange[800],
+                                  color: const Color(0xFFEF6C00),
                                 ),
                               ),
                             ),
@@ -3020,7 +3022,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                             Text(
                               '${q['number']} - Desglose de materiales',
                               style: const TextStyle(
-                                color: Colors.grey,
+                                color: const Color(0xFF9E9E9E),
                                 fontSize: 12,
                               ),
                             ),
@@ -3034,13 +3036,13 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.orange[100],
+                        color: const Color(0xFFFFE0B2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         'USO INTERNO',
                         style: TextStyle(
-                          color: Colors.orange[800],
+                          color: const Color(0xFFEF6C00),
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -3073,7 +3075,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: const Color(0xFFFAFAFA),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
@@ -3083,7 +3085,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.red[50],
+                          color: const Color(0xFFFFEBEE),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -3094,14 +3096,14 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                 Icon(
                                   Icons.shopping_cart,
                                   size: 18,
-                                  color: Colors.red[700],
+                                  color: const Color(0xFFD32F2F),
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'COSTOS',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.red[700],
+                                    color: const Color(0xFFD32F2F),
                                     fontSize: 13,
                                   ),
                                 ),
@@ -3141,7 +3143,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                   ),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.red[700],
+                                    color: const Color(0xFFD32F2F),
                                   ),
                                 ),
                               ],
@@ -3154,7 +3156,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.green[50],
+                          color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -3165,14 +3167,14 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                 Icon(
                                   Icons.sell,
                                   size: 18,
-                                  color: Colors.green[700],
+                                  color: const Color(0xFF388E3C),
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'VENTAS',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.green[700],
+                                    color: const Color(0xFF388E3C),
                                     fontSize: 13,
                                   ),
                                 ),
@@ -3202,7 +3204,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                   Helpers.formatCurrency(q['total'] ?? 0),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.green[700],
+                                    color: const Color(0xFF388E3C),
                                     fontSize: 16,
                                   ),
                                 ),
@@ -3216,7 +3218,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.blue[50],
+                          color: const Color(0xFFE3F2FD),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -3227,14 +3229,14 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                 Icon(
                                   Icons.trending_up,
                                   size: 18,
-                                  color: Colors.blue[700],
+                                  color: const Color(0xFF1976D2),
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'GANANCIAS',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.blue[700],
+                                    color: const Color(0xFF1976D2),
                                     fontSize: 13,
                                   ),
                                 ),
@@ -3265,7 +3267,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                             Icon(
                                               Icons.payments,
                                               size: 16,
-                                              color: Colors.blue[600],
+                                              color: const Color(0xFF1E88E5),
                                             ),
                                             const SizedBox(width: 8),
                                             const Text('Ganancia Neta'),
@@ -3276,8 +3278,8 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             color: netProfit >= 0
-                                                ? Colors.blue[700]
-                                                : Colors.red[700],
+                                                ? const Color(0xFF1976D2)
+                                                : const Color(0xFFD32F2F),
                                             fontSize: 18,
                                           ),
                                         ),
@@ -3293,7 +3295,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                             Icon(
                                               Icons.percent,
                                               size: 16,
-                                              color: Colors.purple[600],
+                                              color: const Color(0xFF8E24AA),
                                             ),
                                             const SizedBox(width: 8),
                                             const Text('Markup Total'),
@@ -3306,8 +3308,8 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                           ),
                                           decoration: BoxDecoration(
                                             color: markup >= 0
-                                                ? Colors.purple[100]
-                                                : Colors.red[100],
+                                                ? const Color(0xFFE1BEE7)
+                                                : const Color(0xFFFFCDD2),
                                             borderRadius: BorderRadius.circular(
                                               12,
                                             ),
@@ -3317,8 +3319,8 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               color: markup >= 0
-                                                  ? Colors.purple[700]
-                                                  : Colors.red[700],
+                                                  ? const Color(0xFF7B1FA2)
+                                                  : const Color(0xFFD32F2F),
                                             ),
                                           ),
                                         ),
@@ -3339,19 +3341,19 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
+                    color: const Color(0xFFE3F2FD),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.scale, color: Colors.blue[700]),
+                      Icon(Icons.scale, color: const Color(0xFF1976D2)),
                       const SizedBox(width: 8),
                       Text(
                         'Peso Total: ${Helpers.formatNumber(q['weight'])} kg',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue[700],
+                          color: const Color(0xFF1976D2),
                         ),
                       ),
                     ],
@@ -3499,14 +3501,14 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                             Icon(
                               Icons.shopping_cart_outlined,
                               size: 16,
-                              color: Colors.orange[700],
+                              color: const Color(0xFFF57C00),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               Helpers.formatCurrency(unitCostPrice),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.orange[700],
+                                color: const Color(0xFFF57C00),
                                 fontSize: 13,
                               ),
                             ),
@@ -3520,7 +3522,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                           ],
                         ),
                       ),
-                      Container(width: 1, height: 40, color: Colors.grey[300]),
+                      Container(width: 1, height: 40, color: const Color(0xFFE0E0E0)),
                       // Venta/kg
                       Expanded(
                         child: Column(
@@ -3528,14 +3530,14 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                             Icon(
                               Icons.sell_outlined,
                               size: 16,
-                              color: Colors.green[700],
+                              color: const Color(0xFF388E3C),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               Helpers.formatCurrency(unitSalePrice),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.green[700],
+                                color: const Color(0xFF388E3C),
                                 fontSize: 13,
                               ),
                             ),
@@ -3549,7 +3551,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                           ],
                         ),
                       ),
-                      Container(width: 1, height: 40, color: Colors.grey[300]),
+                      Container(width: 1, height: 40, color: const Color(0xFFE0E0E0)),
                       // Ganancia Total
                       Expanded(
                         child: Column(
@@ -3557,14 +3559,14 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                             Icon(
                               Icons.trending_up,
                               size: 16,
-                              color: Colors.blue[700],
+                              color: const Color(0xFF1976D2),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '${Helpers.formatCurrency(totalProfit)} (${profitMargin.toStringAsFixed(1)}%)',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue[700],
+                                color: const Color(0xFF1976D2),
                                 fontSize: 13,
                               ),
                             ),
@@ -3578,7 +3580,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                           ],
                         ),
                       ),
-                      Container(width: 1, height: 40, color: Colors.grey[300]),
+                      Container(width: 1, height: 40, color: const Color(0xFFE0E0E0)),
                       // Costo Total
                       Expanded(
                         child: Column(
@@ -3586,14 +3588,14 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                             Icon(
                               Icons.account_balance_wallet_outlined,
                               size: 16,
-                              color: Colors.red[700],
+                              color: const Color(0xFFD32F2F),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               Helpers.formatCurrency(totalCost),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.red[700],
+                                color: const Color(0xFFD32F2F),
                                 fontSize: 13,
                               ),
                             ),
@@ -3617,7 +3619,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
           if (components.isNotEmpty) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              color: Colors.grey[100],
+              color: const Color(0xFFF5F5F5),
               child: Row(
                 children: [
                   const SizedBox(
@@ -3657,7 +3659,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
-                        color: Colors.orange[700],
+                        color: const Color(0xFFF57C00),
                       ),
                       textAlign: TextAlign.right,
                     ),
@@ -3669,7 +3671,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
-                        color: Colors.green[700],
+                        color: const Color(0xFF388E3C),
                       ),
                       textAlign: TextAlign.right,
                     ),
@@ -3681,7 +3683,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
-                        color: Colors.blue[700],
+                        color: const Color(0xFF1976D2),
                       ),
                       textAlign: TextAlign.right,
                     ),
@@ -3757,7 +3759,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                       flex: 2,
                       child: Text(
                         comp['material'] ?? '',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                        style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
                       ),
                     ),
                     SizedBox(
@@ -3766,7 +3768,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                         Helpers.formatCurrency(compCostPrice.toDouble()),
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.orange[700],
+                          color: const Color(0xFFF57C00),
                         ),
                         textAlign: TextAlign.right,
                       ),
@@ -3777,7 +3779,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                         Helpers.formatCurrency(compSalePrice.toDouble()),
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.green[700],
+                          color: const Color(0xFF388E3C),
                         ),
                         textAlign: TextAlign.right,
                       ),
@@ -3789,7 +3791,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: Colors.blue[700],
+                          color: const Color(0xFF1976D2),
                         ),
                         textAlign: TextAlign.right,
                       ),
@@ -3812,7 +3814,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             if (components.length > 10)
               Container(
                 padding: const EdgeInsets.all(8),
-                color: Colors.grey[100],
+                color: const Color(0xFFF5F5F5),
                 child: Center(
                   child: Text(
                     '... y ${components.length - 10} componentes más',
@@ -3848,7 +3850,7 @@ class _QuotationDetailDialogState extends State<_QuotationDetailDialog>
             style: TextStyle(
               fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
               fontSize: isTotal ? 18 : 13,
-              color: isTotal ? Theme.of(context).colorScheme.primary : Colors.black,
+              color: isTotal ? Theme.of(context).colorScheme.primary : const Color(0xFF000000),
             ),
           ),
         ],
@@ -4038,7 +4040,7 @@ class _ApproveQuotationDialogState
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.approval, color: Colors.blue[700]),
+          Icon(Icons.approval, color: const Color(0xFF1976D2)),
           const SizedBox(width: 8),
           const Expanded(
             child: Text('Aprobar Cotización', style: TextStyle(fontSize: 18)),
@@ -4056,7 +4058,7 @@ class _ApproveQuotationDialogState
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: const Color(0xFFE3F2FD),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -4069,7 +4071,7 @@ class _ApproveQuotationDialogState
                     const SizedBox(height: 4),
                     Text(
                       'Total: \$ ${Helpers.formatNumber(widget.quotation['total'] ?? 0)}',
-                      style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                      style: TextStyle(color: const Color(0xFF616161), fontSize: 13),
                     ),
                   ],
                 ),
@@ -4079,14 +4081,14 @@ class _ApproveQuotationDialogState
               // Stock check section
               Row(
                 children: [
-                  Icon(Icons.inventory_2, size: 18, color: Colors.grey[700]),
+                  Icon(Icons.inventory_2, size: 18, color: const Color(0xFF616161)),
                   const SizedBox(width: 6),
                   Text(
                     'Verificación de Stock',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
-                      color: Colors.grey[800],
+                      color: const Color(0xFF424242),
                     ),
                   ),
                 ],
@@ -4103,7 +4105,7 @@ class _ApproveQuotationDialogState
                         SizedBox(height: 12),
                         Text(
                           'Verificando stock de materiales...',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          style: TextStyle(fontSize: 12, color: const Color(0xFF9E9E9E)),
                         ),
                       ],
                     ),
@@ -4113,20 +4115,20 @@ class _ApproveQuotationDialogState
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.orange[50],
+                    color: const Color(0xFFFFF3E0),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange[200]!),
+                    border: Border.all(color: const Color(0xFFFFCC80)),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.warning_amber, color: Colors.orange[700]),
+                      Icon(Icons.warning_amber, color: const Color(0xFFF57C00)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'No se pudo verificar stock: $_error\nPuede aprobar de todas formas.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.orange[800],
+                            color: const Color(0xFFEF6C00),
                           ),
                         ),
                       ),
@@ -4137,7 +4139,7 @@ class _ApproveQuotationDialogState
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -4146,7 +4148,7 @@ class _ApproveQuotationDialogState
                       const SizedBox(width: 8),
                       Text(
                         'No se encontraron materiales con receta.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                        style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
                       ),
                     ],
                   ),
@@ -4160,13 +4162,13 @@ class _ApproveQuotationDialogState
                   ),
                   decoration: BoxDecoration(
                     color: _allStockAvailable
-                        ? Colors.green[50]
-                        : Colors.red[50],
+                        ? const Color(0xFFE8F5E9)
+                        : const Color(0xFFFFEBEE),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: _allStockAvailable
-                          ? Colors.green[300]!
-                          : Colors.red[300]!,
+                          ? const Color(0xFF81C784)
+                          : const Color(0xFFE57373),
                     ),
                   ),
                   child: Row(
@@ -4177,8 +4179,8 @@ class _ApproveQuotationDialogState
                             : Icons.warning_amber,
                         size: 16,
                         color: _allStockAvailable
-                            ? Colors.green[700]
-                            : Colors.red[700],
+                            ? const Color(0xFF388E3C)
+                            : const Color(0xFFD32F2F),
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -4190,8 +4192,8 @@ class _ApproveQuotationDialogState
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: _allStockAvailable
-                                ? Colors.green[800]
-                                : Colors.red[800],
+                                ? const Color(0xFF2E7D32)
+                                : const Color(0xFFC62828),
                           ),
                         ),
                       ),
@@ -4231,7 +4233,7 @@ class _ApproveQuotationDialogState
                             Icon(
                               hasStock ? Icons.check_circle : Icons.cancel,
                               size: 16,
-                              color: hasStock ? Colors.green : Colors.red,
+                              color: hasStock ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -4271,8 +4273,8 @@ class _ApproveQuotationDialogState
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
                                         color: hasStock
-                                            ? Colors.green[700]
-                                            : Colors.red[700],
+                                            ? const Color(0xFF388E3C)
+                                            : const Color(0xFFD32F2F),
                                       ),
                                     ),
                                     Text(
@@ -4292,14 +4294,14 @@ class _ApproveQuotationDialogState
                                       vertical: 1,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.red[100],
+                                      color: const Color(0xFFFFCDD2),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
                                       'Faltan ${_fmtQty(shortage)}',
                                       style: TextStyle(
                                         fontSize: 9,
-                                        color: Colors.red[700],
+                                        color: const Color(0xFFD32F2F),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -4349,9 +4351,9 @@ class _ApproveQuotationDialogState
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.amber[50],
+                    color: const Color(0xFFFFF8E1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.amber[300]!),
+                    border: Border.all(color: const Color(0xFFFFD54F)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -4360,7 +4362,7 @@ class _ApproveQuotationDialogState
                         children: [
                           Icon(
                             Icons.warning,
-                            color: Colors.amber[800],
+                            color: const Color(0xFFFF8F00),
                             size: 18,
                           ),
                           const SizedBox(width: 8),
@@ -4371,7 +4373,7 @@ class _ApproveQuotationDialogState
                               'quedará con valores negativos.',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.amber[900],
+                                color: const Color(0xFFFF6F00),
                               ),
                             ),
                           ),
@@ -4384,9 +4386,9 @@ class _ApproveQuotationDialogState
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.green[50],
+                            color: const Color(0xFFE8F5E9),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.green[300]!),
+                            border: Border.all(color: const Color(0xFF81C784)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -4396,7 +4398,7 @@ class _ApproveQuotationDialogState
                                   Icon(
                                     Icons.check_circle,
                                     size: 16,
-                                    color: Colors.green[700],
+                                    color: const Color(0xFF388E3C),
                                   ),
                                   const SizedBox(width: 6),
                                   Expanded(
@@ -4407,7 +4409,7 @@ class _ApproveQuotationDialogState
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.green[800],
+                                        color: const Color(0xFF2E7D32),
                                       ),
                                     ),
                                   ),
@@ -4419,10 +4421,10 @@ class _ApproveQuotationDialogState
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange[50],
+                                    color: const Color(0xFFFFF3E0),
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                      color: Colors.orange[300]!,
+                                      color: const Color(0xFFFFB74D),
                                     ),
                                   ),
                                   child: Column(
@@ -4434,7 +4436,7 @@ class _ApproveQuotationDialogState
                                           Icon(
                                             Icons.person_off,
                                             size: 14,
-                                            color: Colors.orange[700],
+                                            color: const Color(0xFFF57C00),
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
@@ -4442,7 +4444,7 @@ class _ApproveQuotationDialogState
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
-                                              color: Colors.orange[800],
+                                              color: const Color(0xFFEF6C00),
                                             ),
                                           ),
                                         ],
@@ -4461,7 +4463,7 @@ class _ApproveQuotationDialogState
                                                       'Material',
                                                   style: TextStyle(
                                                     fontSize: 11,
-                                                    color: Colors.orange[900],
+                                                    color: const Color(0xFFE65100),
                                                   ),
                                                   overflow:
                                                       TextOverflow.ellipsis,
@@ -4485,10 +4487,10 @@ class _ApproveQuotationDialogState
                                                   ),
                                                   style: OutlinedButton.styleFrom(
                                                     foregroundColor:
-                                                        Colors.orange[800],
+                                                        const Color(0xFFEF6C00),
                                                     side: BorderSide(
                                                       color:
-                                                          Colors.orange[400]!,
+                                                          const Color(0xFFFFA726),
                                                     ),
                                                     padding:
                                                         const EdgeInsets.symmetric(
@@ -4512,16 +4514,16 @@ class _ApproveQuotationDialogState
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.red[50],
+                            color: const Color(0xFFFFEBEE),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.red[300]!),
+                            border: Border.all(color: const Color(0xFFE57373)),
                           ),
                           child: Row(
                             children: [
                               Icon(
                                 Icons.error,
                                 size: 16,
-                                color: Colors.red[700],
+                                color: const Color(0xFFD32F2F),
                               ),
                               const SizedBox(width: 6),
                               Expanded(
@@ -4529,7 +4531,7 @@ class _ApproveQuotationDialogState
                                   'Error creando órdenes: $_orderError',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Colors.red[800],
+                                    color: const Color(0xFFC62828),
                                   ),
                                 ),
                               ),
@@ -4561,7 +4563,7 @@ class _ApproveQuotationDialogState
                               style: const TextStyle(fontSize: 12),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange[700],
+                              backgroundColor: const Color(0xFFF57C00),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
@@ -4618,7 +4620,7 @@ class _ApproveQuotationDialogState
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
             ),
           ),
         ],

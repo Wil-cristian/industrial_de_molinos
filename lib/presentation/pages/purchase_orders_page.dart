@@ -43,7 +43,7 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
         // Header
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           child: Column(
             children: [
               Row(
@@ -65,7 +65,7 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
                         )
                         .length
                         .toString(),
-                    Colors.orange,
+                    AppColors.warning,
                     Icons.pending_actions,
                   ),
                   const SizedBox(width: 12),
@@ -80,7 +80,7 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
                           )
                           .fold(0.0, (sum, o) => sum + o.balance),
                     ),
-                    Colors.red,
+                    AppColors.danger,
                     Icons.money_off,
                   ),
                   const SizedBox(width: 16),
@@ -133,7 +133,7 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
                       Icon(
                         Icons.error_outline,
                         size: 48,
-                        color: Colors.red[300],
+                        color: AppColors.danger.withOpacity(0.6),
                       ),
                       const SizedBox(height: 8),
                       Text('Error: ${state.error}'),
@@ -168,7 +168,7 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
       selectedColor: Theme.of(context).colorScheme.primaryContainer,
       checkmarkColor: Theme.of(context).colorScheme.primary,
       labelStyle: TextStyle(
-        color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey[700],
+        color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 12,
       ),
@@ -308,7 +308,7 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
                   if (order.balance > 0)
                     Text(
                       'Debe: ${Formatters.currency(order.balance)}',
-                      style: TextStyle(color: Colors.red[400], fontSize: 11),
+                      style: TextStyle(color: AppColors.danger, fontSize: 11),
                     ),
                 ],
               ),
@@ -513,26 +513,26 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
   Color _getStatusColor(PurchaseOrderStatus status) {
     switch (status) {
       case PurchaseOrderStatus.borrador:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
       case PurchaseOrderStatus.enviada:
-        return Colors.blue;
+        return AppColors.info;
       case PurchaseOrderStatus.parcial:
-        return Colors.orange;
+        return AppColors.warning;
       case PurchaseOrderStatus.recibida:
-        return Colors.green;
+        return AppColors.success;
       case PurchaseOrderStatus.cancelada:
-        return Colors.red;
+        return AppColors.danger;
     }
   }
 
   Color _getPaymentColor(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.pendiente:
-        return Colors.orange;
+        return AppColors.warning;
       case PaymentStatus.parcial:
-        return Colors.blue;
+        return AppColors.info;
       case PaymentStatus.pagada:
-        return Colors.green;
+        return AppColors.success;
     }
   }
 
@@ -627,7 +627,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: Theme.of(context).colorScheme.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -769,12 +769,12 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                         _buildTotalRow(
                           'Pagado',
                           _order.amountPaid,
-                          color: Colors.green,
+                          color: AppColors.success,
                         ),
                         _buildTotalRow(
                           'Pendiente',
                           _order.balance,
-                          color: Colors.red,
+                          color: AppColors.danger,
                           isBold: true,
                         ),
                       ],
@@ -797,7 +797,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                   .deleteOrder(_order.id);
               widget.onRefresh();
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             child: const Text('Eliminar'),
           ),
           FilledButton.icon(
@@ -841,7 +841,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
             },
             icon: const Icon(Icons.check_circle, size: 18),
             label: const Text('Marcar Recibida'),
-            style: FilledButton.styleFrom(backgroundColor: Colors.green),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.success),
           ),
         ],
         if (_order.balance > 0 &&
@@ -861,7 +861,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
               widget.onRefresh();
               await _refreshOrder();
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             child: const Text('Cancelar Orden'),
           ),
         if (_order.status == PurchaseOrderStatus.cancelada)
@@ -898,7 +898,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                 widget.onRefresh();
               }
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             child: const Text('Eliminar'),
           ),
         TextButton(
@@ -946,7 +946,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                 onPressed: () => _showEditItemDialog(item),
               ),
               IconButton(
-                icon: Icon(Icons.delete, size: 16, color: Colors.red[400]),
+                icon: Icon(Icons.delete, size: 16, color: AppColors.danger),
                 visualDensity: VisualDensity.compact,
                 onPressed: () async {
                   await ref
@@ -976,7 +976,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
           Text(
             label,
             style: TextStyle(
-              color: color ?? Colors.grey[700],
+              color: color ?? Theme.of(context).colorScheme.onSurface,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
               fontSize: 13,
             ),
@@ -984,7 +984,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
           Text(
             Formatters.currency(amount),
             style: TextStyle(
-              color: color ?? Colors.black,
+              color: color ?? Theme.of(context).colorScheme.onSurface,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
               fontSize: isBold ? 16 : 13,
             ),
@@ -1041,7 +1041,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                   child: Text(
                     '── Materiales del proveedor ──',
                     style: TextStyle(
-                      color: Colors.green[700],
+                      color: AppColors.success,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -1056,7 +1056,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                     value: m.id,
                     child: Row(
                       children: [
-                        Icon(Icons.star, size: 14, color: Colors.amber[700]),
+                        Icon(Icons.star, size: 14, color: AppColors.warning),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -1067,7 +1067,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                         Text(
                           Formatters.currency(sm.effectivePrice),
                           style: TextStyle(
-                            color: Colors.green[700],
+                            color: AppColors.success,
                             fontSize: 12,
                           ),
                         ),
@@ -1125,17 +1125,17 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.1),
+                          color: AppColors.warning.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: Colors.orange.withValues(alpha: 0.3),
+                            color: AppColors.warning.withValues(alpha: 0.3),
                           ),
                         ),
                         child: const Row(
                           children: [
                             Icon(
                               Icons.info_outline,
-                              color: Colors.orange,
+                              color: AppColors.warning,
                               size: 18,
                             ),
                             SizedBox(width: 8),
@@ -1247,7 +1247,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.05),
+                          color: AppColors.success.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -1358,7 +1358,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.05),
+                    color: AppColors.success.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -1441,7 +1441,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
             return AlertDialog(
               title: const Row(
                 children: [
-                  Icon(Icons.payments_outlined, color: Colors.deepOrange),
+                  Icon(Icons.payments_outlined, color: const Color(0xFFFF5722)),
                   SizedBox(width: 8),
                   Text('Pagar a Proveedor'),
                 ],
@@ -1456,17 +1456,17 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.05),
+                        color: AppColors.danger.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: Colors.red.withValues(alpha: 0.2),
+                          color: AppColors.danger.withValues(alpha: 0.2),
                         ),
                       ),
                       child: Row(
                         children: [
                           const Icon(
                             Icons.warning_amber,
-                            color: Colors.red,
+                            color: AppColors.danger,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -1483,7 +1483,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                                 Text(
                                   'Pendiente: ${Formatters.currency(_order.balance)}',
                                   style: TextStyle(
-                                    color: Colors.red[700],
+                                    color: AppColors.danger,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                   ),
@@ -1542,14 +1542,14 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.1),
+                            color: AppColors.warning.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Row(
                             children: [
                               Icon(
                                 Icons.info_outline,
-                                color: Colors.orange,
+                                color: AppColors.warning,
                                 size: 18,
                               ),
                               SizedBox(width: 8),
@@ -1601,14 +1601,14 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                         margin: const EdgeInsets.only(top: 8),
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.1),
+                          color: AppColors.warning.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
                             const Icon(
                               Icons.warning,
-                              color: Colors.orange,
+                              color: AppColors.warning,
                               size: 16,
                             ),
                             const SizedBox(width: 8),
@@ -1618,7 +1618,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                                 '(${Formatters.currency(selectedAccount.balance)})',
                                 style: const TextStyle(
                                   fontSize: 11,
-                                  color: Colors.orange,
+                                  color: AppColors.warning,
                                 ),
                               ),
                             ),
@@ -1688,8 +1688,8 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                                       : '✅ Pago de ${Formatters.currency(payAmount)} desde ${selectedAccount?.name ?? ""}',
                                 ),
                                 backgroundColor: isCredit
-                                    ? Colors.orange
-                                    : Colors.green,
+                                    ? AppColors.warning
+                                    : AppColors.success,
                               ),
                             );
                           }
@@ -1706,26 +1706,26 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
   }
 
   Color _parseColor(String? hex) {
-    if (hex == null || hex.isEmpty) return Colors.grey;
+    if (hex == null || hex.isEmpty) return const Color(0xFF9E9E9E);
     try {
       return Color(int.parse(hex.replaceFirst('#', '0xFF')));
     } catch (_) {
-      return Colors.grey;
+      return const Color(0xFF9E9E9E);
     }
   }
 
   Color _getStatusColor(PurchaseOrderStatus status) {
     switch (status) {
       case PurchaseOrderStatus.borrador:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
       case PurchaseOrderStatus.enviada:
-        return Colors.blue;
+        return AppColors.info;
       case PurchaseOrderStatus.parcial:
-        return Colors.orange;
+        return AppColors.warning;
       case PurchaseOrderStatus.recibida:
-        return Colors.green;
+        return AppColors.success;
       case PurchaseOrderStatus.cancelada:
-        return Colors.red;
+        return AppColors.danger;
     }
   }
 }

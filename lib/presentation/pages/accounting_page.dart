@@ -78,7 +78,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFFAFAFA),
       body: Column(
         children: [
           // ── Header ──
@@ -112,7 +112,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 2,
             offset: const Offset(0, 1),
           ),
@@ -239,7 +239,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         side: BorderSide(
-          color: hasFilter ? AppColors.success : Colors.grey[300]!,
+          color: hasFilter ? AppColors.success : const Color(0xFFE0E0E0),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         visualDensity: VisualDensity.compact,
@@ -539,7 +539,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                     const Text(
                       'UTILIDAD NETA DEL PERIODO',
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: const Color(0xB3FFFFFF),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -611,7 +611,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
               headingTextStyle: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
-                color: Colors.grey[700],
+                color: const Color(0xFF616161),
               ),
               columns: const [
                 DataColumn(label: Text('Mes')),
@@ -696,7 +696,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
               const SizedBox(width: 8),
               Text(
                 'Cuenta:',
-                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                style: TextStyle(fontSize: 13, color: const Color(0xFF616161)),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -709,7 +709,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                       'Todas las cuentas',
                       style: TextStyle(fontSize: 13),
                     ),
-                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    style: const TextStyle(fontSize: 13, color: const Color(0xDD000000)),
                     items: [
                       const DropdownMenuItem<String?>(
                         value: null,
@@ -765,7 +765,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 12,
-              color: Colors.grey[700],
+              color: const Color(0xFF616161),
             ),
             columns: const [
               DataColumn(label: Text('Fecha')),
@@ -942,7 +942,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 headingTextStyle: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
-                  color: Colors.grey[700],
+                  color: const Color(0xFF616161),
                 ),
                 columns: const [
                   DataColumn(label: Text('Código')),
@@ -1085,7 +1085,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           SizedBox(height: 12),
           Text(
             'Cargando datos contables...',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: const Color(0xFF9E9E9E)),
           ),
         ],
       ),
@@ -1116,7 +1116,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.receipt_long, size: 64, color: Colors.grey[300]),
+          Icon(Icons.receipt_long, size: 64, color: const Color(0xFFE0E0E0)),
           const SizedBox(height: 12),
           Text(
             message,
@@ -1382,7 +1382,7 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
       case 'invoice':
         return Theme.of(context).colorScheme.primary;
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 }
@@ -1508,7 +1508,7 @@ class _BalanceSection extends StatelessWidget {
             (item) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+                border: Border(bottom: BorderSide(color: const Color(0xFFF5F5F5))),
               ),
               child: Row(
                 children: [
@@ -1533,7 +1533,7 @@ class _BalanceSection extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: item.saldo >= 0
-                          ? Colors.black87
+                          ? const Color(0xDD000000)
                           : AppColors.danger,
                     ),
                   ),
@@ -1604,7 +1604,7 @@ class _ResultSection extends StatelessWidget {
             (item) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+                border: Border(bottom: BorderSide(color: const Color(0xFFF5F5F5))),
               ),
               child: Row(
                 children: [

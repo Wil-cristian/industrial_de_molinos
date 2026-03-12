@@ -182,7 +182,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                     'Tokens: ${_scanResult!.totalTokens} · '
                     'Costo: ~\$${_scanResult!.estimatedCost ?? "?"}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white70,
+                      color: const Color(0xB3FFFFFF),
                     ),
                   ),
               ],
@@ -219,7 +219,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                 ? Colors.white
                 : isActive
                 ? Colors.white
-                : Colors.white38,
+                : const Color(0x62FFFFFF),
           ),
         );
       }),
@@ -252,18 +252,18 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: const Color(0xFFFFEBEE),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: const Color(0xFFEF9A9A)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline, color: Colors.red.shade700),
+                    Icon(Icons.error_outline, color: const Color(0xFFD32F2F)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _error!,
-                        style: TextStyle(color: Colors.red.shade700),
+                        style: TextStyle(color: const Color(0xFFD32F2F)),
                         maxLines: 5,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -285,14 +285,14 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                   border: Border.all(
                     color: _selectedFile != null
                         ? Theme.of(context).colorScheme.primary
-                        : Colors.grey.shade300,
+                        : const Color(0xFFE0E0E0),
                     width: 2,
                     strokeAlign: BorderSide.strokeAlignCenter,
                   ),
                   borderRadius: BorderRadius.circular(16),
                   color: _selectedFile != null
                       ? Theme.of(context).colorScheme.primaryContainer
-                      : Colors.grey.shade50,
+                      : const Color(0xFFFAFAFA),
                 ),
                 child: Column(
                   children: [
@@ -303,7 +303,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                       size: 64,
                       color: _selectedFile != null
                           ? Theme.of(context).colorScheme.primary
-                          : Colors.grey.shade400,
+                          : const Color(0xFFBDBDBD),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -314,7 +314,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                         fontWeight: FontWeight.w600,
                         color: _selectedFile != null
                             ? Theme.of(context).colorScheme.primary
-                            : Colors.grey.shade600,
+                            : const Color(0xFF757575),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -323,7 +323,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                           ? '${(_selectedFile!.size / 1024).toStringAsFixed(0)} KB · Toca para cambiar'
                           : 'JPG, PNG o PDF · Máximo 10 MB',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade500,
+                        color: const Color(0xFFFAFAFA)0,
                       ),
                     ),
                   ],
@@ -337,7 +337,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: const Color(0xFFE3F2FD),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -345,7 +345,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                 children: [
                   Icon(
                     Icons.info_outline,
-                    color: Colors.blue.shade700,
+                    color: const Color(0xFF1976D2),
                     size: 20,
                   ),
                   const SizedBox(width: 12),
@@ -357,7 +357,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                           'Reconocimiento con OpenAI Vision (GPT-4.1 mini)',
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade800,
+                            color: const Color(0xFF1565C0),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -366,7 +366,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                           'IVA, retenciones (RteFte, ICA, ReteIVA), CUFE y totales. '
                           'Costo aprox: \$0.001-0.003 por factura.',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.blue.shade700,
+                            color: const Color(0xFF1976D2),
                           ),
                         ),
                       ],
@@ -410,7 +410,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
             'Esto tomará unos segundos.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.grey.shade600,
+              color: const Color(0xFF757575),
             ),
           ),
         ],
@@ -532,7 +532,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                 child: Text(
                   '✅ Vinculado automáticamente por ${detected.documentNumber != null ? 'NIT' : 'nombre'}',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.green.shade700,
+                    color: const Color(0xFF388E3C),
                   ),
                 ),
               ),
@@ -616,7 +616,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               child: Text(
                 '💡 Datos pre-llenados desde la factura escaneada',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.blue.shade700,
+                  color: const Color(0xFF1976D2),
                 ),
               ),
             ),
@@ -641,7 +641,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: selected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
+            color: selected ? Theme.of(context).colorScheme.primary : const Color(0xFFE0E0E0),
             width: selected ? 2 : 1,
           ),
           color: selected
@@ -654,14 +654,14 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
             Icon(
               icon,
               size: 18,
-              color: selected ? Theme.of(context).colorScheme.primary : Colors.grey.shade500,
+              color: selected ? Theme.of(context).colorScheme.primary : const Color(0xFFFAFAFA)0,
             ),
             const SizedBox(width: 6),
             Text(
               label,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                color: selected ? Theme.of(context).colorScheme.primary : Colors.grey.shade600,
+                color: selected ? Theme.of(context).colorScheme.primary : const Color(0xFF757575),
               ),
             ),
           ],
@@ -769,7 +769,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
@@ -829,7 +829,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                border: Border(bottom: BorderSide(color: const Color(0xFFEEEEEE))),
               ),
               child: Row(
                 children: [
@@ -961,7 +961,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
             subtitle: Text(
               'Vincula esta factura de compra con el control de IVA',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade600,
+                color: const Color(0xFF757575),
               ),
             ),
             value: _createIvaRecord,
@@ -983,9 +983,9 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               style: theme.textTheme.bodySmall?.copyWith(
                 color: _scanResult != null && _scanResult!.creditDays > 0
                     ? _createExpenseRecord
-                          ? Colors.green.shade700
-                          : Colors.orange.shade700
-                    : Colors.grey.shade600,
+                          ? const Color(0xFF388E3C)
+                          : const Color(0xFFF57C00)
+                    : const Color(0xFF757575),
               ),
             ),
             value: _createExpenseRecord,
@@ -1047,7 +1047,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: const Color(0xFFFAFAFA),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
       ),
       child: Row(
@@ -1084,7 +1084,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               icon: const Icon(Icons.save, size: 18),
               label: const Text('Registrar Factura'),
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.green.shade700,
+                backgroundColor: const Color(0xFF388E3C),
               ),
             ),
           ],
@@ -1106,7 +1106,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: const Color(0xFFEEEEEE)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1130,7 +1130,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               Text(
                 subtitle,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.green.shade700,
+                  color: const Color(0xFF388E3C),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1316,7 +1316,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
             builder: (ctx) => AlertDialog(
               icon: Icon(
                 Icons.warning_amber_rounded,
-                color: Colors.orange.shade700,
+                color: const Color(0xFFF57C00),
                 size: 48,
               ),
               title: const Text('⚠️ Factura posiblemente duplicada'),
@@ -1332,9 +1332,9 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
+                      color: const Color(0xFFFFF3E0),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.shade200),
+                      border: Border.all(color: const Color(0xFFFFCC80)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1349,7 +1349,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                   const SizedBox(height: 16),
                   const Text(
                     '¿Deseas registrarla de todas formas?',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: const Color(0xFF9E9E9E)),
                   ),
                 ],
               ),
@@ -1361,7 +1361,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                 ElevatedButton(
                   onPressed: () => Navigator.pop(ctx, true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange.shade700,
+                    backgroundColor: const Color(0xFFF57C00),
                   ),
                   child: const Text(
                     'Registrar de todas formas',
@@ -1520,7 +1520,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
           content: Text(
             '✅ Factura ${_invoiceNumberCtrl.text} registrada → ${actions.join(', ')}',
           ),
-          backgroundColor: Colors.green.shade700,
+          backgroundColor: const Color(0xFF388E3C),
           duration: const Duration(seconds: 5),
         ),
       );
@@ -1546,7 +1546,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('❌ Error: $e'),
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: const Color(0xFFD32F2F),
         ),
       );
     }
@@ -1704,7 +1704,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               '${matches.where((m) => m.selected && !m.isNew).length} actualizados, '
               '${matches.where((m) => m.selected && m.isNew).length} creados',
             ),
-            backgroundColor: Colors.teal.shade700,
+            backgroundColor: const Color(0xFF00796B),
             duration: const Duration(seconds: 4),
           ),
         );
@@ -1715,7 +1715,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('⚠ Error al actualizar inventario: $e'),
-            backgroundColor: Colors.orange.shade700,
+            backgroundColor: const Color(0xFFF57C00),
           ),
         );
       }
@@ -1760,7 +1760,7 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.teal.shade700,
+                color: const Color(0xFF00796B),
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
@@ -1784,7 +1784,7 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                         Text(
                           'Factura ${widget.invoiceRef} · ${widget.matches.length} ítem(s) detectados',
                           style: TextStyle(
-                            color: Colors.teal.shade100,
+                            color: const Color(0xFFB2DFDB),
                             fontSize: 13,
                           ),
                         ),
@@ -1800,15 +1800,15 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: const Color(0xFFE3F2FD),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(color: const Color(0xFF90CAF9)),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.auto_awesome,
-                      color: Colors.blue.shade700,
+                      color: const Color(0xFF1976D2),
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -1817,7 +1817,7 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                         'La IA sugiere materiales existentes. Puedes cambiar la selección '
                         'o elegir "Crear nuevo material" para cada ítem.',
                         style: TextStyle(
-                          color: Colors.blue.shade800,
+                          color: const Color(0xFF1565C0),
                           fontSize: 12,
                         ),
                       ),
@@ -1857,7 +1857,7 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                     icon: const Icon(Icons.inventory_2, size: 18),
                     label: Text('Actualizar Inventario ($selectedCount)'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal.shade700,
+                      backgroundColor: const Color(0xFF00796B),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -1877,8 +1877,8 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
   Widget _buildMatchItem(_ItemInventoryMatch match) {
     final item = match.item;
     final isNew = match.isNew;
-    final statusColor = isNew ? Colors.orange.shade700 : Colors.teal.shade700;
-    final statusBg = isNew ? Colors.orange.shade50 : Colors.teal.shade50;
+    final statusColor = isNew ? const Color(0xFFF57C00) : const Color(0xFF00796B);
+    final statusBg = isNew ? const Color(0xFFFFF3E0) : const Color(0xFFE0F2F1);
     final qtyLabel =
         '+${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} '
         '${item.unit.isEmpty ? 'UND' : item.unit}';
@@ -1886,12 +1886,12 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: match.selected ? statusBg : Colors.grey.shade50,
+        color: match.selected ? statusBg : const Color(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: match.selected
               ? statusColor.withOpacity(0.4)
-              : Colors.grey.shade200,
+              : const Color(0xFFEEEEEE),
         ),
       ),
       child: Padding(
@@ -1953,14 +1953,14 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                       Icon(
                         Icons.auto_awesome,
                         size: 14,
-                        color: Colors.blue.shade600,
+                        color: const Color(0xFF1E88E5),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         'IA sugiere: ',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.blue.shade600,
+                          color: const Color(0xFF1E88E5),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1970,7 +1970,7 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                           '(stock: ${match.aiRecommendation!.stock.toStringAsFixed(match.aiRecommendation!.stock % 1 == 0 ? 0 : 2)} ${match.aiRecommendation!.unit})',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.blue.shade700,
+                            color: const Color(0xFF1976D2),
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -2010,13 +2010,13 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                           Icon(
                             Icons.add_circle,
                             size: 16,
-                            color: Colors.orange.shade700,
+                            color: const Color(0xFFF57C00),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             'Crear nuevo material',
                             style: TextStyle(
-                              color: Colors.orange.shade700,
+                              color: const Color(0xFFF57C00),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -2033,13 +2033,13 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                               Icon(
                                 Icons.auto_awesome,
                                 size: 14,
-                                color: Colors.blue.shade600,
+                                color: const Color(0xFF1E88E5),
                               )
                             else
                               Icon(
                                 Icons.inventory_2_outlined,
                                 size: 14,
-                                color: Colors.grey.shade500,
+                                color: const Color(0xFFFAFAFA)0,
                               ),
                             const SizedBox(width: 8),
                             Expanded(

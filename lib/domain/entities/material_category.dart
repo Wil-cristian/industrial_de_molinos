@@ -42,7 +42,7 @@ class MaterialCategory {
       final hex = color.replaceFirst('#', '');
       return Color(int.parse('FF$hex', radix: 16));
     } catch (_) {
-      return Colors.grey;
+      return const Color(0xFF9E9E9E);
     }
   }
 

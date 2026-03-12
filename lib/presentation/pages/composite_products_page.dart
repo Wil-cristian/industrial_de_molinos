@@ -88,13 +88,13 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                         _buildQuickStat(
                           'Molinos',
                           '${state.products.where((p) => p.category == ProductCategories.molino).length}',
-                          Colors.blue,
+                          const Color(0xFF1565C0),
                           Icons.settings,
                         ),
                         _buildQuickStat(
                           'Otros',
                           '${state.products.where((p) => p.category != ProductCategories.molino).length}',
-                          Colors.green,
+                          const Color(0xFF2E7D32),
                           Icons.category,
                         ),
                         FilledButton.icon(
@@ -228,7 +228,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+          Icon(Icons.error_outline, size: 48, color: const Color(0xFFE57373)),
           const SizedBox(height: 16),
           Text('Error: $error', textAlign: TextAlign.center),
           const SizedBox(height: 16),
@@ -392,11 +392,11 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete, size: 18, color: Colors.red),
+                            Icon(Icons.delete, size: 18, color: const Color(0xFFC62828)),
                             SizedBox(width: 8),
                             Text(
                               'Eliminar',
-                              style: TextStyle(color: Colors.red),
+                              style: TextStyle(color: const Color(0xFFC62828)),
                             ),
                           ],
                         ),
@@ -488,7 +488,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: const Color(0xFFFAFAFA),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -498,12 +498,12 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                       'Compra',
                       '\$ ${Helpers.formatNumber(product.materialsCostPrice)}',
                     ),
-                    Container(width: 1, height: 30, color: Colors.grey[300]),
+                    Container(width: 1, height: 30, color: const Color(0xFFE0E0E0)),
                     _buildStatColumn(
                       'Venta',
                       '\$ ${Helpers.formatNumber(product.materialsCost)}',
                     ),
-                    Container(width: 1, height: 30, color: Colors.grey[300]),
+                    Container(width: 1, height: 30, color: const Color(0xFFE0E0E0)),
                     _buildStatColumn(
                       'Ganancia',
                       '${product.realProfitMargin.toStringAsFixed(1)}%',
@@ -538,17 +538,17 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
   Color _getCategoryColor(String category) {
     switch (category) {
       case ProductCategories.molino:
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case ProductCategories.transportador:
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case ProductCategories.tanque:
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case ProductCategories.estructura:
-        return Colors.purple;
+        return const Color(0xFF7B1FA2);
       case ProductCategories.maquinaria:
-        return Colors.teal;
+        return const Color(0xFF009688);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 
@@ -597,7 +597,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
           content: Text(
             success ? 'Producto duplicado exitosamente' : 'Error al duplicar',
           ),
-          backgroundColor: success ? Colors.green : Colors.red,
+          backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
         ),
       );
     }
@@ -794,7 +794,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: const Color(0xFFFAFAFA),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -817,15 +817,15 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                       '\$ ${Helpers.formatNumber(product.materialsProfit)}',
                       isBold: true,
                       valueColor: product.materialsProfit > 0
-                          ? Colors.green[700]
-                          : Colors.red[700],
+                          ? const Color(0xFF388E3C)
+                          : const Color(0xFFD32F2F),
                     ),
                     _buildCostRow(
                       'Margen',
                       '${product.realProfitMargin.toStringAsFixed(1)}%',
                       valueColor: product.realProfitMargin > 0
-                          ? Colors.green[700]
-                          : Colors.red[700],
+                          ? const Color(0xFF388E3C)
+                          : const Color(0xFFD32F2F),
                     ),
                   ],
                 ),
@@ -896,7 +896,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.warning, color: Colors.red),
+            Icon(Icons.warning, color: const Color(0xFFC62828)),
             SizedBox(width: 12),
             Text('Confirmar eliminación'),
           ],
@@ -921,12 +921,12 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                     content: Text(
                       success ? 'Producto eliminado' : 'Error al eliminar',
                     ),
-                    backgroundColor: success ? Colors.red : Colors.orange,
+                    backgroundColor: success ? const Color(0xFFC62828) : const Color(0xFFF9A825),
                   ),
                 );
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
             child: const Text('Eliminar'),
           ),
         ],
@@ -964,7 +964,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                             : 'Producto creado exitosamente')
                       : 'Error al guardar',
                 ),
-                backgroundColor: success ? Colors.green : Colors.red,
+                backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
               ),
             );
           }
@@ -1159,7 +1159,7 @@ class _CompositeProductFormDialogState
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Container(width: 1, color: Colors.grey[300]),
+                    Container(width: 1, color: const Color(0xFFE0E0E0)),
                     const SizedBox(width: 12),
 
                     // Right: Agregar componentes + Lista
@@ -1250,7 +1250,7 @@ class _CompositeProductFormDialogState
             isDense: true,
             contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           ),
-          style: const TextStyle(fontSize: 12, color: Colors.black87),
+          style: const TextStyle(fontSize: 12, color: const Color(0xDD000000)),
           items: ProductCategories.all
               .map(
                 (cat) => DropdownMenuItem(
@@ -1285,9 +1285,9 @@ class _CompositeProductFormDialogState
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.05),
+            color: const Color(0xFF1565C0).withOpacity(0.05),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue.withOpacity(0.2)),
+            border: Border.all(color: const Color(0xFF1565C0).withOpacity(0.2)),
           ),
           child: Column(
             children: [
@@ -1325,7 +1325,7 @@ class _CompositeProductFormDialogState
           flex: 3,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: const Color(0xFFFAFAFA),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
@@ -1394,7 +1394,7 @@ class _CompositeProductFormDialogState
               Icon(
                 icon,
                 size: 14,
-                color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey[600],
+                color: isActive ? Theme.of(context).colorScheme.primary : const Color(0xFF757575),
               ),
               const SizedBox(width: 4),
               Text(
@@ -1402,7 +1402,7 @@ class _CompositeProductFormDialogState
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey[600],
+                  color: isActive ? Theme.of(context).colorScheme.primary : const Color(0xFF757575),
                 ),
               ),
             ],
@@ -1446,21 +1446,21 @@ class _CompositeProductFormDialogState
                         'Lám',
                         'lamina',
                         Icons.crop_square,
-                        Colors.blue,
+                        const Color(0xFF1565C0),
                       ),
                       const SizedBox(width: 4),
                       _typeChip(
                         'Tubo',
                         'tubo',
                         Icons.circle_outlined,
-                        Colors.green,
+                        const Color(0xFF2E7D32),
                       ),
                       const SizedBox(width: 4),
                       _typeChip(
                         'Eje',
                         'eje',
                         Icons.horizontal_rule,
-                        Colors.orange,
+                        const Color(0xFFF9A825),
                       ),
                     ],
                   ),
@@ -1536,7 +1536,7 @@ class _CompositeProductFormDialogState
                   ),
                 ),
                 const SizedBox(width: 6),
-                Icon(Icons.content_cut, size: 12, color: Colors.orange[700]),
+                Icon(Icons.content_cut, size: 12, color: const Color(0xFFF57C00)),
                 const SizedBox(width: 2),
                 SizedBox(
                   width: 40,
@@ -1553,12 +1553,12 @@ class _CompositeProductFormDialogState
                         borderRadius: BorderRadius.circular(4),
                       ),
                       filled: true,
-                      fillColor: Colors.orange.withOpacity(0.1),
+                      fillColor: const Color(0xFFF9A825).withOpacity(0.1),
                     ),
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: Colors.orange[800],
+                      color: const Color(0xFFEF6C00),
                     ),
                     textAlign: TextAlign.center,
                     keyboardType: TextInputType.number,
@@ -1579,13 +1579,13 @@ class _CompositeProductFormDialogState
                     ),
                     decoration: BoxDecoration(
                       color: _calculatedWeight > 0
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.grey.withOpacity(0.05),
+                          ? const Color(0xFF2E7D32).withOpacity(0.1)
+                          : const Color(0xFF9E9E9E).withOpacity(0.05),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: _calculatedWeight > 0
-                            ? Colors.green.withOpacity(0.3)
-                            : Colors.grey.withOpacity(0.2),
+                            ? const Color(0xFF2E7D32).withOpacity(0.3)
+                            : const Color(0xFF9E9E9E).withOpacity(0.2),
                       ),
                     ),
                     child: Row(
@@ -1597,8 +1597,8 @@ class _CompositeProductFormDialogState
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: _calculatedWeight > 0
-                                ? Colors.green[700]
-                                : Colors.grey,
+                                ? const Color(0xFF388E3C)
+                                : const Color(0xFF9E9E9E),
                           ),
                         ),
                         Text(
@@ -1611,8 +1611,8 @@ class _CompositeProductFormDialogState
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: _calculatedWeight > 0
-                                ? Colors.green[700]
-                                : Colors.grey,
+                                ? const Color(0xFF388E3C)
+                                : const Color(0xFF9E9E9E),
                           ),
                         ),
                       ],
@@ -1660,21 +1660,21 @@ class _CompositeProductFormDialogState
           color: isSelected ? color.withOpacity(0.15) : Colors.white,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: isSelected ? color : Colors.grey[300]!,
+            color: isSelected ? color : const Color(0xFFE0E0E0),
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: isSelected ? color : Colors.grey, size: 14),
+            Icon(icon, color: isSelected ? color : const Color(0xFF9E9E9E), size: 14),
             const SizedBox(width: 3),
             Text(
               label,
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? color : Colors.grey[700],
+                color: isSelected ? color : const Color(0xFF616161),
               ),
             ),
           ],
@@ -1714,17 +1714,17 @@ class _CompositeProductFormDialogState
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.orange.withOpacity(0.1),
+          color: const Color(0xFFF9A825).withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           children: [
-            Icon(Icons.warning_amber, size: 18, color: Colors.orange[700]),
+            Icon(Icons.warning_amber, size: 18, color: const Color(0xFFF57C00)),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 'No hay materiales de tipo "$_selectedCalculationType" en inventario.\nPuedes agregar componentes en modo "Directo".',
-                style: TextStyle(fontSize: 11, color: Colors.orange[800]),
+                style: TextStyle(fontSize: 11, color: const Color(0xFFEF6C00)),
               ),
             ),
           ],
@@ -1926,7 +1926,7 @@ class _CompositeProductFormDialogState
               height: 42,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                 ),
@@ -1969,7 +1969,7 @@ class _CompositeProductFormDialogState
                                     : FontWeight.normal,
                                 color: isSel
                                     ? Theme.of(context).colorScheme.primary
-                                    : Colors.grey[500],
+                                    : const Color(0xFF9E9E9E),
                               ),
                             ),
                           );
@@ -2059,7 +2059,7 @@ class _CompositeProductFormDialogState
                       borderRadius: BorderRadius.circular(20),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: const Color(0xFFF5F5F5),
                   ),
                   style: const TextStyle(fontSize: 11),
                   onChanged: (v) => setState(() => _searchQuery = v),
@@ -2110,7 +2110,7 @@ class _CompositeProductFormDialogState
                           border: Border.all(
                             color: isSelected
                                 ? Theme.of(context).colorScheme.primary
-                                : Colors.grey[200]!,
+                                : const Color(0xFFEEEEEE),
                             width: isSelected ? 2 : 1,
                           ),
                         ),
@@ -2141,7 +2141,7 @@ class _CompositeProductFormDialogState
                                       fontSize: 12,
                                       color: isSelected
                                           ? Theme.of(context).colorScheme.primary
-                                          : Colors.grey[800],
+                                          : const Color(0xFF424242),
                                     ),
                                   ),
                                   Text(
@@ -2161,7 +2161,7 @@ class _CompositeProductFormDialogState
                                 fontSize: 11,
                                 color: isSelected
                                     ? Theme.of(context).colorScheme.primary
-                                    : Colors.grey[700],
+                                    : const Color(0xFF616161),
                               ),
                             ),
                             if (isSelected) ...[
@@ -2185,7 +2185,7 @@ class _CompositeProductFormDialogState
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: const Color(0xFFF5F5F5),
               border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
             ),
             child: Column(
@@ -2276,7 +2276,7 @@ class _CompositeProductFormDialogState
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: Colors.green,
+                        color: const Color(0xFF2E7D32),
                       ),
                     ),
                   ],
@@ -2329,14 +2329,14 @@ class _CompositeProductFormDialogState
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: const Color(0xFFF5F5F5),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(8),
               ),
             ),
             child: Row(
               children: [
-                Icon(Icons.list_alt, size: 16, color: Colors.grey[700]),
+                Icon(Icons.list_alt, size: 16, color: const Color(0xFF616161)),
                 const SizedBox(width: 6),
                 Text(
                   'Lista de componentes (${_components.length})',
@@ -2352,7 +2352,7 @@ class _CompositeProductFormDialogState
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[700],
+                      color: const Color(0xFF616161),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -2361,7 +2361,7 @@ class _CompositeProductFormDialogState
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                      color: const Color(0xFF2E7D32),
                     ),
                   ),
                 ],
@@ -2472,7 +2472,7 @@ class _CompositeProductFormDialogState
                               child: Icon(
                                 Icons.close,
                                 size: 16,
-                                color: Colors.red[400],
+                                color: const Color(0xFFEF5350),
                               ),
                             ),
                           ],
@@ -2703,7 +2703,7 @@ class _CompositeProductFormDialogState
             label,
             style: bold
                 ? const TextStyle(fontWeight: FontWeight.bold)
-                : TextStyle(fontSize: 13, color: Colors.grey[700]),
+                : TextStyle(fontSize: 13, color: const Color(0xFF616161)),
           ),
           Text(
             value,
@@ -2740,15 +2740,15 @@ class _CompositeProductFormDialogState
     switch (category.toLowerCase()) {
       case 'lamina':
       case 'lámina':
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case 'tubo':
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case 'eje':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case 'rodamiento':
-        return Colors.purple;
+        return const Color(0xFF7B1FA2);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 
@@ -2759,7 +2759,7 @@ class _CompositeProductFormDialogState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Nombre y código son requeridos'),
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF9A825),
         ),
       );
       return;
@@ -2773,7 +2773,7 @@ class _CompositeProductFormDialogState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFC62828)),
         );
       }
     } finally {

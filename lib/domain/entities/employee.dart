@@ -87,13 +87,13 @@ class Employee {
   Color get statusColor {
     switch (status) {
       case EmployeeStatus.activo:
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case EmployeeStatus.inactivo:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
       case EmployeeStatus.vacaciones:
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case EmployeeStatus.licencia:
-        return Colors.orange;
+        return const Color(0xFFF9A825);
     }
   }
 
@@ -264,13 +264,13 @@ class EmployeeTask {
   Color get statusColor {
     switch (status) {
       case TaskStatus.pendiente:
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case TaskStatus.enProgreso:
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case TaskStatus.completada:
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case TaskStatus.cancelada:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 
@@ -290,13 +290,13 @@ class EmployeeTask {
   Color get priorityColor {
     switch (priority) {
       case TaskPriority.baja:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
       case TaskPriority.media:
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case TaskPriority.alta:
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case TaskPriority.urgente:
-        return Colors.red;
+        return const Color(0xFFC62828);
     }
   }
 

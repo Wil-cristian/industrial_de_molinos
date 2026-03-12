@@ -1,4 +1,4 @@
-﻿import '../../core/utils/logger.dart';
+import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/activity.dart';
 
@@ -8,7 +8,7 @@ class ActivitiesDatasource {
   /// Obtener todas las actividades
   static Future<List<Activity>> getActivities() async {
     try {
-      AppLogger.debug('🔄 Cargando actividades desde Supabase...');
+      AppLogger.debug('?? Cargando actividades desde Supabase...');
       final response = await _client
           .from('activities')
           .select('*, customers(name)')
@@ -23,10 +23,10 @@ class ActivitiesDatasource {
           )
           .toList();
 
-      AppLogger.success('✅ Actividades cargadas: ${activities.length}');
+      AppLogger.success('? Actividades cargadas: ${activities.length}');
       return activities;
     } catch (e) {
-      AppLogger.error('❌ Error cargando actividades: $e');
+      AppLogger.error('? Error cargando actividades: $e');
       return [];
     }
   }
@@ -53,7 +53,7 @@ class ActivitiesDatasource {
           )
           .toList();
     } catch (e) {
-      AppLogger.error('❌ Error cargando actividades por fecha: $e');
+      AppLogger.error('? Error cargando actividades por fecha: $e');
       return [];
     }
   }
@@ -83,7 +83,7 @@ class ActivitiesDatasource {
           )
           .toList();
     } catch (e) {
-      AppLogger.error('❌ Error cargando actividades del mes: $e');
+      AppLogger.error('? Error cargando actividades del mes: $e');
       return [];
     }
   }
@@ -91,7 +91,7 @@ class ActivitiesDatasource {
   /// Crear nueva actividad
   static Future<Activity?> createActivity(Activity activity) async {
     try {
-      AppLogger.debug('🔄 Creando actividad: ${activity.title}');
+      AppLogger.debug('?? Creando actividad: ${activity.title}');
       final response = await _client
           .from('activities')
           .insert({
@@ -115,10 +115,10 @@ class ActivitiesDatasource {
           .select()
           .single();
 
-      AppLogger.success('✅ Actividad creada: ${response['id']}');
+      AppLogger.success('? Actividad creada: ${response['id']}');
       return Activity.fromJson(response);
     } catch (e) {
-      AppLogger.error('❌ Error creando actividad: $e');
+      AppLogger.error('? Error creando actividad: $e');
       return null;
     }
   }
@@ -144,10 +144,10 @@ class ActivitiesDatasource {
           })
           .eq('id', activity.id);
 
-      AppLogger.success('✅ Actividad actualizada: ${activity.id}');
+      AppLogger.success('? Actividad actualizada: ${activity.id}');
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error actualizando actividad: $e');
+      AppLogger.error('? Error actualizando actividad: $e');
       return false;
     }
   }
@@ -156,10 +156,10 @@ class ActivitiesDatasource {
   static Future<bool> deleteActivity(String id) async {
     try {
       await _client.from('activities').delete().eq('id', id);
-      AppLogger.success('✅ Actividad eliminada: $id');
+      AppLogger.success('? Actividad eliminada: $id');
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error eliminando actividad: $e');
+      AppLogger.error('? Error eliminando actividad: $e');
       return false;
     }
   }
@@ -173,7 +173,7 @@ class ActivitiesDatasource {
           .eq('id', id);
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error completando actividad: $e');
+      AppLogger.error('? Error completando actividad: $e');
       return false;
     }
   }

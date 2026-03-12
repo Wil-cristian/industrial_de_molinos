@@ -177,10 +177,10 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -340,7 +340,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
               final amount = byCategory[cat] ?? 0;
               final count = countByCat[cat] ?? 0;
               final isSelected = _selectedCategory == cat;
-              final color = _categoryColors[cat] ?? Colors.grey;
+              final color = _categoryColors[cat] ?? const Color(0xFF9E9E9E);
               final icon = _categoryIcons[cat] ?? Icons.category;
 
               return SizedBox(
@@ -360,10 +360,10 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                     decoration: BoxDecoration(
                       color: isSelected
                           ? color.withValues(alpha: 0.15)
-                          : Colors.white,
+                          : Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isSelected ? color : Colors.grey.shade200,
+                        color: isSelected ? color : Theme.of(context).colorScheme.outlineVariant,
                         width: isSelected ? 2 : 1,
                       ),
                       boxShadow: isSelected
@@ -411,7 +411,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: isSelected ? color : Colors.grey[700],
+                            color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -423,7 +423,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: isSelected ? color : Colors.black87,
+                            color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -447,7 +447,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
       ),
       child: TabBar(
         controller: _tabController,
@@ -492,7 +492,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long, size: 64, color: Colors.grey[300]),
+            Icon(Icons.receipt_long, size: 64, color: Theme.of(context).colorScheme.outlineVariant),
             const SizedBox(height: 12),
             Text(
               _selectedCategory != null
@@ -562,18 +562,18 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
   }
 
   Widget _buildMovementCard(CashMovement m) {
-    final color = _categoryColors[m.category] ?? Colors.grey;
+    final color = _categoryColors[m.category] ?? const Color(0xFF9E9E9E);
     final icon = _categoryIcons[m.category] ?? Icons.category;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(10),
         border: Border(left: BorderSide(color: color, width: 4)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4),
+          BoxShadow(color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.04), blurRadius: 4),
         ],
       ),
       child: Row(
@@ -671,7 +671,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt, size: 64, color: Colors.grey[300]),
+            Icon(Icons.receipt, size: 64, color: Theme.of(context).colorScheme.outlineVariant),
             const SizedBox(height: 12),
             Text(
               'No hay facturas IVA de compra',
@@ -704,11 +704,11 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4),
+          BoxShadow(color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.04), blurRadius: 4),
         ],
       ),
       child: Column(
@@ -796,19 +796,19 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
+              color: Theme.of(context).colorScheme.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                _buildInvDetail('Base', inv.baseAmount, Colors.blue),
-                _buildInvDetail('IVA', inv.ivaAmount, Colors.orange),
+                _buildInvDetail('Base', inv.baseAmount, AppColors.info),
+                _buildInvDetail('IVA', inv.ivaAmount, AppColors.warning),
                 if (inv.rteFteAmount > 0)
-                  _buildInvDetail('RteFte', inv.rteFteAmount, Colors.red),
+                  _buildInvDetail('RteFte', inv.rteFteAmount, AppColors.danger),
                 if (inv.reteIcaAmount > 0)
-                  _buildInvDetail('ReteICA', inv.reteIcaAmount, Colors.purple),
+                  _buildInvDetail('ReteICA', inv.reteIcaAmount, const Color(0xFF7B1FA2)),
                 if (inv.hasReteiva && inv.reteivaAmount > 0)
-                  _buildInvDetail('ReteIVA', inv.reteivaAmount, Colors.teal),
+                  _buildInvDetail('ReteIVA', inv.reteivaAmount, const Color(0xFF009688)),
               ],
             ),
           ),
@@ -896,10 +896,10 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
-                _buildIvaPill('Base', totalIvaBase, Colors.blue),
-                _buildIvaPill('IVA', totalIva, Colors.orange),
-                _buildIvaPill('RteFte', totalReteFte, Colors.red),
-                _buildIvaPill('RteICA', totalReteIca, Colors.purple),
+                _buildIvaPill('Base', totalIvaBase, AppColors.info),
+                _buildIvaPill('IVA', totalIva, AppColors.warning),
+                _buildIvaPill('RteFte', totalReteFte, AppColors.danger),
+                _buildIvaPill('RteICA', totalReteIca, const Color(0xFF7B1FA2)),
               ],
             ),
             const SizedBox(height: 16),
@@ -921,7 +921,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
               children: _expenseCategories.map((cat) {
                 final amount = byCategory[cat] ?? 0;
                 final count = countByCat[cat] ?? 0;
-                final color = _categoryColors[cat] ?? Colors.grey;
+                final color = _categoryColors[cat] ?? const Color(0xFF9E9E9E);
                 final icon = _categoryIcons[cat] ?? Icons.category;
                 final pct = _totalExpenses > 0
                     ? (amount / _totalExpenses * 100)
@@ -940,7 +940,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: amount > 0 ? color : Colors.grey[400],
+                            color: amount > 0 ? color : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -991,7 +991,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey[700],
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

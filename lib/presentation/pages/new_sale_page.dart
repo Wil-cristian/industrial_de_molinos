@@ -400,7 +400,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
     );
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF5F5F5),
       body: isMobile
           ? mainContent
           : Row(
@@ -469,7 +469,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 ),
                 Text(
                   'Complete los pasos para registrar la venta',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  style: TextStyle(color: const Color(0xFF757575), fontSize: 14),
                 ),
               ],
             ),
@@ -508,7 +508,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: const Color(0x3DFFFFFF),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -552,7 +552,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                           '• ${item['name']}',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey[600],
+                            color: const Color(0xFF757575),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -566,7 +566,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                       '+ ${_items.length - 3} más...',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[500],
+                        color: const Color(0xFF9E9E9E),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -589,7 +589,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 _buildCostLine(
                   'Descuento (${_discountController.text}%)',
                   -_discountAmount,
-                  color: Colors.red,
+                  color: const Color(0xFFC62828),
                 ),
               const Divider(thickness: 2),
               const SizedBox(height: 8),
@@ -615,23 +615,23 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: const Color(0xFFE3F2FD),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.scale, color: Colors.blue[700], size: 20),
+                    Icon(Icons.scale, color: const Color(0xFF1976D2), size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'Peso Total:',
-                      style: TextStyle(color: Colors.blue[700]),
+                      style: TextStyle(color: const Color(0xFF1976D2)),
                     ),
                     const Spacer(),
                     Text(
                       '${Helpers.formatNumber(_totalWeight)} kg',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue[700],
+                        color: const Color(0xFF1976D2),
                       ),
                     ),
                   ],
@@ -645,13 +645,13 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: _paymentType == 'cash'
-                      ? Colors.green[50]
-                      : Colors.orange[50],
+                      ? const Color(0xFFE8F5E9)
+                      : const Color(0xFFFFF3E0),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: _paymentType == 'cash'
-                        ? Colors.green[300]!
-                        : Colors.orange[300]!,
+                        ? const Color(0xFF81C784)
+                        : const Color(0xFFFFB74D),
                   ),
                 ),
                 child: Column(
@@ -664,8 +664,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                               ? Icons.payments
                               : Icons.calendar_month,
                           color: _paymentType == 'cash'
-                              ? Colors.green[700]
-                              : Colors.orange[700],
+                              ? const Color(0xFF388E3C)
+                              : const Color(0xFFF57C00),
                           size: 16,
                         ),
                         const SizedBox(width: 6),
@@ -677,8 +677,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                             color: _paymentType == 'cash'
-                                ? Colors.green[800]
-                                : Colors.orange[800],
+                                ? const Color(0xFF2E7D32)
+                                : const Color(0xFFEF6C00),
                           ),
                         ),
                       ],
@@ -690,7 +690,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                           '${_getPaymentMethodLabel()} → ${_selectedAccount!.name}',
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.green[600],
+                            color: const Color(0xFF43A047),
                           ),
                         ),
                       ),
@@ -701,7 +701,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                           '$_installments cuotas de ${Helpers.formatCurrency(_total / _installments)}',
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.orange[600],
+                            color: const Color(0xFFFB8C00),
                           ),
                         ),
                       ),
@@ -742,13 +742,13 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: _loadingStock
-            ? Colors.blue[50]
-            : (hasIssues ? Colors.orange[50] : Colors.green[50]),
+            ? const Color(0xFFE3F2FD)
+            : (hasIssues ? const Color(0xFFFFF3E0) : const Color(0xFFE8F5E9)),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: _loadingStock
-              ? Colors.blue[200]!
-              : (hasIssues ? Colors.orange[300]! : Colors.green[300]!),
+              ? const Color(0xFF90CAF9)
+              : (hasIssues ? const Color(0xFFFFB74D) : const Color(0xFF81C784)),
         ),
       ),
       child: Column(
@@ -762,13 +762,13 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   height: 14,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.blue[600],
+                    color: const Color(0xFF1E88E5),
                   ),
                 )
               else
                 Icon(
                   hasIssues ? Icons.warning_amber : Icons.check_circle,
-                  color: hasIssues ? Colors.orange[700] : Colors.green[700],
+                  color: hasIssues ? const Color(0xFFF57C00) : const Color(0xFF388E3C),
                   size: 14,
                 ),
               const SizedBox(width: 6),
@@ -781,8 +781,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                     fontWeight: FontWeight.bold,
                     fontSize: 11,
                     color: _loadingStock
-                        ? Colors.blue[700]
-                        : (hasIssues ? Colors.orange[800] : Colors.green[800]),
+                        ? const Color(0xFF1976D2)
+                        : (hasIssues ? const Color(0xFFEF6C00) : const Color(0xFF2E7D32)),
                   ),
                 ),
               ),
@@ -792,7 +792,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
-                    color: hasIssues ? Colors.orange[600] : Colors.green[600],
+                    color: hasIssues ? const Color(0xFFFB8C00) : const Color(0xFF43A047),
                   ),
                 ),
             ],
@@ -812,7 +812,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                     Icon(
                       hasStock ? Icons.check_circle : Icons.cancel,
                       size: 10,
-                      color: hasStock ? Colors.green : Colors.red,
+                      color: hasStock ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
                     ),
                     const SizedBox(width: 4),
                     Expanded(
@@ -820,7 +820,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                         m['material_name'] ?? '',
                         style: TextStyle(
                           fontSize: 9,
-                          color: hasStock ? Colors.grey[700] : Colors.red[800],
+                          color: hasStock ? const Color(0xFF616161) : const Color(0xFFC62828),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -830,12 +830,12 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w600,
-                        color: hasStock ? Colors.green[700] : Colors.red[700],
+                        color: hasStock ? const Color(0xFF388E3C) : const Color(0xFFD32F2F),
                       ),
                     ),
                     Text(
                       '/${fmtQty(available)} $unit',
-                      style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 8, color: const Color(0xFF9E9E9E)),
                     ),
                     if (!hasStock) ...[
                       const SizedBox(width: 2),
@@ -843,7 +843,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                         '-${fmtQty(shortage)}',
                         style: TextStyle(
                           fontSize: 8,
-                          color: Colors.red[700],
+                          color: const Color(0xFFD32F2F),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -859,7 +859,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   '+ ${allMaterials.length - 6} más...',
                   style: TextStyle(
                     fontSize: 9,
-                    color: Colors.grey[600],
+                    color: const Color(0xFF757575),
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -873,7 +873,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
   Widget _buildSummarySection(String title, String value, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: Colors.grey[600]),
+        Icon(icon, size: 18, color: const Color(0xFF757575)),
         const SizedBox(width: 6),
         Expanded(
           child: Column(
@@ -881,7 +881,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             children: [
               Text(
                 title,
-                style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                style: TextStyle(fontSize: 10, color: const Color(0xFF9E9E9E)),
               ),
               Text(
                 value,
@@ -906,7 +906,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         children: [
           Text(
             label,
-            style: TextStyle(color: color ?? Colors.grey[700], fontSize: 12),
+            style: TextStyle(color: color ?? const Color(0xFF616161), fontSize: 12),
           ),
           Text(
             Helpers.formatCurrency(value),
@@ -986,7 +986,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           Container(
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: const Color(0xFFE0E0E0)),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Center(
@@ -995,17 +995,17 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   Icon(
                     Icons.shopping_cart_outlined,
                     size: 48,
-                    color: Colors.grey[400],
+                    color: const Color(0xFFBDBDBD),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'No hay productos agregados',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: const Color(0xFF757575)),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Haz clic en "Agregar" para añadir productos',
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                    style: TextStyle(color: const Color(0xFFBDBDBD), fontSize: 12),
                   ),
                 ],
               ),
@@ -1014,7 +1014,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         else
           Container(
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: const Color(0xFFE0E0E0)),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Column(
@@ -1025,7 +1025,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: const Color(0xFFF5F5F5),
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(5),
                     ),
@@ -1107,7 +1107,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      border: Border(top: BorderSide(color: Colors.grey[300]!)),
+                      border: Border(top: BorderSide(color: const Color(0xFFE0E0E0))),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1125,7 +1125,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                         Icon(
                                           Icons.receipt_long,
                                           size: 14,
-                                          color: Colors.purple[600],
+                                          color: const Color(0xFF8E24AA),
                                         ),
                                         const SizedBox(width: 4),
                                       ],
@@ -1146,7 +1146,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                         item['dimensions'] ?? '',
                                         style: TextStyle(
                                           fontSize: 10,
-                                          color: Colors.grey[600],
+                                          color: const Color(0xFF757575),
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -1160,7 +1160,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                             vertical: 1,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.green[50],
+                                            color: const Color(0xFFE8F5E9),
                                             borderRadius: BorderRadius.circular(
                                               3,
                                             ),
@@ -1171,14 +1171,14 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                               Icon(
                                                 Icons.sync,
                                                 size: 8,
-                                                color: Colors.green[600],
+                                                color: const Color(0xFF43A047),
                                               ),
                                               const SizedBox(width: 2),
                                               Text(
                                                 'EN VIVO',
                                                 style: TextStyle(
                                                   fontSize: 7,
-                                                  color: Colors.green[700],
+                                                  color: const Color(0xFF388E3C),
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -1240,7 +1240,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                               child: IconButton(
                                 icon: const Icon(
                                   Icons.delete_outline,
-                                  color: Colors.red,
+                                  color: const Color(0xFFC62828),
                                   size: 18,
                                 ),
                                 padding: EdgeInsets.zero,
@@ -1260,9 +1260,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                             margin: const EdgeInsets.only(left: 18, right: 36),
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.blue[50],
+                              color: const Color(0xFFE3F2FD),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.blue[200]!),
+                              border: Border.all(color: const Color(0xFF90CAF9)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1272,7 +1272,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 10,
-                                    color: Colors.blue[900],
+                                    color: const Color(0xFF0D47A1),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -1308,7 +1308,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                               '${Helpers.formatNumber(weightTotal)} kg',
                                               style: TextStyle(
                                                 fontSize: 9,
-                                                color: Colors.grey[600],
+                                                color: const Color(0xFF757575),
                                               ),
                                               textAlign: TextAlign.right,
                                             ),
@@ -1321,8 +1321,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: hasStock == true
-                                                ? Colors.green[100]
-                                                : Colors.red[100],
+                                                ? const Color(0xFFC8E6C9)
+                                                : const Color(0xFFFFCDD2),
                                             borderRadius: BorderRadius.circular(
                                               3,
                                             ),
@@ -1335,8 +1335,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                               fontSize: 8,
                                               fontWeight: FontWeight.w600,
                                               color: hasStock == true
-                                                  ? Colors.green[700]
-                                                  : Colors.red[700],
+                                                  ? const Color(0xFF388E3C)
+                                                  : const Color(0xFFD32F2F),
                                             ),
                                           ),
                                         ),
@@ -1351,7 +1351,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                       '+${components.length - 5} componentes más',
                                       style: TextStyle(
                                         fontSize: 9,
-                                        color: Colors.blue[700],
+                                        color: const Color(0xFF1976D2),
                                         fontStyle: FontStyle.italic,
                                       ),
                                     ),
@@ -1375,7 +1375,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                     borderRadius: const BorderRadius.vertical(
                       bottom: Radius.circular(5),
                     ),
-                    border: Border(top: BorderSide(color: Colors.grey[300]!)),
+                    border: Border(top: BorderSide(color: const Color(0xFFE0E0E0))),
                   ),
                   child: Row(
                     children: [
@@ -1444,7 +1444,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
           ),
           child: Row(
             children: [
@@ -1479,7 +1479,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
               const SizedBox(width: 12),
               Text(
                 'del costo de materiales',
-                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                style: TextStyle(color: const Color(0xFF757575), fontSize: 13),
               ),
               const Spacer(),
               Container(
@@ -1488,7 +1488,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.green[50],
+                  color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -1496,7 +1496,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: Colors.green[700],
+                    color: const Color(0xFF388E3C),
                   ),
                 ),
               ),
@@ -1510,14 +1510,14 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(Icons.receipt, color: Colors.orange[700]),
+                  Icon(Icons.receipt, color: const Color(0xFFF57C00)),
                   const SizedBox(width: 8),
                   const Text(
                     'Costos Indirectos',
@@ -1550,14 +1550,14 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(Icons.trending_up, color: Colors.blue[700]),
+                  Icon(Icons.trending_up, color: const Color(0xFF1976D2)),
                   const SizedBox(width: 8),
                   const Text(
                     'Margen de Ganancia',
@@ -1603,7 +1603,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue[50],
+                      color: const Color(0xFFE3F2FD),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Column(
@@ -1613,7 +1613,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                           Helpers.formatCurrency(_profitAmount),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue[700],
+                            color: const Color(0xFF1976D2),
                           ),
                         ),
                       ],
@@ -1631,14 +1631,14 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(Icons.discount, color: Colors.red[700]),
+                  Icon(Icons.discount, color: const Color(0xFFD32F2F)),
                   const SizedBox(width: 8),
                   const Text(
                     'Descuento',
@@ -1647,7 +1647,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   const Spacer(),
                   Text(
                     '(Opcional)',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
                   ),
                 ],
               ),
@@ -1676,7 +1676,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                       max: 30,
                       divisions: 30,
                       label: '${_discountController.text}%',
-                      activeColor: Colors.red[400],
+                      activeColor: const Color(0xFFEF5350),
                       onChanged: (value) {
                         setState(() {
                           _discountController.text = value.toStringAsFixed(0);
@@ -1687,7 +1687,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.red[50],
+                      color: const Color(0xFFFFEBEE),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Column(
@@ -1697,7 +1697,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                           '- ${Helpers.formatCurrency(_discountAmount)}',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.red[700],
+                            color: const Color(0xFFD32F2F),
                           ),
                         ),
                       ],
@@ -1723,7 +1723,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1748,7 +1748,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                       'Contado',
                       'Pago inmediato al confirmar',
                       Icons.payments,
-                      Colors.green,
+                      const Color(0xFF2E7D32),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -1758,7 +1758,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                       'Crédito',
                       'Pago a plazos / cuotas',
                       Icons.calendar_month,
-                      Colors.orange,
+                      const Color(0xFFF9A825),
                     ),
                   ),
                 ],
@@ -1777,14 +1777,14 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(Icons.notes, color: Colors.grey[700]),
+                  Icon(Icons.notes, color: const Color(0xFF616161)),
                   const SizedBox(width: 8),
                   const Text(
                     'Notas',
@@ -1819,7 +1819,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 28),
+                  const Icon(Icons.check_circle, color: const Color(0xFF2E7D32), size: 28),
                   const SizedBox(width: 12),
                   const Text(
                     'Resumen de Venta',
@@ -1898,9 +1898,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
+                    color: const Color(0xFFE3F2FD),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue[200]!),
+                    border: Border.all(color: const Color(0xFF90CAF9)),
                   ),
                   child: Row(
                     children: [
@@ -1912,7 +1912,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                       const SizedBox(width: 10),
                       Text(
                         'Verificando stock...',
-                        style: TextStyle(color: Colors.blue[800], fontSize: 12),
+                        style: TextStyle(color: const Color(0xFF1565C0), fontSize: 12),
                       ),
                     ],
                   ),
@@ -1926,12 +1926,12 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                     return Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: allOk ? Colors.green[50] : Colors.orange[50],
+                        color: allOk ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: allOk
-                              ? Colors.green[300]!
-                              : Colors.orange[300]!,
+                              ? const Color(0xFF81C784)
+                              : const Color(0xFFFFB74D),
                         ),
                       ),
                       child: Column(
@@ -1944,8 +1944,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                     ? Icons.check_circle
                                     : Icons.warning_amber,
                                 color: allOk
-                                    ? Colors.green[700]
-                                    : Colors.orange[700],
+                                    ? const Color(0xFF388E3C)
+                                    : const Color(0xFFF57C00),
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
@@ -1956,8 +1956,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: allOk
-                                      ? Colors.green[800]
-                                      : Colors.orange[800],
+                                      ? const Color(0xFF2E7D32)
+                                      : const Color(0xFFEF6C00),
                                   fontSize: 13,
                                 ),
                               ),
@@ -1986,8 +1986,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                         : Icons.cancel,
                                     size: 14,
                                     color: hasStock
-                                        ? Colors.green[600]
-                                        : Colors.red[600],
+                                        ? const Color(0xFF43A047)
+                                        : const Color(0xFFE53935),
                                   ),
                                   const SizedBox(width: 6),
                                   Expanded(
@@ -2003,15 +2003,15 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                       color: hasStock
-                                          ? Colors.green[700]
-                                          : Colors.red[700],
+                                          ? const Color(0xFF388E3C)
+                                          : const Color(0xFFD32F2F),
                                     ),
                                   ),
                                   Text(
                                     ' / ${fmt(available)}',
                                     style: TextStyle(
                                       fontSize: 9,
-                                      color: Colors.grey[500],
+                                      color: const Color(0xFF9E9E9E),
                                     ),
                                   ),
                                   if (!hasStock) ...[
@@ -2022,14 +2022,14 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                         vertical: 1,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.red[100],
+                                        color: const Color(0xFFFFCDD2),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
                                         'Faltan ${fmt((mat['shortage'] as num?)?.toDouble() ?? 0)}',
                                         style: TextStyle(
                                           fontSize: 9,
-                                          color: Colors.red[700],
+                                          color: const Color(0xFFD32F2F),
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -2065,16 +2065,16 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.1) : Colors.grey[50],
+          color: isSelected ? color.withValues(alpha: 0.1) : const Color(0xFFFAFAFA),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.grey[300]!,
+            color: isSelected ? color : const Color(0xFFE0E0E0),
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? color : Colors.grey[400], size: 32),
+            Icon(icon, color: isSelected ? color : const Color(0xFFBDBDBD), size: 32),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -2085,14 +2085,14 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: isSelected ? color : Colors.grey[700],
+                      color: isSelected ? color : const Color(0xFF616161),
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isSelected ? color : Colors.grey[500],
+                      color: isSelected ? color : const Color(0xFF9E9E9E),
                     ),
                   ),
                 ],
@@ -2113,7 +2113,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           'Método de pago',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
+            color: const Color(0xFF424242),
             fontSize: 14,
           ),
         ),
@@ -2133,7 +2133,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           'Cuenta destino',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
+            color: const Color(0xFF424242),
             fontSize: 14,
           ),
         ),
@@ -2174,17 +2174,17 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           Icon(
             icon,
             size: 16,
-            color: isSelected ? Colors.white : Colors.grey[700],
+            color: isSelected ? Colors.white : const Color(0xFF616161),
           ),
           const SizedBox(width: 4),
           Text(label),
         ],
       ),
       onSelected: (_) => setState(() => _paymentMethod = method),
-      selectedColor: Colors.green,
+      selectedColor: const Color(0xFF2E7D32),
       checkmarkColor: Colors.white,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.grey[800],
+        color: isSelected ? Colors.white : const Color(0xFF424242),
       ),
     );
   }
@@ -2197,7 +2197,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           'Plazo de crédito',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
+            color: const Color(0xFF424242),
             fontSize: 14,
           ),
         ),
@@ -2216,7 +2216,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           'Número de cuotas',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
+            color: const Color(0xFF424242),
             fontSize: 14,
           ),
         ),
@@ -2237,9 +2237,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange[50],
+              color: const Color(0xFFFFF3E0),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange[200]!),
+              border: Border.all(color: const Color(0xFFFFCC80)),
             ),
             child: Column(
               children: [
@@ -2255,7 +2255,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: Colors.orange[800],
+                        color: const Color(0xFFEF6C00),
                       ),
                     ),
                   ],
@@ -2263,7 +2263,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 const SizedBox(height: 4),
                 Text(
                   '$_installments cuotas durante $_creditDays días',
-                  style: TextStyle(fontSize: 12, color: Colors.orange[600]),
+                  style: TextStyle(fontSize: 12, color: const Color(0xFFFB8C00)),
                 ),
               ],
             ),
@@ -2279,9 +2279,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       selected: isSelected,
       label: Text('$days días'),
       onSelected: (_) => setState(() => _creditDays = days),
-      selectedColor: Colors.orange,
+      selectedColor: const Color(0xFFF9A825),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.grey[800],
+        color: isSelected ? Colors.white : const Color(0xFF424242),
       ),
     );
   }
@@ -2292,9 +2292,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       selected: isSelected,
       label: Text(n == 1 ? '1 pago' : '$n cuotas'),
       onSelected: (_) => setState(() => _installments = n),
-      selectedColor: Colors.orange,
+      selectedColor: const Color(0xFFF9A825),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.grey[800],
+        color: isSelected ? Colors.white : const Color(0xFF424242),
       ),
     );
   }
@@ -2305,7 +2305,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[700])),
+          Text(label, style: TextStyle(color: const Color(0xFF616161))),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
         ],
       ),
@@ -2318,7 +2318,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Seleccione un cliente'),
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF9A825),
         ),
       );
       return;
@@ -2327,7 +2327,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Agregue al menos un producto'),
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF9A825),
         ),
       );
       return;
@@ -2347,7 +2347,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Seleccione un cliente y agregue productos'),
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF9A825),
         ),
       );
       return;
@@ -2358,7 +2358,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Seleccione una cuenta destino para el pago'),
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF9A825),
         ),
       );
       return;
@@ -2406,7 +2406,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Seleccione un cliente y agregue productos'),
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF9A825),
         ),
       );
       return;
@@ -2417,7 +2417,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Seleccione una cuenta destino para el pago'),
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF9A825),
         ),
       );
       return;
@@ -2431,7 +2431,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         builder: (context) => AlertDialog(
           title: Row(
             children: [
-              Icon(Icons.warning_amber, color: Colors.orange[700], size: 22),
+              Icon(Icons.warning_amber, color: const Color(0xFFF57C00), size: 22),
               const SizedBox(width: 8),
               const Text('Stock Insuficiente', style: TextStyle(fontSize: 16)),
             ],
@@ -2446,7 +2446,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
               children: [
                 Text(
                   'Materiales sin stock suficiente:',
-                  style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                  style: TextStyle(color: const Color(0xFF616161), fontSize: 13),
                 ),
                 const SizedBox(height: 8),
                 ...stockIssues
@@ -2456,7 +2456,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Row(
                           children: [
-                            Icon(Icons.circle, size: 6, color: Colors.red[400]),
+                            Icon(Icons.circle, size: 6, color: const Color(0xFFEF5350)),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -2485,7 +2485,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: const Color(0xFFF9A825),
                 foregroundColor: Colors.white,
               ),
               child: const Text('Vender Igualmente'),
@@ -2502,7 +2502,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 28),
+            const Icon(Icons.check_circle, color: const Color(0xFF2E7D32), size: 28),
             const SizedBox(width: 8),
             const Expanded(
               child: Text('Confirmar Venta', style: TextStyle(fontSize: 18)),
@@ -2525,7 +2525,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
               if (_paymentType == 'cash') ...[
                 Row(
                   children: [
-                    const Icon(Icons.payments, color: Colors.green, size: 18),
+                    const Icon(Icons.payments, color: const Color(0xFF2E7D32), size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -2540,7 +2540,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   children: [
                     const Icon(
                       Icons.calendar_month,
-                      color: Colors.orange,
+                      color: const Color(0xFFF9A825),
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -2556,7 +2556,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.inventory, color: Colors.blue, size: 18),
+                  const Icon(Icons.inventory, color: const Color(0xFF1565C0), size: 18),
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
@@ -2579,7 +2579,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             icon: const Icon(Icons.check),
             label: const Text('Confirmar'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D32),
               foregroundColor: Colors.white,
             ),
           ),
@@ -2689,7 +2689,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 ),
               ],
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D32),
             duration: const Duration(seconds: 4),
           ),
         );
@@ -2702,7 +2702,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: const Color(0xFFC62828),
             duration: const Duration(seconds: 10),
           ),
         );
@@ -2731,7 +2731,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No hay productos en el inventario.'),
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF9A825),
         ),
       );
       return;
@@ -3088,16 +3088,16 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                           ),
                           leading: CircleAvatar(
                             backgroundColor: p.isRecipe
-                                ? Colors.purple[100]
-                                : Colors.blue[100],
+                                ? const Color(0xFFE1BEE7)
+                                : const Color(0xFFBBDEFB),
                             child: Icon(
                               p.isRecipe
                                   ? Icons.auto_fix_high
                                   : Icons.inventory_2,
                               size: 18,
                               color: p.isRecipe
-                                  ? Colors.purple[700]
-                                  : Colors.blue[700],
+                                  ? const Color(0xFF7B1FA2)
+                                  : const Color(0xFF1976D2),
                             ),
                           ),
                           title: Text(
@@ -3122,14 +3122,14 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                                     Icon(
                                       Icons.receipt_long,
                                       size: 12,
-                                      color: Colors.purple[600],
+                                      color: const Color(0xFF8E24AA),
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
                                       'Receta',
                                       style: TextStyle(
                                         fontSize: 10,
-                                        color: Colors.purple[700],
+                                        color: const Color(0xFF7B1FA2),
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -3138,14 +3138,14 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                                       Icon(
                                         Icons.scale,
                                         size: 10,
-                                        color: Colors.grey[500],
+                                        color: const Color(0xFF9E9E9E),
                                       ),
                                       const SizedBox(width: 2),
                                       Text(
                                         '${Helpers.formatNumber(p.totalWeight)} kg',
                                         style: TextStyle(
                                           fontSize: 10,
-                                          color: Colors.grey[600],
+                                          color: const Color(0xFF757575),
                                         ),
                                       ),
                                     ],
@@ -3160,8 +3160,8 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                                           : Icons.warning,
                                       size: 12,
                                       color: p.stock > 0
-                                          ? Colors.green
-                                          : Colors.red,
+                                          ? const Color(0xFF2E7D32)
+                                          : const Color(0xFFC62828),
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
@@ -3169,8 +3169,8 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                                       style: TextStyle(
                                         fontSize: 10,
                                         color: p.stock > 0
-                                            ? Colors.green[700]
-                                            : Colors.red[700],
+                                            ? const Color(0xFF388E3C)
+                                            : const Color(0xFFD32F2F),
                                       ),
                                     ),
                                   ],
@@ -3195,7 +3195,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                       color: hasLivePrice
-                                          ? Colors.green[700]
+                                          ? const Color(0xFF388E3C)
                                           : _saleThemeColor,
                                     ),
                                   ),
@@ -3206,14 +3206,14 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                                         Icon(
                                           Icons.sync,
                                           size: 9,
-                                          color: Colors.green[600],
+                                          color: const Color(0xFF43A047),
                                         ),
                                         const SizedBox(width: 2),
                                         Text(
                                           'EN VIVO',
                                           style: TextStyle(
                                             fontSize: 8,
-                                            color: Colors.green[600],
+                                            color: const Color(0xFF43A047),
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -3227,7 +3227,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                                       height: 12,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 1.5,
-                                        color: Colors.grey[400],
+                                        color: const Color(0xFFBDBDBD),
                                       ),
                                     ),
                                 ],
@@ -3316,7 +3316,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                     ),
                     Text(
                       product.code,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
                     ),
                   ],
                 ),
@@ -3328,7 +3328,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.purple[100],
+                    color: const Color(0xFFE1BEE7),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -3337,7 +3337,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                       Icon(
                         Icons.receipt_long,
                         size: 14,
-                        color: Colors.purple[700],
+                        color: const Color(0xFF7B1FA2),
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -3345,7 +3345,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: Colors.purple[700],
+                          color: const Color(0xFF7B1FA2),
                         ),
                       ),
                     ],
@@ -3358,7 +3358,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
             const SizedBox(height: 4),
             Text(
               product.description!,
-              style: TextStyle(color: Colors.grey[600], fontSize: 11),
+              style: TextStyle(color: const Color(0xFF757575), fontSize: 11),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -3372,10 +3372,10 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: hasLive ? Colors.green[50] : Colors.white,
+                    color: hasLive ? const Color(0xFFE8F5E9) : Colors.white,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: hasLive ? Colors.green[200]! : Colors.grey[200]!,
+                      color: hasLive ? const Color(0xFFA5D6A7) : const Color(0xFFEEEEEE),
                     ),
                   ),
                   child: Column(
@@ -3387,7 +3387,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                             'Precio Venta',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey[600],
+                              color: const Color(0xFF757575),
                             ),
                           ),
                           if (hasLive) ...[
@@ -3395,7 +3395,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                             Icon(
                               Icons.sync,
                               size: 10,
-                              color: Colors.green[600],
+                              color: const Color(0xFF43A047),
                             ),
                           ],
                         ],
@@ -3410,7 +3410,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                           Helpers.formatCurrency(displayPrice),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.green[700],
+                            color: const Color(0xFF388E3C),
                             fontSize: 14,
                           ),
                         ),
@@ -3423,10 +3423,10 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: hasLive ? Colors.red[50] : Colors.white,
+                    color: hasLive ? const Color(0xFFFFEBEE) : Colors.white,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: hasLive ? Colors.red[200]! : Colors.grey[200]!,
+                      color: hasLive ? const Color(0xFFEF9A9A) : const Color(0xFFEEEEEE),
                     ),
                   ),
                   child: Column(
@@ -3434,7 +3434,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                     children: [
                       Text(
                         'Costo',
-                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 10, color: const Color(0xFF757575)),
                       ),
                       if (_loadingPricing)
                         const SizedBox(
@@ -3446,7 +3446,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                           Helpers.formatCurrency(displayCost),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.red[700],
+                            color: const Color(0xFFD32F2F),
                             fontSize: 14,
                           ),
                         ),
@@ -3465,22 +3465,22 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
+                    color: const Color(0xFFE3F2FD),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.blue[200]!),
+                    border: Border.all(color: const Color(0xFF90CAF9)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.scale, size: 12, color: Colors.blue[700]),
+                          Icon(Icons.scale, size: 12, color: const Color(0xFF1976D2)),
                           const SizedBox(width: 4),
                           Text(
                             'Peso Total',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey[600],
+                              color: const Color(0xFF757575),
                             ),
                           ),
                         ],
@@ -3489,7 +3489,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                         '${Helpers.formatNumber(displayWeight)} kg',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue[700],
+                          color: const Color(0xFF1976D2),
                           fontSize: 13,
                         ),
                       ),
@@ -3503,13 +3503,13 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: isRecipe
-                        ? Colors.purple[50]
-                        : (hasStock ? Colors.green[50] : Colors.red[50]),
+                        ? const Color(0xFFF3E5F5)
+                        : (hasStock ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE)),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: isRecipe
-                          ? Colors.purple[200]!
-                          : (hasStock ? Colors.green[200]! : Colors.red[200]!),
+                          ? const Color(0xFFCE93D8)
+                          : (hasStock ? const Color(0xFFA5D6A7) : const Color(0xFFEF9A9A)),
                     ),
                   ),
                   child: Column(
@@ -3517,14 +3517,14 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                     children: [
                       Text(
                         isRecipe ? 'Componentes' : 'Stock',
-                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 10, color: const Color(0xFF757575)),
                       ),
                       if (isRecipe)
                         Text(
                           '${components.isNotEmpty ? components.length : (_recipeStockCheck?.length ?? '...')} materiales',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.purple[700],
+                            color: const Color(0xFF7B1FA2),
                             fontSize: 12,
                           ),
                         )
@@ -3534,8 +3534,8 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: hasStock
-                                ? Colors.green[700]
-                                : Colors.red[700],
+                                ? const Color(0xFF388E3C)
+                                : const Color(0xFFD32F2F),
                           ),
                         ),
                     ],
@@ -3551,20 +3551,20 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.green[50],
+                color: const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.green[200]!),
+                border: Border.all(color: const Color(0xFFA5D6A7)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.sync, size: 14, color: Colors.green[700]),
+                  Icon(Icons.sync, size: 14, color: const Color(0xFF388E3C)),
                   const SizedBox(width: 6),
                   Text(
                     'Precios en VIVO',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green[700],
+                      color: const Color(0xFF388E3C),
                     ),
                   ),
                   const Spacer(),
@@ -3573,7 +3573,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Colors.green[700],
+                      color: const Color(0xFF388E3C),
                     ),
                   ),
                 ],
@@ -3587,23 +3587,23 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: const Color(0xFFFAFAFA),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.list_alt, size: 14, color: Colors.blue[800]),
+                      Icon(Icons.list_alt, size: 14, color: const Color(0xFF1565C0)),
                       const SizedBox(width: 6),
                       Text(
                         'Componentes (${components.length})',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
-                          color: Colors.blue[900],
+                          color: const Color(0xFF0D47A1),
                         ),
                       ),
                     ],
@@ -3621,7 +3621,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey[600],
+                              color: const Color(0xFF757575),
                             ),
                           ),
                         ),
@@ -3632,7 +3632,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey[600],
+                              color: const Color(0xFF757575),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -3644,7 +3644,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey[600],
+                              color: const Color(0xFF757575),
                             ),
                             textAlign: TextAlign.right,
                           ),
@@ -3657,7 +3657,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey[600],
+                              color: const Color(0xFF757575),
                             ),
                             textAlign: TextAlign.right,
                           ),
@@ -3665,7 +3665,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                       ],
                     ),
                   ),
-                  Divider(height: 1, color: Colors.grey[300]),
+                  Divider(height: 1, color: const Color(0xFFE0E0E0)),
                   ...components.map((c) {
                     final compName =
                         c['material_name'] ?? c['name'] ?? 'Material';
@@ -3715,8 +3715,8 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                               ),
                               decoration: BoxDecoration(
                                 color: hasEnough
-                                    ? Colors.green[100]
-                                    : Colors.red[100],
+                                    ? const Color(0xFFC8E6C9)
+                                    : const Color(0xFFFFCDD2),
                                 borderRadius: BorderRadius.circular(3),
                               ),
                               child: Text(
@@ -3725,8 +3725,8 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                                   fontSize: 8,
                                   fontWeight: FontWeight.w600,
                                   color: hasEnough
-                                      ? Colors.green[700]
-                                      : Colors.red[700],
+                                      ? const Color(0xFF388E3C)
+                                      : const Color(0xFFD32F2F),
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -3752,13 +3752,13 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                     height: 14,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.blue[300],
+                      color: const Color(0xFF64B5F6),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Verificando stock...',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 11, color: const Color(0xFF757575)),
                   ),
                 ],
               ),
@@ -3821,7 +3821,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                           'Subtotal:',
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey[600],
+                            color: const Color(0xFF757575),
                           ),
                         ),
                         Text(
@@ -3965,11 +3965,11 @@ class _SaleAddMaterialDialogState extends State<_SaleAddMaterialDialog> {
                             alpha: 0.1,
                           ),
                           leading: CircleAvatar(
-                            backgroundColor: Colors.teal[100],
+                            backgroundColor: const Color(0xFFB2DFDB),
                             child: Icon(
                               Icons.category,
                               size: 18,
-                              color: Colors.teal[700],
+                              color: const Color(0xFF00796B),
                             ),
                           ),
                           title: Text(
@@ -4003,21 +4003,21 @@ class _SaleAddMaterialDialogState extends State<_SaleAddMaterialDialog> {
                           Text(
                             'Venta: ${Helpers.formatCurrency(_selectedMaterial!.effectivePrice)}/kg',
                             style: TextStyle(
-                              color: Colors.green[700],
+                              color: const Color(0xFF388E3C),
                               fontSize: 11,
                             ),
                           ),
                           Text(
                             'Costo: ${Helpers.formatCurrency(_selectedMaterial!.effectiveCostPrice)}/kg',
                             style: TextStyle(
-                              color: Colors.red[700],
+                              color: const Color(0xFFD32F2F),
                               fontSize: 11,
                             ),
                           ),
                           Text(
                             'Stock: ${_selectedMaterial!.stock} ${_selectedMaterial!.unit}',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: const Color(0xFF757575),
                               fontSize: 11,
                             ),
                           ),
@@ -4233,7 +4233,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 24),
+            BoxShadow(color: const Color(0xFF000000).withOpacity(0.3), blurRadius: 24),
           ],
         ),
         child: Column(
@@ -4264,7 +4264,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                         Text(
                           _saleNumber,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
+                            color: const Color(0xFFFFFFFF).withOpacity(0.7),
                             fontSize: 13,
                           ),
                         ),
@@ -4274,7 +4274,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   // Tabs
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: const Color(0xFFFFFFFF).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -4293,7 +4293,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: const Color(0xFFFFFFFF).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
@@ -4301,7 +4301,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                         const Text(
                           'TOTAL',
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: const Color(0xB3FFFFFF),
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
@@ -4325,7 +4325,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: const Color(0xFFFFFFFF).withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -4349,11 +4349,11 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: const Color(0xFFFAFAFA),
                 borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(16),
                 ),
-                border: Border(top: BorderSide(color: Colors.grey[200]!)),
+                border: Border(top: BorderSide(color: const Color(0xFFEEEEEE))),
               ),
               child: Row(
                 children: [
@@ -4363,8 +4363,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                         ? Icons.payments
                         : Icons.calendar_month,
                     color: widget.paymentType == 'cash'
-                        ? Colors.green
-                        : Colors.orange,
+                        ? const Color(0xFF2E7D32)
+                        : const Color(0xFFF9A825),
                     size: 18,
                   ),
                   const SizedBox(width: 8),
@@ -4373,7 +4373,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                       widget.paymentType == 'cash'
                           ? 'Pago de contado: ${widget.paymentMethodLabel} → ${widget.accountName}'
                           : 'Crédito: ${widget.creditDays} días${widget.installments > 1 ? ', ${widget.installments} cuotas de \$${Helpers.formatNumber(widget.total / widget.installments)}' : ''}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
                     ),
                   ),
                   // Stock badge
@@ -4385,7 +4385,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.orange[100],
+                        color: const Color(0xFFFFE0B2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -4394,7 +4394,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                           Icon(
                             Icons.warning_amber,
                             size: 14,
-                            color: Colors.orange[800],
+                            color: const Color(0xFFEF6C00),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -4402,7 +4402,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: Colors.orange[800],
+                              color: const Color(0xFFEF6C00),
                             ),
                           ),
                         ],
@@ -4416,7 +4416,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green[100],
+                        color: const Color(0xFFC8E6C9),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -4425,7 +4425,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                           Icon(
                             Icons.check_circle,
                             size: 14,
-                            color: Colors.green[800],
+                            color: const Color(0xFF2E7D32),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -4433,7 +4433,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: Colors.green[800],
+                              color: const Color(0xFF2E7D32),
                             ),
                           ),
                         ],
@@ -4443,14 +4443,14 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   _buildFooterButton(
                     'Editar',
                     Icons.edit,
-                    Colors.grey[700]!,
+                    const Color(0xFF616161),
                     () => Navigator.pop(context),
                   ),
                   const SizedBox(width: 10),
                   _buildFooterButton(
                     'Confirmar Venta',
                     Icons.check_circle,
-                    Colors.green,
+                    const Color(0xFF2E7D32),
                     widget.onConfirm,
                     filled: true,
                   ),
@@ -4471,7 +4471,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? Colors.white.withOpacity(0.2) : Colors.transparent,
+          color: isActive ? const Color(0xFFFFFFFF).withOpacity(0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -4538,7 +4538,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: const Color(0xFF000000).withOpacity(0.08),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -4572,7 +4572,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
+                                  color: const Color(0xFF000000).withOpacity(0.1),
                                   blurRadius: 8,
                                 ),
                               ],
@@ -4610,7 +4610,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                 Text(
                                   'NIT: 901946675-1',
                                   style: TextStyle(
-                                    color: Colors.grey[600],
+                                    color: const Color(0xFF757575),
                                     fontSize: 14,
                                   ),
                                 ),
@@ -4645,7 +4645,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                   style: TextStyle(
                                     fontWeight: FontWeight.w500,
                                     fontSize: 14,
-                                    color: Colors.grey[700],
+                                    color: const Color(0xFF616161),
                                   ),
                                 ),
                               ],
@@ -4658,9 +4658,9 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey[50],
+                          color: const Color(0xFFFAFAFA),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey[200]!),
+                          border: Border.all(color: const Color(0xFFEEEEEE)),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -4675,7 +4675,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.grey[500],
+                                      color: const Color(0xFF9E9E9E),
                                       letterSpacing: 1,
                                     ),
                                   ),
@@ -4694,7 +4694,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                       child: Text(
                                         '${widget.customer['documentType'] ?? 'CC'}: ${widget.customer['ruc']}',
                                         style: TextStyle(
-                                          color: Colors.grey[600],
+                                          color: const Color(0xFF757575),
                                           fontSize: 13,
                                         ),
                                       ),
@@ -4728,8 +4728,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                   ),
                                   decoration: BoxDecoration(
                                     color: widget.paymentType == 'cash'
-                                        ? Colors.green[100]
-                                        : Colors.orange[100],
+                                        ? const Color(0xFFC8E6C9)
+                                        : const Color(0xFFFFE0B2),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
@@ -4740,8 +4740,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
                                       color: widget.paymentType == 'cash'
-                                          ? Colors.green[800]
-                                          : Colors.orange[800],
+                                          ? const Color(0xFF2E7D32)
+                                          : const Color(0xFFEF6C00),
                                     ),
                                   ),
                                 ),
@@ -4754,7 +4754,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                       // ─── Tabla de productos ───
                       Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[200]!),
+                          border: Border.all(color: const Color(0xFFEEEEEE)),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -4782,7 +4782,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
-                                        color: Colors.grey[700],
+                                        color: const Color(0xFF616161),
                                       ),
                                     ),
                                   ),
@@ -4794,7 +4794,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
-                                        color: Colors.grey[700],
+                                        color: const Color(0xFF616161),
                                       ),
                                     ),
                                   ),
@@ -4806,7 +4806,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
-                                        color: Colors.grey[700],
+                                        color: const Color(0xFF616161),
                                       ),
                                     ),
                                   ),
@@ -4818,7 +4818,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
-                                        color: Colors.grey[700],
+                                        color: const Color(0xFF616161),
                                       ),
                                     ),
                                   ),
@@ -4843,7 +4843,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                 decoration: BoxDecoration(
                                   border: Border(
                                     bottom: BorderSide(
-                                      color: Colors.grey[100]!,
+                                      color: const Color(0xFFF5F5F5),
                                     ),
                                   ),
                                 ),
@@ -4870,7 +4870,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                                   'Código: ${item['productCode']}',
                                                   style: TextStyle(
                                                     fontSize: 10,
-                                                    color: Colors.grey[500],
+                                                    color: const Color(0xFF9E9E9E),
                                                   ),
                                                 ),
                                             ],
@@ -4893,7 +4893,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                             textAlign: TextAlign.right,
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey[600],
+                                              color: const Color(0xFF757575),
                                             ),
                                           ),
                                         ),
@@ -4937,7 +4937,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                                     vertical: 2,
                                                   ),
                                               decoration: BoxDecoration(
-                                                color: Colors.blue[50],
+                                                color: const Color(0xFFE3F2FD),
                                                 borderRadius:
                                                     BorderRadius.circular(4),
                                               ),
@@ -4945,7 +4945,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                                 '$cQty× $cName $cUnit',
                                                 style: TextStyle(
                                                   fontSize: 10,
-                                                  color: Colors.blue[800],
+                                                  color: const Color(0xFF1565C0),
                                                 ),
                                               ),
                                             );
@@ -5003,13 +5003,13 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             Icon(
                               Icons.scale,
                               size: 16,
-                              color: Colors.grey[500],
+                              color: const Color(0xFF9E9E9E),
                             ),
                             const SizedBox(width: 6),
                             Text(
                               'Peso Total: ${Helpers.formatNumber(widget.totalWeight)} kg',
                               style: TextStyle(
-                                color: Colors.grey[500],
+                                color: const Color(0xFF9E9E9E),
                                 fontSize: 13,
                               ),
                             ),
@@ -5023,9 +5023,9 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.grey[50],
+                            color: const Color(0xFFFAFAFA),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.grey[200]!),
+                            border: Border.all(color: const Color(0xFFEEEEEE)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -5035,7 +5035,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.grey[600],
+                                  color: const Color(0xFF757575),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -5043,7 +5043,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                 widget.notes,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[600],
+                                  color: const Color(0xFF757575),
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -5081,7 +5081,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: const Color(0xFF000000).withOpacity(0.05),
                     blurRadius: 10,
                   ),
                 ],
@@ -5095,7 +5095,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: const Color(0xFF000000).withOpacity(0.1),
                           blurRadius: 8,
                         ),
                       ],
@@ -5136,7 +5136,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                         Text(
                           _saleNumber,
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: const Color(0xFF757575),
                             fontSize: 13,
                           ),
                         ),
@@ -5149,7 +5149,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.blue[100],
+                      color: const Color(0xFFBBDEFB),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -5158,13 +5158,13 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                         Icon(
                           Icons.lock_outline,
                           size: 14,
-                          color: Colors.blue[800],
+                          color: const Color(0xFF1565C0),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           'USO INTERNO',
                           style: TextStyle(
-                            color: Colors.blue[800],
+                            color: const Color(0xFF1565C0),
                             fontWeight: FontWeight.bold,
                             fontSize: 11,
                           ),
@@ -5183,21 +5183,21 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   'Costo Mat.',
                   '\$${Helpers.formatNumber(widget.materialsPurchaseCost)}',
                   Icons.inventory_2,
-                  Colors.blue,
+                  const Color(0xFF1565C0),
                 ),
                 const SizedBox(width: 12),
                 _buildStatCard(
                   'Mano Obra',
                   '\$${Helpers.formatNumber(widget.laborCost)}',
                   Icons.engineering,
-                  Colors.purple,
+                  const Color(0xFF7B1FA2),
                 ),
                 const SizedBox(width: 12),
                 _buildStatCard(
                   'Costos Ind.',
                   '\$${Helpers.formatNumber(widget.indirectCosts)}',
                   Icons.electrical_services,
-                  Colors.orange,
+                  const Color(0xFFF9A825),
                 ),
                 const SizedBox(width: 12),
                 Builder(
@@ -5215,7 +5215,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                       'Margen',
                       '${realMargin.toStringAsFixed(1)}%',
                       Icons.trending_up,
-                      realMargin >= 0 ? Colors.green : Colors.red,
+                      realMargin >= 0 ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
                     );
                   },
                 ),
@@ -5225,7 +5225,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                     'Descuento',
                     '-\$${Helpers.formatNumber(widget.discount)}',
                     Icons.discount,
-                    Colors.red,
+                    const Color(0xFFC62828),
                   ),
                 ],
               ],
@@ -5240,7 +5240,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: const Color(0xFF000000).withOpacity(0.05),
                       blurRadius: 10,
                     ),
                   ],
@@ -5255,8 +5255,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                               ? Icons.check_circle
                               : Icons.warning_amber,
                           color: widget.stockIssues.isEmpty
-                              ? Colors.green
-                              : Colors.orange,
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFFF9A825),
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -5268,8 +5268,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: widget.stockIssues.isEmpty
-                                ? Colors.green[800]
-                                : Colors.orange[800],
+                                ? const Color(0xFF2E7D32)
+                                : const Color(0xFFEF6C00),
                           ),
                         ),
                       ],
@@ -5290,7 +5290,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                               Icon(
                                 Icons.cancel,
                                 size: 14,
-                                color: Colors.red[600],
+                                color: const Color(0xFFE53935),
                               ),
                               const SizedBox(width: 6),
                               Expanded(
@@ -5304,7 +5304,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                 'Necesita: ${required.toStringAsFixed(0)} $unit | Disp: ${available.toStringAsFixed(0)}',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.red[700],
+                                  color: const Color(0xFFD32F2F),
                                 ),
                               ),
                             ],
@@ -5324,7 +5324,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: const Color(0xFF000000).withOpacity(0.05),
                     blurRadius: 10,
                   ),
                 ],
@@ -5335,12 +5335,12 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
+                      color: const Color(0xFFFAFAFA),
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(12),
                       ),
                       border: Border(
-                        bottom: BorderSide(color: Colors.grey[200]!),
+                        bottom: BorderSide(color: const Color(0xFFEEEEEE)),
                       ),
                     ),
                     child: Row(
@@ -5358,7 +5358,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                         Text(
                           '${widget.items.length} producto(s)',
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: const Color(0xFF757575),
                             fontSize: 13,
                           ),
                         ),
@@ -5369,9 +5369,9 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color: const Color(0xFFF5F5F5),
                       border: Border(
-                        bottom: BorderSide(color: Colors.grey[200]!),
+                        bottom: BorderSide(color: const Color(0xFFEEEEEE)),
                       ),
                     ),
                     child: Row(
@@ -5383,7 +5383,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
-                              color: Colors.grey[700],
+                              color: const Color(0xFF616161),
                             ),
                           ),
                         ),
@@ -5393,7 +5393,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
-                              color: Colors.grey[700],
+                              color: const Color(0xFF616161),
                             ),
                             textAlign: TextAlign.right,
                           ),
@@ -5405,7 +5405,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
-                              color: Colors.grey[700],
+                              color: const Color(0xFF616161),
                             ),
                             textAlign: TextAlign.right,
                           ),
@@ -5417,7 +5417,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
-                              color: Colors.grey[700],
+                              color: const Color(0xFF616161),
                             ),
                             textAlign: TextAlign.right,
                           ),
@@ -5430,7 +5430,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
-                              color: Colors.grey[700],
+                              color: const Color(0xFF616161),
                             ),
                             textAlign: TextAlign.right,
                           ),
@@ -5452,7 +5452,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: const Color(0xFF000000).withOpacity(0.05),
                     blurRadius: 10,
                   ),
                 ],
@@ -5489,16 +5489,16 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             ),
                             decoration: BoxDecoration(
                               color: realMargin >= 0
-                                  ? Colors.green[50]
-                                  : Colors.red[50],
+                                  ? const Color(0xFFE8F5E9)
+                                  : const Color(0xFFFFEBEE),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               'Margen: ${realMargin.toStringAsFixed(1)}%',
                               style: TextStyle(
                                 color: realMargin >= 0
-                                    ? Colors.green[700]
-                                    : Colors.red[700],
+                                    ? const Color(0xFF388E3C)
+                                    : const Color(0xFFD32F2F),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                               ),
@@ -5529,7 +5529,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             child: Container(
                               height: 24,
                               decoration: BoxDecoration(
-                                color: Colors.blue[400],
+                                color: const Color(0xFF42A5F5),
                                 borderRadius: const BorderRadius.horizontal(
                                   left: Radius.circular(4),
                                 ),
@@ -5552,7 +5552,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                 .clamp(1, 100),
                             child: Container(
                               height: 24,
-                              color: Colors.purple[400],
+                              color: const Color(0xFFAB47BC),
                               child: const Center(
                                 child: Text(
                                   'M.O.',
@@ -5574,7 +5574,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                               child: Container(
                                 height: 24,
                                 decoration: BoxDecoration(
-                                  color: Colors.orange[400],
+                                  color: const Color(0xFFFFA726),
                                   borderRadius: const BorderRadius.horizontal(
                                     right: Radius.circular(4),
                                   ),
@@ -5599,17 +5599,17 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   _buildCostLine(
                     'Materiales (Compra)',
                     widget.materialsPurchaseCost,
-                    Colors.blue,
+                    const Color(0xFF1565C0),
                   ),
                   _buildCostLine(
                     'Mano de Obra',
                     widget.laborCost,
-                    Colors.purple,
+                    const Color(0xFF7B1FA2),
                   ),
                   _buildCostLine(
                     'Costos Indirectos',
                     widget.indirectCosts,
-                    Colors.orange,
+                    const Color(0xFFF9A825),
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
@@ -5647,8 +5647,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: realProfit >= 0
-                                  ? Colors.green[50]
-                                  : Colors.red[50],
+                                  ? const Color(0xFFE8F5E9)
+                                  : const Color(0xFFFFEBEE),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -5661,8 +5661,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                           ? Icons.trending_up
                                           : Icons.trending_down,
                                       color: realProfit >= 0
-                                          ? Colors.green[700]
-                                          : Colors.red[700],
+                                          ? const Color(0xFF388E3C)
+                                          : const Color(0xFFD32F2F),
                                       size: 18,
                                     ),
                                     const SizedBox(width: 8),
@@ -5670,8 +5670,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                       'Ganancia (${realMargin.toStringAsFixed(1)}%)',
                                       style: TextStyle(
                                         color: realProfit >= 0
-                                            ? Colors.green[700]
-                                            : Colors.red[700],
+                                            ? const Color(0xFF388E3C)
+                                            : const Color(0xFFD32F2F),
                                       ),
                                     ),
                                   ],
@@ -5681,8 +5681,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: realProfit >= 0
-                                        ? Colors.green[700]
-                                        : Colors.red[700],
+                                        ? const Color(0xFF388E3C)
+                                        : const Color(0xFFD32F2F),
                                   ),
                                 ),
                               ],
@@ -5740,12 +5740,12 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.scale, size: 18, color: Colors.grey[600]),
+                      Icon(Icons.scale, size: 18, color: const Color(0xFF757575)),
                       const SizedBox(width: 8),
                       Text(
                         'Peso Total: ${Helpers.formatNumber(widget.totalWeight)} kg',
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: const Color(0xFF757575),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -5757,13 +5757,13 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: widget.paymentType == 'cash'
-                          ? Colors.green[50]
-                          : Colors.orange[50],
+                          ? const Color(0xFFE8F5E9)
+                          : const Color(0xFFFFF3E0),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: widget.paymentType == 'cash'
-                            ? Colors.green[200]!
-                            : Colors.orange[200]!,
+                            ? const Color(0xFFA5D6A7)
+                            : const Color(0xFFFFCC80),
                       ),
                     ),
                     child: Row(
@@ -5773,8 +5773,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                               ? Icons.payments
                               : Icons.calendar_month,
                           color: widget.paymentType == 'cash'
-                              ? Colors.green[700]
-                              : Colors.orange[700],
+                              ? const Color(0xFF388E3C)
+                              : const Color(0xFFF57C00),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -5788,8 +5788,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: widget.paymentType == 'cash'
-                                      ? Colors.green[800]
-                                      : Colors.orange[800],
+                                      ? const Color(0xFF2E7D32)
+                                      : const Color(0xFFEF6C00),
                                 ),
                               ),
                               Text(
@@ -5798,7 +5798,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                     : '${widget.creditDays} días${widget.installments > 1 ? ' | ${widget.installments} cuotas de \$${Helpers.formatNumber(widget.total / widget.installments)}' : ''}',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[700],
+                                  color: const Color(0xFF616161),
                                 ),
                               ),
                             ],
@@ -5831,7 +5831,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+            BoxShadow(color: const Color(0xFF000000).withOpacity(0.05), blurRadius: 10),
           ],
         ),
         child: Column(
@@ -5849,7 +5849,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
             const SizedBox(height: 12),
             Text(
               title,
-              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 11, color: const Color(0xFF757575)),
             ),
             const SizedBox(height: 4),
             Text(
@@ -5888,7 +5888,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+        border: Border(bottom: BorderSide(color: const Color(0xFFEEEEEE))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -5922,7 +5922,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                     const SizedBox(height: 4),
                     Text(
                       'Cant: $qty | Peso: ${Helpers.formatNumber(totalWeight)} kg',
-                      style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 10, color: const Color(0xFF9E9E9E)),
                     ),
                   ],
                 ),
@@ -5934,7 +5934,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Colors.orange,
+                    color: const Color(0xFFF9A825),
                   ),
                 ),
               ),
@@ -5946,7 +5946,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Colors.green,
+                    color: const Color(0xFF2E7D32),
                   ),
                 ),
               ),
@@ -5960,13 +5960,13 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: totalProfit >= 0 ? Colors.blue : Colors.red,
+                        color: totalProfit >= 0 ? const Color(0xFF1565C0) : const Color(0xFFC62828),
                       ),
                     ),
                     if (profitMargin > 0)
                       Text(
                         '${profitMargin.toStringAsFixed(1)}%',
-                        style: TextStyle(fontSize: 9, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 9, color: const Color(0xFF757575)),
                       ),
                   ],
                 ),
@@ -5990,9 +5990,9 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: const Color(0xFFE3F2FD),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.blue[200]!),
+                border: Border.all(color: const Color(0xFF90CAF9)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -6002,7 +6002,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
-                      color: Colors.blue[900],
+                      color: const Color(0xFF0D47A1),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -6022,8 +6022,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             hasStock ? Icons.check_circle : Icons.cancel,
                             size: 12,
                             color: hasStock
-                                ? Colors.green[600]
-                                : Colors.red[600],
+                                ? const Color(0xFF43A047)
+                                : const Color(0xFFE53935),
                           ),
                           const SizedBox(width: 6),
                           Expanded(
@@ -6040,8 +6040,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                             ),
                             decoration: BoxDecoration(
                               color: hasStock
-                                  ? Colors.green[100]
-                                  : Colors.red[100],
+                                  ? const Color(0xFFC8E6C9)
+                                  : const Color(0xFFFFCDD2),
                               borderRadius: BorderRadius.circular(3),
                             ),
                             child: Text(
@@ -6050,8 +6050,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                 fontSize: 9,
                                 fontWeight: FontWeight.w600,
                                 color: hasStock
-                                    ? Colors.green[700]
-                                    : Colors.red[700],
+                                    ? const Color(0xFF388E3C)
+                                    : const Color(0xFFD32F2F),
                               ),
                             ),
                           ),
@@ -6066,7 +6066,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                         '+${components.length - 4} componentes más',
                         style: TextStyle(
                           fontSize: 9,
-                          color: Colors.blue[700],
+                          color: const Color(0xFF1976D2),
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -6097,7 +6097,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
           Expanded(
             child: Text(
               label,
-              style: TextStyle(color: Colors.grey[700], fontSize: 13),
+              style: TextStyle(color: const Color(0xFF616161), fontSize: 13),
             ),
           ),
           Text(
@@ -6113,7 +6113,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+        Text(label, style: TextStyle(color: const Color(0xFF9E9E9E), fontSize: 13)),
         const SizedBox(width: 8),
         Text(
           value,
@@ -6133,10 +6133,10 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+          Text(label, style: TextStyle(color: const Color(0xFF757575), fontSize: 13)),
           Text(
             '${value < 0 ? '-' : ''}\$${Helpers.formatNumber(value.abs())}',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            style: TextStyle(color: const Color(0xFF757575), fontSize: 13),
           ),
         ],
       ),

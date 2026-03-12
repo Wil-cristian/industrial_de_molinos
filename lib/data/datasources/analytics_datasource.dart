@@ -1,9 +1,9 @@
-Ôªøimport '../../core/utils/logger.dart';
+import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_datasource.dart';
 import '../../domain/entities/analytics.dart';
 
-/// DataSource para consultas anal√≠ticas usando las vistas SQL
+/// DataSource para consultas analÌticas usando las vistas SQL
 class AnalyticsDataSource {
   static SupabaseClient get _client => SupabaseDataSource.client;
 
@@ -11,7 +11,7 @@ class AnalyticsDataSource {
   // HISTORIAL DE COMPRAS POR CLIENTE
   // ============================================================
 
-  /// Obtener historial de compras de un cliente espec√≠fico
+  /// Obtener historial de compras de un cliente especÌfico
   static Future<List<CustomerPurchaseHistory>> getCustomerPurchaseHistory(
     String customerId,
   ) async {
@@ -26,7 +26,7 @@ class AnalyticsDataSource {
           .map((json) => CustomerPurchaseHistory.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo historial de compras: $e');
+      AppLogger.error('? Error obteniendo historial de compras: $e');
       return [];
     }
   }
@@ -46,16 +46,16 @@ class AnalyticsDataSource {
           .map((json) => CustomerPurchaseHistory.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo historial general: $e');
+      AppLogger.error('? Error obteniendo historial general: $e');
       return [];
     }
   }
 
   // ============================================================
-  // M√âTRICAS DE CLIENTES
+  // M…TRICAS DE CLIENTES
   // ============================================================
 
-  /// Obtener m√©tricas de todos los clientes
+  /// Obtener mÈtricas de todos los clientes
   static Future<List<CustomerMetrics>> getAllCustomerMetrics() async {
     try {
       // Intentar usar la vista si existe
@@ -71,7 +71,7 @@ class AnalyticsDataSource {
       } catch (_) {
         // Si la vista no existe, calcular manualmente desde customers e invoices
         AppLogger.warning(
-          '‚ö†Ô∏è Vista v_customer_metrics no existe, calculando manualmente...',
+          '?? Vista v_customer_metrics no existe, calculando manualmente...',
         );
 
         final customersResponse = await _client
@@ -118,7 +118,7 @@ class AnalyticsDataSource {
             }
           }
 
-          // Calcular d√≠as desde √∫ltima compra
+          // Calcular dÌas desde ˙ltima compra
           int? daysSinceLastPurchase;
           if (lastPurchase != null) {
             daysSinceLastPurchase = DateTime.now()
@@ -153,18 +153,18 @@ class AnalyticsDataSource {
         // Ordenar por gasto total
         metrics.sort((a, b) => b.totalSpent.compareTo(a.totalSpent));
         AppLogger.success(
-          '‚úÖ M√©tricas calculadas para ${metrics.length} clientes',
+          '? MÈtricas calculadas para ${metrics.length} clientes',
         );
 
         return metrics;
       }
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo m√©tricas de clientes: $e');
+      AppLogger.error('? Error obteniendo mÈtricas de clientes: $e');
       return [];
     }
   }
 
-  /// Obtener m√©tricas de un cliente espec√≠fico
+  /// Obtener mÈtricas de un cliente especÌfico
   static Future<CustomerMetrics?> getCustomerMetrics(String customerId) async {
     try {
       final response = await _client
@@ -178,7 +178,7 @@ class AnalyticsDataSource {
       }
       return null;
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo m√©tricas del cliente: $e');
+      AppLogger.error('? Error obteniendo mÈtricas del cliente: $e');
       return null;
     }
   }
@@ -197,16 +197,16 @@ class AnalyticsDataSource {
           .map((json) => CustomerMetrics.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo top clientes: $e');
+      AppLogger.error('? Error obteniendo top clientes: $e');
       return [];
     }
   }
 
   // ============================================================
-  // PRODUCTOS M√ÅS VENDIDOS
+  // PRODUCTOS M¡S VENDIDOS
   // ============================================================
 
-  /// Obtener productos m√°s vendidos
+  /// Obtener productos m·s vendidos
   static Future<List<TopSellingProduct>> getTopSellingProducts({
     int limit = 20,
   }) async {
@@ -221,7 +221,7 @@ class AnalyticsDataSource {
           .map((json) => TopSellingProduct.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo productos top: $e');
+      AppLogger.error('? Error obteniendo productos top: $e');
       return [];
     }
   }
@@ -250,12 +250,12 @@ class AnalyticsDataSource {
           .map((json) => MaterialConsumption.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo consumo de materiales: $e');
+      AppLogger.error('? Error obteniendo consumo de materiales: $e');
       return [];
     }
   }
 
-  /// Obtener consumo de un material espec√≠fico
+  /// Obtener consumo de un material especÌfico
   static Future<List<MaterialConsumption>> getMaterialConsumptionById(
     String materialId,
   ) async {
@@ -270,16 +270,16 @@ class AnalyticsDataSource {
           .map((json) => MaterialConsumption.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo consumo del material: $e');
+      AppLogger.error('? Error obteniendo consumo del material: $e');
       return [];
     }
   }
 
   // ============================================================
-  // VENTAS POR PER√çODO
+  // VENTAS POR PERÕODO
   // ============================================================
 
-  /// Obtener ventas por per√≠odo
+  /// Obtener ventas por perÌodo
   static Future<List<SalesByPeriod>> getSalesByPeriod({
     DateTime? fromDate,
     int limit = 365,
@@ -297,7 +297,7 @@ class AnalyticsDataSource {
           .map((json) => SalesByPeriod.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo ventas por per√≠odo: $e');
+      AppLogger.error('? Error obteniendo ventas por perÌodo: $e');
       return [];
     }
   }
@@ -324,16 +324,16 @@ class AnalyticsDataSource {
 
       return monthlySales;
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo ventas mensuales: $e');
+      AppLogger.error('? Error obteniendo ventas mensuales: $e');
       return {};
     }
   }
 
   // ============================================================
-  // GANANCIA/P√âRDIDA MENSUAL
+  // GANANCIA/P…RDIDA MENSUAL
   // ============================================================
 
-  /// Obtener ganancias/p√©rdidas mensuales
+  /// Obtener ganancias/pÈrdidas mensuales
   static Future<List<ProfitLossMonthly>> getProfitLoss({
     int? year,
     int limit = 12,
@@ -354,16 +354,16 @@ class AnalyticsDataSource {
           .map((json) => ProfitLossMonthly.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo P&L: $e');
+      AppLogger.error('? Error obteniendo P&L: $e');
       return [];
     }
   }
 
   // ============================================================
-  // AN√ÅLISIS DE PRODUCTOS POR CLIENTE
+  // AN¡LISIS DE PRODUCTOS POR CLIENTE
   // ============================================================
 
-  /// Obtener an√°lisis de productos por cliente
+  /// Obtener an·lisis de productos por cliente
   static Future<List<CustomerProductAnalysis>> getCustomerProductAnalysis(
     String customerId,
   ) async {
@@ -378,7 +378,7 @@ class AnalyticsDataSource {
           .map((json) => CustomerProductAnalysis.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo an√°lisis de productos: $e');
+      AppLogger.error('? Error obteniendo an·lisis de productos: $e');
       return [];
     }
   }
@@ -387,7 +387,7 @@ class AnalyticsDataSource {
   // CUENTAS POR COBRAR
   // ============================================================
 
-  /// Obtener cuentas por cobrar con antig√ºedad
+  /// Obtener cuentas por cobrar con antig¸edad
   static Future<List<AccountReceivableAging>> getAccountsReceivable() async {
     try {
       final response = await _client
@@ -399,12 +399,12 @@ class AnalyticsDataSource {
           .map((json) => AccountReceivableAging.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo cuentas por cobrar: $e');
+      AppLogger.error('? Error obteniendo cuentas por cobrar: $e');
       return [];
     }
   }
 
-  /// Obtener resumen de antig√ºedad de cuentas por cobrar
+  /// Obtener resumen de antig¸edad de cuentas por cobrar
   static Future<Map<String, double>> getAgingSummary() async {
     try {
       final accounts = await getAccountsReceivable();
@@ -424,7 +424,7 @@ class AnalyticsDataSource {
 
       return summary;
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo resumen de antig√ºedad: $e');
+      AppLogger.error('? Error obteniendo resumen de antig¸edad: $e');
       return {};
     }
   }
@@ -446,7 +446,7 @@ class AnalyticsDataSource {
       }
       return null;
     } catch (e) {
-      AppLogger.error('‚ùå Error calculando CLV: $e');
+      AppLogger.error('? Error calculando CLV: $e');
       return null;
     }
   }
@@ -466,7 +466,7 @@ class AnalyticsDataSource {
           .map((json) => RelatedProduct.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo productos relacionados: $e');
+      AppLogger.error('? Error obteniendo productos relacionados: $e');
       return [];
     }
   }
@@ -519,7 +519,7 @@ class AnalyticsDataSource {
         'top_products': topProducts,
       };
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo dashboard summary: $e');
+      AppLogger.error('? Error obteniendo dashboard summary: $e');
       return {};
     }
   }
@@ -528,7 +528,7 @@ class AnalyticsDataSource {
   // KPIs AVANZADOS DE COBRANZAS
   // ============================================================
 
-  /// Obtener DSO mensual de los √∫ltimos N meses (usa RPC optimizada)
+  /// Obtener DSO mensual de los ˙ltimos N meses (usa RPC optimizada)
   static Future<List<DSOMonthly>> getDSOTrend({int months = 12}) async {
     try {
       // Intentar usar la RPC que hace todo en una sola query
@@ -560,12 +560,12 @@ class AnalyticsDataSource {
 
       return dsoList;
     } catch (e) {
-      // Fallback al m√©todo cl√°sico si la RPC no existe
+      // Fallback al mÈtodo cl·sico si la RPC no existe
       if (e.toString().contains('function') &&
           e.toString().contains('not exist')) {
         return _getDSOTrendLegacy(months: months);
       }
-      AppLogger.error('‚ùå Error obteniendo DSO trend: $e');
+      AppLogger.error('? Error obteniendo DSO trend: $e');
       return [];
     }
   }
@@ -616,7 +616,7 @@ class AnalyticsDataSource {
 
       return dsoList.reversed.toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo DSO trend (legacy): $e');
+      AppLogger.error('? Error obteniendo DSO trend (legacy): $e');
       return [];
     }
   }
@@ -627,7 +627,7 @@ class AnalyticsDataSource {
       final now = DateTime.now();
       final last12Months = DateTime(now.year, now.month - 12, 1);
 
-      // Todas las facturas de los √∫ltimos 12 meses - sin paid_date
+      // Todas las facturas de los ˙ltimos 12 meses - sin paid_date
       final allInvoices = await _client
           .from('invoices')
           .select('id, total, paid_amount, issue_date, due_date, status')
@@ -653,7 +653,7 @@ class AnalyticsDataSource {
         if (pending > 0) {
           totalReceivables += pending;
 
-          // Verificar si est√° vencida
+          // Verificar si est· vencida
           if (inv['due_date'] != null) {
             final dueDate = DateTime.tryParse(inv['due_date']);
             if (dueDate != null && now.isAfter(dueDate)) {
@@ -663,7 +663,7 @@ class AnalyticsDataSource {
           }
         }
 
-        // Contar facturas pagadas para c√°lculo de DSO
+        // Contar facturas pagadas para c·lculo de DSO
         final status = inv['status']?.toString() ?? '';
         if (status == 'paid' &&
             inv['issue_date'] != null &&
@@ -671,15 +671,15 @@ class AnalyticsDataSource {
           final issueDate = DateTime.tryParse(inv['issue_date']);
           final dueDate = DateTime.tryParse(inv['due_date']);
           if (issueDate != null && dueDate != null) {
-            // Usar la diferencia entre issue_date y due_date como estimaci√≥n
+            // Usar la diferencia entre issue_date y due_date como estimaciÛn
             totalDaysToCollect +=
-                dueDate.difference(issueDate).inDays ~/ 2; // Estimaci√≥n media
+                dueDate.difference(issueDate).inDays ~/ 2; // EstimaciÛn media
             paidInvoicesCount++;
           }
         }
       }
 
-      // DSO = D√≠as promedio de cobro
+      // DSO = DÌas promedio de cobro
       final dso = paidInvoicesCount > 0
           ? (totalDaysToCollect / paidInvoicesCount).toDouble()
           : (totalReceivables > 0 && totalSales > 0
@@ -690,12 +690,12 @@ class AnalyticsDataSource {
       // Simplificado: CEI = (Cobrado / Ventas) * 100
       final cei = totalSales > 0 ? (totalCollected / totalSales * 100) : 0.0;
 
-      // AR Turnover = Ventas a Cr√©dito / Promedio de Cuentas por Cobrar
+      // AR Turnover = Ventas a CrÈdito / Promedio de Cuentas por Cobrar
       final arTurnover = totalReceivables > 0
           ? (totalSales / totalReceivables)
           : 0.0;
 
-      // Bad Debt Ratio (estimado con +90 d√≠as como incobrable)
+      // Bad Debt Ratio (estimado con +90 dÌas como incobrable)
       final badDebtRatio = totalSales > 0
           ? (overdueAmount * 0.5 / totalSales * 100)
           : 0.0;
@@ -712,12 +712,12 @@ class AnalyticsDataSource {
         totalInvoices: allInvoices.length,
       );
     } catch (e) {
-      AppLogger.error('‚ùå Error calculando KPIs de cobranzas: $e');
+      AppLogger.error('? Error calculando KPIs de cobranzas: $e');
       return CollectionKPIs();
     }
   }
 
-  /// Generar an√°lisis ABC (Pareto) de productos
+  /// Generar an·lisis ABC (Pareto) de productos
   static Future<List<ProductABC>> getProductABCAnalysis() async {
     try {
       final products = await getTopSellingProducts(limit: 100);
@@ -727,7 +727,7 @@ class AnalyticsDataSource {
       // Calcular total de ingresos
       final totalRevenue = products.fold(0.0, (sum, p) => sum + p.totalRevenue);
 
-      // Generar an√°lisis ABC con acumulados
+      // Generar an·lisis ABC con acumulados
       List<ProductABC> abcList = [];
       double cumulativeRevenue = 0;
 
@@ -744,7 +744,7 @@ class AnalyticsDataSource {
 
       return abcList;
     } catch (e) {
-      AppLogger.error('‚ùå Error generando an√°lisis ABC: $e');
+      AppLogger.error('? Error generando an·lisis ABC: $e');
       return [];
     }
   }
@@ -753,11 +753,11 @@ class AnalyticsDataSource {
   static Future<Map<String, dynamic>?> refreshMaterializedViews() async {
     try {
       final result = await _client.rpc('refresh_materialized_views');
-      AppLogger.success('‚úÖ Vistas materializadas refrescadas');
+      AppLogger.success('? Vistas materializadas refrescadas');
       return result as Map<String, dynamic>?;
     } catch (e) {
       AppLogger.warning(
-        '‚ö†Ô∏è No se pudieron refrescar vistas materializadas: $e',
+        '?? No se pudieron refrescar vistas materializadas: $e',
       );
       return null;
     }
@@ -767,7 +767,7 @@ class AnalyticsDataSource {
   // SALUD DEL NEGOCIO - KPIs INDUSTRIALES
   // ============================================================
 
-  /// Obtener tendencia mensual de Cr√©dito vs Ganancia vs Inventario
+  /// Obtener tendencia mensual de CrÈdito vs Ganancia vs Inventario
   static Future<List<BusinessHealthMonthly>> getBusinessHealthMonthly() async {
     try {
       final response = await _client
@@ -779,7 +779,7 @@ class AnalyticsDataSource {
           .map((json) => BusinessHealthMonthly.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo salud del negocio mensual: $e');
+      AppLogger.error('? Error obteniendo salud del negocio mensual: $e');
       return [];
     }
   }
@@ -797,12 +797,12 @@ class AnalyticsDataSource {
       }
       return BusinessHealthSnapshot();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo snapshot de salud: $e');
+      AppLogger.error('? Error obteniendo snapshot de salud: $e');
       return BusinessHealthSnapshot();
     }
   }
 
-  /// Obtener rotaci√≥n de inventario por producto
+  /// Obtener rotaciÛn de inventario por producto
   static Future<List<InventoryTurnover>> getInventoryTurnover() async {
     try {
       final response = await _client
@@ -814,7 +814,7 @@ class AnalyticsDataSource {
           .map((json) => InventoryTurnover.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo rotaci√≥n de inventario: $e');
+      AppLogger.error('? Error obteniendo rotaciÛn de inventario: $e');
       return [];
     }
   }
@@ -831,7 +831,7 @@ class AnalyticsDataSource {
           .map((json) => MaterialEfficiency.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('‚ùå Error obteniendo eficiencia de materiales: $e');
+      AppLogger.error('? Error obteniendo eficiencia de materiales: $e');
       return [];
     }
   }

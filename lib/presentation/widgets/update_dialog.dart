@@ -78,7 +78,7 @@ class UpdateDialog extends StatelessWidget {
                     '${release.fileSizeMb!.toStringAsFixed(1)} MB',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[600],
+                      color: const Color(0xFF757575),
                     ),
                   ),
                 ],
@@ -142,7 +142,7 @@ class UpdateDialog extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
               'Despues',
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: const Color(0xFF757575)),
             ),
           ),
         ElevatedButton.icon(

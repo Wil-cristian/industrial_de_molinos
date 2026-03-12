@@ -195,13 +195,13 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                         (sum, c) => sum + c.currentBalance,
                       ),
                     ),
-                    Colors.orange,
+                    const Color(0xFFF9A825),
                     Icons.account_balance_wallet,
                   ),
                   _buildQuickStat(
                     'Clientes Activos',
                     state.customers.where((c) => c.isActive).length.toString(),
-                    Colors.green,
+                    const Color(0xFF2E7D32),
                     Icons.people,
                   ),
                   FilledButton.icon(
@@ -304,7 +304,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('✅ Balances recalculados'),
-                                  backgroundColor: Colors.green,
+                                  backgroundColor: const Color(0xFF2E7D32),
                                 ),
                               );
                             }
@@ -469,8 +469,8 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
               color: creditLimit > 0
-                  ? Colors.blue.withValues(alpha: 0.1)
-                  : Colors.green.withValues(alpha: 0.1),
+                  ? const Color(0xFF1565C0).withValues(alpha: 0.1)
+                  : const Color(0xFF2E7D32).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -479,14 +479,14 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                 Icon(
                   creditLimit > 0 ? Icons.credit_card : Icons.payments,
                   size: 12,
-                  color: creditLimit > 0 ? Colors.blue : Colors.green[700],
+                  color: creditLimit > 0 ? const Color(0xFF1565C0) : const Color(0xFF388E3C),
                 ),
                 const SizedBox(width: 4),
                 Text(
                   creditLimit > 0 ? 'Crédito' : 'Contado',
                   style: TextStyle(
                     fontSize: 11,
-                    color: creditLimit > 0 ? Colors.blue : Colors.green[700],
+                    color: creditLimit > 0 ? const Color(0xFF1565C0) : const Color(0xFF388E3C),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -593,9 +593,9 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
             value: 'delete',
             child: Row(
               children: [
-                Icon(Icons.delete, size: 20, color: Colors.red),
+                Icon(Icons.delete, size: 20, color: const Color(0xFFC62828)),
                 SizedBox(width: 8),
-                Text('Eliminar', style: TextStyle(color: Colors.red)),
+                Text('Eliminar', style: TextStyle(color: const Color(0xFFC62828))),
               ],
             ),
           ),
@@ -880,7 +880,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                               prefixIcon: const Icon(Icons.money_off),
                               helperText: 'Calculado desde facturas',
                               filled: true,
-                              fillColor: Colors.grey[100],
+                              fillColor: const Color(0xFFF5F5F5),
                             ),
                           ),
                         ),
@@ -1334,14 +1334,14 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
               'Balance Actual',
               Formatters.currency(customer.currentBalance),
               valueColor: customer.currentBalance > 0
-                  ? Colors.red
-                  : Colors.green,
+                  ? const Color(0xFFC62828)
+                  : const Color(0xFF2E7D32),
             ),
             _buildInfoRow(
               Icons.savings,
               'Crédito Disponible',
               Formatters.currency(customer.availableCredit),
-              valueColor: Colors.green,
+              valueColor: const Color(0xFF2E7D32),
             ),
           ]),
           const SizedBox(height: 20),
@@ -1350,7 +1350,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
               Icons.payment,
               'Método',
               customer.creditLimit > 0 ? 'Crédito' : 'Contado',
-              valueColor: customer.creditLimit > 0 ? Colors.blue : Colors.green,
+              valueColor: customer.creditLimit > 0 ? const Color(0xFF1565C0) : const Color(0xFF2E7D32),
             ),
             if (customer.creditLimit > 0) ...[
               _buildInfoRow(Icons.calendar_today, 'Plazo', 'Crédito a 30 días'),
@@ -1359,8 +1359,8 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                 'Cupo Disponible',
                 Formatters.currency(customer.availableCredit),
                 valueColor: customer.availableCredit > 0
-                    ? Colors.green
-                    : Colors.red,
+                    ? const Color(0xFF2E7D32)
+                    : const Color(0xFFC62828),
               ),
             ],
           ]),
@@ -1370,7 +1370,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
               Icons.circle,
               'Estado',
               customer.isActive ? 'Activo' : 'Inactivo',
-              valueColor: customer.isActive ? Colors.green : Colors.grey,
+              valueColor: customer.isActive ? const Color(0xFF2E7D32) : const Color(0xFF9E9E9E),
             ),
             _buildInfoRow(
               Icons.business,
@@ -1474,15 +1474,15 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
           leading: CircleAvatar(
             radius: 20,
             backgroundColor: isPaid
-                ? Colors.green[50]
-                : (isOverdue ? Colors.red[50] : Colors.orange[50]),
+                ? const Color(0xFFE8F5E9)
+                : (isOverdue ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0)),
             child: Icon(
               isPaid
                   ? Icons.check_circle
                   : (isOverdue ? Icons.warning : Icons.schedule),
               color: isPaid
-                  ? Colors.green
-                  : (isOverdue ? Colors.red : Colors.orange),
+                  ? const Color(0xFF2E7D32)
+                  : (isOverdue ? const Color(0xFFC62828) : const Color(0xFFF9A825)),
               size: 20,
             ),
           ),
@@ -1498,8 +1498,8 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: isPaid
-                      ? Colors.green
-                      : (isOverdue ? Colors.red : Colors.orange),
+                      ? const Color(0xFF2E7D32)
+                      : (isOverdue ? const Color(0xFFC62828) : const Color(0xFFF9A825)),
                 ),
               ),
             ],
@@ -1511,7 +1511,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                 children: [
                   Text(
                     Formatters.date(inv.issueDate),
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
                   ),
                   const SizedBox(width: 8),
                   Container(
@@ -1521,8 +1521,8 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                     ),
                     decoration: BoxDecoration(
                       color: isPaid
-                          ? Colors.green[100]
-                          : (isOverdue ? Colors.red[100] : Colors.orange[100]),
+                          ? const Color(0xFFC8E6C9)
+                          : (isOverdue ? const Color(0xFFFFCDD2) : const Color(0xFFFFE0B2)),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -1531,10 +1531,10 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: isPaid
-                            ? Colors.green[700]
+                            ? const Color(0xFF388E3C)
                             : (isOverdue
-                                  ? Colors.red[700]
-                                  : Colors.orange[700]),
+                                  ? const Color(0xFFD32F2F)
+                                  : const Color(0xFFF57C00)),
                       ),
                     ),
                   ),
@@ -1546,7 +1546,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.indigo[50],
+                        color: const Color(0xFFE8EAF6),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
@@ -1557,7 +1557,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                               inv.paymentMethod?.toString().split('.').last,
                             ),
                             size: 12,
-                            color: Colors.indigo[700],
+                            color: const Color(0xFF303F9F),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -1567,7 +1567,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: Colors.indigo[700],
+                              color: const Color(0xFF303F9F),
                             ),
                           ),
                         ],
@@ -1578,7 +1578,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                     const SizedBox(width: 8),
                     Text(
                       'Vence: ${Formatters.date(inv.dueDate!)}',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 11, color: const Color(0xFF9E9E9E)),
                     ),
                   ],
                 ],
@@ -1591,7 +1591,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                       'Pendiente: ${Formatters.currency(inv.pendingAmount)}',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.red[600],
+                        color: const Color(0xFFE53935),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1606,7 +1606,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                           style: TextStyle(fontSize: 11),
                         ),
                         style: FilledButton.styleFrom(
-                          backgroundColor: Colors.green,
+                          backgroundColor: const Color(0xFF2E7D32),
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                         ),
                       ),
@@ -1646,7 +1646,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
           return AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.payment, color: Colors.green[700]),
+                Icon(Icons.payment, color: const Color(0xFF388E3C)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -1660,7 +1660,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                         'Recibo: ${inv.series}-${inv.number}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: const Color(0xFF757575),
                           fontWeight: FontWeight.normal,
                         ),
                       ),
@@ -1680,9 +1680,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.orange[50],
+                        color: const Color(0xFFFFF3E0),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange[200]!),
+                        border: Border.all(color: const Color(0xFFFFCC80)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1694,7 +1694,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                                 'Total factura',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey[600],
+                                  color: const Color(0xFF757575),
                                 ),
                               ),
                               Text(
@@ -1712,14 +1712,14 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                                 'Pagado',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey[600],
+                                  color: const Color(0xFF757575),
                                 ),
                               ),
                               Text(
                                 Formatters.currency(inv.paidAmount),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.green[700],
+                                  color: const Color(0xFF388E3C),
                                 ),
                               ),
                             ],
@@ -1731,14 +1731,14 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                                 'Pendiente',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey[600],
+                                  color: const Color(0xFF757575),
                                 ),
                               ),
                               Text(
                                 Formatters.currency(inv.pendingAmount),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.red[700],
+                                  color: const Color(0xFFD32F2F),
                                 ),
                               ),
                             ],
@@ -1828,7 +1828,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                               content: Text(
                                 'Ingresa un monto válido mayor a 0',
                               ),
-                              backgroundColor: Colors.red,
+                              backgroundColor: const Color(0xFFC62828),
                             ),
                           );
                           return;
@@ -1839,7 +1839,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                               content: Text(
                                 'El monto excede el pendiente (${Formatters.currency(inv.pendingAmount)})',
                               ),
-                              backgroundColor: Colors.red,
+                              backgroundColor: const Color(0xFFC62828),
                             ),
                           );
                           return;
@@ -1871,7 +1871,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                                 content: Text(
                                   'Pago de ${Formatters.currency(amount)} registrado en ${inv.series}-${inv.number}',
                                 ),
-                                backgroundColor: Colors.green,
+                                backgroundColor: const Color(0xFF2E7D32),
                               ),
                             );
                           }
@@ -1881,7 +1881,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Error: $e'),
-                                backgroundColor: Colors.red,
+                                backgroundColor: const Color(0xFFC62828),
                               ),
                             );
                           }
@@ -1898,7 +1898,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                       )
                     : const Icon(Icons.check),
                 label: Text(isSaving ? 'Guardando...' : 'Registrar Pago'),
-                style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
               ),
             ],
           );
@@ -1951,21 +1951,21 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
   Color _getPaymentMethodColor(String? method) {
     switch (method) {
       case 'cash':
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case 'card':
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case 'transfer':
-        return Colors.indigo;
+        return const Color(0xFF3F51B5);
       case 'credit':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case 'check':
-        return Colors.brown;
+        return const Color(0xFF795548);
       case 'yape':
-        return Colors.purple;
+        return const Color(0xFF7B1FA2);
       case 'plin':
-        return Colors.teal;
+        return const Color(0xFF009688);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 
@@ -2008,18 +2008,18 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
           margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.green[50],
+            color: const Color(0xFFE8F5E9),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.green[200]!),
+            border: Border.all(color: const Color(0xFFA5D6A7)),
           ),
           child: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green[700], size: 20),
+              Icon(Icons.check_circle, color: const Color(0xFF388E3C), size: 20),
               const SizedBox(width: 10),
               Text(
                 'Total Pagado:',
                 style: TextStyle(
-                  color: Colors.green[800],
+                  color: const Color(0xFF2E7D32),
                   fontWeight: FontWeight.w500,
                   fontSize: 13,
                 ),
@@ -2028,7 +2028,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
               Text(
                 Formatters.currency(totalPagado),
                 style: TextStyle(
-                  color: Colors.green[800],
+                  color: const Color(0xFF2E7D32),
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                 ),
@@ -2061,10 +2061,10 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey[200]!),
+                  border: Border.all(color: const Color(0xFFEEEEEE)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: const Color(0xFF000000).withOpacity(0.03),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
                     ),
@@ -2116,14 +2116,14 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                                     Icon(
                                       Icons.receipt,
                                       size: 13,
-                                      color: Colors.grey[400],
+                                      color: const Color(0xFFBDBDBD),
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
                                       invoiceNumber,
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey[600],
+                                        color: const Color(0xFF757575),
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -2135,7 +2135,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                                     Formatters.date(paymentDate),
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: Colors.grey[500],
+                                      color: const Color(0xFF9E9E9E),
                                     ),
                                   ),
                               ],
@@ -2146,7 +2146,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: Colors.green[700],
+                              color: const Color(0xFF388E3C),
                             ),
                           ),
                         ],
@@ -2156,14 +2156,14 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.tag, size: 14, color: Colors.grey[400]),
+                            Icon(Icons.tag, size: 14, color: const Color(0xFFBDBDBD)),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
                                 'Ref: $reference',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[600],
+                                  color: const Color(0xFF757575),
                                 ),
                               ),
                             ),
@@ -2178,7 +2178,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                             Icon(
                               Icons.notes,
                               size: 14,
-                              color: Colors.grey[400],
+                              color: const Color(0xFFBDBDBD),
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -2186,7 +2186,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                                 notes,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[600],
+                                  color: const Color(0xFF757575),
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -2240,15 +2240,15 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
           leading: CircleAvatar(
             radius: 20,
             backgroundColor: isApproved
-                ? Colors.green[50]
-                : (isRejected ? Colors.red[50] : Colors.blue[50]),
+                ? const Color(0xFFE8F5E9)
+                : (isRejected ? const Color(0xFFFFEBEE) : const Color(0xFFE3F2FD)),
             child: Icon(
               isApproved
                   ? Icons.check_circle
                   : (isRejected ? Icons.cancel : Icons.description),
               color: isApproved
-                  ? Colors.green
-                  : (isRejected ? Colors.red : Colors.blue),
+                  ? const Color(0xFF2E7D32)
+                  : (isRejected ? const Color(0xFFC62828) : const Color(0xFF1565C0)),
               size: 20,
             ),
           ),
@@ -2264,8 +2264,8 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: isApproved
-                      ? Colors.green
-                      : (isRejected ? Colors.red : Colors.blue),
+                      ? const Color(0xFF2E7D32)
+                      : (isRejected ? const Color(0xFFC62828) : const Color(0xFF1565C0)),
                 ),
               ),
             ],
@@ -2274,15 +2274,15 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
             children: [
               Text(
                 Formatters.date(q.date),
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
               ),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: isApproved
-                      ? Colors.green[100]
-                      : (isRejected ? Colors.red[100] : Colors.blue[100]),
+                      ? const Color(0xFFC8E6C9)
+                      : (isRejected ? const Color(0xFFFFCDD2) : const Color(0xFFBBDEFB)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -2291,8 +2291,8 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     color: isApproved
-                        ? Colors.green[700]
-                        : (isRejected ? Colors.red[700] : Colors.blue[700]),
+                        ? const Color(0xFF388E3C)
+                        : (isRejected ? const Color(0xFFD32F2F) : const Color(0xFF1976D2)),
                   ),
                 ),
               ),

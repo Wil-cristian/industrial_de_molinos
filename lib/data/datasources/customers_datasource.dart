@@ -1,4 +1,4 @@
-﻿import '../../core/utils/logger.dart';
+import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/customer.dart';
 import 'supabase_datasource.dart';
@@ -54,19 +54,19 @@ class CustomersDataSource {
       data.remove('created_at');
       data.remove('updated_at');
 
-      AppLogger.debug('📝 Intentando crear cliente: ${customer.name}');
-      AppLogger.debug('📝 Datos a insertar: $data');
+      AppLogger.debug('?? Intentando crear cliente: ${customer.name}');
+      AppLogger.debug('?? Datos a insertar: $data');
 
       final response = await _client
           .from(_table)
           .insert(data)
           .select()
           .single();
-      AppLogger.success('✅ Cliente creado exitosamente: ${response['id']}');
+      AppLogger.success('? Cliente creado exitosamente: ${response['id']}');
       return _fromJson(response);
     } catch (e, stackTrace) {
-      AppLogger.error('❌ Error creando cliente: $e');
-      AppLogger.debug('📋 Stack trace: $stackTrace');
+      AppLogger.error('? Error creando cliente: $e');
+      AppLogger.debug('?? Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -88,7 +88,7 @@ class CustomersDataSource {
     return _fromJson(response);
   }
 
-  /// Eliminar cliente (hard delete — borra permanentemente con todas sus relaciones)
+  /// Eliminar cliente (hard delete � borra permanentemente con todas sus relaciones)
   static Future<void> delete(String id) async {
     await _client.from(_table).delete().eq('id', id);
   }
@@ -100,12 +100,12 @@ class CustomersDataSource {
 
   /// Actualizar balance del cliente
   static Future<void> updateBalance(String id, double newBalance) async {
-    AppLogger.debug('💾 Actualizando balance de cliente $id a: $newBalance');
+    AppLogger.debug('?? Actualizando balance de cliente $id a: $newBalance');
     await _client
         .from(_table)
         .update({'current_balance': newBalance})
         .eq('id', id);
-    AppLogger.success('✅ Balance actualizado en BD');
+    AppLogger.success('? Balance actualizado en BD');
   }
 
   /// Obtener deuda calculada desde facturas (sin actualizar BD)
@@ -131,7 +131,7 @@ class CustomersDataSource {
 
       return totalPending;
     } catch (e) {
-      AppLogger.error('❌ Error calculando deuda: $e');
+      AppLogger.error('? Error calculando deuda: $e');
       return 0.0;
     }
   }
@@ -147,7 +147,7 @@ class CustomersDataSource {
 
       double totalPending = 0.0;
       AppLogger.debug(
-        '📋 Facturas encontradas para cliente $customerId: ${response.length}',
+        '?? Facturas encontradas para cliente $customerId: ${response.length}',
       );
 
       // Estados que NO generan deuda
@@ -162,25 +162,25 @@ class CustomersDataSource {
           ' - Status: "$status", Total: $total, Pagado: $paidAmount',
         );
 
-        // Si el status NO está en la lista de "sin deuda", sumar la deuda pendiente
+        // Si el status NO est� en la lista de "sin deuda", sumar la deuda pendiente
         if (!noDebtStatuses.contains(status)) {
           final pending = total - paidAmount;
           totalPending += pending;
-          AppLogger.debug('   → Pendiente: $pending (sumado)');
+          AppLogger.debug('   ? Pendiente: $pending (sumado)');
         } else {
-          AppLogger.debug('   → Ignorado (status sin deuda)');
+          AppLogger.debug('   ? Ignorado (status sin deuda)');
         }
       }
 
       // Actualizar el balance en la base de datos
       await updateBalance(customerId, totalPending);
       AppLogger.success(
-        '✅ Balance TOTAL recalculado para cliente $customerId: $totalPending',
+        '? Balance TOTAL recalculado para cliente $customerId: $totalPending',
       );
 
       return totalPending;
     } catch (e) {
-      AppLogger.error('❌ Error recalculando balance: $e');
+      AppLogger.error('? Error recalculando balance: $e');
       rethrow;
     }
   }
@@ -190,16 +190,16 @@ class CustomersDataSource {
     try {
       final customers = await getAll();
       AppLogger.debug(
-        '🔄 Recalculando balances de ${customers.length} clientes...',
+        '?? Recalculando balances de ${customers.length} clientes...',
       );
 
       for (final customer in customers) {
         await recalculateBalance(customer.id);
       }
 
-      AppLogger.success('✅ Todos los balances han sido recalculados');
+      AppLogger.success('? Todos los balances han sido recalculados');
     } catch (e) {
-      AppLogger.error('❌ Error recalculando todos los balances: $e');
+      AppLogger.error('? Error recalculando todos los balances: $e');
       rethrow;
     }
   }
@@ -215,7 +215,7 @@ class CustomersDataSource {
     return response.map<Customer>((json) => _fromJson(json)).toList();
   }
 
-  // Helpers de conversión
+  // Helpers de conversi�n
 
   // Mapeo de tipos de documento antiguos a nuevos (Colombia)
   static DocumentType _mapDocumentType(String? dbValue) {
@@ -265,7 +265,7 @@ class CustomersDataSource {
   }
 
   static Map<String, dynamic> _toJson(Customer customer) {
-    // Normalizar document_type para enviar solo valores válidos de BD
+    // Normalizar document_type para enviar solo valores v�lidos de BD
     final normalizedDocType = customer.documentType.normalized.name;
 
     return {

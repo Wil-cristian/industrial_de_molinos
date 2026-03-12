@@ -1,4 +1,4 @@
-﻿import '../../core/utils/logger.dart';
+import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/employee.dart';
 
@@ -8,7 +8,7 @@ class EmployeesDatasource {
   /// Obtener todos los empleados
   static Future<List<Employee>> getEmployees({bool activeOnly = true}) async {
     try {
-      AppLogger.debug('🔄 Cargando empleados desde Supabase...');
+      AppLogger.debug('?? Cargando empleados desde Supabase...');
       var query = _client.from('employees').select();
 
       if (activeOnly) {
@@ -21,10 +21,10 @@ class EmployeesDatasource {
           .map((json) => Employee.fromJson(json))
           .toList();
 
-      AppLogger.success('✅ Empleados cargados: ${employees.length}');
+      AppLogger.success('? Empleados cargados: ${employees.length}');
       return employees;
     } catch (e) {
-      AppLogger.error('❌ Error cargando empleados: $e');
+      AppLogger.error('? Error cargando empleados: $e');
       return [];
     }
   }
@@ -40,7 +40,7 @@ class EmployeesDatasource {
 
       return Employee.fromJson(response);
     } catch (e) {
-      AppLogger.error('❌ Error obteniendo empleado: $e');
+      AppLogger.error('? Error obteniendo empleado: $e');
       return null;
     }
   }
@@ -48,17 +48,17 @@ class EmployeesDatasource {
   /// Crear empleado
   static Future<Employee?> createEmployee(Employee employee) async {
     try {
-      AppLogger.debug('🔄 Creando empleado: ${employee.fullName}');
+      AppLogger.debug('?? Creando empleado: ${employee.fullName}');
       final response = await _client
           .from('employees')
           .insert(employee.toJson())
           .select()
           .single();
 
-      AppLogger.success('✅ Empleado creado exitosamente');
+      AppLogger.success('? Empleado creado exitosamente');
       return Employee.fromJson(response);
     } catch (e) {
-      AppLogger.error('❌ Error creando empleado: $e');
+      AppLogger.error('? Error creando empleado: $e');
       return null;
     }
   }
@@ -71,10 +71,10 @@ class EmployeesDatasource {
           .update(employee.toJson())
           .eq('id', employee.id);
 
-      AppLogger.success('✅ Empleado actualizado: ${employee.fullName}');
+      AppLogger.success('? Empleado actualizado: ${employee.fullName}');
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error actualizando empleado: $e');
+      AppLogger.error('? Error actualizando empleado: $e');
       return false;
     }
   }
@@ -83,10 +83,10 @@ class EmployeesDatasource {
   static Future<bool> deleteEmployee(String id) async {
     try {
       await _client.from('employees').delete().eq('id', id);
-      AppLogger.success('✅ Empleado eliminado');
+      AppLogger.success('? Empleado eliminado');
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error eliminando empleado: $e');
+      AppLogger.error('? Error eliminando empleado: $e');
       return false;
     }
   }
@@ -108,7 +108,7 @@ class EmployeesDatasource {
           .map((json) => EmployeeTask.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('❌ Error cargando tareas: $e');
+      AppLogger.error('? Error cargando tareas: $e');
       return [];
     }
   }
@@ -127,7 +127,7 @@ class EmployeesDatasource {
           .map((json) => EmployeeTask.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('❌ Error cargando tareas por fecha: $e');
+      AppLogger.error('? Error cargando tareas por fecha: $e');
       return [];
     }
   }
@@ -145,7 +145,7 @@ class EmployeesDatasource {
           .map((json) => EmployeeTask.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('❌ Error cargando tareas pendientes: $e');
+      AppLogger.error('? Error cargando tareas pendientes: $e');
       return [];
     }
   }
@@ -153,17 +153,17 @@ class EmployeesDatasource {
   /// Crear tarea
   static Future<EmployeeTask?> createTask(EmployeeTask task) async {
     try {
-      AppLogger.debug('🔄 Creando tarea: ${task.title}');
+      AppLogger.debug('?? Creando tarea: ${task.title}');
       final response = await _client
           .from('employee_tasks')
           .insert(task.toJson())
           .select('*, employees(first_name, last_name)')
           .single();
 
-      AppLogger.success('✅ Tarea creada exitosamente');
+      AppLogger.success('? Tarea creada exitosamente');
       return EmployeeTask.fromJson(response);
     } catch (e) {
-      AppLogger.error('❌ Error creando tarea: $e');
+      AppLogger.error('? Error creando tarea: $e');
       return null;
     }
   }
@@ -176,10 +176,10 @@ class EmployeesDatasource {
           .update(task.toJson())
           .eq('id', task.id);
 
-      AppLogger.success('✅ Tarea actualizada');
+      AppLogger.success('? Tarea actualizada');
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error actualizando tarea: $e');
+      AppLogger.error('? Error actualizando tarea: $e');
       return false;
     }
   }
@@ -195,10 +195,10 @@ class EmployeesDatasource {
           })
           .eq('id', taskId);
 
-      AppLogger.success('✅ Tarea completada');
+      AppLogger.success('? Tarea completada');
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error completando tarea: $e');
+      AppLogger.error('? Error completando tarea: $e');
       return false;
     }
   }
@@ -207,10 +207,10 @@ class EmployeesDatasource {
   static Future<bool> deleteTask(String taskId) async {
     try {
       await _client.from('employee_tasks').delete().eq('id', taskId);
-      AppLogger.success('✅ Tarea eliminada');
+      AppLogger.success('? Tarea eliminada');
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error eliminando tarea: $e');
+      AppLogger.error('? Error eliminando tarea: $e');
       return false;
     }
   }
@@ -251,12 +251,12 @@ class EmployeesDatasource {
           .map((json) => EmployeeTimeEntry.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('❌ Error cargando registros de tiempo: $e');
+      AppLogger.error('? Error cargando registros de tiempo: $e');
       return [];
     }
   }
 
-  /// Obtener resúmenes semanales de tiempo del empleado
+  /// Obtener res�menes semanales de tiempo del empleado
   static Future<List<EmployeeTimeSummary>> getTimeSummaries({
     required String employeeId,
     int limit = 4,
@@ -273,7 +273,7 @@ class EmployeesDatasource {
           .map((json) => EmployeeTimeSummary.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('❌ Error cargando resúmenes de tiempo: $e');
+      AppLogger.error('? Error cargando res�menes de tiempo: $e');
       return [];
     }
   }
@@ -302,13 +302,13 @@ class EmployeesDatasource {
           .map((json) => EmployeeTimeAdjustment.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('❌ Error cargando ajustes de tiempo: $e');
+      AppLogger.error('? Error cargando ajustes de tiempo: $e');
       return [];
     }
   }
 
   /// Obtener ajustes de tiempo de TODOS los empleados en un rango de fechas.
-  /// Útil para el calendario de quincena.
+  /// �til para el calendario de quincena.
   static Future<List<EmployeeTimeAdjustment>> getAllAdjustmentsInRange({
     required DateTime startDate,
     required DateTime endDate,
@@ -325,7 +325,7 @@ class EmployeesDatasource {
           .map((json) => EmployeeTimeAdjustment.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('❌ Error cargando ajustes de rango: $e');
+      AppLogger.error('? Error cargando ajustes de rango: $e');
       return [];
     }
   }
@@ -361,20 +361,20 @@ class EmployeesDatasource {
 
       return EmployeeTimeAdjustment.fromJson(response);
     } catch (e) {
-      AppLogger.error('❌ Error creando ajuste de tiempo: $e');
+      AppLogger.error('? Error creando ajuste de tiempo: $e');
       return null;
     }
   }
 
-  /// Eliminar todos los ajustes de tiempo de un empleado en una fecha específica.
-  /// Retorna la cantidad de registros eliminados (0 si no había).
+  /// Eliminar todos los ajustes de tiempo de un empleado en una fecha espec�fica.
+  /// Retorna la cantidad de registros eliminados (0 si no hab�a).
   static Future<int> deleteTimeAdjustmentsForDate({
     required String employeeId,
     required DateTime date,
   }) async {
     try {
       final dateStr = date.toIso8601String().split('T')[0];
-      // Primero obtener IDs para saber cuántos son
+      // Primero obtener IDs para saber cu�ntos son
       final existing = await _client
           .from('employee_time_adjustments')
           .select('id')
@@ -391,7 +391,7 @@ class EmployeesDatasource {
 
       return existing.length;
     } catch (e) {
-      AppLogger.error('❌ Error eliminando ajustes de tiempo: $e');
+      AppLogger.error('? Error eliminando ajustes de tiempo: $e');
       return 0;
     }
   }
@@ -421,7 +421,7 @@ class EmployeesDatasource {
         return EmployeeTimeEntry.fromJson(response);
       }
     } catch (e) {
-      AppLogger.error('❌ Error registrando jornada: $e');
+      AppLogger.error('? Error registrando jornada: $e');
       return null;
     }
   }
@@ -452,7 +452,7 @@ class EmployeesDatasource {
           .map((json) => EmployeeTaskTimeLog.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('❌ Error cargando tiempos de tareas: $e');
+      AppLogger.error('? Error cargando tiempos de tareas: $e');
       return [];
     }
   }
@@ -464,7 +464,7 @@ class EmployeesDatasource {
     required DateTime checkIn,
   }) async {
     try {
-      AppLogger.debug('🔄 Registrando entrada para empleado: $employeeId');
+      AppLogger.debug('?? Registrando entrada para empleado: $employeeId');
       final response = await _client
           .from('employee_time_entries')
           .insert({
@@ -477,10 +477,10 @@ class EmployeesDatasource {
           .select()
           .single();
 
-      AppLogger.success('✅ Entrada registrada exitosamente');
+      AppLogger.success('? Entrada registrada exitosamente');
       return EmployeeTimeEntry.fromJson(response);
     } catch (e) {
-      AppLogger.error('❌ Error registrando entrada: $e');
+      AppLogger.error('? Error registrando entrada: $e');
       return null;
     }
   }
@@ -492,7 +492,7 @@ class EmployeesDatasource {
     double? hoursWorked,
   }) async {
     try {
-      AppLogger.debug('🔄 Registrando salida para entrada: $entryId');
+      AppLogger.debug('?? Registrando salida para entrada: $entryId');
       final updates = <String, dynamic>{};
 
       if (checkOut != null) {
@@ -508,10 +508,10 @@ class EmployeesDatasource {
           .update(updates)
           .eq('id', entryId);
 
-      AppLogger.success('✅ Salida registrada exitosamente');
+      AppLogger.success('? Salida registrada exitosamente');
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error registrando salida: $e');
+      AppLogger.error('? Error registrando salida: $e');
       return false;
     }
   }
@@ -535,7 +535,7 @@ class EmployeesDatasource {
           .map((json) => EmployeeTimeSheet.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('❌ Error cargando timesheets: $e');
+      AppLogger.error('? Error cargando timesheets: $e');
       return [];
     }
   }
@@ -550,10 +550,10 @@ class EmployeesDatasource {
             'locked_at': DateTime.now().toIso8601String(),
           })
           .eq('id', timesheetId);
-      AppLogger.success('✅ Timesheet cerrado exitosamente');
+      AppLogger.success('? Timesheet cerrado exitosamente');
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error cerrando timesheet: $e');
+      AppLogger.error('? Error cerrando timesheet: $e');
       return false;
     }
   }
@@ -572,10 +572,10 @@ class EmployeesDatasource {
             'approved_at': DateTime.now().toIso8601String(),
           })
           .eq('id', timesheetId);
-      AppLogger.success('✅ Timesheet aprobado exitosamente');
+      AppLogger.success('? Timesheet aprobado exitosamente');
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error aprobando timesheet: $e');
+      AppLogger.error('? Error aprobando timesheet: $e');
       return false;
     }
   }
@@ -592,10 +592,10 @@ class EmployeesDatasource {
             'approved_at': null,
           })
           .eq('id', timesheetId);
-      AppLogger.success('✅ Timesheet reabierto exitosamente');
+      AppLogger.success('? Timesheet reabierto exitosamente');
       return true;
     } catch (e) {
-      AppLogger.error('❌ Error reabriendo timesheet: $e');
+      AppLogger.error('? Error reabriendo timesheet: $e');
       return false;
     }
   }

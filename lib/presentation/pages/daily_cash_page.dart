@@ -145,7 +145,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                                 .textTheme
                                                 .bodySmall
                                                 ?.copyWith(
-                                                  color: Colors.grey[600],
+                                                  color: const Color(0xFF757575),
                                                 ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -231,9 +231,9 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                       icon: const Icon(Icons.history, size: 18),
                                       label: const Text('Ver Historial'),
                                       style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.grey[700],
+                                        foregroundColor: const Color(0xFF616161),
                                         side: BorderSide(
-                                          color: Colors.grey[300]!,
+                                          color: const Color(0xFFE0E0E0),
                                         ),
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 12,
@@ -266,7 +266,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                       ),
                                       label: const Text('Traslado'),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.orange,
+                                        backgroundColor: const Color(0xFFF9A825),
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 16,
@@ -427,7 +427,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(4),
           color: Colors.white,
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: const Color(0xFFEEEEEE)),
         ),
         padding: const EdgeInsets.all(4),
         child: Column(
@@ -457,7 +457,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                       Text(
                         account.name,
                         style: TextStyle(
-                          color: Colors.grey[800],
+                          color: const Color(0xFF424242),
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -466,13 +466,13 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                       const SizedBox(height: 2),
                       Text(
                         account.typeLabel,
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                        style: TextStyle(color: const Color(0xFF9E9E9E), fontSize: 12),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.more_vert, color: Colors.grey[400]),
+                  icon: Icon(Icons.more_vert, color: const Color(0xFFBDBDBD)),
                   onPressed: () => _showAccountOptions(context, account),
                 ),
               ],
@@ -489,7 +489,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             const SizedBox(height: 1),
             Text(
               'Saldo actual',
-              style: TextStyle(color: Colors.grey[500], fontSize: 10),
+              style: TextStyle(color: const Color(0xFF9E9E9E), fontSize: 10),
             ),
             const Divider(height: 4),
             Row(
@@ -498,12 +498,12 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 _buildMiniStat(
                   'Ingresos hoy',
                   Formatters.currency(incomeToday),
-                  Colors.green,
+                  const Color(0xFF2E7D32),
                 ),
                 _buildMiniStat(
                   'Gastos hoy',
                   Formatters.currency(expenseToday),
-                  Colors.red,
+                  const Color(0xFFC62828),
                 ),
               ],
             ),
@@ -525,7 +525,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
           ),
         ),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+        Text(label, style: TextStyle(color: const Color(0xFF9E9E9E), fontSize: 11)),
       ],
     );
   }
@@ -598,11 +598,11 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 return Row(
                   children: [
                     Expanded(child: items[0]),
-                    Container(width: 1, height: 60, color: Colors.grey[300]),
+                    Container(width: 1, height: 60, color: const Color(0xFFE0E0E0)),
                     Expanded(child: items[1]),
-                    Container(width: 1, height: 60, color: Colors.grey[300]),
+                    Container(width: 1, height: 60, color: const Color(0xFFE0E0E0)),
                     Expanded(child: items[2]),
-                    Container(width: 1, height: 60, color: Colors.grey[300]),
+                    Container(width: 1, height: 60, color: const Color(0xFFE0E0E0)),
                     Expanded(child: items[3]),
                   ],
                 );
@@ -654,7 +654,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+          Text(label, style: TextStyle(color: const Color(0xFF757575), fontSize: 12)),
         ],
       ),
     );
@@ -758,7 +758,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     ),
                     Text(
                       '${(percentage * 100).toStringAsFixed(0)}%',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
                     ),
                   ],
                 ),
@@ -768,7 +768,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     Container(
                       height: 20,
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
+                        color: const Color(0xFFEEEEEE),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -812,7 +812,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     Container(
                       height: 20,
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
+                        color: const Color(0xFFEEEEEE),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -847,7 +847,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 child: Text(
                   '${(percentage * 100).toStringAsFixed(0)}%',
                   textAlign: TextAlign.right,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
                 ),
               ),
             ],
@@ -925,11 +925,11 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                   padding: EdgeInsets.all(40),
                   child: Column(
                     children: [
-                      Icon(Icons.inbox, size: 64, color: Colors.grey),
+                      Icon(Icons.inbox, size: 64, color: const Color(0xFF9E9E9E)),
                       SizedBox(height: 16),
                       Text(
                         'No hay movimientos para esta fecha',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: const Color(0xFF9E9E9E)),
                       ),
                     ],
                   ),
@@ -959,7 +959,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     IconData icon;
 
     if (isTransfer) {
-      iconColor = Colors.orange;
+      iconColor = const Color(0xFFF9A825);
       icon = isTransferIn ? Icons.arrow_downward : Icons.arrow_upward;
     } else if (isIncome) {
       iconColor = AppColors.success;
@@ -973,9 +973,9 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: const Color(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -1004,12 +1004,12 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               if (account != null)
                 Text(
                   account.name,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
                 ),
               if (movement.personName != null)
                 Text(
                   '• ${movement.personName}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
                 ),
             ],
           );
@@ -1023,7 +1023,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                   color: isTransfer
-                      ? Colors.orange
+                      ? const Color(0xFFF9A825)
                       : (isIncome
                             ? AppColors.success
                             : AppColors.danger),
@@ -1031,7 +1031,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               ),
               Text(
                 Formatters.time(movement.createdAt),
-                style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                style: TextStyle(color: const Color(0xFF9E9E9E), fontSize: 11),
               ),
               if (movement.attachments.isNotEmpty)
                 Padding(
@@ -1042,12 +1042,12 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                       Icon(
                         Icons.attach_file,
                         size: 12,
-                        color: Colors.blue[400],
+                        color: const Color(0xFF42A5F5),
                       ),
                       const SizedBox(width: 2),
                       Text(
                         '${movement.attachments.length}',
-                        style: TextStyle(color: Colors.blue[400], fontSize: 11),
+                        style: TextStyle(color: const Color(0xFF42A5F5), fontSize: 11),
                       ),
                     ],
                   ),
@@ -1056,7 +1056,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
           );
 
           final menu = PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: Colors.grey[400]),
+            icon: Icon(Icons.more_vert, color: const Color(0xFFBDBDBD)),
             onSelected: (value) {
               if (value == 'detail') {
                 _showMovementDetail(context, movement, state);
@@ -1069,7 +1069,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 value: 'detail',
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                    Icon(Icons.info_outline, color: const Color(0xFF1565C0), size: 20),
                     SizedBox(width: 8),
                     Text('Ver Detalle'),
                   ],
@@ -1079,7 +1079,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete, color: Colors.red, size: 20),
+                    Icon(Icons.delete, color: const Color(0xFFC62828), size: 20),
                     SizedBox(width: 8),
                     Text('Eliminar'),
                   ],
@@ -1344,12 +1344,12 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                               Icon(
                                 Icons.inbox,
                                 size: 64,
-                                color: Colors.grey[400],
+                                color: const Color(0xFFBDBDBD),
                               ),
                               const SizedBox(height: 16),
                               Text(
                                 'No hay movimientos en este rango',
-                                style: TextStyle(color: Colors.grey[600]),
+                                style: TextStyle(color: const Color(0xFF757575)),
                               ),
                             ],
                           ),
@@ -1360,7 +1360,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.1),
+                                color: const Color(0xFF1565C0).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -1373,7 +1373,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                         'Total Movimientos',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.grey,
+                                          color: const Color(0xFF9E9E9E),
                                         ),
                                       ),
                                       Text(
@@ -1391,7 +1391,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                         'Total Ingresos',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.grey,
+                                          color: const Color(0xFF9E9E9E),
                                         ),
                                       ),
                                       Text(
@@ -1399,7 +1399,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.green,
+                                          color: const Color(0xFF2E7D32),
                                         ),
                                       ),
                                     ],
@@ -1410,7 +1410,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                         'Total Gastos',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.grey,
+                                          color: const Color(0xFF9E9E9E),
                                         ),
                                       ),
                                       Text(
@@ -1418,7 +1418,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.red,
+                                          color: const Color(0xFFC62828),
                                         ),
                                       ),
                                     ],
@@ -1445,8 +1445,8 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                   final isIncome =
                                       movement.type == MovementType.income;
                                   final color = isIncome
-                                      ? Colors.green
-                                      : Colors.red;
+                                      ? const Color(0xFF2E7D32)
+                                      : const Color(0xFFC62828);
 
                                   return ListTile(
                                     dense: true,
@@ -1472,14 +1472,14 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                           accountName,
                                           style: TextStyle(
                                             fontSize: 11,
-                                            color: Colors.grey[600],
+                                            color: const Color(0xFF757575),
                                           ),
                                         ),
                                         Text(
                                           Formatters.dateTime(movement.date),
                                           style: TextStyle(
                                             fontSize: 10,
-                                            color: Colors.grey[500],
+                                            color: const Color(0xFF9E9E9E),
                                           ),
                                         ),
                                       ],
@@ -1573,19 +1573,19 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                   scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text('Error al eliminar: $error'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: const Color(0xFFC62828),
                     ),
                   );
                 } else {
                   scaffoldMessenger.showSnackBar(
                     const SnackBar(
                       content: Text('Movimiento eliminado correctamente'),
-                      backgroundColor: Colors.green,
+                      backgroundColor: const Color(0xFF2E7D32),
                     ),
                   );
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
               child: const Text(
                 'Eliminar',
                 style: TextStyle(color: Colors.white),
@@ -1606,7 +1606,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     final isIncome = movement.isIncome;
     final isTransfer = movement.type == MovementType.transfer;
     final color = isTransfer
-        ? Colors.orange
+        ? const Color(0xFFF9A825)
         : (isIncome ? AppColors.success : AppColors.danger);
 
     showDialog(
@@ -1718,7 +1718,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                         Icon(
                           Icons.attach_file,
                           size: 18,
-                          color: Colors.blue[600],
+                          color: const Color(0xFF1E88E5),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -1726,7 +1726,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: Colors.blue[700],
+                            color: const Color(0xFF1976D2),
                           ),
                         ),
                       ],
@@ -1739,7 +1739,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: const Color(0xFFE0E0E0)),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -1756,7 +1756,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => Container(
                                     height: 80,
-                                    color: Colors.grey[200],
+                                    color: const Color(0xFFEEEEEE),
                                     child: const Center(
                                       child: Icon(Icons.broken_image, size: 32),
                                     ),
@@ -1772,10 +1772,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                           ? Icons.picture_as_pdf
                                           : Icons.insert_drive_file),
                                 color: attachment.isImage
-                                    ? Colors.blue
+                                    ? const Color(0xFF1565C0)
                                     : (attachment.isPdf
-                                          ? Colors.red
-                                          : Colors.grey[600]),
+                                          ? const Color(0xFFC62828)
+                                          : const Color(0xFF757575)),
                                 size: 20,
                               ),
                               title: Text(
@@ -1787,7 +1787,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                 _formatFileSize(attachment.size),
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.grey[500],
+                                  color: const Color(0xFF9E9E9E),
                                 ),
                               ),
                             ),
@@ -1801,7 +1801,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: const Color(0xFFF5F5F5),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -1810,13 +1810,13 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                           Icon(
                             Icons.info_outline,
                             size: 16,
-                            color: Colors.grey[400],
+                            color: const Color(0xFFBDBDBD),
                           ),
                           const SizedBox(width: 6),
                           Text(
                             'Sin archivos adjuntos',
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: const Color(0xFF9E9E9E),
                               fontSize: 12,
                             ),
                           ),
@@ -1844,13 +1844,13 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey[500]),
+          Icon(icon, size: 18, color: const Color(0xFF9E9E9E)),
           const SizedBox(width: 10),
           SizedBox(
             width: 90,
             child: Text(
               label,
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              style: TextStyle(color: const Color(0xFF757575), fontSize: 13),
             ),
           ),
           Expanded(
@@ -1977,7 +1977,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                     ? 'Ya existe una categoría con ese nombre'
                     : 'Error al crear categoría',
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: const Color(0xFFC62828),
             ),
           );
         }
@@ -2126,7 +2126,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                                   Icon(
                                     Icons.label_outline,
                                     size: 16,
-                                    color: Colors.grey[600],
+                                    color: const Color(0xFF757575),
                                   ),
                                   const SizedBox(width: 6),
                                   Text(name),
@@ -2325,7 +2325,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -2335,14 +2335,14 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                         children: [
                           Icon(
                             Icons.attach_file,
-                            color: Colors.grey[600],
+                            color: const Color(0xFF757575),
                             size: 20,
                           ),
                           const SizedBox(width: 8),
                           Text(
                             'Archivos adjuntos',
                             style: TextStyle(
-                              color: Colors.grey[700],
+                              color: const Color(0xFF616161),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -2379,17 +2379,17 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                               ),
                               decoration: BoxDecoration(
                                 color: isImage
-                                    ? Colors.blue[50]
+                                    ? const Color(0xFFE3F2FD)
                                     : (isPdf
-                                          ? Colors.red[50]
-                                          : Colors.grey[100]),
+                                          ? const Color(0xFFFFEBEE)
+                                          : const Color(0xFFF5F5F5)),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: isImage
-                                      ? Colors.blue[200]!
+                                      ? const Color(0xFF90CAF9)
                                       : (isPdf
-                                            ? Colors.red[200]!
-                                            : Colors.grey[300]!),
+                                            ? const Color(0xFFEF9A9A)
+                                            : const Color(0xFFE0E0E0)),
                                 ),
                               ),
                               child: Row(
@@ -2403,10 +2403,10 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                                               : Icons.insert_drive_file),
                                     size: 16,
                                     color: isImage
-                                        ? Colors.blue
+                                        ? const Color(0xFF1565C0)
                                         : (isPdf
-                                              ? Colors.red
-                                              : Colors.grey[600]),
+                                              ? const Color(0xFFC62828)
+                                              : const Color(0xFF757575)),
                                   ),
                                   const SizedBox(width: 6),
                                   ConstrainedBox(
@@ -2429,7 +2429,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                                     child: Icon(
                                       Icons.close,
                                       size: 16,
-                                      color: Colors.grey[600],
+                                      color: const Color(0xFF757575),
                                     ),
                                   ),
                                 ],
@@ -2443,7 +2443,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                           child: Text(
                             'Sin archivos adjuntos',
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: const Color(0xFF9E9E9E),
                               fontSize: 12,
                             ),
                           ),
@@ -2455,7 +2455,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                   const SizedBox(height: 16),
                   Text(
                     _errorMessage!,
-                    style: const TextStyle(color: Colors.red),
+                    style: const TextStyle(color: const Color(0xFFC62828)),
                   ),
                 ],
               ],
@@ -2577,7 +2577,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                   const SizedBox(height: 8),
                   Text(
                     'Podrás completar los datos adicionales después.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
                   ),
                 ],
               ),
@@ -2717,7 +2717,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                   content: Text(
                     'Movimiento guardado, pero error al subir archivos: $uploadError',
                   ),
-                  backgroundColor: Colors.orange,
+                  backgroundColor: const Color(0xFFF9A825),
                   duration: const Duration(seconds: 5),
                 ),
               );
@@ -2779,7 +2779,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
     return AlertDialog(
       title: const Row(
         children: [
-          Icon(Icons.swap_horiz, color: Colors.orange),
+          Icon(Icons.swap_horiz, color: const Color(0xFFF9A825)),
           SizedBox(width: 8),
           Text('Traslado entre Cuentas'),
         ],
@@ -2798,7 +2798,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
                   decoration: const InputDecoration(
                     labelText: 'De (Cuenta Origen)',
                     border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.output, color: Colors.red),
+                    prefixIcon: Icon(Icons.output, color: const Color(0xFFC62828)),
                     isDense: true,
                   ),
                   isExpanded: true,
@@ -2824,7 +2824,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
                 // Icono de flecha
                 const Icon(
                   Icons.arrow_downward,
-                  color: Colors.orange,
+                  color: const Color(0xFFF9A825),
                   size: 28,
                 ),
                 const SizedBox(height: 16),
@@ -2835,7 +2835,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
                   decoration: const InputDecoration(
                     labelText: 'Hacia (Cuenta Destino)',
                     border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.input, color: Colors.green),
+                    prefixIcon: Icon(Icons.input, color: const Color(0xFF2E7D32)),
                     isDense: true,
                   ),
                   isExpanded: true,
@@ -2923,7 +2923,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
         ),
         ElevatedButton(
           onPressed: _transfer,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF9A825)),
           child: const Text('Trasladar', style: TextStyle(color: Colors.white)),
         ),
       ],
@@ -2946,7 +2946,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
             content: Text(
               'Saldo insuficiente. Disponible: \$${fromAccount.balance.toStringAsFixed(0)} en ${fromAccount.name}',
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: const Color(0xFFC62828),
           ),
         );
         return;
@@ -2965,7 +2965,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Traslado realizado exitosamente'),
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF9A825),
         ),
       );
     }
@@ -2996,7 +2996,7 @@ class _NavItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.white.withOpacity(0.1)
+              ? const Color(0xFFFFFFFF).withOpacity(0.1)
               : Colors.transparent,
           border: isSelected
               ? const Border(left: BorderSide(color: Colors.white, width: 3))

@@ -87,17 +87,17 @@ class Asset {
   Color get categoryColor {
     switch (category) {
       case 'maquinaria':
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case 'herramientas':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case 'equipos':
-        return Colors.purple;
+        return const Color(0xFF7B1FA2);
       case 'vehiculos':
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case 'mobiliario':
-        return Colors.brown;
+        return const Color(0xFF795548);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 
@@ -119,15 +119,15 @@ class Asset {
   Color get statusColor {
     switch (status) {
       case 'activo':
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case 'mantenimiento':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case 'baja':
-        return Colors.red;
+        return const Color(0xFFC62828);
       case 'vendido':
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 
@@ -291,13 +291,13 @@ class AssetMaintenance {
   Color get typeColor {
     switch (maintenanceType) {
       case 'preventivo':
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case 'correctivo':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case 'emergencia':
-        return Colors.red;
+        return const Color(0xFFC62828);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 

@@ -74,7 +74,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.error_outline,
-                          size: 64, color: Colors.red[300]),
+                          size: 64, color: const Color(0xFFE57373)),
                       const SizedBox(height: 16),
                       Text('Error: ${state.error}'),
                       const SizedBox(height: 16),
@@ -180,7 +180,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                   'Total Compras',
                   metrics.totalPurchases.toString(),
                   Icons.shopping_cart,
-                  Colors.blue,
+                  const Color(0xFF1565C0),
                 ),
               ),
               const SizedBox(width: 8),
@@ -189,7 +189,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                   'Total Gastado',
                   _currencyFormat.format(metrics.totalSpent),
                   Icons.attach_money,
-                  Colors.green,
+                  const Color(0xFF2E7D32),
                 ),
               ),
             ],
@@ -202,7 +202,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                   'Ticket Promedio',
                   _currencyFormat.format(metrics.averageTicket),
                   Icons.receipt,
-                  Colors.orange,
+                  const Color(0xFFF9A825),
                 ),
               ),
               const SizedBox(width: 8),
@@ -211,7 +211,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                   'Deuda Actual',
                   _currencyFormat.format(metrics.debt),
                   Icons.account_balance_wallet,
-                  metrics.debt > 0 ? Colors.red : Colors.grey,
+                  metrics.debt > 0 ? const Color(0xFFC62828) : const Color(0xFF9E9E9E),
                 ),
               ),
             ],
@@ -224,7 +224,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Card(
-              color: Colors.indigo[50],
+              color: const Color(0xFFE8EAF6),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -266,11 +266,11 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                     value: metrics.creditLimit > 0
                         ? (metrics.debt / metrics.creditLimit).clamp(0, 1)
                         : 0,
-                    backgroundColor: Colors.grey[200],
+                    backgroundColor: const Color(0xFFEEEEEE),
                     valueColor: AlwaysStoppedAnimation<Color>(
                       metrics.debt / metrics.creditLimit > 0.8
-                          ? Colors.red
-                          : Colors.green,
+                          ? const Color(0xFFC62828)
+                          : const Color(0xFF2E7D32),
                     ),
                   ),
                 ],
@@ -293,7 +293,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+            Icon(Icons.receipt_long, size: 64, color: const Color(0xFF9E9E9E)),
             SizedBox(height: 16),
             Text('No hay compras registradas'),
           ],
@@ -328,7 +328,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                 Text(
                   _currencyFormat.format(firstItem.invoiceTotal ?? 0),
                   style: TextStyle(
-                    color: Colors.green[700],
+                    color: const Color(0xFF388E3C),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -371,7 +371,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inventory_2, size: 64, color: Colors.grey),
+            Icon(Icons.inventory_2, size: 64, color: const Color(0xFF9E9E9E)),
             SizedBox(height: 16),
             Text('No hay productos comprados'),
           ],
@@ -388,11 +388,11 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.blue[100],
+              backgroundColor: const Color(0xFFBBDEFB),
               child: Text(
                 '${index + 1}',
                 style: TextStyle(
-                  color: Colors.blue[800],
+                  color: const Color(0xFF1565C0),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -408,20 +408,20 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                   Text('Código: ${product.productCode}'),
                 Text(
                   'Comprado ${product.purchaseCount} veces',
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(color: const Color(0xFF757575)),
                 ),
                 Row(
                   children: [
-                    Icon(Icons.date_range, size: 14, color: Colors.grey[600]),
+                    Icon(Icons.date_range, size: 14, color: const Color(0xFF757575)),
                     const SizedBox(width: 4),
                     Text(
                       'Primera: ${product.firstPurchase != null ? _dateFormat.format(product.firstPurchase!) : '-'}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Última: ${product.lastPurchase != null ? _dateFormat.format(product.lastPurchase!) : '-'}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
                     ),
                   ],
                 ),
@@ -435,12 +435,12 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                   _currencyFormat.format(product.totalSpent),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.green[700],
+                    color: const Color(0xFF388E3C),
                   ),
                 ),
                 Text(
                   'Qty: ${product.totalQuantity.toStringAsFixed(1)}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
                 ),
               ],
             ),
@@ -474,7 +474,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
             ),
             Text(
               title,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
               textAlign: TextAlign.center,
             ),
           ],
@@ -489,7 +489,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(label, style: TextStyle(color: const Color(0xFF757575))),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
         ],
       ),
@@ -504,12 +504,12 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Colors.indigo,
+            color: const Color(0xFF3F51B5),
           ),
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 11, color: const Color(0xFF757575)),
           textAlign: TextAlign.center,
         ),
       ],
@@ -524,26 +524,26 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
       case 'activo':
       case 'issued':
       case 'paid':
-        color = Colors.green;
+        color = const Color(0xFF2E7D32);
         label = status;
         break;
       case 'regular':
       case 'pending':
-        color = Colors.orange;
+        color = const Color(0xFFF9A825);
         label = status;
         break;
       case 'inactivo':
       case 'cancelled':
-        color = Colors.red;
+        color = const Color(0xFFC62828);
         label = status;
         break;
       case 'nuevo':
       case 'draft':
-        color = Colors.blue;
+        color = const Color(0xFF1565C0);
         label = status;
         break;
       default:
-        color = Colors.grey;
+        color = const Color(0xFF9E9E9E);
         label = status;
     }
 
@@ -561,15 +561,15 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
   Color _getStatusColor(String? status) {
     switch (status?.toLowerCase()) {
       case 'paid':
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case 'issued':
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case 'pending':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case 'cancelled':
-        return Colors.red;
+        return const Color(0xFFC62828);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 }

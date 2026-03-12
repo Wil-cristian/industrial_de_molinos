@@ -48,7 +48,7 @@ class ReceiptPreviewClient extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: const Color(0xFF000000).withOpacity(0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -91,7 +91,7 @@ class ReceiptPreviewClient extends StatelessWidget {
       height: 100,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blue.shade50, Colors.indigo.shade50],
+          colors: [Colors.blue.shade50, const Color(0xFFE8EAF6)],
         ),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -185,7 +185,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: const Color(0xFF000000).withOpacity(0.1),
                         blurRadius: 8,
                       ),
                     ],
@@ -249,8 +249,8 @@ class ReceiptPreviewClient extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 24),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: Colors.grey[100]!),
-          bottom: BorderSide(color: Colors.grey[100]!),
+          top: BorderSide(color: const Color(0xFFF5F5F5)),
+          bottom: BorderSide(color: const Color(0xFFF5F5F5)),
         ),
       ),
       child: Row(
@@ -288,7 +288,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -344,7 +344,7 @@ class ReceiptPreviewClient extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: const Color(0xFFFAFAFA),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               border: Border(bottom: BorderSide(color: _kOutlineVariant)),
             ),
@@ -399,7 +399,7 @@ class ReceiptPreviewClient extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+        border: Border(bottom: BorderSide(color: const Color(0xFFF5F5F5))),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,7 +434,7 @@ class ReceiptPreviewClient extends StatelessWidget {
               '${item.quantity}',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
+                color: const Color(0xFF616161),
               ),
               textAlign: TextAlign.right,
             ),
@@ -511,7 +511,7 @@ class ReceiptPreviewClient extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+        border: Border(bottom: BorderSide(color: const Color(0xFFF5F5F5))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -585,17 +585,17 @@ class ReceiptPreviewClient extends StatelessWidget {
   Color _getStatusColor(InvoiceStatus status) {
     switch (status) {
       case InvoiceStatus.paid:
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case InvoiceStatus.issued:
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case InvoiceStatus.partial:
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case InvoiceStatus.overdue:
-        return Colors.red;
+        return const Color(0xFFC62828);
       case InvoiceStatus.cancelled:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 
@@ -643,7 +643,7 @@ class _GridPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.grey.withOpacity(0.1)
+      ..color = const Color(0xFF9E9E9E).withOpacity(0.1)
       ..strokeWidth = 1;
 
     const spacing = 20.0;
@@ -786,7 +786,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
         style: TextStyle(
           fontSize: 13,
           fontWeight: active ? FontWeight.bold : FontWeight.w500,
-          color: active ? const Color(0xFF111418) : Colors.grey[500],
+          color: active ? const Color(0xFF111418) : const Color(0xFF9E9E9E),
           decoration: active ? TextDecoration.underline : null,
           decorationColor: _kPrimary,
           decorationThickness: 2,
@@ -804,7 +804,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: const Color(0xFFE3F2FD),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -877,14 +877,14 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: primary ? Colors.white : Colors.grey[700]),
+          Icon(icon, size: 18, color: primary ? Colors.white : const Color(0xFF616161)),
           const SizedBox(width: 8),
           Text(
             label,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 13,
-              color: primary ? Colors.white : Colors.grey[700],
+              color: primary ? Colors.white : const Color(0xFF616161),
             ),
           ),
         ],
@@ -895,11 +895,11 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
   Widget _buildStatsCards(double materials, double operational, double profit, double margin) {
     return Row(
       children: [
-        Expanded(child: _buildStatCard('INGRESOS TOTALES', invoice.total, Icons.payments, null, 'Precio Fijo Pactado', Colors.teal, false)),
+        Expanded(child: _buildStatCard('INGRESOS TOTALES', invoice.total, Icons.payments, null, 'Precio Fijo Pactado', const Color(0xFF009688), false)),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('COSTO MATERIALES (BOM)', materials, Icons.inventory_2, '+2.3% sobre presupuesto', null, Colors.red, false)),
+        Expanded(child: _buildStatCard('COSTO MATERIALES (BOM)', materials, Icons.inventory_2, '+2.3% sobre presupuesto', null, const Color(0xFFC62828), false)),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('COSTOS OPERATIVOS', operational, Icons.engineering, '-5% optimización', null, Colors.teal, false)),
+        Expanded(child: _buildStatCard('COSTOS OPERATIVOS', operational, Icons.engineering, '-5% optimización', null, const Color(0xFF009688), false)),
         const SizedBox(width: 16),
         Expanded(child: _buildStatCard('GANANCIA NETA', profit, Icons.account_balance_wallet, 'Margen: ${margin.toStringAsFixed(1)}%', null, _kPrimary, true)),
       ],
@@ -910,12 +910,12 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: highlight ? Colors.blue[50] : Colors.white,
+        color: highlight ? const Color(0xFFE3F2FD) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: highlight ? Colors.blue[100]! : Colors.grey[200]!),
+        border: Border.all(color: highlight ? Colors.blue[100]! : const Color(0xFFEEEEEE)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: const Color(0xFF000000).withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -926,7 +926,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: highlight ? _kPrimary : Colors.grey[500]),
+              Icon(icon, size: 18, color: highlight ? _kPrimary : const Color(0xFF9E9E9E)),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -934,7 +934,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: highlight ? _kPrimary : Colors.grey[500],
+                    color: highlight ? _kPrimary : const Color(0xFF9E9E9E),
                     letterSpacing: 0.5,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -967,7 +967,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               ],
             ),
           if (subtitle != null)
-            Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.teal[600])),
+            Text(subtitle, style: TextStyle(fontSize: 12, color: const Color(0xFF00897B))),
         ],
       ),
     );
@@ -999,7 +999,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             border: Border.all(color: _kOutlineVariant),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: const Color(0xFF000000).withOpacity(0.03),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -1011,7 +1011,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: const Color(0xFFFAFAFA),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                   border: Border(bottom: BorderSide(color: _kOutlineVariant)),
                 ),
@@ -1038,7 +1038,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: const Color(0xFFFAFAFA),
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
                   border: Border(top: BorderSide(color: _kOutlineVariant)),
                 ),
@@ -1097,7 +1097,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+        border: Border(bottom: BorderSide(color: const Color(0xFFF5F5F5))),
       ),
       child: Row(
         children: [
@@ -1187,15 +1187,15 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
   Color _getCategoryColor(String category) {
     switch (category.toLowerCase()) {
       case 'material':
-        return Colors.grey[700]!;
+        return const Color(0xFF616161);
       case 'componente':
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case 'electrónica':
-        return Colors.purple;
+        return const Color(0xFF7B1FA2);
       case 'pieza':
-        return Colors.grey[600]!;
+        return const Color(0xFF757575);
       default:
-        return Colors.grey[600]!;
+        return const Color(0xFF757575);
     }
   }
 
@@ -1238,7 +1238,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: const Color(0xFFFAFAFA),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 ),
                 child: Row(
@@ -1253,7 +1253,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               // Rows
               ...labor.map((l) => Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey[100]!))),
+                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: const Color(0xFFF5F5F5)))),
                     child: Row(
                       children: [
                         Expanded(child: Text(l['role'] as String, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
@@ -1297,12 +1297,12 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildOverheadCard(Icons.bolt, 'Energía Eléctrica', Colors.amber, [
+            Expanded(child: _buildOverheadCard(Icons.bolt, 'Energía Eléctrica', const Color(0xFFF9A825), [
               {'label': 'Consumo (kWh)', 'value': '1,250 kWh'},
               {'label': 'Costo por kWh', 'value': '\$0.22'},
             ], energyTotal > 0 ? energyTotal : 275.0, 'Editar Tarifa')),
             const SizedBox(width: 12),
-            Expanded(child: _buildOverheadCard(Icons.local_shipping, 'Logística', Colors.indigo, [
+            Expanded(child: _buildOverheadCard(Icons.local_shipping, 'Logística', const Color(0xFF3F51B5), [
               {'label': 'Flete de Entrada', 'value': '\$450.00'},
               {'label': 'Envío al Cliente', 'value': '\$1,200.00'},
             ], logisticsTotal > 0 ? logisticsTotal : 1650.0, 'Detalles Envío')),
@@ -1322,7 +1322,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(Icons.factory, color: _kOnSurfaceVariant),
@@ -1414,22 +1414,22 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.amber[50],
+        color: const Color(0xFFFFF8E1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber[200]!),
+        border: Border.all(color: const Color(0xFFFFE082)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.note, color: Colors.amber[700]),
+          Icon(Icons.note, color: const Color(0xFFFFA000)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('NOTAS:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber[800], fontSize: 12)),
+                Text('NOTAS:', style: TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFFFF8F00), fontSize: 12)),
                 const SizedBox(height: 4),
-                Text(notes!, style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+                Text(notes!, style: TextStyle(fontSize: 13, color: const Color(0xFF616161))),
               ],
             ),
           ),

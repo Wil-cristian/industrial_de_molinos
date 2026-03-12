@@ -210,7 +210,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
           width: 110,
           child: Text(
             label,
-            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+            style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
           ),
         ),
         // Wheel picker
@@ -219,7 +219,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
           height: 60,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
@@ -258,7 +258,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                           style: TextStyle(
                             fontSize: isSelected ? 14 : 11,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey[500],
+                            color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFF9E9E9E),
                           ),
                         ),
                       );
@@ -301,7 +301,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
           width: 110,
           child: Text(
             label,
-            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+            style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
           ),
         ),
         SizedBox(
@@ -474,7 +474,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                   width: 110,
                   child: Text(
                     'Cantidad',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                    style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
                   ),
                 ),
                 SizedBox(
@@ -506,13 +506,13 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: _calculatedWeight > 0 
-                    ? Colors.green.withOpacity(0.1) 
-                    : Colors.grey.withOpacity(0.1),
+                    ? const Color(0xFF2E7D32).withOpacity(0.1) 
+                    : const Color(0xFF9E9E9E).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: _calculatedWeight > 0 
-                      ? Colors.green.withOpacity(0.3) 
-                      : Colors.grey.withOpacity(0.3),
+                      ? const Color(0xFF2E7D32).withOpacity(0.3) 
+                      : const Color(0xFF9E9E9E).withOpacity(0.3),
                 ),
               ),
               child: Row(
@@ -527,7 +527,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: _calculatedWeight > 0 ? Colors.green[700] : Colors.grey,
+                          color: _calculatedWeight > 0 ? const Color(0xFF388E3C) : const Color(0xFF9E9E9E),
                         ),
                       ),
                     ],
@@ -541,7 +541,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: _calculatedWeight > 0 ? Colors.green[700] : Colors.grey,
+                          color: _calculatedWeight > 0 ? const Color(0xFF388E3C) : const Color(0xFF9E9E9E),
                         ),
                       ),
                     ],

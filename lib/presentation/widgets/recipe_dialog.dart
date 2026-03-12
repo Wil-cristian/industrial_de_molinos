@@ -148,7 +148,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                     flex: 5,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
+                        color: const Color(0xFFFAFAFA),
                         border: Border(
                           right: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                         ),
@@ -262,21 +262,21 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                   'lamina',
                   'Lámina',
                   Icons.crop_square,
-                  Colors.blue,
+                  const Color(0xFF1565C0),
                 ),
                 const SizedBox(width: 6),
                 _buildCompactTypeChip(
                   'tubo',
                   'Tubo',
                   Icons.circle_outlined,
-                  Colors.green,
+                  const Color(0xFF2E7D32),
                 ),
                 const SizedBox(width: 6),
                 _buildCompactTypeChip(
                   'eje',
                   'Eje',
                   Icons.horizontal_rule,
-                  Colors.orange,
+                  const Color(0xFFF9A825),
                 ),
               ],
             ),
@@ -311,10 +311,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey[100],
+          color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey[300]!,
+            color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFFE0E0E0),
           ),
         ),
         child: Row(
@@ -322,7 +322,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
             Icon(
               icon,
               size: 18,
-              color: isSelected ? Colors.white : Colors.grey[600],
+              color: isSelected ? Colors.white : const Color(0xFF757575),
             ),
             const SizedBox(width: 6),
             Expanded(
@@ -334,14 +334,14 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
-                      color: isSelected ? Colors.white : Colors.grey[800],
+                      color: isSelected ? Colors.white : const Color(0xFF424242),
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 9,
-                      color: isSelected ? Colors.white70 : Colors.grey[500],
+                      color: isSelected ? const Color(0xB3FFFFFF) : const Color(0xFF9E9E9E),
                     ),
                   ),
                 ],
@@ -375,7 +375,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
         decoration: BoxDecoration(
           color: isSelected ? color : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? color : Colors.grey[300]!),
+          border: Border.all(color: isSelected ? color : const Color(0xFFE0E0E0)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -387,7 +387,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : Colors.grey[700],
+                color: isSelected ? Colors.white : const Color(0xFF616161),
               ),
             ),
           ],
@@ -413,7 +413,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
@@ -426,7 +426,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           ),
           isExpanded: true,
           isDense: true,
-          style: const TextStyle(fontSize: 12, color: Colors.black87),
+          style: const TextStyle(fontSize: 12, color: const Color(0xDD000000)),
           items: materials.map((m) {
             return DropdownMenuItem(
               value: m,
@@ -520,7 +520,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: const Color(0xFFF5F5F5),
                   ),
                   style: const TextStyle(fontSize: 11),
                   onChanged: (v) => setState(() => _searchQuery = v),
@@ -578,7 +578,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                           border: Border.all(
                             color: isSelected
                                 ? Theme.of(context).colorScheme.primary
-                                : Colors.grey[200]!,
+                                : const Color(0xFFEEEEEE),
                             width: isSelected ? 2 : 1,
                           ),
                         ),
@@ -609,7 +609,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                                       fontSize: 12,
                                       color: isSelected
                                           ? Theme.of(context).colorScheme.primary
-                                          : Colors.grey[800],
+                                          : const Color(0xFF424242),
                                     ),
                                   ),
                                   Text(
@@ -630,7 +630,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                                 fontSize: 11,
                                 color: isSelected
                                     ? Theme.of(context).colorScheme.primary
-                                    : Colors.grey[700],
+                                    : const Color(0xFF616161),
                               ),
                             ),
                             if (isSelected) ...[
@@ -654,7 +654,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: const Color(0xFFF5F5F5),
               border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
             ),
             child: Column(
@@ -748,7 +748,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: Colors.green,
+                        color: const Color(0xFF2E7D32),
                       ),
                     ),
                   ],
@@ -890,9 +890,9 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
+              color: const Color(0xFF2E7D32).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green.withOpacity(0.3)),
+              border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.3)),
             ),
             child: Column(
               children: [
@@ -911,7 +911,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.green,
+                            color: const Color(0xFF2E7D32),
                           ),
                         ),
                       ],
@@ -930,7 +930,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.green,
+                            color: const Color(0xFF2E7D32),
                           ),
                         ),
                       ],
@@ -944,12 +944,12 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                     Icon(
                       Icons.content_cut,
                       size: 14,
-                      color: Colors.orange[700],
+                      color: const Color(0xFFF57C00),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       'Pérdida:',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                      style: TextStyle(fontSize: 11, color: const Color(0xFF616161)),
                     ),
                     const SizedBox(width: 6),
                     // Campo de porcentaje
@@ -970,12 +970,12 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           filled: true,
-                          fillColor: Colors.orange.withOpacity(0.1),
+                          fillColor: const Color(0xFFF9A825).withOpacity(0.1),
                         ),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.orange[800],
+                          color: const Color(0xFFEF6C00),
                         ),
                         textAlign: TextAlign.center,
                         keyboardType: TextInputType.number,
@@ -994,7 +994,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.15),
+                          color: const Color(0xFFF9A825).withOpacity(0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -1004,7 +1004,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                               'Con pérdida:',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.orange[800],
+                                color: const Color(0xFFEF6C00),
                               ),
                             ),
                             Text(
@@ -1012,7 +1012,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.orange[800],
+                                color: const Color(0xFFEF6C00),
                               ),
                             ),
                           ],
@@ -1120,7 +1120,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           width: 80,
           child: Text(
             label,
-            style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+            style: TextStyle(fontSize: 11, color: const Color(0xFF616161)),
           ),
         ),
         // Wheel picker cuadrado
@@ -1129,7 +1129,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           height: 55,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
@@ -1172,7 +1172,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                                 : FontWeight.normal,
                             color: isSelected
                                 ? Theme.of(context).colorScheme.primary
-                                : Colors.grey[500],
+                                : const Color(0xFF9E9E9E),
                           ),
                         ),
                       );
@@ -1390,7 +1390,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
         return Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: const Color(0xFFFAFAFA),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
@@ -1446,7 +1446,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                 icon: Icon(
                   Icons.delete_outline,
                   size: 18,
-                  color: Colors.red[400],
+                  color: const Color(0xFFEF5350),
                 ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -1461,12 +1461,12 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
   Widget _buildCompactCostSummary() {
     // Calcular margen real
     final margin = _grandTotal > 0 ? ((_totalSalePrice - _grandTotal) / _grandTotal * 100) : 0.0;
-    final marginColor = margin > 30 ? Colors.green : margin > 15 ? Colors.orange : Colors.red;
+    final marginColor = margin > 30 ? const Color(0xFF2E7D32) : margin > 15 ? const Color(0xFFF9A825) : const Color(0xFFC62828);
     
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: const Color(0xFFF5F5F5),
         border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
       ),
       child: Column(
@@ -1474,7 +1474,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           // Mano de obra
           Row(
             children: [
-              Icon(Icons.engineering, size: 16, color: Colors.orange[700]),
+              Icon(Icons.engineering, size: 16, color: const Color(0xFFF57C00)),
               const SizedBox(width: 6),
               const Text('Mano de Obra:', style: TextStyle(fontSize: 11)),
               const SizedBox(width: 8),
@@ -1516,7 +1516,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.shopping_cart, size: 14, color: Colors.orange[700]),
+                        Icon(Icons.shopping_cart, size: 14, color: const Color(0xFFF57C00)),
                         const SizedBox(width: 4),
                         Text(
                           'Costo:',
@@ -1529,7 +1529,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: Colors.orange[800],
+                        color: const Color(0xFFEF6C00),
                       ),
                     ),
                   ],
@@ -1543,7 +1543,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.sell, size: 14, color: Colors.green[700]),
+                        Icon(Icons.sell, size: 14, color: const Color(0xFF388E3C)),
                         const SizedBox(width: 4),
                         Text(
                           'Venta:',
@@ -1556,7 +1556,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: Colors.green[700],
+                        color: const Color(0xFF388E3C),
                       ),
                     ),
                   ],
@@ -1620,7 +1620,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: const Color(0xFFF5F5F5),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
       ),
       child: Row(
@@ -1936,15 +1936,15 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
     switch (category.toLowerCase()) {
       case 'lamina':
       case 'lámina':
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case 'tubo':
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case 'eje':
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case 'rodamiento':
-        return Colors.purple;
+        return const Color(0xFF7B1FA2);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 }

@@ -54,7 +54,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
     final debtState = ref.watch(debtManagementProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFFAFAFA),
       body: Column(
         children: [
           // Header compacto con tabs en línea
@@ -64,7 +64,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: const Color(0xFF000000).withValues(alpha: 0.05),
                   blurRadius: 2,
                   offset: const Offset(0, 1),
                 ),
@@ -111,7 +111,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         style: TextStyle(color: Colors.white, fontSize: 12),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red[700],
+                        backgroundColor: const Color(0xFFD32F2F),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
@@ -202,7 +202,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         builder: (ctx, setDialogState) => AlertDialog(
           title: Row(
             children: [
-              Icon(Icons.picture_as_pdf, color: Colors.red[700]),
+              Icon(Icons.picture_as_pdf, color: const Color(0xFFD32F2F)),
               const SizedBox(width: 8),
               const Text('Informe Mensual de Rentabilidad'),
             ],
@@ -215,7 +215,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               children: [
                 const Text(
                   'Selecciona el período del informe:',
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  style: TextStyle(fontSize: 13, color: const Color(0xFF9E9E9E)),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -273,9 +273,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
+                    color: const Color(0xFFE3F2FD),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue[200]!),
+                    border: Border.all(color: const Color(0xFF90CAF9)),
                   ),
                   child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,7 +333,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 'Generar PDF',
                 style: TextStyle(color: Colors.white),
               ),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
             ),
           ],
         ),
@@ -503,7 +503,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         'Ingresos Totales',
                         Helpers.formatCurrency(totalRevenue),
                         Icons.trending_up,
-                        Colors.blue,
+                        const Color(0xFF1565C0),
                         subtitle: 'Últimos 12 meses',
                         change: revenueChange,
                       ),
@@ -514,7 +514,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         'Utilidad Neta',
                         Helpers.formatCurrency(totalProfit),
                         Icons.account_balance_wallet,
-                        totalProfit >= 0 ? Colors.green : Colors.red,
+                        totalProfit >= 0 ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
                         subtitle: 'Últimos 12 meses',
                         change: profitChange,
                       ),
@@ -525,7 +525,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         'Clientes Activos',
                         '$activeClients / $totalClients',
                         Icons.people,
-                        Colors.purple,
+                        const Color(0xFF7B1FA2),
                         subtitle: totalClients > 0
                             ? '${(activeClients / totalClients * 100).toStringAsFixed(0)}% del total'
                             : 'Sin clientes',
@@ -537,7 +537,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         'Por Cobrar',
                         Helpers.formatCurrency(totalReceivables),
                         Icons.receipt_long,
-                        Colors.orange,
+                        const Color(0xFFF9A825),
                         subtitle: overdueAmount > 0
                             ? '${Helpers.formatCurrency(overdueAmount)} vencido'
                             : 'Todo al día',
@@ -552,7 +552,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           state.healthSnapshot?.avgInvoiceValue ?? 0,
                         ),
                         Icons.receipt,
-                        Colors.teal,
+                        const Color(0xFF009688),
                         subtitle:
                             '${state.healthSnapshot?.totalInvoices ?? 0} facturas',
                       ),
@@ -568,7 +568,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       'Ingresos Totales',
                       Helpers.formatCurrency(totalRevenue),
                       Icons.trending_up,
-                      Colors.blue,
+                      const Color(0xFF1565C0),
                       subtitle: 'Últimos 12 meses',
                       change: revenueChange,
                     ),
@@ -579,7 +579,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       'Utilidad Neta',
                       Helpers.formatCurrency(totalProfit),
                       Icons.account_balance_wallet,
-                      totalProfit >= 0 ? Colors.green : Colors.red,
+                      totalProfit >= 0 ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
                       subtitle: 'Últimos 12 meses',
                       change: profitChange,
                     ),
@@ -590,7 +590,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       'Clientes Activos',
                       '$activeClients / $totalClients',
                       Icons.people,
-                      Colors.purple,
+                      const Color(0xFF7B1FA2),
                       subtitle: totalClients > 0
                           ? '${(activeClients / totalClients * 100).toStringAsFixed(0)}% del total'
                           : 'Sin clientes',
@@ -602,7 +602,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       'Por Cobrar',
                       Helpers.formatCurrency(totalReceivables),
                       Icons.receipt_long,
-                      Colors.orange,
+                      const Color(0xFFF9A825),
                       subtitle: overdueAmount > 0
                           ? '${Helpers.formatCurrency(overdueAmount)} vencido'
                           : 'Todo al día',
@@ -617,7 +617,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         state.healthSnapshot?.avgInvoiceValue ?? 0,
                       ),
                       Icons.receipt,
-                      Colors.teal,
+                      const Color(0xFF009688),
                       subtitle:
                           '${state.healthSnapshot?.totalInvoices ?? 0} facturas',
                     ),
@@ -779,7 +779,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -791,7 +791,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             children: [
               Icon(
                 Icons.calendar_today,
-                color: isGood ? Colors.green : Colors.orange,
+                color: isGood ? const Color(0xFF2E7D32) : const Color(0xFFF9A825),
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -816,7 +816,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: isGood ? Colors.green[700] : Colors.orange[700],
+              color: isGood ? const Color(0xFF388E3C) : const Color(0xFFF57C00),
             ),
           ),
           const SizedBox(height: 4),
@@ -825,7 +825,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               Icon(
                 isGood ? Icons.check_circle : Icons.warning,
                 size: 14,
-                color: isGood ? Colors.green : Colors.orange,
+                color: isGood ? const Color(0xFF2E7D32) : const Color(0xFFF9A825),
               ),
               const SizedBox(width: 4),
               Text(
@@ -846,8 +846,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               backgroundColor: Theme.of(context).colorScheme.outlineVariant,
               valueColor: AlwaysStoppedAnimation(
                 dso <= 30
-                    ? Colors.green
-                    : (dso <= 45 ? Colors.orange : Colors.red),
+                    ? const Color(0xFF2E7D32)
+                    : (dso <= 45 ? const Color(0xFFF9A825) : const Color(0xFFC62828)),
               ),
             ),
           ),
@@ -862,10 +862,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
     final cei = kpis?.cei ?? 0;
 
     Color getColor() {
-      if (cei >= 90) return Colors.green;
-      if (cei >= 80) return Colors.blue;
-      if (cei >= 70) return Colors.orange;
-      return Colors.red;
+      if (cei >= 90) return const Color(0xFF2E7D32);
+      if (cei >= 80) return const Color(0xFF1565C0);
+      if (cei >= 70) return const Color(0xFFF9A825);
+      return const Color(0xFFC62828);
     }
 
     String getStatus() {
@@ -883,7 +883,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -952,10 +952,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   borderRadius: BorderRadius.circular(4),
                   gradient: LinearGradient(
                     colors: [
-                      Colors.red,
-                      Colors.orange,
-                      Colors.blue,
-                      Colors.green,
+                      const Color(0xFFC62828),
+                      const Color(0xFFF9A825),
+                      const Color(0xFF1565C0),
+                      const Color(0xFF2E7D32),
                     ],
                   ),
                 ),
@@ -968,7 +968,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   height: 12,
                   transform: Matrix4.translationValues(0, -2, 0),
                   decoration: BoxDecoration(
-                    color: Colors.black,
+                    color: const Color(0xFF000000),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1017,7 +1017,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -1035,7 +1035,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               Container(
                 width: 20,
                 height: 3,
-                color: Colors.red.withValues(alpha: 0.5),
+                color: const Color(0xFFC62828).withValues(alpha: 0.5),
               ),
               const SizedBox(width: 4),
               Text(
@@ -1114,7 +1114,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         horizontalLines: [
                           HorizontalLine(
                             y: 30,
-                            color: Colors.red.withValues(alpha: 0.5),
+                            color: const Color(0xFFC62828).withValues(alpha: 0.5),
                             strokeWidth: 2,
                             dashArray: [5, 5],
                           ),
@@ -1128,7 +1128,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               .map((e) => FlSpot(e.key.toDouble(), e.value.dso))
                               .toList(),
                           isCurved: true,
-                          color: Colors.blue,
+                          color: const Color(0xFF1565C0),
                           barWidth: 3,
                           isStrokeCapRound: true,
                           dotData: FlDotData(
@@ -1138,8 +1138,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               return FlDotCirclePainter(
                                 radius: 3,
                                 color: dso <= 30
-                                    ? Colors.green
-                                    : (dso <= 45 ? Colors.orange : Colors.red),
+                                    ? const Color(0xFF2E7D32)
+                                    : (dso <= 45 ? const Color(0xFFF9A825) : const Color(0xFFC62828)),
                                 strokeWidth: 1,
                                 strokeColor: Colors.white,
                               );
@@ -1147,7 +1147,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           ),
                           belowBarData: BarAreaData(
                             show: true,
-                            color: Colors.blue.withValues(alpha: 0.1),
+                            color: const Color(0xFF1565C0).withValues(alpha: 0.1),
                           ),
                         ),
                       ],
@@ -1172,7 +1172,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -1189,13 +1189,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 'Análisis ABC (Pareto 80/20)',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
-              _buildABCLegend('A', Colors.green, '80% valor'),
-              _buildABCLegend('B', Colors.orange, '15% valor'),
-              _buildABCLegend('C', Colors.red, '5% valor'),
+              _buildABCLegend('A', const Color(0xFF2E7D32), '80% valor'),
+              _buildABCLegend('B', const Color(0xFFF9A825), '15% valor'),
+              _buildABCLegend('C', const Color(0xFFC62828), '5% valor'),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 20, height: 2, color: Colors.purple),
+                  Container(width: 20, height: 2, color: const Color(0xFF7B1FA2)),
                   const SizedBox(width: 4),
                   Text(
                     '% Acum.',
@@ -1215,7 +1215,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         Icon(
                           Icons.bar_chart,
                           size: 48,
-                          color: Colors.grey[300],
+                          color: const Color(0xFFE0E0E0),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -1248,13 +1248,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 Color barColor;
                                 switch (product.abcCategory) {
                                   case 'A':
-                                    barColor = Colors.green;
+                                    barColor = const Color(0xFF2E7D32);
                                     break;
                                   case 'B':
-                                    barColor = Colors.orange;
+                                    barColor = const Color(0xFFF9A825);
                                     break;
                                   default:
-                                    barColor = Colors.red;
+                                    barColor = const Color(0xFFC62828);
                                 }
                                 return BarChartGroupData(
                                   x: entry.key,
@@ -1304,7 +1304,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                         '${pct.toStringAsFixed(0)}%',
                                         style: TextStyle(
                                           fontSize: 9,
-                                          color: Colors.purple[400],
+                                          color: const Color(0xFFAB47BC),
                                         ),
                                       );
                                     },
@@ -1384,19 +1384,19 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   'A',
                   abcData.where((p) => p.abcCategory == 'A').length,
                   abcData.length,
-                  Colors.green,
+                  const Color(0xFF2E7D32),
                 ),
                 _buildABCSummary(
                   'B',
                   abcData.where((p) => p.abcCategory == 'B').length,
                   abcData.length,
-                  Colors.orange,
+                  const Color(0xFFF9A825),
                 ),
                 _buildABCSummary(
                   'C',
                   abcData.where((p) => p.abcCategory == 'C').length,
                   abcData.length,
-                  Colors.red,
+                  const Color(0xFFC62828),
                 ),
               ],
             ),
@@ -1483,7 +1483,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6),
+          BoxShadow(color: const Color(0xFF000000).withValues(alpha: 0.05), blurRadius: 6),
         ],
       ),
       child: Column(
@@ -1509,8 +1509,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   ),
                   decoration: BoxDecoration(
                     color: change >= 0
-                        ? Colors.green.withValues(alpha: 0.1)
-                        : Colors.red.withValues(alpha: 0.1),
+                        ? const Color(0xFF2E7D32).withValues(alpha: 0.1)
+                        : const Color(0xFFC62828).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
@@ -1519,7 +1519,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       Icon(
                         change >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
                         size: 10,
-                        color: change >= 0 ? Colors.green : Colors.red,
+                        color: change >= 0 ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
                       ),
                       const SizedBox(width: 2),
                       Text(
@@ -1527,7 +1527,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: change >= 0 ? Colors.green : Colors.red,
+                          color: change >= 0 ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
                         ),
                       ),
                     ],
@@ -1543,7 +1543,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: isWarning ? Colors.orange[700] : Colors.grey[800],
+              color: isWarning ? const Color(0xFFF57C00) : const Color(0xFF424242),
             ),
           ),
           if (subtitle != null) ...[
@@ -1552,7 +1552,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               subtitle,
               style: TextStyle(
                 fontSize: 11,
-                color: isWarning ? Colors.orange : Colors.grey[500],
+                color: isWarning ? const Color(0xFFF9A825) : const Color(0xFF9E9E9E),
               ),
             ),
           ],
@@ -1585,7 +1585,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -1602,9 +1602,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 'Tendencia de Ingresos vs Gastos',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
-              _buildLegendDot('Ingresos', Colors.blue),
-              _buildLegendDot('Gastos', Colors.red),
-              _buildLegendDot('Utilidad', Colors.green),
+              _buildLegendDot('Ingresos', const Color(0xFF1565C0)),
+              _buildLegendDot('Gastos', const Color(0xFFC62828)),
+              _buildLegendDot('Utilidad', const Color(0xFF2E7D32)),
             ],
           ),
           const SizedBox(height: 16),
@@ -1617,7 +1617,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         Icon(
                           Icons.show_chart,
                           size: 48,
-                          color: Colors.grey[300],
+                          color: const Color(0xFFE0E0E0),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -1711,13 +1711,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               )
                               .toList(),
                           isCurved: true,
-                          color: Colors.blue,
+                          color: const Color(0xFF1565C0),
                           barWidth: 3,
                           isStrokeCapRound: true,
                           dotData: const FlDotData(show: false),
                           belowBarData: BarAreaData(
                             show: true,
-                            color: Colors.blue.withValues(alpha: 0.1),
+                            color: const Color(0xFF1565C0).withValues(alpha: 0.1),
                           ),
                         ),
                         // Gastos
@@ -1733,13 +1733,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               )
                               .toList(),
                           isCurved: true,
-                          color: Colors.red,
+                          color: const Color(0xFFC62828),
                           barWidth: 3,
                           isStrokeCapRound: true,
                           dotData: const FlDotData(show: false),
                           belowBarData: BarAreaData(
                             show: true,
-                            color: Colors.red.withValues(alpha: 0.1),
+                            color: const Color(0xFFC62828).withValues(alpha: 0.1),
                           ),
                         ),
                         // Utilidad
@@ -1757,7 +1757,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               )
                               .toList(),
                           isCurved: true,
-                          color: Colors.green,
+                          color: const Color(0xFF2E7D32),
                           barWidth: 2,
                           isStrokeCapRound: true,
                           dotData: const FlDotData(show: false),
@@ -1811,7 +1811,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -1833,7 +1833,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         Icon(
                           Icons.pie_chart_outline,
                           size: 48,
-                          color: Colors.grey[300],
+                          color: const Color(0xFFE0E0E0),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -1854,7 +1854,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             PieChartSectionData(
                               value: active.toDouble(),
                               title: '$active',
-                              color: Colors.green,
+                              color: const Color(0xFF2E7D32),
                               radius: 45,
                               titleStyle: const TextStyle(
                                 fontSize: 12,
@@ -1866,7 +1866,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             PieChartSectionData(
                               value: regular.toDouble(),
                               title: '$regular',
-                              color: Colors.orange,
+                              color: const Color(0xFFF9A825),
                               radius: 45,
                               titleStyle: const TextStyle(
                                 fontSize: 12,
@@ -1878,7 +1878,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             PieChartSectionData(
                               value: inactive.toDouble(),
                               title: '$inactive',
-                              color: Colors.red,
+                              color: const Color(0xFFC62828),
                               radius: 45,
                               titleStyle: const TextStyle(
                                 fontSize: 12,
@@ -1890,7 +1890,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             PieChartSectionData(
                               value: newClients.toDouble(),
                               title: '$newClients',
-                              color: Colors.blue,
+                              color: const Color(0xFF1565C0),
                               radius: 45,
                               titleStyle: const TextStyle(
                                 fontSize: 12,
@@ -1909,11 +1909,11 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             spacing: 12,
             runSpacing: 8,
             children: [
-              _buildPieLegend('Activos', Colors.green, active, total),
-              _buildPieLegend('Regulares', Colors.orange, regular, total),
-              _buildPieLegend('Inactivos', Colors.red, inactive, total),
+              _buildPieLegend('Activos', const Color(0xFF2E7D32), active, total),
+              _buildPieLegend('Regulares', const Color(0xFFF9A825), regular, total),
+              _buildPieLegend('Inactivos', const Color(0xFFC62828), inactive, total),
               if (newClients > 0)
-                _buildPieLegend('Nuevos', Colors.blue, newClients, total),
+                _buildPieLegend('Nuevos', const Color(0xFF1565C0), newClients, total),
             ],
           ),
         ],
@@ -1956,7 +1956,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -1966,7 +1966,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         children: [
           Row(
             children: [
-              Icon(Icons.emoji_events, color: Colors.amber[700], size: 20),
+              Icon(Icons.emoji_events, color: const Color(0xFFFFA000), size: 20),
               const SizedBox(width: 8),
               const Text(
                 'Top Clientes',
@@ -1991,9 +1991,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           ? client.totalSpent / maxSpent
                           : 0.0;
                       final rankColors = [
-                        Colors.amber[700]!,
-                        Colors.grey[400]!,
-                        Colors.brown[300]!,
+                        const Color(0xFFFFA000),
+                        const Color(0xFFBDBDBD),
+                        const Color(0xFFA1887F),
                       ];
 
                       return Padding(
@@ -2007,7 +2007,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               decoration: BoxDecoration(
                                 color: index < 3
                                     ? rankColors[index].withValues(alpha: 0.2)
-                                    : Colors.grey[100],
+                                    : const Color(0xFFF5F5F5),
                                 shape: BoxShape.circle,
                               ),
                               alignment: Alignment.center,
@@ -2018,7 +2018,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                   fontWeight: FontWeight.bold,
                                   color: index < 3
                                       ? rankColors[index]
-                                      : Colors.grey[600],
+                                      : const Color(0xFF757575),
                                 ),
                               ),
                             ),
@@ -2073,8 +2073,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                       backgroundColor: Theme.of(context).colorScheme.outlineVariant,
                                       valueColor: AlwaysStoppedAnimation(
                                         index == 0
-                                            ? Colors.amber[700]
-                                            : Colors.blue[400],
+                                            ? const Color(0xFFFFA000)
+                                            : const Color(0xFF42A5F5),
                                       ),
                                     ),
                                   ),
@@ -2089,8 +2089,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: index == 0
-                                    ? Colors.amber[700]
-                                    : Colors.green[600],
+                                    ? const Color(0xFFFFA000)
+                                    : const Color(0xFF43A047),
                               ),
                             ),
                           ],
@@ -2117,7 +2117,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -2127,7 +2127,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         children: [
           Row(
             children: [
-              Icon(Icons.star, color: Colors.blue[600], size: 20),
+              Icon(Icons.star, color: const Color(0xFF1E88E5), size: 20),
               const SizedBox(width: 8),
               const Text(
                 'Productos Estrella',
@@ -2255,7 +2255,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -2265,7 +2265,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         children: [
           Row(
             children: [
-              Icon(Icons.schedule, color: Colors.orange[600], size: 20),
+              Icon(Icons.schedule, color: const Color(0xFFFB8C00), size: 20),
               const SizedBox(width: 8),
               const Text(
                 'Antigüedad de Cartera',
@@ -2278,7 +2278,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: const Color(0xFFFAFAFA),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -2303,11 +2303,11 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           Expanded(
             child: Column(
               children: [
-                _buildAgingBar('Vigente', current, total, Colors.green),
-                _buildAgingBar('1-30 días', d1_30, total, Colors.yellow[700]!),
-                _buildAgingBar('31-60 días', d31_60, total, Colors.orange),
-                _buildAgingBar('61-90 días', d61_90, total, Colors.deepOrange),
-                _buildAgingBar('+90 días', over90, total, Colors.red),
+                _buildAgingBar('Vigente', current, total, const Color(0xFF2E7D32)),
+                _buildAgingBar('1-30 días', d1_30, total, const Color(0xFFFBC02D)),
+                _buildAgingBar('31-60 días', d31_60, total, const Color(0xFFF9A825)),
+                _buildAgingBar('61-90 días', d61_90, total, const Color(0xFFFF5722)),
+                _buildAgingBar('+90 días', over90, total, const Color(0xFFC62828)),
               ],
             ),
           ),
@@ -2316,19 +2316,19 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
+                color: const Color(0xFFC62828).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber, color: Colors.red, size: 16),
+                  const Icon(Icons.warning_amber, color: const Color(0xFFC62828), size: 16),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       '${Helpers.formatCurrency(d61_90 + over90)} crítico (+60 días)',
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Colors.red,
+                        color: const Color(0xFFC62828),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -2414,7 +2414,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -2435,22 +2435,22 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               _buildMiniStat(
                 'Ingresos',
                 Helpers.formatCurrency(totalRevenue),
-                Colors.blue,
+                const Color(0xFF1565C0),
               ),
               _buildMiniStat(
                 'Gastos',
                 Helpers.formatCurrency(totalExpenses),
-                Colors.red,
+                const Color(0xFFC62828),
               ),
               _buildMiniStat(
                 'Utilidad',
                 Helpers.formatCurrency(totalProfit),
-                totalProfit >= 0 ? Colors.green : Colors.red,
+                totalProfit >= 0 ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
               ),
               _buildMiniStat(
                 'Margen',
                 '${margin.toStringAsFixed(1)}%',
-                Colors.purple,
+                const Color(0xFF7B1FA2),
               ),
             ],
           ),
@@ -2465,7 +2465,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         Icon(
                           Icons.bar_chart,
                           size: 48,
-                          color: Colors.grey[300],
+                          color: const Color(0xFFE0E0E0),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -2492,7 +2492,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             BarChartRodData(
                               toY: item.revenue,
                               width: 16,
-                              color: Colors.blue[400],
+                              color: const Color(0xFF42A5F5),
                               borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(4),
                               ),
@@ -2500,7 +2500,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 BarChartRodStackItem(
                                   0,
                                   item.totalExpenses,
-                                  Colors.red[300]!,
+                                  const Color(0xFFE57373),
                                 ),
                               ],
                             ),
@@ -2583,9 +2583,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildLegendDot('Ingresos', Colors.blue[400]!),
+              _buildLegendDot('Ingresos', const Color(0xFF42A5F5)),
               const SizedBox(width: 16),
-              _buildLegendDot('Gastos (dentro de barra)', Colors.red[300]!),
+              _buildLegendDot('Gastos (dentro de barra)', const Color(0xFFE57373)),
             ],
           ),
         ],
@@ -2621,11 +2621,11 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
     final label = snapshot?.healthLabel ?? 'Sin datos';
 
     Color getScoreColor() {
-      if (score >= 80) return Colors.green;
-      if (score >= 60) return Colors.blue;
-      if (score >= 40) return Colors.orange;
-      if (score >= 20) return Colors.deepOrange;
-      return Colors.red;
+      if (score >= 80) return const Color(0xFF2E7D32);
+      if (score >= 60) return const Color(0xFF1565C0);
+      if (score >= 40) return const Color(0xFFF9A825);
+      if (score >= 20) return const Color(0xFFFF5722);
+      return const Color(0xFFC62828);
     }
 
     return Container(
@@ -2636,7 +2636,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -2721,7 +2721,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -2737,7 +2737,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.compare_arrows, color: Colors.indigo, size: 20),
+                  const Icon(Icons.compare_arrows, color: const Color(0xFF3F51B5), size: 20),
                   const SizedBox(width: 8),
                   const Text(
                     'Crédito vs Ganancia vs Inventario',
@@ -2745,10 +2745,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   ),
                 ],
               ),
-              _buildLegendDot('Crédito Otorgado', Colors.red),
-              _buildLegendDot('Ingresos', Colors.green),
-              _buildLegendDot('Ganancia Est.', Colors.blue),
-              _buildLegendDot('Inventario', Colors.orange),
+              _buildLegendDot('Crédito Otorgado', const Color(0xFFC62828)),
+              _buildLegendDot('Ingresos', const Color(0xFF2E7D32)),
+              _buildLegendDot('Ganancia Est.', const Color(0xFF1565C0)),
+              _buildLegendDot('Inventario', const Color(0xFFF9A825)),
             ],
           ),
           const SizedBox(height: 8),
@@ -2759,25 +2759,25 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 _buildMiniMetric(
                   'Crédito Activo',
                   state.healthSnapshot!.totalReceivables,
-                  Colors.red,
+                  const Color(0xFFC62828),
                 ),
                 const SizedBox(width: 16),
                 _buildMiniMetric(
                   'Ventas Totales',
                   state.healthSnapshot!.totalRevenue,
-                  Colors.green,
+                  const Color(0xFF2E7D32),
                 ),
                 const SizedBox(width: 16),
                 _buildMiniMetric(
                   'Inventario',
                   state.healthSnapshot!.totalInventoryValue,
-                  Colors.orange,
+                  const Color(0xFFF9A825),
                 ),
                 const SizedBox(width: 16),
                 _buildMiniMetric(
                   'Cobrado',
                   state.healthSnapshot!.totalCollected,
-                  Colors.teal,
+                  const Color(0xFF009688),
                 ),
               ],
             ),
@@ -2791,7 +2791,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         Icon(
                           Icons.show_chart,
                           size: 48,
-                          color: Colors.grey[300],
+                          color: const Color(0xFFE0E0E0),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -2875,12 +2875,12 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               )
                               .toList(),
                           isCurved: true,
-                          color: Colors.red,
+                          color: const Color(0xFFC62828),
                           barWidth: 3,
                           dotData: const FlDotData(show: true),
                           belowBarData: BarAreaData(
                             show: true,
-                            color: Colors.red.withValues(alpha: 0.08),
+                            color: const Color(0xFFC62828).withValues(alpha: 0.08),
                           ),
                         ),
                         // Línea: Ingresos (verde)
@@ -2894,7 +2894,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               )
                               .toList(),
                           isCurved: true,
-                          color: Colors.green,
+                          color: const Color(0xFF2E7D32),
                           barWidth: 3,
                           dotData: const FlDotData(show: true),
                         ),
@@ -2911,7 +2911,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               )
                               .toList(),
                           isCurved: true,
-                          color: Colors.blue,
+                          color: const Color(0xFF1565C0),
                           barWidth: 2,
                           dashArray: [5, 5],
                           dotData: const FlDotData(show: false),
@@ -2929,12 +2929,12 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               )
                               .toList(),
                           isCurved: true,
-                          color: Colors.orange,
+                          color: const Color(0xFFF9A825),
                           barWidth: 2,
                           dotData: const FlDotData(show: false),
                           belowBarData: BarAreaData(
                             show: true,
-                            color: Colors.orange.withValues(alpha: 0.05),
+                            color: const Color(0xFFF9A825).withValues(alpha: 0.05),
                           ),
                         ),
                       ],
@@ -2949,10 +2949,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 'Inventario',
                               ];
                               final colors = [
-                                Colors.red,
-                                Colors.green,
-                                Colors.blue,
-                                Colors.orange,
+                                const Color(0xFFC62828),
+                                const Color(0xFF2E7D32),
+                                const Color(0xFF1565C0),
+                                const Color(0xFFF9A825),
                               ];
                               return LineTooltipItem(
                                 '${labels[spot.barIndex]}: ${Helpers.formatCurrency(spot.y)}',
@@ -3011,7 +3011,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -3021,7 +3021,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         children: [
           Row(
             children: [
-              const Icon(Icons.autorenew, color: Colors.teal, size: 20),
+              const Icon(Icons.autorenew, color: const Color(0xFF009688), size: 20),
               const SizedBox(width: 8),
               const Text(
                 'Rotación de Inventario',
@@ -3058,23 +3058,23 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       IconData statusIcon;
                       switch (item.inventoryStatus) {
                         case 'SIN_STOCK':
-                          statusColor = Colors.red;
+                          statusColor = const Color(0xFFC62828);
                           statusIcon = Icons.error;
                           break;
                         case 'STOCK_BAJO':
-                          statusColor = Colors.orange;
+                          statusColor = const Color(0xFFF9A825);
                           statusIcon = Icons.warning;
                           break;
                         case 'SIN_MOVIMIENTO':
-                          statusColor = Colors.grey;
+                          statusColor = const Color(0xFF9E9E9E);
                           statusIcon = Icons.pause_circle;
                           break;
                         case 'SOBREINVENTARIO':
-                          statusColor = Colors.purple;
+                          statusColor = const Color(0xFF7B1FA2);
                           statusIcon = Icons.inventory_2;
                           break;
                         default:
-                          statusColor = Colors.green;
+                          statusColor = const Color(0xFF2E7D32);
                           statusIcon = Icons.check_circle;
                       }
                       return Padding(
@@ -3116,10 +3116,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       color: item.annualTurnoverRate > 4
-                                          ? Colors.green
+                                          ? const Color(0xFF2E7D32)
                                           : (item.annualTurnoverRate > 1
-                                                ? Colors.orange
-                                                : Colors.red),
+                                                ? const Color(0xFFF9A825)
+                                                : const Color(0xFFC62828)),
                                     ),
                                   ),
                                   Text(
@@ -3145,10 +3145,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       color: item.daysOfInventory > 180
-                                          ? Colors.red
+                                          ? const Color(0xFFC62828)
                                           : (item.daysOfInventory > 90
-                                                ? Colors.orange
-                                                : Colors.green),
+                                                ? const Color(0xFFF9A825)
+                                                : const Color(0xFF2E7D32)),
                                     ),
                                   ),
                                   Text(
@@ -3207,7 +3207,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -3219,7 +3219,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             children: [
               const Icon(
                 Icons.precision_manufacturing,
-                color: Colors.brown,
+                color: const Color(0xFF795548),
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -3258,23 +3258,23 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       String statusLabel;
                       switch (item.reorderStatus) {
                         case 'URGENTE':
-                          statusColor = Colors.red;
+                          statusColor = const Color(0xFFC62828);
                           statusLabel = 'URGENTE';
                           break;
                         case 'CRITICO':
-                          statusColor = Colors.deepOrange;
+                          statusColor = const Color(0xFFFF5722);
                           statusLabel = 'CRÍTICO';
                           break;
                         case 'ALERTA':
-                          statusColor = Colors.orange;
+                          statusColor = const Color(0xFFF9A825);
                           statusLabel = 'ALERTA';
                           break;
                         case 'BAJO':
-                          statusColor = Colors.amber;
+                          statusColor = const Color(0xFFF9A825);
                           statusLabel = 'BAJO';
                           break;
                         default:
-                          statusColor = Colors.green;
+                          statusColor = const Color(0xFF2E7D32);
                           statusLabel = 'OK';
                       }
                       return Padding(
@@ -3344,10 +3344,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       color: item.daysOfStockRemaining <= 7
-                                          ? Colors.red
+                                          ? const Color(0xFFC62828)
                                           : (item.daysOfStockRemaining <= 15
-                                                ? Colors.orange
-                                                : Colors.green),
+                                                ? const Color(0xFFF9A825)
+                                                : const Color(0xFF2E7D32)),
                                     ),
                                   ),
                                   Text(
@@ -3462,7 +3462,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   'Items Críticos',
                   '$totalCritical',
                   Icons.warning_amber,
-                  Colors.red,
+                  const Color(0xFFC62828),
                   subtitle:
                       '$productsCount productos, $materialsCount materiales',
                 ),
@@ -3473,7 +3473,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   'Stock Bajo',
                   '$lowStockCount',
                   Icons.trending_down,
-                  Colors.orange,
+                  const Color(0xFFF9A825),
                   subtitle: 'por debajo del mínimo',
                 ),
               ),
@@ -3483,7 +3483,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   'Sin Stock',
                   '$outOfStock',
                   Icons.remove_shopping_cart,
-                  Colors.red,
+                  const Color(0xFFC62828),
                   subtitle: 'agotados o negativos',
                 ),
               ),
@@ -3498,7 +3498,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   'Valor Stock (Costo)',
                   Helpers.formatCurrency(totalStockCost),
                   Icons.inventory_2,
-                  Colors.blue,
+                  const Color(0xFF1565C0),
                   subtitle: 'inversión en inventario',
                 ),
               ),
@@ -3508,7 +3508,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   'Valor Stock (Venta)',
                   Helpers.formatCurrency(totalStockValue),
                   Icons.sell,
-                  Colors.green,
+                  const Color(0xFF2E7D32),
                   subtitle: 'valor de venta potencial',
                 ),
               ),
@@ -3518,7 +3518,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   'Ganancia Potencial',
                   Helpers.formatCurrency(totalPotentialProfit),
                   Icons.trending_up,
-                  totalPotentialProfit >= 0 ? Colors.teal : Colors.red,
+                  totalPotentialProfit >= 0 ? const Color(0xFF009688) : const Color(0xFFC62828),
                   subtitle: 'margen promedio: ${avgMargin.toStringAsFixed(1)}%',
                 ),
               ),
@@ -3530,9 +3530,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             Container(
               padding: const EdgeInsets.all(40),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
+                color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.3)),
               ),
               child: Center(
                 child: Column(
@@ -3540,7 +3540,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                     Icon(
                       Icons.check_circle,
                       size: 64,
-                      color: Colors.green[400],
+                      color: const Color(0xFF66BB6A),
                     ),
                     const SizedBox(height: 16),
                     const Text(
@@ -3548,7 +3548,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: const Color(0xFF2E7D32),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -3575,7 +3575,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -3591,7 +3591,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   children: [
                     Icon(
                       Icons.warning_amber,
-                      color: Colors.orange[700],
+                      color: const Color(0xFFF57C00),
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -3611,13 +3611,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
+                    color: const Color(0xFFC62828).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     '${state.products.length} items críticos',
                     style: TextStyle(
-                      color: Colors.red[700],
+                      color: const Color(0xFFD32F2F),
                       fontWeight: FontWeight.w500,
                       fontSize: 13,
                     ),
@@ -3701,10 +3701,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               ],
               rows: state.products.map((product) {
                 final marginColor = product.marginPercent > 30
-                    ? Colors.green
+                    ? const Color(0xFF2E7D32)
                     : product.marginPercent > 15
-                    ? Colors.orange
-                    : Colors.red;
+                    ? const Color(0xFFF9A825)
+                    : const Color(0xFFC62828);
                 return DataRow(
                   cells: [
                     DataCell(
@@ -3741,8 +3741,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         ),
                         decoration: BoxDecoration(
                           color: product.itemType == 'material'
-                              ? Colors.orange.withValues(alpha: 0.1)
-                              : Colors.blue.withValues(alpha: 0.1),
+                              ? const Color(0xFFF9A825).withValues(alpha: 0.1)
+                              : const Color(0xFF1565C0).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -3750,8 +3750,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           style: TextStyle(
                             fontSize: 11,
                             color: product.itemType == 'material'
-                                ? Colors.orange[700]
-                                : Colors.blue[700],
+                                ? const Color(0xFFF57C00)
+                                : const Color(0xFF1976D2),
                           ),
                         ),
                       ),
@@ -3773,9 +3773,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           fontWeight: FontWeight.w500,
                           fontSize: 12,
                           color: product.isOutOfStock
-                              ? Colors.red
+                              ? const Color(0xFFC62828)
                               : product.isLowStock
-                              ? Colors.orange
+                              ? const Color(0xFFF9A825)
                               : null,
                         ),
                       ),
@@ -3784,7 +3784,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                     DataCell(
                       Text(
                         Helpers.formatCurrency(product.costPrice),
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                        style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
                       ),
                     ),
                     // Precio de venta
@@ -3840,8 +3840,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         style: TextStyle(
                           fontSize: 12,
                           color: product.profitPerUnit > 0
-                              ? Colors.green[700]
-                              : Colors.red,
+                              ? const Color(0xFF388E3C)
+                              : const Color(0xFFC62828),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -3877,10 +3877,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         ),
                         decoration: BoxDecoration(
                           color: product.isOutOfStock
-                              ? Colors.red.withValues(alpha: 0.1)
+                              ? const Color(0xFFC62828).withValues(alpha: 0.1)
                               : product.isLowStock
-                              ? Colors.orange.withValues(alpha: 0.1)
-                              : Colors.green.withValues(alpha: 0.1),
+                              ? const Color(0xFFF9A825).withValues(alpha: 0.1)
+                              : const Color(0xFF2E7D32).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -3891,10 +3891,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               : 'OK',
                           style: TextStyle(
                             color: product.isOutOfStock
-                                ? Colors.red
+                                ? const Color(0xFFC62828)
                                 : product.isLowStock
-                                ? Colors.orange
-                                : Colors.green,
+                                ? const Color(0xFFF9A825)
+                                : const Color(0xFF2E7D32),
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                           ),
@@ -3990,28 +3990,28 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   'Total por Cobrar',
                   Helpers.formatCurrency(totalDebt),
                   Icons.account_balance_wallet,
-                  Colors.blue,
+                  const Color(0xFF1565C0),
                   subtitle: '${receivablesState.receivables.length} clientes',
                 ),
                 _buildKPICard(
                   'Vencidas',
                   Helpers.formatCurrency(overdueTotal),
                   Icons.warning,
-                  Colors.red,
+                  const Color(0xFFC62828),
                   subtitle: 'deuda vencida',
                 ),
                 _buildKPICard(
                   'Al Día',
                   Helpers.formatCurrency(currentTotal),
                   Icons.check_circle,
-                  Colors.green,
+                  const Color(0xFF2E7D32),
                   subtitle: '0-30 días',
                 ),
                 _buildKPICard(
                   'Clientes Morosos',
                   '${receivablesState.receivables.where((r) => r.overdueInvoices > 0).length}',
                   Icons.person_off,
-                  Colors.orange,
+                  const Color(0xFFF9A825),
                   subtitle: 'con deuda',
                 ),
               ];
@@ -4075,27 +4075,27 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
       {
         'label': 'Vigente',
         'value': aging['current'] ?? 0,
-        'color': Colors.green,
+        'color': const Color(0xFF2E7D32),
       },
       {
         'label': '1-30 días',
         'value': aging['1-30 days'] ?? 0,
-        'color': Colors.amber,
+        'color': const Color(0xFFF9A825),
       },
       {
         'label': '31-60 días',
         'value': aging['31-60 days'] ?? 0,
-        'color': Colors.orange,
+        'color': const Color(0xFFF9A825),
       },
       {
         'label': '61-90 días',
         'value': aging['61-90 days'] ?? 0,
-        'color': Colors.deepOrange,
+        'color': const Color(0xFFFF5722),
       },
       {
         'label': '+90 días',
         'value': aging['over 90 days'] ?? 0,
-        'color': Colors.red,
+        'color': const Color(0xFFC62828),
       },
     ];
 
@@ -4107,7 +4107,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -4228,7 +4228,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -4262,11 +4262,11 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                     icon: const Icon(
                       Icons.warning_amber,
                       size: 18,
-                      color: Colors.orange,
+                      color: const Color(0xFFF9A825),
                     ),
                     label: const Text(
                       'Ver Mora',
-                      style: TextStyle(color: Colors.orange),
+                      style: TextStyle(color: const Color(0xFFF9A825)),
                     ),
                   ),
               ],
@@ -4349,7 +4349,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         DataCell(
                           Text(
                             Helpers.formatCurrency(r.current),
-                            style: const TextStyle(color: Colors.green),
+                            style: const TextStyle(color: const Color(0xFF2E7D32)),
                           ),
                         ),
                         DataCell(Text(Helpers.formatCurrency(r.overdue30))),
@@ -4358,7 +4358,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           Text(
                             Helpers.formatCurrency(r.overdue90),
                             style: TextStyle(
-                              color: r.overdue90 > 0 ? Colors.red : null,
+                              color: r.overdue90 > 0 ? const Color(0xFFC62828) : null,
                             ),
                           ),
                         ),
@@ -4370,14 +4370,14 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             ),
                             decoration: BoxDecoration(
                               color: hasOverdue
-                                  ? Colors.red.withValues(alpha: 0.1)
-                                  : Colors.green.withValues(alpha: 0.1),
+                                  ? const Color(0xFFC62828).withValues(alpha: 0.1)
+                                  : const Color(0xFF2E7D32).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               hasOverdue ? 'Vencido' : 'Al día',
                               style: TextStyle(
-                                color: hasOverdue ? Colors.red : Colors.green,
+                                color: hasOverdue ? const Color(0xFFC62828) : const Color(0xFF2E7D32),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -4392,21 +4392,21 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                   child: Container(
                                     padding: const EdgeInsets.all(6),
                                     decoration: BoxDecoration(
-                                      color: Colors.orange.withValues(
+                                      color: const Color(0xFFF9A825).withValues(
                                         alpha: 0.1,
                                       ),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
                                       Icons.notification_important,
-                                      color: Colors.orange,
+                                      color: const Color(0xFFF9A825),
                                       size: 18,
                                     ),
                                   ),
                                 )
                               : const Icon(
                                   Icons.check_circle,
-                                  color: Colors.green,
+                                  color: const Color(0xFF2E7D32),
                                   size: 20,
                                 ),
                         ),
@@ -4523,14 +4523,14 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   'Deuda Vencida',
                   Helpers.formatCurrency(debtState.totalOverdue),
                   Icons.money_off,
-                  Colors.red,
+                  const Color(0xFFC62828),
                   subtitle: '${debtState.overdueDebts.length} facturas',
                 ),
                 _buildKPICard(
                   'Intereses Acumulados',
                   Helpers.formatCurrency(debtState.totalInterest),
                   Icons.trending_up,
-                  Colors.orange,
+                  const Color(0xFFF9A825),
                   subtitle: 'por mora',
                 ),
                 _buildKPICard(
@@ -4544,7 +4544,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   'Clientes en Mora',
                   '${debtsOver30.length}',
                   Icons.person_off,
-                  Colors.deepOrange,
+                  const Color(0xFFFF5722),
                   subtitle: '>30 días',
                 ),
               ];
@@ -4577,15 +4577,15 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: const Color(0xFFF9A825).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                border: Border.all(color: const Color(0xFFF9A825).withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
                   const Icon(
                     Icons.notification_important,
-                    color: Colors.orange,
+                    color: const Color(0xFFF9A825),
                     size: 28,
                   ),
                   const SizedBox(width: 12),
@@ -4597,12 +4597,12 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           'Notificaciones de Mora Pendientes',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.orange,
+                            color: const Color(0xFFF9A825),
                           ),
                         ),
                         Text(
                           '${debtState.debtsNeedingNotification.length} clientes necesitan notificación de mora (>30 días)',
-                          style: TextStyle(color: Colors.grey[700]),
+                          style: TextStyle(color: const Color(0xFF616161)),
                         ),
                       ],
                     ),
@@ -4617,7 +4617,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       style: TextStyle(color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
+                      backgroundColor: const Color(0xFFF9A825),
                     ),
                   ),
                 ],
@@ -4631,7 +4631,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: const Color(0xFF000000).withValues(alpha: 0.05),
                   blurRadius: 10,
                 ),
               ],
@@ -4657,13 +4657,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
+                          color: const Color(0xFFC62828).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           '${debtsCritical.length} críticos (+60 días)',
                           style: const TextStyle(
-                            color: Colors.red,
+                            color: const Color(0xFFC62828),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -4681,7 +4681,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           Icon(
                             Icons.check_circle,
                             size: 64,
-                            color: Colors.green,
+                            color: const Color(0xFF2E7D32),
                           ),
                           SizedBox(height: 16),
                           Text(
@@ -4767,10 +4767,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             states,
                           ) {
                             if (debt.daysOverdue > 60) {
-                              return Colors.red.withValues(alpha: 0.05);
+                              return const Color(0xFFC62828).withValues(alpha: 0.05);
                             }
                             if (debt.daysOverdue > 30) {
-                              return Colors.orange.withValues(alpha: 0.05);
+                              return const Color(0xFFF9A825).withValues(alpha: 0.05);
                             }
                             return null;
                           }),
@@ -4816,7 +4816,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               Text(
                                 Helpers.formatCurrency(debt.interestAmount),
                                 style: const TextStyle(
-                                  color: Colors.orange,
+                                  color: const Color(0xFFF9A825),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -4845,7 +4845,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                           Icons.notification_add,
                                           size: 20,
                                         ),
-                                        color: Colors.orange,
+                                        color: const Color(0xFFF9A825),
                                         onPressed: () =>
                                             _sendReminderDialog(debt),
                                       ),
@@ -4882,22 +4882,22 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.05),
+              color: const Color(0xFF1565C0).withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+              border: Border.all(color: const Color(0xFF1565C0).withValues(alpha: 0.2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue),
+                    Icon(Icons.info_outline, color: const Color(0xFF1565C0)),
                     SizedBox(width: 8),
                     Text(
                       'Configuración de Mora',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+                        color: const Color(0xFF1565C0),
                       ),
                     ),
                   ],
@@ -4909,7 +4909,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   '• Estado "Moroso": 31-60 días vencidos\n'
                   '• Estado "Crítico": Más de 60 días vencidos\n'
                   '• Los intereses se calculan sobre el saldo pendiente',
-                  style: TextStyle(color: Colors.grey[700], height: 1.5),
+                  style: TextStyle(color: const Color(0xFF616161), height: 1.5),
                 ),
               ],
             ),
@@ -4920,28 +4920,28 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
   }
 
   Color _getDaysColor(int days) {
-    if (days <= 30) return Colors.amber;
-    if (days <= 60) return Colors.orange;
-    return Colors.red;
+    if (days <= 30) return const Color(0xFFF9A825);
+    if (days <= 60) return const Color(0xFFF9A825);
+    return const Color(0xFFC62828);
   }
 
   Widget _buildStatusBadge(String status, String label) {
     Color color;
     switch (status) {
       case 'vigente':
-        color = Colors.green;
+        color = const Color(0xFF2E7D32);
         break;
       case 'vencido':
-        color = Colors.amber;
+        color = const Color(0xFFF9A825);
         break;
       case 'moroso':
-        color = Colors.orange;
+        color = const Color(0xFFF9A825);
         break;
       case 'critico':
-        color = Colors.red;
+        color = const Color(0xFFC62828);
         break;
       default:
-        color = Colors.grey;
+        color = const Color(0xFF9E9E9E);
     }
 
     return Container(
@@ -4977,7 +4977,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF9A825)),
             child: const Text('Enviar', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -5026,7 +5026,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF9A825)),
             child: const Text('Enviar', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -5041,7 +5041,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(success ? 'Recordatorio enviado' : 'Error al enviar'),
-            backgroundColor: success ? Colors.green : Colors.red,
+            backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
           ),
         );
       }
@@ -5065,7 +5065,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             ),
             Text(
               'Interés (${debt.interestRate}%): ${Helpers.formatCurrency(debt.interestAmount)}',
-              style: const TextStyle(color: Colors.orange),
+              style: const TextStyle(color: const Color(0xFFF9A825)),
             ),
             Text(
               'Nuevo total: ${Helpers.formatCurrency(debt.totalWithInterest)}',
@@ -5075,12 +5075,12 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.1),
+                color: const Color(0xFFF9A825).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.warning, color: Colors.amber, size: 20),
+                  Icon(Icons.warning, color: const Color(0xFFF9A825), size: 20),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -5124,7 +5124,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   ? 'Interés aplicado correctamente'
                   : 'Error al aplicar interés',
             ),
-            backgroundColor: success ? Colors.green : Colors.red,
+            backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
           ),
         );
       }
@@ -5145,7 +5145,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           ),
         ),
         const SizedBox(width: 6),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+        Text(label, style: TextStyle(fontSize: 12, color: const Color(0xFF616161))),
       ],
     );
   }
@@ -5238,35 +5238,35 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
   Color _catColor(MovementCategory c) {
     switch (c) {
       case MovementCategory.sale:
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case MovementCategory.collection:
-        return Colors.teal;
+        return const Color(0xFF009688);
       case MovementCategory.pago_prestamo:
         return Colors.lightGreen;
       case MovementCategory.otherIncome:
-        return Colors.green.shade300;
+        return const Color(0xFF81C784);
       case MovementCategory.cuidado_personal:
-        return Colors.pink;
+        return const Color(0xFFE91E63);
       case MovementCategory.servicios_publicos:
-        return Colors.purple;
+        return const Color(0xFF7B1FA2);
       case MovementCategory.papeleria:
-        return Colors.indigo;
+        return const Color(0xFF3F51B5);
       case MovementCategory.nomina:
-        return Colors.deepOrange;
+        return const Color(0xFFFF5722);
       case MovementCategory.impuestos:
-        return Colors.red.shade800;
+        return const Color(0xFFC62828);
       case MovementCategory.consumibles:
-        return Colors.red;
+        return const Color(0xFFC62828);
       case MovementCategory.transporte:
-        return Colors.blue;
+        return const Color(0xFF1565C0);
       case MovementCategory.gastos_reducibles:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
       case MovementCategory.transferOut:
-        return Colors.orange.shade300;
+        return const Color(0xFFFFB74D);
       case MovementCategory.transferIn:
-        return Colors.orange.shade700;
+        return const Color(0xFFF57C00);
       case MovementCategory.custom:
-        return Colors.blueGrey;
+        return const Color(0xFF607D8B);
     }
   }
 
@@ -5690,7 +5690,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                   _buildFlowStat(
                     'Traslados',
                     '${_movements.where((m) => m.type == MovementType.transfer).length}',
-                    Colors.orange,
+                    const Color(0xFFF9A825),
                   ),
                 ],
               ),
@@ -5730,12 +5730,12 @@ class _CumulativeLinePainter extends CustomPainter {
     if (data.isEmpty) return;
 
     final paint = Paint()
-      ..color = Colors.purple
+      ..color = const Color(0xFF7B1FA2)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
     final dotPaint = Paint()
-      ..color = Colors.purple
+      ..color = const Color(0xFF7B1FA2)
       ..style = PaintingStyle.fill;
 
     final path = Path();
@@ -5759,7 +5759,7 @@ class _CumulativeLinePainter extends CustomPainter {
 
     // Líneas de referencia 80% y 95%
     final refPaint = Paint()
-      ..color = Colors.grey.withValues(alpha: 0.3)
+      ..color = const Color(0xFF9E9E9E).withValues(alpha: 0.3)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
 
@@ -5895,7 +5895,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                     children: [
                       const Icon(
                         Icons.person_remove_outlined,
-                        color: Colors.deepOrange,
+                        color: const Color(0xFFFF5722),
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -5905,7 +5905,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: Colors.deepOrange[700],
+                            color: const Color(0xFFE64A19),
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -5999,7 +5999,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                         icon: const Icon(Icons.refresh, size: 16),
                         label: const Text('Actualizar'),
                         style: FilledButton.styleFrom(
-                          backgroundColor: Colors.deepOrange,
+                          backgroundColor: const Color(0xFFFF5722),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 8,
@@ -6019,7 +6019,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
         // Resumen cards
         if (!_isLoading && _records.isNotEmpty)
           Container(
-            color: Colors.grey[50],
+            color: const Color(0xFFFAFAFA),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -6034,7 +6034,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                         child: _summaryCard(
                           'Total Retiros',
                           '${_filtered.length}',
-                          Colors.deepOrange,
+                          const Color(0xFFFF5722),
                           Icons.move_to_inbox,
                         ),
                       ),
@@ -6043,7 +6043,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                         child: _summaryCard(
                           'Costo Total',
                           '\$${_totalCost.toStringAsFixed(0)}',
-                          Colors.red[700]!,
+                          const Color(0xFFD32F2F),
                           Icons.attach_money,
                         ),
                       ),
@@ -6052,7 +6052,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                         child: _summaryCard(
                           'Empleados',
                           '${_filtered.map((r) => _extractEmployeeName(r['reason'] as String?)).toSet().length}',
-                          Colors.blueGrey,
+                          const Color(0xFF607D8B),
                           Icons.people,
                         ),
                       ),
@@ -6065,21 +6065,21 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                     _summaryCard(
                       'Total Retiros',
                       '${_filtered.length}',
-                      Colors.deepOrange,
+                      const Color(0xFFFF5722),
                       Icons.move_to_inbox,
                     ),
                     const SizedBox(width: 12),
                     _summaryCard(
                       'Costo Total',
                       '\$${_totalCost.toStringAsFixed(0)}',
-                      Colors.red[700]!,
+                      const Color(0xFFD32F2F),
                       Icons.attach_money,
                     ),
                     const SizedBox(width: 12),
                     _summaryCard(
                       'Empleados',
                       '${_filtered.map((r) => _extractEmployeeName(r['reason'] as String?)).toSet().length}',
-                      Colors.blueGrey,
+                      const Color(0xFF607D8B),
                       Icons.people,
                     ),
                   ],
@@ -6099,7 +6099,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                       Icon(
                         Icons.person_remove_outlined,
                         size: 64,
-                        color: Colors.grey[300],
+                        color: const Color(0xFFE0E0E0),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -6128,7 +6128,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+          BoxShadow(color: const Color(0xFF000000).withOpacity(0.05), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -6137,7 +6137,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.deepOrange.withOpacity(0.08),
+              color: const Color(0xFFFF5722).withOpacity(0.08),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(8),
               ),
@@ -6200,7 +6200,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                           children: [
                             CircleAvatar(
                               radius: 12,
-                              backgroundColor: Colors.deepOrange.withOpacity(
+                              backgroundColor: const Color(0xFFFF5722).withOpacity(
                                 0.15,
                               ),
                               child: Text(
@@ -6209,7 +6209,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                                     : '?',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.deepOrange[700],
+                                  color: const Color(0xFFE64A19),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -6265,7 +6265,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: Colors.red[700],
+                            color: const Color(0xFFD32F2F),
                           ),
                           textAlign: TextAlign.right,
                         ),
@@ -6303,7 +6303,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
       style: TextStyle(
         fontWeight: FontWeight.w600,
         fontSize: 11,
-        color: Colors.deepOrange[800],
+        color: const Color(0xFFD84315),
       ),
       textAlign: align,
     );

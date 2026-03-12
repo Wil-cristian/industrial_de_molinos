@@ -1,4 +1,4 @@
-﻿import '../../core/utils/logger.dart';
+import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/product.dart';
 import 'supabase_datasource.dart';
@@ -145,7 +145,7 @@ class ProductsDataSource {
         params: {'p_invoice_id': invoiceId},
       );
     } catch (e) {
-      AppLogger.error('❌ Error al descontar stock: $e');
+      AppLogger.error('? Error al descontar stock: $e');
       rethrow;
     }
   }
@@ -162,7 +162,7 @@ class ProductsDataSource {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  /// Obtener todas las categorías
+  /// Obtener todas las categor�as
   static Future<List<Category>> getCategories() async {
     final response = await _client
         .from(_categoriesTable)
@@ -181,7 +181,7 @@ class ProductsDataSource {
         .toList();
   }
 
-  // Helpers de conversión
+  // Helpers de conversi�n
   static Product _fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],

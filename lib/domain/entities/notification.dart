@@ -142,13 +142,13 @@ class AppNotification {
   Color get severityColor {
     switch (severity) {
       case NotificationSeverity.error:
-        return Colors.red;
+        return const Color(0xFFC62828);
       case NotificationSeverity.warning:
-        return Colors.orange;
+        return const Color(0xFFF9A825);
       case NotificationSeverity.success:
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case NotificationSeverity.info:
-        return Colors.blue;
+        return const Color(0xFF1565C0);
     }
   }
 
