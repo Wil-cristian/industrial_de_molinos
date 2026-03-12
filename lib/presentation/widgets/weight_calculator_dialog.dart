@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/utils/weight_calculator.dart';
 import '../../domain/entities/material.dart' as mat;
 
@@ -222,7 +221,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
             decoration: BoxDecoration(
               color: Colors.grey[100],
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             child: Stack(
               children: [
@@ -232,7 +231,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                     height: 24,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.15),
+                      color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -259,7 +258,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                           style: TextStyle(
                             fontSize: isSelected ? 14 : 11,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? AppTheme.primaryColor : Colors.grey[500],
+                            color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey[500],
                           ),
                         ),
                       );
@@ -428,7 +427,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
             // Título con indicador de tipo
             Row(
               children: [
-                Icon(Icons.calculate, color: AppTheme.primaryColor),
+                Icon(Icons.calculate, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -441,7 +440,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -451,7 +450,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ),
@@ -496,7 +495,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                 // Costo por kg
                 Text(
                   'Costo: \$ ${widget.material.effectiveCostPrice.toStringAsFixed(2)}/KG',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -522,7 +521,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Peso Total', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                      Text('Peso Total', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       Text(
                         '${_calculatedWeight.toStringAsFixed(3)} kg',
                         style: TextStyle(
@@ -536,7 +535,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('Costo Total', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                      Text('Costo Total', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       Text(
                         '\$ ${_totalCost.toStringAsFixed(2)}',
                         style: TextStyle(

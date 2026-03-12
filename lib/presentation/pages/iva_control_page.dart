@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../data/providers/iva_provider.dart';
 import '../../data/datasources/iva_datasource.dart';
 import '../widgets/invoice_scan_dialog.dart';
@@ -95,12 +95,12 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.receipt_long,
-                      color: AppTheme.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       size: 22,
                     ),
                   ),
@@ -150,9 +150,9 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
           // Tabs
           TabBar(
             controller: _tabController,
-            labelColor: AppTheme.primaryColor,
+            labelColor: Theme.of(context).colorScheme.primary,
             unselectedLabelColor: Colors.grey,
-            indicatorColor: AppTheme.primaryColor,
+            indicatorColor: Theme.of(context).colorScheme.primary,
             labelStyle: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -186,13 +186,13 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: isPositive
-            ? AppTheme.errorColor.withValues(alpha: 0.1)
-            : AppTheme.successColor.withValues(alpha: 0.1),
+            ? AppColors.danger.withValues(alpha: 0.1)
+            : AppColors.success.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isPositive
-              ? AppTheme.errorColor.withValues(alpha: 0.3)
-              : AppTheme.successColor.withValues(alpha: 0.3),
+              ? AppColors.danger.withValues(alpha: 0.3)
+              : AppColors.success.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -207,14 +207,14 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: isPositive ? AppTheme.errorColor : AppTheme.successColor,
+              color: isPositive ? AppColors.danger : AppColors.success,
             ),
           ),
           Text(
             isPositive ? 'A pagar' : 'A favor',
             style: TextStyle(
               fontSize: 9,
-              color: isPositive ? AppTheme.errorColor : AppTheme.successColor,
+              color: isPositive ? AppColors.danger : AppColors.success,
             ),
           ),
         ],
@@ -315,7 +315,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
           icon: const Icon(Icons.add, size: 16),
           label: const Text('Agregar', style: TextStyle(fontSize: 12)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
+            backgroundColor: Theme.of(context).colorScheme.primary,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
@@ -383,7 +383,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                 'IVA Ventas: ${_currencyFormat.format(state.totalIvaVentas)}',
                 style: const TextStyle(
                   fontSize: 10,
-                  color: AppTheme.successColor,
+                  color: AppColors.success,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -391,7 +391,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                 'IVA Compras: ${_currencyFormat.format(state.totalIvaCompras)}',
                 style: const TextStyle(
                   fontSize: 10,
-                  color: AppTheme.errorColor,
+                  color: AppColors.danger,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -411,7 +411,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
           const SizedBox(height: 12),
           Text(
             'No hay facturas en este periodo',
-            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
           ),
           const SizedBox(height: 8),
           ElevatedButton.icon(
@@ -419,7 +419,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             icon: const Icon(Icons.add, size: 16),
             label: const Text('Agregar Factura'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
             ),
           ),
@@ -439,7 +439,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
 
   Widget _buildInvoiceCard(IvaInvoice inv) {
     final isVenta = inv.invoiceType == 'VENTA';
-    final color = isVenta ? AppTheme.successColor : Colors.blue;
+    final color = isVenta ? AppColors.success : Colors.blue;
     final dateStr = DateFormat('dd/MM/yyyy').format(inv.invoiceDate);
     final hasExtras =
         inv.cufe != null ||
@@ -519,7 +519,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                             'NIT: ${inv.companyDocument}',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey[500],
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                       ],
@@ -602,7 +602,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                             'CUFE: ${inv.cufe!.length > 30 ? '${inv.cufe!.substring(0, 30)}...' : inv.cufe}',
                             style: TextStyle(
                               fontSize: 9,
-                              color: Colors.grey[500],
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -679,7 +679,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            const Icon(Icons.calculate, color: AppTheme.primaryColor, size: 28),
+            Icon(Icons.calculate, color: Theme.of(context).colorScheme.primary, size: 28),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -707,7 +707,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                       content: Text(
                         'Liquidación: ${_currencyFormat.format(result.totalAPagar)} a pagar',
                       ),
-                      backgroundColor: AppTheme.successColor,
+                      backgroundColor: AppColors.success,
                     ),
                   );
                 }
@@ -715,7 +715,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
               icon: const Icon(Icons.play_arrow, size: 18),
               label: const Text('Calcular'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.successColor,
+                backgroundColor: AppColors.success,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -736,10 +736,10 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
           children: [
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.summarize,
                   size: 20,
-                  color: AppTheme.primaryColor,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -753,12 +753,12 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             ),
             const Divider(),
             // Ventas
-            _buildSectionHeader('VENTAS', AppTheme.successColor),
+            _buildSectionHeader('VENTAS', AppColors.success),
             _buildDetailRow('Base Ventas', s.baseVentas),
             _buildDetailRow(
               'IVA Ventas (19%)',
               s.ivaVentas,
-              color: AppTheme.successColor,
+              color: AppColors.success,
             ),
             const SizedBox(height: 8),
             // Compras
@@ -771,7 +771,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             ),
             const Divider(height: 24),
             // Cálculos
-            _buildSectionHeader('LIQUIDACIÓN', AppTheme.primaryColor),
+            _buildSectionHeader('LIQUIDACIÓN', Theme.of(context).colorScheme.primary),
             _buildDetailRow('IVA Neto (Ventas - Compras)', s.ivaNeto),
             _buildDetailRow(
               'Anticipo Simple (${(s.tarifaSimple * 100).toStringAsFixed(1)}% x Base Ventas)',
@@ -789,8 +789,8 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: s.totalAPagar > 0
-                    ? AppTheme.errorColor.withValues(alpha: 0.1)
-                    : AppTheme.successColor.withValues(alpha: 0.1),
+                    ? AppColors.danger.withValues(alpha: 0.1)
+                    : AppColors.success.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -809,8 +809,8 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: s.totalAPagar > 0
-                          ? AppTheme.errorColor
-                          : AppTheme.successColor,
+                          ? AppColors.danger
+                          : AppColors.success,
                     ),
                   ),
                 ],
@@ -870,9 +870,9 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.history, size: 20, color: AppTheme.primaryColor),
+                Icon(Icons.history, size: 20, color: Theme.of(context).colorScheme.primary),
                 SizedBox(width: 8),
                 Text(
                   'Historial de Liquidaciones',
@@ -894,7 +894,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: s.isSettled
-            ? AppTheme.successColor.withValues(alpha: 0.05)
+            ? AppColors.success.withValues(alpha: 0.05)
             : Colors.grey[50],
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
@@ -904,7 +904,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
           Icon(
             s.isSettled ? Icons.check_circle : Icons.pending,
             size: 18,
-            color: s.isSettled ? AppTheme.successColor : Colors.orange,
+            color: s.isSettled ? AppColors.success : Colors.orange,
           ),
           const SizedBox(width: 8),
           Text(
@@ -918,8 +918,8 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
               fontSize: 13,
               fontWeight: FontWeight.bold,
               color: s.totalAPagar > 0
-                  ? AppTheme.errorColor
-                  : AppTheme.successColor,
+                  ? AppColors.danger
+                  : AppColors.success,
             ),
           ),
           const SizedBox(width: 8),
@@ -966,7 +966,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Configuración guardada'),
-              backgroundColor: AppTheme.successColor,
+              backgroundColor: AppColors.success,
             ),
           );
         }
@@ -1052,7 +1052,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
               children: [
                 Icon(
                   isEdit ? Icons.edit : Icons.add_circle,
-                  color: AppTheme.primaryColor,
+                  color: Theme.of(context).colorScheme.primary,
                   size: 22,
                 ),
                 const SizedBox(width: 8),
@@ -1423,7 +1423,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                 ),
                 child: Text(isEdit ? 'Guardar' : 'Crear'),
@@ -1454,7 +1454,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorColor,
+              backgroundColor: AppColors.danger,
               foregroundColor: Colors.white,
             ),
             child: const Text('Eliminar'),
@@ -1549,11 +1549,11 @@ class _CalculadoraIvaState extends State<_CalculadoraIva> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
                       Icon(
                         Icons.functions,
-                        color: AppTheme.primaryColor,
+                        color: Theme.of(context).colorScheme.primary,
                         size: 28,
                       ),
                       SizedBox(width: 10),
@@ -1599,7 +1599,7 @@ class _CalculadoraIvaState extends State<_CalculadoraIva> {
                       ElevatedButton(
                         onPressed: _calcFromTotal,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -1638,7 +1638,7 @@ class _CalculadoraIvaState extends State<_CalculadoraIva> {
                       ElevatedButton(
                         onPressed: _calcFromBase,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.successColor,
+                          backgroundColor: AppColors.success,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -1672,17 +1672,17 @@ class _CalculadoraIvaState extends State<_CalculadoraIva> {
                   _buildResultRow(
                     'Base Gravable',
                     _base,
-                    AppTheme.primaryColor,
+                    Theme.of(context).colorScheme.primary,
                   ),
                   _buildResultRow(
                     'IVA (${(widget.ivaRate * 100).toStringAsFixed(0)}%)',
                     _iva,
-                    AppTheme.warningColor,
+                    AppColors.warning,
                   ),
                   _buildResultRow(
                     'Total Factura',
                     _total,
-                    AppTheme.successColor,
+                    AppColors.success,
                     isBold: true,
                   ),
                   if (_hasReteiva) ...[
@@ -1690,7 +1690,7 @@ class _CalculadoraIvaState extends State<_CalculadoraIva> {
                     _buildResultRow(
                       'ReteIVA (15%)',
                       -_reteiva,
-                      AppTheme.errorColor,
+                      AppColors.danger,
                     ),
                     _buildResultRow(
                       'Neto a Pagar',
@@ -1828,11 +1828,11 @@ class _ConfigPanelState extends State<_ConfigPanel> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
                       Icon(
                         Icons.settings,
-                        color: AppTheme.primaryColor,
+                        color: Theme.of(context).colorScheme.primary,
                         size: 28,
                       ),
                       SizedBox(width: 10),
@@ -1928,7 +1928,7 @@ class _ConfigPanelState extends State<_ConfigPanel> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -1940,10 +1940,10 @@ class _ConfigPanelState extends State<_ConfigPanel> {
                         ),
                         Text(
                           '${(_tarifaSimple * 100).toStringAsFixed(1)}%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryColor,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ],
@@ -1982,7 +1982,7 @@ class _ConfigPanelState extends State<_ConfigPanel> {
                       icon: const Icon(Icons.save, size: 18),
                       label: const Text('Guardar Configuración'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),

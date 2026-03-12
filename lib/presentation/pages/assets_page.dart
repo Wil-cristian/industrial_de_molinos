@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../domain/entities/asset.dart';
 import '../../domain/entities/activity.dart';
@@ -52,7 +52,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
 
     return Scaffold(
       body: Container(
-        color: AppTheme.backgroundColor,
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
         child: Column(
           children: [
             // Header
@@ -109,9 +109,9 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.arrow_back,
-                      color: AppTheme.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       size: 20,
                     ),
                     onPressed: () => context.go('/'),
@@ -129,7 +129,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryColor,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                         ),
                         Text(
@@ -137,7 +137,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -298,7 +298,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -448,12 +448,12 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               Icon(
                 Icons.business_center_outlined,
                 size: 64,
-                color: Colors.grey[400],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: 16),
               Text(
                 'No hay activos registrados',
-                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16),
               ),
               const SizedBox(height: 8),
               TextButton.icon(
@@ -501,7 +501,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: isSelected
-              ? Border.all(color: AppTheme.primaryColor, width: 2)
+              ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
               : null,
           boxShadow: [
             BoxShadow(
@@ -544,7 +544,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                       ),
                       Text(
                         asset.categoryLabel,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                       ),
                     ],
                   ),
@@ -574,7 +574,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             if (asset.description != null)
               Text(
                 asset.description!,
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -602,10 +602,10 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 const Spacer(),
                 Text(
                   '\$ ${Helpers.formatNumber(asset.currentValue)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
-                    color: AppTheme.primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -614,11 +614,11 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             if (asset.location != null)
               Row(
                 children: [
-                  Icon(Icons.location_on, size: 14, color: Colors.grey[500]),
+                  Icon(Icons.location_on, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     asset.location!,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11),
                   ),
                 ],
               ),
@@ -677,7 +677,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                       ),
                       Text(
                         asset.categoryLabel,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                       ),
                     ],
                   ),
@@ -798,7 +798,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Estado cambiado a ${s['label']}'),
-                        backgroundColor: Colors.green,
+                        backgroundColor: AppColors.success,
                       ),
                     );
                   }
@@ -864,7 +864,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
           Text(
             value,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
@@ -948,7 +948,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Notas actualizadas'),
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppColors.success,
                   ),
                 );
               }
@@ -989,11 +989,11 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             ),
             child: Column(
               children: [
-                Icon(Icons.build_outlined, size: 32, color: Colors.grey[400]),
+                Icon(Icons.build_outlined, size: 32, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(height: 8),
                 Text(
                   'Sin registros de mantenimiento',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
                 ),
               ],
             ),
@@ -1036,7 +1036,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               const Spacer(),
               Text(
                 '${m.maintenanceDate.day}/${m.maintenanceDate.month}/${m.maintenanceDate.year}',
-                style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11),
               ),
             ],
           ),
@@ -1046,19 +1046,19 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
           Row(
             children: [
               if (m.cost > 0) ...[
-                Icon(Icons.attach_money, size: 14, color: Colors.grey[600]),
+                Icon(Icons.attach_money, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 Text(
                   Helpers.formatNumber(m.cost),
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                 ),
                 const SizedBox(width: 12),
               ],
               if (m.performedBy != null) ...[
-                Icon(Icons.person, size: 14, color: Colors.grey[600]),
+                Icon(Icons.person, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 2),
                 Text(
                   m.performedBy!,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                 ),
               ],
             ],
@@ -1081,7 +1081,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             Text(
               m.notes!,
               style: TextStyle(
-                color: Colors.grey[500],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 11,
                 fontStyle: FontStyle.italic,
               ),
@@ -1399,7 +1399,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                     messenger.showSnackBar(
                       const SnackBar(
                         content: Text('Activo actualizado'),
-                        backgroundColor: Colors.green,
+                        backgroundColor: AppColors.success,
                       ),
                     );
                   }
@@ -1411,7 +1411,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                     messenger.showSnackBar(
                       const SnackBar(
                         content: Text('Activo creado exitosamente'),
-                        backgroundColor: Colors.green,
+                        backgroundColor: AppColors.success,
                       ),
                     );
                   }
@@ -1616,7 +1616,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                               ? 'Mantenimiento registrado y agendado en calendario'
                               : 'Mantenimiento registrado',
                         ),
-                        backgroundColor: Colors.green,
+                        backgroundColor: AppColors.success,
                       ),
                     );
                   }

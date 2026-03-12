@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/responsive/responsive_helper.dart';
 
 class QuickActionsButton extends StatefulWidget {
@@ -21,7 +21,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
       icon: Icons.account_balance_wallet,
       label: 'Caja Diaria',
       route: '/daily-cash',
-      color: AppTheme.successColor,
+      color: AppColors.success,
     ),
     QuickActionItem(
       icon: Icons.add_shopping_cart,
@@ -182,13 +182,12 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header fijo
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.05),
+                        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
                         border: Border(
-                          bottom: BorderSide(color: Colors.grey.shade200),
+                          bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                         ),
                       ),
                       child: Row(
@@ -196,21 +195,20 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryColor.withOpacity(0.1),
+                              color: Theme.of(context).colorScheme.primaryContainer,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.flash_on,
-                              color: AppTheme.primaryColor,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
                               size: 18,
                             ),
                           ),
                           const SizedBox(width: 10),
-                          const Text(
+                          Text(
                             'Acciones Rápidas',
-                            style: TextStyle(
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              fontSize: 15,
                             ),
                           ),
                         ],
@@ -245,7 +243,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
             turns: _isExpanded ? 0.125 : 0,
             child: Material(
               elevation: 8,
-              shadowColor: AppTheme.primaryColor.withOpacity(0.4),
+              shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.4),
               borderRadius: BorderRadius.circular(14),
               child: InkWell(
                 onTap: _toggleExpanded,
@@ -256,8 +254,8 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        AppTheme.primaryColor,
-                        AppTheme.primaryColor.withBlue(150),
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primary.withBlue(150),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -266,7 +264,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                   ),
                   child: Icon(
                     _isExpanded ? Icons.close : Icons.bolt,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     size: 26,
                   ),
                 ),
@@ -282,8 +280,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
     if (!_isExpanded) {
       return FloatingActionButton(
         onPressed: _toggleExpanded,
-        backgroundColor: AppTheme.primaryColor,
-        child: const Icon(Icons.bolt, color: Colors.white, size: 26),
+        child: const Icon(Icons.bolt, size: 26),
       );
     }
 
@@ -297,7 +294,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
           builder: (ctx) => Container(
             margin: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
@@ -308,7 +305,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                   child: Container(
                     width: 40, height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -320,17 +317,17 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          color: Theme.of(context).colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(Icons.flash_on, color: AppTheme.primaryColor, size: 18),
+                        child: Icon(Icons.flash_on, color: Theme.of(context).colorScheme.onPrimaryContainer, size: 18),
                       ),
                       const SizedBox(width: 10),
-                      const Text('Acciones Rápidas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Acciones Rápidas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
-                const Divider(height: 1),
+                Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
                   child: GridView.count(
@@ -364,8 +361,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
 
     return FloatingActionButton(
       onPressed: _toggleExpanded,
-      backgroundColor: AppTheme.primaryColor,
-      child: const Icon(Icons.close, color: Colors.white, size: 26),
+      child: const Icon(Icons.close, size: 26),
     );
   }
 
@@ -467,6 +463,7 @@ class _MobileActionItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -487,7 +484,7 @@ class _MobileActionItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: Colors.grey.shade700,
+              color: cs.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,

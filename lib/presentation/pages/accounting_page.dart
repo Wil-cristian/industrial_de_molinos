@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/accounting_provider.dart';
 import '../../data/datasources/accounting_datasource.dart';
@@ -125,16 +125,16 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
             children: [
               Icon(
                 Icons.account_balance,
-                color: AppTheme.primaryColor,
+                color: Theme.of(context).colorScheme.primary,
                 size: 22,
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Contabilidad',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(width: 16),
@@ -142,14 +142,14 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                  color: Theme.of(context).colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${state.totalEntries} asientos',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -166,7 +166,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 },
                 tooltip: 'Actualizar',
                 visualDensity: VisualDensity.compact,
-                color: AppTheme.primaryColor,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ],
           ),
@@ -176,9 +176,9 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
             controller: _tabController,
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            labelColor: AppTheme.primaryColor,
-            unselectedLabelColor: Colors.grey[600],
-            indicatorColor: AppTheme.primaryColor,
+            labelColor: Theme.of(context).colorScheme.primary,
+            unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+            indicatorColor: Theme.of(context).colorScheme.primary,
             indicatorWeight: 2.5,
             labelStyle: const TextStyle(
               fontSize: 13,
@@ -225,7 +225,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
       icon: Icon(
         Icons.date_range,
         size: 16,
-        color: hasFilter ? AppTheme.successColor : AppTheme.primaryColor,
+        color: hasFilter ? AppColors.success : Theme.of(context).colorScheme.primary,
       ),
       label: Text(
         hasFilter
@@ -233,13 +233,13 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
             : 'Filtrar fechas',
         style: TextStyle(
           fontSize: 12,
-          color: hasFilter ? AppTheme.successColor : AppTheme.primaryColor,
+          color: hasFilter ? AppColors.success : Theme.of(context).colorScheme.primary,
         ),
       ),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         side: BorderSide(
-          color: hasFilter ? AppTheme.successColor : Colors.grey[300]!,
+          color: hasFilter ? AppColors.success : Colors.grey[300]!,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         visualDensity: VisualDensity.compact,
@@ -259,7 +259,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: AppTheme.primaryColor),
+            colorScheme: ColorScheme.light(primary: Theme.of(context).colorScheme.primary),
           ),
           child: child!,
         );
@@ -327,7 +327,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 child: _SummaryCard(
                   title: 'Total Activos',
                   value: state.totalActivos,
-                  color: AppTheme.successColor,
+                  color: AppColors.success,
                   icon: Icons.trending_up,
                 ),
               ),
@@ -336,7 +336,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 child: _SummaryCard(
                   title: 'Total Pasivos',
                   value: state.totalPasivos,
-                  color: AppTheme.errorColor,
+                  color: AppColors.danger,
                   icon: Icons.trending_down,
                 ),
               ),
@@ -345,7 +345,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 child: _SummaryCard(
                   title: 'Patrimonio',
                   value: state.totalPatrimonio,
-                  color: AppTheme.primaryColor,
+                  color: Theme.of(context).colorScheme.primary,
                   icon: Icons.account_balance,
                 ),
               ),
@@ -357,7 +357,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           _BalanceSection(
             title: 'ACTIVOS',
             icon: Icons.arrow_upward,
-            color: AppTheme.successColor,
+            color: AppColors.success,
             items: activos,
           ),
           const SizedBox(height: 12),
@@ -366,7 +366,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           _BalanceSection(
             title: 'PASIVOS',
             icon: Icons.arrow_downward,
-            color: AppTheme.errorColor,
+            color: AppColors.danger,
             items: pasivos,
           ),
           const SizedBox(height: 12),
@@ -375,7 +375,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           _BalanceSection(
             title: 'PATRIMONIO',
             icon: Icons.star,
-            color: AppTheme.primaryColor,
+            color: Theme.of(context).colorScheme.primary,
             items: patrimonio,
           ),
 
@@ -385,10 +385,10 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.05),
+              color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                color: Theme.of(context).colorScheme.primaryContainer,
               ),
             ),
             child: Row(
@@ -397,7 +397,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 _EquationBlock(
                   'Activos',
                   state.totalActivos,
-                  AppTheme.successColor,
+                  AppColors.success,
                 ),
                 const Text(
                   '=',
@@ -406,7 +406,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 _EquationBlock(
                   'Pasivos',
                   state.totalPasivos,
-                  AppTheme.errorColor,
+                  AppColors.danger,
                 ),
                 const Text(
                   '+',
@@ -415,7 +415,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 _EquationBlock(
                   'Patrimonio',
                   state.totalPatrimonio,
-                  AppTheme.primaryColor,
+                  Theme.of(context).colorScheme.primary,
                 ),
               ],
             ),
@@ -454,7 +454,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 child: _SummaryCard(
                   title: 'Ingresos',
                   value: state.totalIngresos,
-                  color: AppTheme.successColor,
+                  color: AppColors.success,
                   icon: Icons.arrow_circle_up,
                 ),
               ),
@@ -463,7 +463,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 child: _SummaryCard(
                   title: 'Gastos',
                   value: state.totalGastos,
-                  color: AppTheme.errorColor,
+                  color: AppColors.danger,
                   icon: Icons.arrow_circle_down,
                 ),
               ),
@@ -473,8 +473,8 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                   title: 'Utilidad Neta',
                   value: state.utilidadNeta,
                   color: state.utilidadNeta >= 0
-                      ? AppTheme.successColor
-                      : AppTheme.errorColor,
+                      ? AppColors.success
+                      : AppColors.danger,
                   icon: Icons.trending_flat,
                 ),
               ),
@@ -483,7 +483,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 child: _SummaryCard(
                   title: 'Margen',
                   value: state.margenUtilidad,
-                  color: AppTheme.warningColor,
+                  color: AppColors.warning,
                   icon: Icons.percent,
                   isPercentage: true,
                 ),
@@ -496,7 +496,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           _ResultSection(
             title: 'INGRESOS',
             items: ingresos,
-            color: AppTheme.successColor,
+            color: AppColors.success,
           ),
           const SizedBox(height: 12),
 
@@ -504,7 +504,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           _ResultSection(
             title: 'GASTOS',
             items: gastos,
-            color: AppTheme.errorColor,
+            color: AppColors.danger,
           ),
           const SizedBox(height: 16),
 
@@ -515,12 +515,12 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
               gradient: LinearGradient(
                 colors: state.utilidadNeta >= 0
                     ? [
-                        AppTheme.successColor,
-                        AppTheme.successColor.withValues(alpha: 0.7),
+                        AppColors.success,
+                        AppColors.success.withValues(alpha: 0.7),
                       ]
                     : [
-                        AppTheme.errorColor,
-                        AppTheme.errorColor.withValues(alpha: 0.7),
+                        AppColors.danger,
+                        AppColors.danger.withValues(alpha: 0.7),
                       ],
               ),
               borderRadius: BorderRadius.circular(12),
@@ -573,7 +573,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,14 +585,14 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                 Icon(
                   Icons.calendar_month,
                   size: 18,
-                  color: AppTheme.primaryColor,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'Resultados Mensuales',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                     fontSize: 14,
                   ),
                 ),
@@ -638,7 +638,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                         Formatters.currency(m.ingresos),
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.successColor,
+                          color: AppColors.success,
                         ),
                       ),
                     ),
@@ -647,7 +647,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                         Formatters.currency(m.gastos),
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.errorColor,
+                          color: AppColors.danger,
                         ),
                       ),
                     ),
@@ -658,8 +658,8 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: utility >= 0
-                              ? AppTheme.successColor
-                              : AppTheme.errorColor,
+                              ? AppColors.success
+                              : AppColors.danger,
                         ),
                       ),
                     ),
@@ -692,7 +692,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           color: Colors.white,
           child: Row(
             children: [
-              Icon(Icons.filter_list, size: 18, color: Colors.grey[600]),
+              Icon(Icons.filter_list, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(width: 8),
               Text(
                 'Cuenta:',
@@ -752,7 +752,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -790,7 +790,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                       item.asiento,
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppTheme.primaryColor,
+                        color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -830,8 +830,8 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: item.saldoAcumulado >= 0
-                            ? AppTheme.successColor
-                            : AppTheme.errorColor,
+                            ? AppColors.success
+                            : AppColors.danger,
                       ),
                     ),
                   ),
@@ -873,7 +873,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Column(
           children: [
@@ -881,7 +881,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.05),
+                color: Theme.of(context).colorScheme.primaryContainer,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(12),
                 ),
@@ -891,14 +891,14 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                   Icon(
                     Icons.fact_check,
                     size: 20,
-                    color: AppTheme.primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Balance de Comprobación',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       fontSize: 14,
                     ),
                   ),
@@ -910,8 +910,8 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                     ),
                     decoration: BoxDecoration(
                       color: (totalDebit - totalCredit).abs() < 0.01
-                          ? AppTheme.successColor.withValues(alpha: 0.1)
-                          : AppTheme.errorColor.withValues(alpha: 0.1),
+                          ? AppColors.success.withValues(alpha: 0.1)
+                          : AppColors.danger.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -922,8 +922,8 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: (totalDebit - totalCredit).abs() < 0.01
-                            ? AppTheme.successColor
-                            : AppTheme.errorColor,
+                            ? AppColors.success
+                            : AppColors.danger,
                       ),
                     ),
                   ),
@@ -962,7 +962,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: AppTheme.primaryColor,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                         ),
@@ -1012,7 +1012,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                   // Fila de totales
                   DataRow(
                     color: WidgetStateProperty.all(
-                      AppTheme.primaryColor.withValues(alpha: 0.05),
+                      Theme.of(context).colorScheme.primaryContainer,
                     ),
                     cells: [
                       const DataCell(Text('')),
@@ -1097,9 +1097,9 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline, size: 48, color: AppTheme.errorColor),
+          Icon(Icons.error_outline, size: 48, color: AppColors.danger),
           const SizedBox(height: 12),
-          Text('Error: $error', style: TextStyle(color: AppTheme.errorColor)),
+          Text('Error: $error', style: TextStyle(color: AppColors.danger)),
           const SizedBox(height: 8),
           ElevatedButton.icon(
             onPressed: () => ref.read(accountingProvider.notifier).loadAll(),
@@ -1120,13 +1120,13 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           const SizedBox(height: 12),
           Text(
             message,
-            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
           ),
           const SizedBox(height: 8),
           Text(
             'Los asientos se crean automáticamente\nal registrar movimientos de caja, facturas y pagos.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[400], fontSize: 12),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
           ),
         ],
       ),
@@ -1158,7 +1158,7 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: Colors.grey[200]!),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: InkWell(
         onTap: () => setState(() => _expanded = !_expanded),
@@ -1178,7 +1178,7 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -1186,7 +1186,7 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryColor,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
@@ -1216,7 +1216,7 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                   // Fecha
                   Text(
                     Formatters.dateTime(e.entryDate),
-                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(width: 8),
                   // Monto
@@ -1231,7 +1231,7 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                   Icon(
                     _expanded ? Icons.expand_less : Icons.expand_more,
                     size: 18,
-                    color: Colors.grey[400],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ],
               ),
@@ -1240,7 +1240,7 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                 const SizedBox(height: 4),
                 Text(
                   e.description,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   maxLines: _expanded ? null : 1,
                   overflow: _expanded ? null : TextOverflow.ellipsis,
                 ),
@@ -1260,7 +1260,7 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -1272,7 +1272,7 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -1284,7 +1284,7 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -1376,11 +1376,11 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
   Color _referenceColor(String type) {
     switch (type) {
       case 'cash_movement':
-        return AppTheme.warningColor;
+        return AppColors.warning;
       case 'payment':
-        return AppTheme.successColor;
+        return AppColors.success;
       case 'invoice':
-        return AppTheme.primaryColor;
+        return Theme.of(context).colorScheme.primary;
       default:
         return Colors.grey;
     }
@@ -1422,7 +1422,7 @@ class _SummaryCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -1466,7 +1466,7 @@ class _BalanceSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -1516,7 +1516,7 @@ class _BalanceSection extends StatelessWidget {
                     item.codigo,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[500],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1534,7 +1534,7 @@ class _BalanceSection extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                       color: item.saldo >= 0
                           ? Colors.black87
-                          : AppTheme.errorColor,
+                          : AppColors.danger,
                     ),
                   ),
                 ],
@@ -1566,7 +1566,7 @@ class _ResultSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -1612,7 +1612,7 @@ class _ResultSection extends StatelessWidget {
                     item.codigo,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[500],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1653,7 +1653,7 @@ class _EquationBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: 4),
         Text(
           Formatters.currency(value),

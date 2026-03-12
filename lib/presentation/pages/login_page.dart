@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/providers/auth_provider.dart';
 import '../../core/constants/app_constants.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -48,6 +49,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 800;
     final isMobile = size.width < 600;
@@ -59,122 +62,98 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppTheme.primaryColor,
-              AppTheme.primaryColor.withValues(alpha: 0.8),
-              const Color(0xFF2C5282),
+              cs.primary,
+              cs.primary.withOpacity(0.85),
+              cs.primaryContainer,
             ],
           ),
         ),
         child: Center(
           child: SingleChildScrollView(
-            padding: EdgeInsets.all(isMobile ? 16 : 24),
+            padding: EdgeInsets.all(isMobile ? AppSpacing.base : AppSpacing.xxl),
             child: Container(
               constraints: BoxConstraints(maxWidth: isWide ? 480 : 400),
               child: Card(
-                elevation: 12,
-                shadowColor: Colors.black26,
+                elevation: 2,
+                shadowColor: cs.shadow.withOpacity(0.1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.all(isMobile ? 24 : 40),
+                  padding: EdgeInsets.all(isMobile ? AppSpacing.xxl : 40),
                   child: Form(
                     key: _formKey,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Logo/Icono
                         Container(
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                            color: cs.primaryContainer,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Icon(
                             Icons.precision_manufacturing_rounded,
                             size: 44,
-                            color: AppTheme.primaryColor,
+                            color: cs.onPrimaryContainer,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: AppSpacing.xl),
 
-                        // Título
                         Text(
                           AppConstants.appName,
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryColor,
-                              ),
+                          style: tt.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: cs.primary,
+                          ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.md),
                         Text(
                           _isRegisterMode
                               ? 'Crear nueva cuenta'
                               : 'Iniciar sesión',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: Colors.grey[600]),
+                          style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: AppSpacing.xxxl),
 
-                        // Error message
                         if (authState.error != null) ...[
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(AppSpacing.md),
                             decoration: BoxDecoration(
-                              color: Colors.red.shade50,
+                              color: AppColors.danger.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.red.shade200),
+                              border: Border.all(color: AppColors.danger.withOpacity(0.3)),
                             ),
                             child: Row(
                               children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  color: Colors.red.shade700,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 10),
+                                Icon(Icons.error_outline, color: AppColors.danger, size: 20),
+                                const SizedBox(width: AppSpacing.md),
                                 Expanded(
                                   child: Text(
                                     authState.error!,
-                                    style: TextStyle(
-                                      color: Colors.red.shade700,
-                                      fontSize: 13,
-                                    ),
+                                    style: tt.bodySmall?.copyWith(color: AppColors.danger),
                                   ),
                                 ),
                                 InkWell(
-                                  onTap: () => ref
-                                      .read(authProvider.notifier)
-                                      .clearError(),
-                                  child: Icon(
-                                    Icons.close,
-                                    color: Colors.red.shade300,
-                                    size: 18,
-                                  ),
+                                  onTap: () => ref.read(authProvider.notifier).clearError(),
+                                  child: Icon(Icons.close, color: AppColors.danger.withOpacity(0.5), size: 18),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppSpacing.xl),
                         ],
 
-                        // Email field
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'Correo electrónico',
                             hintText: 'usuario@empresa.com',
-                            prefixIcon: const Icon(Icons.email_outlined),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
+                            prefixIcon: Icon(Icons.email_outlined),
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
@@ -188,9 +167,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.base),
 
-                        // Password field
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
@@ -212,11 +190,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 });
                               },
                             ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -228,45 +201,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: AppSpacing.xxl),
 
-                        // Submit button
                         SizedBox(
                           width: double.infinity,
                           height: 50,
                           child: FilledButton(
                             onPressed: authState.isLoading ? null : _submit,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppTheme.primaryColor,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
                             child: authState.isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 22,
                                     height: 22,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2.5,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
-                                      ),
+                                      valueColor: AlwaysStoppedAnimation<Color>(cs.onPrimary),
                                     ),
                                   )
                                 : Text(
                                     _isRegisterMode
                                         ? 'Crear cuenta'
                                         : 'Iniciar sesión',
-                                    style: const TextStyle(
-                                      fontSize: 16,
+                                    style: tt.labelLarge?.copyWith(
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: AppSpacing.xl),
 
-                        // Toggle login/register
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -274,7 +236,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               _isRegisterMode
                                   ? '¿Ya tienes cuenta?'
                                   : '¿No tienes cuenta?',
-                              style: TextStyle(color: Colors.grey[600]),
+                              style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                             ),
                             TextButton(
                               onPressed: () {
@@ -287,22 +249,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 _isRegisterMode
                                     ? 'Iniciar sesión'
                                     : 'Regístrate',
-                                style: TextStyle(
+                                style: tt.labelLarge?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: AppTheme.primaryColor,
+                                  color: cs.primary,
                                 ),
                               ),
                             ),
                           ],
                         ),
 
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.md),
                         Text(
                           'v${AppConstants.appVersion}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[400],
-                          ),
+                          style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
                         ),
                       ],
                     ),

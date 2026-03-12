@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../domain/entities/activity.dart';
 import '../../data/providers/activities_provider.dart';
 
@@ -85,7 +85,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       body: Column(
         children: [
           // Header ultra compacto
@@ -102,7 +102,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                   style: Theme.of(context).textTheme.titleSmall
                       ?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryColor,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                 ),
                 const SizedBox(width: 8),
@@ -164,7 +164,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                                 style: TextStyle(fontSize: 11),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryColor,
+                                backgroundColor: Theme.of(context).colorScheme.primary,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
@@ -205,7 +205,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                                     decoration: BoxDecoration(
                                       border: Border(
                                         bottom: BorderSide(
-                                          color: Colors.grey[200]!,
+                                          color: Theme.of(context).colorScheme.outlineVariant,
                                         ),
                                       ),
                                     ),
@@ -214,7 +214,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                                         Icon(
                                           Icons.event,
                                           size: 14,
-                                          color: AppTheme.primaryColor,
+                                          color: Theme.of(context).colorScheme.primary,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
@@ -222,7 +222,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
-                                            color: AppTheme.primaryColor,
+                                            color: Theme.of(context).colorScheme.primary,
                                           ),
                                         ),
                                         const Spacer(),
@@ -230,7 +230,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                                           '${_filteredActivities.length} actividades',
                                           style: TextStyle(
                                             fontSize: 10,
-                                            color: Colors.grey[500],
+                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                       ],
@@ -279,7 +279,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
         decoration: BoxDecoration(
           color: Colors.grey[100],
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -289,7 +289,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               style: TextStyle(fontSize: 10, color: Colors.grey[700]),
             ),
             const SizedBox(width: 2),
-            Icon(Icons.arrow_drop_down, size: 14, color: Colors.grey[600]),
+            Icon(Icons.arrow_drop_down, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ],
         ),
       ),
@@ -353,7 +353,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
           child: Container(
             decoration: BoxDecoration(
               color: isSelected
-                  ? AppTheme.primaryColor
+                  ? Theme.of(context).colorScheme.primary
                   : isToday
                   ? Colors.blue[50]
                   : isCurrentMonth
@@ -361,7 +361,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                   : Colors.grey[50],
               border: Border.all(
                 color: isSelected
-                    ? AppTheme.primaryColor
+                    ? Theme.of(context).colorScheme.primary
                     : isToday
                     ? Colors.blue
                     : Colors.grey[300]!,
@@ -420,11 +420,11 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.event_note, size: 32, color: Colors.grey[400]),
+            Icon(Icons.event_note, size: 32, color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 8),
             Text(
               'Sin actividades',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -468,14 +468,14 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('${activity.title} eliminada'),
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppColors.success,
                   ),
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Error al eliminar la actividad'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.danger,
                   ),
                 );
               }
@@ -807,7 +807,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                         onChanged: (value) {
                           setState(() => _isRecurring = value ?? false);
                         },
-                        activeColor: AppTheme.primaryColor,
+                        activeColor: Theme.of(context).colorScheme.primary,
                         controlAffinity: ListTileControlAffinity.leading,
                       ),
                       if (_isRecurring) ...[
@@ -903,7 +903,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                   ElevatedButton(
                     onPressed: _isSaving ? null : _saveActivity,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                     ),
                     child: _isSaving
@@ -933,7 +933,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('El título es requerido'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.danger,
         ),
       );
       return;
@@ -1051,7 +1051,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                   content: Text(
                     'Error al crear eventos: ${ref.read(activitiesProvider).error ?? "Error desconocido"}',
                   ),
-                  backgroundColor: Colors.red,
+                  backgroundColor: AppColors.danger,
                 ),
               );
             }
@@ -1079,7 +1079,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                     ? 'Actividad creada exitosamente'
                     : 'Actividad actualizada exitosamente',
               ),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
         } else {
@@ -1089,7 +1089,7 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
               content: Text(
                 'Error al guardar: ${ref.read(activitiesProvider).error ?? "Error desconocido"}',
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.danger,
             ),
           );
         }
@@ -1167,7 +1167,7 @@ class _ActivityCard extends StatelessWidget {
                       ),
                       Text(
                         activity.typeLabel,
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),

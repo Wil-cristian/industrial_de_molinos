@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../core/utils/print_service.dart';
 import '../../data/providers/reports_provider.dart';
@@ -77,7 +77,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                     IconButton(
                       icon: const Icon(Icons.arrow_back, size: 20),
                       onPressed: () => context.go('/'),
-                      color: AppTheme.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
@@ -92,7 +92,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryColor,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -125,9 +125,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 const SizedBox(height: 4),
                 TabBar(
                   controller: _tabController,
-                  labelColor: AppTheme.primaryColor,
-                  unselectedLabelColor: Colors.grey[600],
-                  indicatorColor: AppTheme.primaryColor,
+                  labelColor: Theme.of(context).colorScheme.primary,
+                  unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                  indicatorColor: Theme.of(context).colorScheme.primary,
                   indicatorWeight: 2,
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
@@ -436,7 +436,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
       messenger.showSnackBar(
         SnackBar(
           content: Text('Error generando informe: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.danger,
         ),
       );
     }
@@ -805,7 +805,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 child: Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: Colors.grey[400],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -832,7 +832,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 isGood
                     ? 'Dentro de meta (≤$dsoTarget días)'
                     : 'Sobre meta (>$dsoTarget días)',
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -843,7 +843,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             child: LinearProgressIndicator(
               value: (dso / 60).clamp(0, 1),
               minHeight: 6,
-              backgroundColor: Colors.grey[200],
+              backgroundColor: Theme.of(context).colorScheme.outlineVariant,
               valueColor: AlwaysStoppedAnimation(
                 dso <= 30
                     ? Colors.green
@@ -906,7 +906,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 child: Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: Colors.grey[400],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -981,15 +981,15 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             children: [
               Text(
                 '0%',
-                style: TextStyle(fontSize: 8, color: Colors.grey[400]),
+                style: TextStyle(fontSize: 8, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               Text(
                 '50%',
-                style: TextStyle(fontSize: 8, color: Colors.grey[400]),
+                style: TextStyle(fontSize: 8, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               Text(
                 '100%',
-                style: TextStyle(fontSize: 8, color: Colors.grey[400]),
+                style: TextStyle(fontSize: 8, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -1040,7 +1040,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               const SizedBox(width: 4),
               Text(
                 'Meta 30d',
-                style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+                style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -1050,7 +1050,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 ? Center(
                     child: Text(
                       'Sin datos de DSO',
-                      style: TextStyle(color: Colors.grey[400], fontSize: 11),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11),
                     ),
                   )
                 : LineChart(
@@ -1059,7 +1059,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         show: true,
                         drawVerticalLine: false,
                         getDrawingHorizontalLine: (value) =>
-                            FlLine(color: Colors.grey[200]!, strokeWidth: 1),
+                            FlLine(color: Theme.of(context).colorScheme.outlineVariant, strokeWidth: 1),
                       ),
                       titlesData: FlTitlesData(
                         leftTitles: AxisTitles(
@@ -1074,7 +1074,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 '${value.toInt()}d',
                                 style: TextStyle(
                                   fontSize: 9,
-                                  color: Colors.grey[500],
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               );
                             },
@@ -1092,7 +1092,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                   dsoData[idx].monthName,
                                   style: TextStyle(
                                     fontSize: 9,
-                                    color: Colors.grey[500],
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                 );
                               }
@@ -1199,7 +1199,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   const SizedBox(width: 4),
                   Text(
                     '% Acum.',
-                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -1220,7 +1220,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         const SizedBox(height: 8),
                         Text(
                           'Sin datos de productos',
-                          style: TextStyle(color: Colors.grey[500]),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -1284,7 +1284,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                         '\$${(value / 1000).toStringAsFixed(0)}K',
                                         style: TextStyle(
                                           fontSize: 9,
-                                          color: Colors.grey[600],
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                                         ),
                                       );
                                     },
@@ -1329,7 +1329,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                                   : abcData[idx].productName,
                                               style: TextStyle(
                                                 fontSize: 8,
-                                                color: Colors.grey[600],
+                                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                               ),
                                             ),
                                           ),
@@ -1348,7 +1348,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 show: true,
                                 drawVerticalLine: false,
                                 getDrawingHorizontalLine: (value) => FlLine(
-                                  color: Colors.grey[200]!,
+                                  color: Theme.of(context).colorScheme.outlineVariant,
                                   strokeWidth: 1,
                                 ),
                               ),
@@ -1428,7 +1428,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           ),
         ),
         const SizedBox(width: 4),
-        Text(desc, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+        Text(desc, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
       ],
     );
   }
@@ -1461,7 +1461,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         const SizedBox(height: 2),
         Text(
           '${pct.toStringAsFixed(0)}% del total',
-          style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+          style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -1536,7 +1536,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             ],
           ),
           const SizedBox(height: 8),
-          Text(title, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+          Text(title, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 2),
           Text(
             value,
@@ -1622,7 +1622,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         const SizedBox(height: 8),
                         Text(
                           'Sin datos de tendencia',
-                          style: TextStyle(color: Colors.grey[500]),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -1633,7 +1633,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         show: true,
                         drawVerticalLine: false,
                         getDrawingHorizontalLine: (value) =>
-                            FlLine(color: Colors.grey[200]!, strokeWidth: 1),
+                            FlLine(color: Theme.of(context).colorScheme.outlineVariant, strokeWidth: 1),
                       ),
                       titlesData: FlTitlesData(
                         leftTitles: AxisTitles(
@@ -1648,7 +1648,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 '\$${(value / 1000).toStringAsFixed(0)}K',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.grey[600],
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               );
                             },
@@ -1680,7 +1680,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     months[(data[idx].month - 1).clamp(0, 11)],
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.grey[600],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 );
@@ -1782,7 +1782,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+        Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
       ],
     );
   }
@@ -1838,7 +1838,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         const SizedBox(height: 8),
                         Text(
                           'Sin datos de clientes',
-                          style: TextStyle(color: Colors.grey[500]),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -1937,7 +1937,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         const SizedBox(width: 4),
         Text(
           '$label ($pct%)',
-          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -1975,7 +1975,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               const Spacer(),
               Text(
                 'por ventas',
-                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -2070,7 +2070,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     child: LinearProgressIndicator(
                                       value: progress,
                                       minHeight: 4,
-                                      backgroundColor: Colors.grey[200],
+                                      backgroundColor: Theme.of(context).colorScheme.outlineVariant,
                                       valueColor: AlwaysStoppedAnimation(
                                         index == 0
                                             ? Colors.amber[700]
@@ -2136,7 +2136,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               const Spacer(),
               Text(
                 'por ingresos',
-                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -2209,7 +2209,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     child: LinearProgressIndicator(
                                       value: progress,
                                       minHeight: 6,
-                                      backgroundColor: Colors.grey[100],
+                                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
                                       valueColor: AlwaysStoppedAnimation(
                                         barColor,
                                       ),
@@ -2221,7 +2221,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                   '${product.totalQuantity.toStringAsFixed(0)} uds',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Colors.grey[500],
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -2286,7 +2286,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               children: [
                 Text(
                   'Total por cobrar',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                 ),
                 Text(
                   Helpers.formatCurrency(total),
@@ -2358,7 +2358,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               Text(
                 Helpers.formatCurrency(amount),
@@ -2376,7 +2376,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             child: LinearProgressIndicator(
               value: pct,
               minHeight: 8,
-              backgroundColor: Colors.grey[100],
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
               valueColor: AlwaysStoppedAnimation(color),
             ),
           ),
@@ -2471,7 +2471,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         Text(
                           'Sin datos de ingresos/gastos',
                           style: TextStyle(
-                            color: Colors.grey[500],
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -2521,7 +2521,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 '\$${(value / 1000).toStringAsFixed(0)}K',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.grey[600],
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               );
                             },
@@ -2553,7 +2553,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     months[(data[idx].month - 1).clamp(0, 11)],
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.grey[600],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 );
@@ -2573,7 +2573,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         show: true,
                         drawVerticalLine: false,
                         getDrawingHorizontalLine: (value) =>
-                            FlLine(color: Colors.grey[200]!, strokeWidth: 1),
+                            FlLine(color: Theme.of(context).colorScheme.outlineVariant, strokeWidth: 1),
                       ),
                       borderData: FlBorderData(show: false),
                     ),
@@ -2597,7 +2597,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+        Text(label, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         Text(
           value,
           style: TextStyle(
@@ -2658,7 +2658,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 child: Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: Colors.grey[400],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -2697,7 +2697,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             child: LinearProgressIndicator(
               value: score / 100,
               minHeight: 6,
-              backgroundColor: Colors.grey[200],
+              backgroundColor: Theme.of(context).colorScheme.outlineVariant,
               valueColor: AlwaysStoppedAnimation(getScoreColor()),
             ),
           ),
@@ -2797,7 +2797,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         Text(
                           'Sin datos de ventas para comparar.\nCrea facturas para ver esta gráfica.',
                           style: TextStyle(
-                            color: Colors.grey[500],
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                           textAlign: TextAlign.center,
@@ -2811,7 +2811,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         show: true,
                         drawVerticalLine: false,
                         getDrawingHorizontalLine: (value) =>
-                            FlLine(color: Colors.grey[200]!, strokeWidth: 1),
+                            FlLine(color: Theme.of(context).colorScheme.outlineVariant, strokeWidth: 1),
                       ),
                       titlesData: FlTitlesData(
                         leftTitles: AxisTitles(
@@ -2826,7 +2826,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 _formatCompact(value),
                                 style: TextStyle(
                                   fontSize: 9,
-                                  color: Colors.grey[500],
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               );
                             },
@@ -2844,7 +2844,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     data[idx].monthName,
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.grey[500],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 );
@@ -2978,7 +2978,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+          Text(label, style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           Text(
             Helpers.formatCurrency(value),
             style: TextStyle(
@@ -3034,7 +3034,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 child: Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: Colors.grey[400],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -3045,13 +3045,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 ? Center(
                     child: Text(
                       'Sin datos de productos',
-                      style: TextStyle(color: Colors.grey[500]),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   )
                 : ListView.separated(
                     itemCount: items.length,
                     separatorBuilder: (_, __) =>
-                        Divider(height: 1, color: Colors.grey[200]),
+                        Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                     itemBuilder: (context, index) {
                       final item = items[index];
                       Color statusColor;
@@ -3100,7 +3100,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     item.productCode,
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.grey[500],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -3126,7 +3126,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     'Rotación/año',
                                     style: TextStyle(
                                       fontSize: 8,
-                                      color: Colors.grey[500],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -3155,7 +3155,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     'Días inv.',
                                     style: TextStyle(
                                       fontSize: 8,
-                                      color: Colors.grey[500],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -3177,7 +3177,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     'Valor stock',
                                     style: TextStyle(
                                       fontSize: 8,
-                                      color: Colors.grey[500],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -3234,7 +3234,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 child: Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: Colors.grey[400],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -3245,13 +3245,13 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 ? Center(
                     child: Text(
                       'Sin datos de materiales',
-                      style: TextStyle(color: Colors.grey[500]),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   )
                 : ListView.separated(
                     itemCount: items.length,
                     separatorBuilder: (_, __) =>
-                        Divider(height: 1, color: Colors.grey[200]),
+                        Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                     itemBuilder: (context, index) {
                       final item = items[index];
                       Color statusColor;
@@ -3307,7 +3307,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     '${item.category ?? ''} · ${item.currentStock.toStringAsFixed(1)} ${item.unit ?? 'UND'}',
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.grey[500],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -3354,7 +3354,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     'Duración',
                                     style: TextStyle(
                                       fontSize: 8,
-                                      color: Colors.grey[500],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -3376,7 +3376,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                     'Consumo/día',
                                     style: TextStyle(
                                       fontSize: 8,
-                                      color: Colors.grey[500],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -3436,7 +3436,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   ),
                   Text(
                     'Items que requieren atención inmediata',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -3554,7 +3554,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                     const SizedBox(height: 8),
                     Text(
                       'No hay items con stock crítico en este momento',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -3725,7 +3725,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               product.productCode,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey[600],
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -3763,7 +3763,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             : product.itemType == 'recipe'
                             ? 'Receta'
                             : 'Producto',
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ),
                     DataCell(
@@ -3863,7 +3863,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             'Costo: ${Helpers.formatCurrency(product.stockCostValue)}',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey[500],
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -3974,7 +3974,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       style: TextStyle(color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ],
@@ -4249,7 +4249,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 ),
                 Text(
                   '${state.receivables.length} clientes con deuda',
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 // Botón para ir a Mora e Intereses
                 if (state.receivables.any(
@@ -4459,7 +4459,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   const SizedBox(height: 4),
                   Text(
                     'Tasa de interés: ${debtState.defaultInterestRate}% mensual',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -4473,7 +4473,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
+                      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -4537,7 +4537,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   'Total con Intereses',
                   Helpers.formatCurrency(debtState.totalWithInterest),
                   Icons.account_balance,
-                  AppTheme.primaryColor,
+                  Theme.of(context).colorScheme.primary,
                   subtitle: 'deuda total',
                 ),
                 _buildKPICard(
@@ -4858,7 +4858,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                         Icons.add_circle,
                                         size: 20,
                                       ),
-                                      color: AppTheme.primaryColor,
+                                      color: Theme.of(context).colorScheme.primary,
                                       onPressed: debt.interestApplied
                                           ? null
                                           : () => _applyInterestDialog(debt),
@@ -4994,7 +4994,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${debts.length} notificaciones enviadas'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -5101,7 +5101,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
             child: const Text(
               'Aplicar Interés',
@@ -5341,13 +5341,13 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.successColor.withOpacity(0.1),
+                      color: AppColors.success.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       'Ingresos: ${Formatters.currency(totalIncome)}',
                       style: TextStyle(
-                        color: AppTheme.successColor,
+                        color: AppColors.success,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
@@ -5359,13 +5359,13 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.errorColor.withOpacity(0.1),
+                      color: AppColors.danger.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       'Gastos: ${Formatters.currency(totalExpense)}',
                       style: TextStyle(
-                        color: AppTheme.errorColor,
+                        color: AppColors.danger,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
@@ -5378,16 +5378,16 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                     ),
                     decoration: BoxDecoration(
                       color: (totalIncome - totalExpense) >= 0
-                          ? AppTheme.successColor.withOpacity(0.1)
-                          : AppTheme.errorColor.withOpacity(0.1),
+                          ? AppColors.success.withOpacity(0.1)
+                          : AppColors.danger.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       'Neto: ${Formatters.currency(totalIncome - totalExpense)}',
                       style: TextStyle(
                         color: (totalIncome - totalExpense) >= 0
-                            ? AppTheme.successColor
-                            : AppTheme.errorColor,
+                            ? AppColors.success
+                            : AppColors.danger,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
@@ -5412,7 +5412,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                           children: [
                             Icon(
                               Icons.arrow_upward,
-                              color: AppTheme.errorColor,
+                              color: AppColors.danger,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
@@ -5422,7 +5422,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: AppTheme.errorColor,
+                                  color: AppColors.danger,
                                 ),
                               ),
                             ),
@@ -5431,7 +5431,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
-                                color: AppTheme.errorColor,
+                                color: AppColors.danger,
                               ),
                             ),
                           ],
@@ -5509,7 +5509,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                                       textAlign: TextAlign.right,
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey[600],
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ),
@@ -5532,7 +5532,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                           children: [
                             Icon(
                               Icons.arrow_downward,
-                              color: AppTheme.successColor,
+                              color: AppColors.success,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
@@ -5542,7 +5542,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: AppTheme.successColor,
+                                  color: AppColors.success,
                                 ),
                               ),
                             ),
@@ -5551,7 +5551,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
-                                color: AppTheme.successColor,
+                                color: AppColors.success,
                               ),
                             ),
                           ],
@@ -5629,7 +5629,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                                       textAlign: TextAlign.right,
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey[600],
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ),
@@ -5675,17 +5675,17 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                   _buildFlowStat(
                     'Total Movimientos',
                     '${_movements.length}',
-                    AppTheme.accentColor,
+                    AppColors.info,
                   ),
                   _buildFlowStat(
                     'Ingresos',
                     '${_movements.where((m) => m.type == MovementType.income).length}',
-                    AppTheme.successColor,
+                    AppColors.success,
                   ),
                   _buildFlowStat(
                     'Gastos',
                     '${_movements.where((m) => m.type == MovementType.expense).length}',
-                    AppTheme.errorColor,
+                    AppColors.danger,
                   ),
                   _buildFlowStat(
                     'Traslados',
@@ -5713,7 +5713,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
       ],
     );
   }
@@ -6104,12 +6104,12 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                       const SizedBox(height: 16),
                       Text(
                         'No hay retiros registrados',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[500]),
+                        style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Usa "Salida por Empleado" en el inventario para registrar retiros',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -6159,7 +6159,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
             child: ListView.separated(
               itemCount: _filtered.length,
               separatorBuilder: (_, __) =>
-                  Divider(height: 1, color: Colors.grey[200]),
+                  Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
               itemBuilder: (context, i) {
                 final r = _filtered[i];
                 final mat = r['materials'] as Map<String, dynamic>?;
@@ -6190,7 +6190,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                           dateStr,
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -6253,7 +6253,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                           '\$${costUnit.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           textAlign: TextAlign.right,
                         ),
@@ -6276,7 +6276,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
                           notes,
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey[500],
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -6328,7 +6328,7 @@ class _EmployeeExpensesTabState extends ConsumerState<_EmployeeExpensesTab> {
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               Text(
                 value,

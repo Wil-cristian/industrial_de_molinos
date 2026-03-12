@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
 
 /// Bottom navigation bar para vista móvil.
 /// Muestra 4 items principales + botón "Más" que abre un drawer.
@@ -77,12 +76,13 @@ class AppBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final selected = _getSelectedIndex();
 
+    final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: cs.shadow.withOpacity(0.08),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -134,7 +134,8 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected ? AppTheme.primaryColor : Colors.grey.shade500;
+    final cs = Theme.of(context).colorScheme;
+    final color = isSelected ? cs.primary : cs.onSurfaceVariant;
 
     return InkWell(
       onTap: onTap,
@@ -172,23 +173,24 @@ class _MoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
       margin: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Container(
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: cs.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -197,16 +199,16 @@ class _MoreMenu extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
             child: Row(
               children: [
-                Icon(Icons.apps, color: AppTheme.primaryColor, size: 20),
+                Icon(Icons.apps, color: cs.primary, size: 20),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Más opciones',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: cs.outlineVariant),
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
             child: GridView.count(
@@ -249,12 +251,13 @@ class _MoreMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.primaryColor.withOpacity(0.1) : Colors.transparent,
+          color: isActive ? cs.primaryContainer : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -262,7 +265,7 @@ class _MoreMenuItem extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isActive ? AppTheme.primaryColor : Colors.grey.shade600,
+              color: isActive ? cs.onPrimaryContainer : cs.onSurfaceVariant,
               size: 24,
             ),
             const SizedBox(height: 6),
@@ -271,7 +274,7 @@ class _MoreMenuItem extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                color: isActive ? AppTheme.primaryColor : Colors.grey.shade700,
+                color: isActive ? cs.onPrimaryContainer : cs.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,

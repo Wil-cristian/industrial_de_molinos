@@ -25,7 +25,6 @@ import 'presentation/pages/iva_control_page.dart';
 import 'presentation/widgets/app_sidebar.dart';
 import 'presentation/widgets/app_bottom_nav_bar.dart';
 import 'presentation/widgets/quick_actions_button.dart';
-import 'core/theme/app_theme.dart';
 import 'core/responsive/responsive_helper.dart';
 
 // Claves de navegación para mantener el estado
@@ -308,7 +307,7 @@ class _MainShell extends StatelessWidget {
     if (isMobile) {
       return Scaffold(
         body: Container(
-          color: AppTheme.backgroundColor,
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
           child: navigationShell,
         ),
         bottomNavigationBar: AppBottomNavBar(
@@ -327,7 +326,7 @@ class _MainShell extends StatelessWidget {
               AppSidebar(currentRoute: currentPath),
               Expanded(
                 child: Container(
-                  color: AppTheme.backgroundColor,
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
                   child: navigationShell,
                 ),
               ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/iva_datasource.dart';
@@ -150,7 +150,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       body: Column(
         children: [
           _buildHeader(),
@@ -191,9 +191,9 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.shopping_bag,
-                color: AppTheme.primaryColor,
+                color: Theme.of(context).colorScheme.primary,
                 size: 28,
               ),
               const SizedBox(width: 12),
@@ -201,12 +201,12 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Compras y Gastos',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryColor,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -215,7 +215,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                       _dateRange != null
                           ? '${Formatters.date(_dateRange!.start)} — ${Formatters.date(_dateRange!.end)}'
                           : 'Todos los registros',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -236,10 +236,10 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.errorColor.withValues(alpha: 0.1),
+                  color: AppColors.danger.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppTheme.errorColor.withValues(alpha: 0.3),
+                    color: AppColors.danger.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Column(
@@ -249,7 +249,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                       'Total Gastos',
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppTheme.errorColor.withValues(alpha: 0.8),
+                        color: AppColors.danger.withValues(alpha: 0.8),
                       ),
                     ),
                     Text(
@@ -257,7 +257,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.errorColor,
+                        color: AppColors.danger,
                       ),
                     ),
                   ],
@@ -283,7 +283,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                   icon: const Icon(Icons.close, size: 18),
                   tooltip: 'Quitar filtro',
                   style: IconButton.styleFrom(
-                    foregroundColor: AppTheme.errorColor,
+                    foregroundColor: AppColors.danger,
                   ),
                 ),
               FilledButton.icon(
@@ -452,9 +452,9 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
       child: TabBar(
         controller: _tabController,
         isScrollable: true,
-        labelColor: AppTheme.primaryColor,
-        unselectedLabelColor: Colors.grey[600],
-        indicatorColor: AppTheme.primaryColor,
+        labelColor: Theme.of(context).colorScheme.primary,
+        unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        indicatorColor: Theme.of(context).colorScheme.primary,
         indicatorWeight: 3,
         tabs: [
           Tab(
@@ -498,12 +498,12 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
               _selectedCategory != null
                   ? 'No hay gastos en "${_categoryLabel(_selectedCategory!)}"'
                   : 'No hay gastos registrados',
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
             Text(
               'Escanea una factura o registra un gasto en Caja Diaria',
-              style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -535,10 +535,10 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                 children: [
                   Text(
                     dateKey,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const Spacer(),
@@ -547,7 +547,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.errorColor,
+                      color: AppColors.danger,
                     ),
                   ),
                 ],
@@ -625,7 +625,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                     if (m.personName != null && m.personName!.isNotEmpty)
                       Text(
                         m.personName!,
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                   ],
                 ),
@@ -634,7 +634,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
                       'Ref: ${m.reference}',
-                      style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                      style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ),
               ],
@@ -648,12 +648,12 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.errorColor,
+                  color: AppColors.danger,
                 ),
               ),
               Text(
                 _accountName(m.accountId),
-                style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -675,7 +675,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
             const SizedBox(height: 12),
             Text(
               'No hay facturas IVA de compra',
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
@@ -748,7 +748,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                             inv.invoiceNumber,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -761,7 +761,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                               'NIT: ${inv.companyDocument}',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey[500],
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -777,15 +777,15 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                 children: [
                   Text(
                     Formatters.currency(inv.totalAmount),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   Text(
                     Formatters.date(inv.invoiceDate),
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -818,7 +818,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
               padding: const EdgeInsets.only(top: 8),
               child: Row(
                 children: [
-                  Icon(Icons.fingerprint, size: 14, color: Colors.grey[400]),
+                  Icon(Icons.fingerprint, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -826,7 +826,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                       style: TextStyle(
                         fontSize: 10,
                         fontFamily: 'monospace',
-                        color: Colors.grey[500],
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -888,12 +888,12 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                const Text(
+                Text(
                   'Resumen IVA Compras',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 _buildIvaPill('Base', totalIvaBase, Colors.blue),
@@ -905,12 +905,12 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
             const SizedBox(height: 16),
           ],
           // Title
-          const Text(
+          Text(
             'Desglose por Categoría',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: AppTheme.primaryColor,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(height: 12),
@@ -1002,7 +1002,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                             '$count',
                             style: TextStyle(
                               fontSize: 9,
-                              color: Colors.grey[500],
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                       ],

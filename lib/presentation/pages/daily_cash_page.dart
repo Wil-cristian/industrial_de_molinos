@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/accounts_provider.dart';
 import '../../data/providers/customers_provider.dart';
@@ -89,7 +89,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
         children: [
           // Contenido principal (sin sidebar - el router lo maneja)
           Container(
-            color: AppTheme.backgroundColor,
+            color: Theme.of(context).colorScheme.surfaceContainerLowest,
             child: state.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : Column(
@@ -116,9 +116,9 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.factory,
-                                        color: AppTheme.primaryColor,
+                                        color: Theme.of(context).colorScheme.primary,
                                         size: 20,
                                       ),
                                     ),
@@ -135,7 +135,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                                 .textTheme
                                                 .titleMedium
                                                 ?.copyWith(
-                                                  color: AppTheme.primaryColor,
+                                                  color: Theme.of(context).colorScheme.primary,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                           ),
@@ -175,13 +175,13 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                             vertical: 8,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: AppTheme.primaryColor
+                                            color: Theme.of(context).colorScheme.primary
                                                 .withOpacity(0.1),
                                             borderRadius: BorderRadius.circular(
                                               8,
                                             ),
                                             border: Border.all(
-                                              color: AppTheme.primaryColor
+                                              color: Theme.of(context).colorScheme.primary
                                                   .withOpacity(0.3),
                                             ),
                                           ),
@@ -190,7 +190,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                             children: [
                                               Icon(
                                                 Icons.calendar_today,
-                                                color: AppTheme.primaryColor,
+                                                color: Theme.of(context).colorScheme.primary,
                                                 size: 16,
                                               ),
                                               const SizedBox(width: 6),
@@ -203,9 +203,9 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                                       : Formatters.dateLong(
                                                           state.selectedDate,
                                                         ),
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     color:
-                                                        AppTheme.primaryColor,
+                                                        Theme.of(context).colorScheme.primary,
                                                     fontWeight: FontWeight.w600,
                                                     fontSize: 13,
                                                   ),
@@ -217,7 +217,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                               const SizedBox(width: 2),
                                               Icon(
                                                 Icons.arrow_drop_down,
-                                                color: AppTheme.primaryColor,
+                                                color: Theme.of(context).colorScheme.primary,
                                                 size: 20,
                                               ),
                                             ],
@@ -249,7 +249,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                         isNarrow ? 'Nuevo' : 'Nuevo Movimiento',
                                       ),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.primaryColor,
+                                        backgroundColor: Theme.of(context).colorScheme.primary,
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 16,
@@ -341,7 +341,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
               decoration: BoxDecoration(
-                color: AppTheme.successColor.withOpacity(0.1),
+                color: AppColors.success.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Row(
@@ -349,14 +349,14 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 children: [
                   Icon(
                     Icons.account_balance,
-                    color: AppTheme.successColor,
+                    color: AppColors.success,
                     size: 14,
                   ),
                   const SizedBox(width: 2),
                   Text(
                     'Total: ${Formatters.currency(state.totalBalance)}',
                     style: TextStyle(
-                      color: AppTheme.successColor,
+                      color: AppColors.success,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -415,7 +415,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
   ) {
     final accountColor = account.color != null
         ? Color(int.parse(account.color!.replaceFirst('#', '0xFF')))
-        : AppTheme.primaryColor;
+        : Theme.of(context).colorScheme.primary;
 
     final incomeToday = state.incomeByAccount[account.id] ?? 0.0;
     final expenseToday = state.expenseByAccount[account.id] ?? 0.0;
@@ -552,14 +552,14 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     icon: Icons.arrow_downward,
                     label: 'Total Ingresos',
                     value: state.dayIncome,
-                    color: AppTheme.successColor,
+                    color: AppColors.success,
                   ),
                   _buildSummaryItem(
                     context,
                     icon: Icons.arrow_upward,
                     label: 'Total Gastos',
                     value: state.dayExpense,
-                    color: AppTheme.errorColor,
+                    color: AppColors.danger,
                   ),
                   _buildSummaryItem(
                     context,
@@ -567,8 +567,8 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     label: 'Saldo Neto',
                     value: state.dayNet,
                     color: state.dayNet >= 0
-                        ? AppTheme.successColor
-                        : AppTheme.errorColor,
+                        ? AppColors.success
+                        : AppColors.danger,
                     showSign: true,
                   ),
                   _buildSummaryItem(
@@ -576,7 +576,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     icon: Icons.receipt,
                     label: 'Movimientos',
                     valueText: '${state.movementCount}',
-                    color: AppTheme.accentColor,
+                    color: AppColors.info,
                   ),
                 ];
 
@@ -689,7 +689,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               Text(
                 'Ingresos',
                 style: TextStyle(
-                  color: AppTheme.successColor,
+                  color: AppColors.success,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
@@ -701,7 +701,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                   e.key,
                   e.value,
                   state.dayIncome,
-                  AppTheme.successColor,
+                  AppColors.success,
                 ),
               ),
               if (expenseEntries.isNotEmpty) const Divider(height: 16),
@@ -710,7 +710,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
               Text(
                 'Gastos',
                 style: TextStyle(
-                  color: AppTheme.errorColor,
+                  color: AppColors.danger,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
@@ -722,7 +722,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                   e.key,
                   e.value,
                   state.dayExpense,
-                  AppTheme.errorColor,
+                  AppColors.danger,
                 ),
               ),
             ],
@@ -962,10 +962,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
       iconColor = Colors.orange;
       icon = isTransferIn ? Icons.arrow_downward : Icons.arrow_upward;
     } else if (isIncome) {
-      iconColor = AppTheme.successColor;
+      iconColor = AppColors.success;
       icon = Icons.arrow_downward;
     } else {
-      iconColor = AppTheme.errorColor;
+      iconColor = AppColors.danger;
       icon = Icons.arrow_upward;
     }
 
@@ -1025,8 +1025,8 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                   color: isTransfer
                       ? Colors.orange
                       : (isIncome
-                            ? AppTheme.successColor
-                            : AppTheme.errorColor),
+                            ? AppColors.success
+                            : AppColors.danger),
                 ),
               ),
               Text(
@@ -1607,7 +1607,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     final isTransfer = movement.type == MovementType.transfer;
     final color = isTransfer
         ? Colors.orange
-        : (isIncome ? AppTheme.successColor : AppTheme.errorColor);
+        : (isIncome ? AppColors.success : AppColors.danger);
 
     showDialog(
       context: context,
@@ -2027,7 +2027,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
         children: [
           Icon(
             _isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-            color: _isIncome ? AppTheme.successColor : AppTheme.errorColor,
+            color: _isIncome ? AppColors.success : AppColors.danger,
           ),
           const SizedBox(width: 8),
           Text(_isIncome ? 'Nuevo Ingreso' : 'Nuevo Gasto'),
@@ -2165,8 +2165,8 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                       icon: const Icon(Icons.add),
                       tooltip: 'Crear categoría',
                       style: IconButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                        foregroundColor: AppTheme.primaryColor,
+                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                        foregroundColor: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ],
@@ -2472,8 +2472,8 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
           onPressed: _isSaving ? null : _save,
           style: ElevatedButton.styleFrom(
             backgroundColor: _isIncome
-                ? AppTheme.successColor
-                : AppTheme.errorColor,
+                ? AppColors.success
+                : AppColors.danger,
           ),
           child: _isSaving
               ? const SizedBox(
@@ -2608,7 +2608,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('$name agregado como $selectedType'),
-                          backgroundColor: AppTheme.successColor,
+                          backgroundColor: AppColors.success,
                         ),
                       );
                     }
@@ -2735,7 +2735,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                     ? 'Ingreso registrado${hasFiles ? ' con adjuntos' : ''}'
                     : 'Gasto registrado${hasFiles ? ' con adjuntos' : ''}',
               ),
-              backgroundColor: AppTheme.successColor,
+              backgroundColor: AppColors.success,
             ),
           );
         }

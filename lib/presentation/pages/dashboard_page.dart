@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/providers.dart';
 import '../../data/providers/activities_provider.dart';
@@ -22,7 +23,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    // Cargar datos al iniciar
     Future.microtask(() {
       ref.read(customersProvider.notifier).loadCustomers();
       ref.read(productsProvider.notifier).loadProducts();
@@ -35,75 +35,62 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final customersState = ref.watch(customersProvider);
     final productsState = ref.watch(productsProvider);
     final invoicesState = ref.watch(invoicesProvider);
     final recentInvoices = ref.watch(recentInvoicesProvider);
     final inventoryState = ref.watch(inventoryProvider);
     
-    // Calcular alertas de stock bajo
     final lowStockMaterials = inventoryState.materials
         .where((m) => m.stock <= m.minStock && m.isActive)
         .toList();
     
     return Scaffold(
-      body: Container(
-        color: AppTheme.backgroundColor,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.read(invoicesProvider.notifier).refresh();
+          ref.read(inventoryProvider.notifier).loadMaterials();
+          ref.read(activitiesProvider.notifier).loadActivities();
+        },
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.base,
+            vertical: AppSpacing.md,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              _buildHeader(context),
-              const SizedBox(height: 3),
-
-              // Cards de resumen
-              _buildSummaryCards(context, invoicesState, productsState, customersState),
-              const SizedBox(height: 3),
-
-              // Notificaciones y Mini Calendario
+              _buildHeader(context, cs, tt),
+              const SizedBox(height: AppSpacing.base),
+              _buildSummaryCards(context, cs, tt, invoicesState, productsState, customersState),
+              const SizedBox(height: AppSpacing.base),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final isNarrow = constraints.maxWidth < 980;
-                  if (isNarrow) {
+                  if (constraints.maxWidth < 980) {
                     return Column(
                       children: [
-                        _buildNotificationsPanel(
-                          context,
-                          lowStockMaterials,
-                          invoicesState,
-                        ),
-                        const SizedBox(height: 12),
-                        _buildMiniCalendar(context),
+                        _buildNotificationsPanel(context, cs, tt, lowStockMaterials, invoicesState),
+                        const SizedBox(height: AppSpacing.md),
+                        _buildMiniCalendar(context, cs, tt),
                       ],
                     );
                   }
-
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        flex: 2,
-                        child: _buildNotificationsPanel(
-                          context,
-                          lowStockMaterials,
-                          invoicesState,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        flex: 1,
-                        child: _buildMiniCalendar(context),
-                      ),
+                      Expanded(flex: 2, child: _buildNotificationsPanel(context, cs, tt, lowStockMaterials, invoicesState)),
+                      const SizedBox(width: AppSpacing.base),
+                      Expanded(flex: 1, child: _buildMiniCalendar(context, cs, tt)),
                     ],
                   );
                 },
               ),
-              const SizedBox(height: 24),
-
-              // Últimas ventas
-              _buildRecentSalesCard(context, invoicesState, recentInvoices),
+              const SizedBox(height: AppSpacing.xl),
+              _buildRecentSalesCard(context, cs, tt, invoicesState, recentInvoices),
+              const SizedBox(height: AppSpacing.xl),
             ],
           ),
         ),
@@ -111,45 +98,39 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, ColorScheme cs, TextTheme tt) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 760;
-        return Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
+        return Row(
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '¡Bienvenido!',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '¡Bienvenido!',
+                    style: tt.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  isNarrow
-                      ? Formatters.date(DateTime.now())
-                      : Formatters.dateLong(DateTime.now()),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    isNarrow
+                        ? Formatters.date(DateTime.now())
+                        : Formatters.dateLong(DateTime.now()),
+                    style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            _buildStatusChip(
-              icon: Icons.cloud_done,
-              label: 'Conectado',
-              color: AppTheme.successColor,
-            ),
+            _buildStatusChip(icon: Icons.cloud_done, label: 'Conectado', color: AppColors.success),
+            const SizedBox(width: AppSpacing.sm),
             CircleAvatar(
-              radius: 16,
-              backgroundColor: AppTheme.primaryColor,
-              child: const Icon(Icons.person, color: Colors.white, size: 18),
+              radius: 18,
+              backgroundColor: cs.primaryContainer,
+              child: Icon(Icons.person, color: cs.onPrimaryContainer, size: 20),
             ),
           ],
         );
@@ -158,124 +139,92 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildSummaryCards(
-    BuildContext context, 
+    BuildContext context,
+    ColorScheme cs,
+    TextTheme tt,
     dynamic invoicesState, 
     dynamic productsState,
     dynamic customersState,
   ) {
+    final cards = [
+      _KpiData('Ventas', Formatters.currency(invoicesState.totalVentas), Icons.trending_up, AppColors.success, '${invoicesState.invoices.length} registros'),
+      _KpiData('Pendiente', Formatters.currency(invoicesState.totalPendiente), Icons.schedule, AppColors.warning, '${invoicesState.countPendientes} por cobrar'),
+      _KpiData('Productos', productsState.products.length.toString(), Icons.inventory_2_outlined, productsState.lowStockProducts.isNotEmpty ? AppColors.danger : AppColors.success, '${productsState.lowStockProducts.length} stock bajo'),
+      _KpiData('Clientes', customersState.customers.length.toString(), Icons.people_outline, cs.primary, 'Activos'),
+    ];
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 900) {
-          final cardWidth = (constraints.maxWidth - 6) / 2;
-          return Wrap(
-            spacing: 3,
-            runSpacing: 3,
-            children: [
-              SizedBox(
-                width: cardWidth,
-                child: _buildSummaryCard(
-                  context,
-                  title: 'Ventas',
-                  value: Formatters.currency(invoicesState.totalVentas),
-                  icon: Icons.attach_money,
-                  color: AppTheme.successColor,
-                  subtitle: '${invoicesState.invoices.length} rec',
-                ),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _buildSummaryCard(
-                  context,
-                  title: 'Pendiente',
-                  value: Formatters.currency(invoicesState.totalPendiente),
-                  icon: Icons.pending_actions,
-                  color: AppTheme.warningColor,
-                  subtitle: '${invoicesState.countPendientes} rec',
-                ),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _buildSummaryCard(
-                  context,
-                  title: 'Productos',
-                  value: productsState.products.length.toString(),
-                  icon: Icons.inventory_2,
-                  color: productsState.lowStockProducts.isNotEmpty
-                      ? AppTheme.errorColor
-                      : AppTheme.successColor,
-                  subtitle: '${productsState.lowStockProducts.length} bajo',
-                ),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _buildSummaryCard(
-                  context,
-                  title: 'Clientes',
-                  value: customersState.customers.length.toString(),
-                  icon: Icons.people,
-                  color: AppTheme.accentColor,
-                  subtitle: 'Activos',
-                ),
-              ),
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(
-              child: _buildSummaryCard(
-                context,
-                title: 'Ventas',
-                value: Formatters.currency(invoicesState.totalVentas),
-                icon: Icons.attach_money,
-                color: AppTheme.successColor,
-                subtitle: '${invoicesState.invoices.length} rec',
-              ),
-            ),
-            const SizedBox(width: 3),
-            Expanded(
-              child: _buildSummaryCard(
-                context,
-                title: 'Pendiente',
-                value: Formatters.currency(invoicesState.totalPendiente),
-                icon: Icons.pending_actions,
-                color: AppTheme.warningColor,
-                subtitle: '${invoicesState.countPendientes} rec',
-              ),
-            ),
-            const SizedBox(width: 3),
-            Expanded(
-              child: _buildSummaryCard(
-                context,
-                title: 'Productos',
-                value: productsState.products.length.toString(),
-                icon: Icons.inventory_2,
-                color: productsState.lowStockProducts.isNotEmpty
-                    ? AppTheme.errorColor
-                    : AppTheme.successColor,
-                subtitle: '${productsState.lowStockProducts.length} bajo',
-              ),
-            ),
-            const SizedBox(width: 3),
-            Expanded(
-              child: _buildSummaryCard(
-                context,
-                title: 'Clientes',
-                value: customersState.customers.length.toString(),
-                icon: Icons.people,
-                color: AppTheme.accentColor,
-                subtitle: 'Activos',
-              ),
-            ),
-          ],
+        final crossCount = constraints.maxWidth < 600 ? 2 : 4;
+        final gap = constraints.maxWidth < 600 ? AppSpacing.sm : AppSpacing.md;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossCount,
+            mainAxisSpacing: gap,
+            crossAxisSpacing: gap,
+            childAspectRatio: constraints.maxWidth < 600 ? 1.0 : 1.4,
+          ),
+          itemCount: cards.length,
+          itemBuilder: (context, i) => _buildKpiCard(cs, tt, cards[i]),
         );
       },
     );
   }
 
+  Widget _buildKpiCard(ColorScheme cs, TextTheme tt, _KpiData data) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: data.color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(data.icon, color: data.color, size: 22),
+          ),
+          const Spacer(),
+          Text(
+            data.title,
+            style: tt.labelLarge?.copyWith(color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              data.value,
+              style: tt.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            data.subtitle,
+            style: tt.bodySmall?.copyWith(color: data.color, fontWeight: FontWeight.w500),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNotificationsPanel(
-    BuildContext context, 
+    BuildContext context,
+    ColorScheme cs,
+    TextTheme tt,
     List<dynamic> lowStockMaterials,
     dynamic invoicesState,
   ) {
@@ -383,17 +332,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,19 +346,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(AppSpacing.sm),
                     decoration: BoxDecoration(
-                      color: Colors.orange[50],
-                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.warning.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.notifications_active, color: Colors.orange[600], size: 22),
+                    child: Icon(Icons.notifications_active, color: AppColors.warning, size: 22),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.md),
                   Text(
                     'Notificaciones',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -424,43 +364,42 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.red[50],
+                    color: AppColors.danger.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${notifications.length}',
-                    style: TextStyle(
-                      color: Colors.red[600],
+                    style: tt.labelSmall?.copyWith(
+                      color: AppColors.danger,
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 8),
-          ...notifications.map((n) => _buildNotificationTile(context, n)),
+          const SizedBox(height: AppSpacing.base),
+          Divider(height: 1, color: cs.outlineVariant),
+          const SizedBox(height: AppSpacing.md),
+          ...notifications.map((n) => _buildNotificationTile(context, cs, tt, n)),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationTile(BuildContext context, _NotificationItem notification) {
+  Widget _buildNotificationTile(BuildContext context, ColorScheme cs, TextTheme tt, _NotificationItem notification) {
     Color severityColor;
     switch (notification.severity) {
       case 'error':
-        severityColor = Colors.red;
+        severityColor = AppColors.danger;
         break;
       case 'warning':
-        severityColor = Colors.orange;
+        severityColor = AppColors.warning;
         break;
       case 'success':
-        severityColor = Colors.green;
+        severityColor = AppColors.success;
         break;
       default:
-        severityColor = Colors.blue;
+        severityColor = AppColors.info;
     }
 
     return Material(
@@ -471,53 +410,44 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             : null,
         borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.sm),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: severityColor.withOpacity(0.1),
+                  color: severityColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(notification.icon, color: severityColor, size: 20),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       notification.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
+                      style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       notification.message,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.md),
               Text(
                 notification.time,
-                style: TextStyle(
-                  color: Colors.grey[400],
-                  fontSize: 11,
-                ),
+                style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
               ),
               if (notification.route != null) ...[
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right, color: Colors.grey[400], size: 18),
+                const SizedBox(width: AppSpacing.xs),
+                Icon(Icons.chevron_right, color: cs.onSurfaceVariant, size: 18),
               ],
             ],
           ),
@@ -526,16 +456,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildMiniCalendar(BuildContext context) {
+  Widget _buildMiniCalendar(BuildContext context, ColorScheme cs, TextTheme tt) {
     final now = DateTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final firstWeekday = firstDayOfMonth.weekday;
     
-    // Obtener actividades
     final activitiesState = ref.watch(activitiesProvider);
     
-    // Helper para verificar si un día tiene actividades
     bool hasActivitiesOnDay(int day) {
       final date = DateTime(now.year, now.month, day);
       return activitiesState.activities.any((a) {
@@ -546,21 +474,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       });
     }
     
-    // Obtener actividades del día seleccionado
     final selectedDayActivities = activitiesState.getActivitiesForDay(_selectedDate);
     
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -571,23 +491,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(AppSpacing.sm),
                       decoration: BoxDecoration(
-                        color: Colors.indigo[50],
-                        borderRadius: BorderRadius.circular(10),
+                        color: cs.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(Icons.calendar_month, color: Colors.indigo[600], size: 20),
+                      child: Icon(Icons.calendar_month, color: cs.onPrimaryContainer, size: 20),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Text(
                         DateFormat('MMMM yyyy', 'es').format(now),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                        style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -602,9 +519,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           
-          // Días de la semana
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: ['L', 'M', 'X', 'J', 'V', 'S', 'D']
@@ -613,18 +529,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       child: Text(
                         d,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 11,
+                        style: tt.labelSmall?.copyWith(
+                          color: cs.onSurfaceVariant,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ))
                 .toList(),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.md),
           
-          // Días del mes
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -655,9 +569,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: isToday 
-                        ? AppTheme.primaryColor 
+                        ? cs.primary 
                         : isSelected 
-                            ? AppTheme.primaryColor.withOpacity(0.1)
+                            ? cs.primary.withOpacity(0.12)
                             : null,
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -666,13 +580,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     children: [
                       Text(
                         '$dayOffset',
-                        style: TextStyle(
+                        style: tt.bodySmall?.copyWith(
                           color: isToday 
-                              ? Colors.white 
+                              ? cs.onPrimary 
                               : isSelected 
-                                  ? AppTheme.primaryColor 
-                                  : Colors.grey[700],
-                          fontSize: 12,
+                                  ? cs.primary 
+                                  : cs.onSurface,
                           fontWeight: isToday || isSelected 
                               ? FontWeight.bold 
                               : FontWeight.normal,
@@ -685,7 +598,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           height: 4,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: isToday ? Colors.white : AppTheme.primaryColor,
+                            color: isToday ? cs.onPrimary : cs.primary,
                           ),
                         ),
                     ],
@@ -695,38 +608,33 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             },
           ),
           
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
+          Divider(height: 1, color: cs.outlineVariant),
+          const SizedBox(height: AppSpacing.md),
           
-          // Actividades del día seleccionado
           Text(
             'Actividades del ${_selectedDate.day}/${_selectedDate.month}',
-            style: TextStyle(
-              fontSize: 12,
+            style: tt.labelLarge?.copyWith(
               fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
+              color: cs.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.md),
           
           if (selectedDayActivities.isEmpty)
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: cs.surfaceContainerHighest.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.event_available, color: Colors.grey[400], size: 18),
-                  const SizedBox(width: 8),
+                  Icon(Icons.event_available, color: cs.onSurfaceVariant, size: 18),
+                  const SizedBox(width: AppSpacing.md),
                   Text(
                     'Sin actividades programadas',
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 12,
-                    ),
+                    style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -755,35 +663,25 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               activity.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 11,
-                              ),
+                              style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w600),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
                               activity.typeLabel,
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 10,
-                              ),
+                              style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
                             ),
                           ],
                         ),
                       ),
-                      Icon(
-                        Icons.chevron_right,
-                        size: 14,
-                        color: Colors.grey[400],
-                      ),
+                      Icon(Icons.chevron_right, size: 14, color: cs.onSurfaceVariant),
                     ],
                   ),
                 ),
@@ -797,9 +695,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 onTap: () => context.go('/calendar'),
                 child: Text(
                   '+${selectedDayActivities.length - 2} más...',
-                  style: TextStyle(
-                    color: AppTheme.primaryColor,
-                    fontSize: 11,
+                  style: tt.labelMedium?.copyWith(
+                    color: cs.primary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -811,66 +708,72 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildRecentSalesCard(
-    BuildContext context, 
+    BuildContext context,
+    ColorScheme cs,
+    TextTheme tt,
     dynamic invoicesState,
     List<Invoice> recentInvoices,
   ) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.green[50],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.receipt_long, color: Colors.green[600], size: 22),
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Últimas Ventas',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                TextButton.icon(
-                  onPressed: () => context.go('/invoices'),
-                  icon: const Icon(Icons.arrow_forward, size: 18),
-                  label: const Text('Ver todas'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (invoicesState.isLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (recentInvoices.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Text('No hay ventas registradas'),
-                ),
-              )
-            else
-              ...recentInvoices.take(5).map((invoice) => 
-                _buildInvoiceRow(
-                  '${invoice.series}-${invoice.number}',
-                  invoice.customerName,
-                  invoice.total,
-                  _getStatusLabel(invoice.status),
+                    child: Icon(Icons.receipt_long, color: AppColors.success, size: 22),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Text(
+                    'Últimas Ventas',
+                    style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: () => context.go('/invoices'),
+                icon: const Icon(Icons.arrow_forward, size: 18),
+                label: const Text('Ver todas'),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.base),
+          if (invoicesState.isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (recentInvoices.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Text(
+                  'No hay ventas registradas',
+                  style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ),
-          ],
-        ),
+            )
+          else
+            ...recentInvoices.take(5).map((invoice) => 
+              _buildInvoiceRow(
+                cs, tt,
+                '${invoice.series}-${invoice.number}',
+                invoice.customerName,
+                invoice.total,
+                _getStatusLabel(invoice.status),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -901,65 +804,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildSummaryCard(
-    BuildContext context, {
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-    required String subtitle,
-  }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, color: color, size: 24),
-                ),
-                Icon(Icons.more_vert, color: Colors.grey[400]),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryColor,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   String _getStatusLabel(InvoiceStatus status) {
     switch (status) {
       case InvoiceStatus.draft:
@@ -977,74 +821,67 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     }
   }
 
-  Widget _buildInvoiceRow(String number, String customer, double amount, String status) {
+  Widget _buildInvoiceRow(ColorScheme cs, TextTheme tt, String number, String customer, double amount, String status) {
     Color statusColor;
     switch (status) {
       case 'Pagado':
-        statusColor = AppTheme.successColor;
+        statusColor = AppColors.success;
         break;
       case 'Pendiente':
-        statusColor = AppTheme.warningColor;
+        statusColor = AppColors.warning;
         break;
       case 'Parcial':
-        statusColor = AppTheme.accentColor;
+        statusColor = AppColors.info;
         break;
       case 'Vencida':
-        statusColor = AppTheme.errorColor;
-        break;
-      case 'Borrador':
-        statusColor = Colors.grey;
-        break;
-      case 'Cancelada':
-        statusColor = Colors.grey[600]!;
+        statusColor = AppColors.danger;
         break;
       default:
-        statusColor = Colors.grey;
+        statusColor = cs.onSurfaceVariant;
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
       child: Row(
         children: [
           SizedBox(
             width: 130,
             child: Text(
               number,
-              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+              style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.base),
           Expanded(
             child: Text(
               customer,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13),
+              style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.base),
           SizedBox(
             width: 120,
             child: Text(
               Formatters.currency(amount),
               textAlign: TextAlign.right,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.base),
           SizedBox(
             width: 90,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: statusColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 status,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: tt.labelSmall?.copyWith(
                   color: statusColor,
-                  fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1072,4 +909,14 @@ class _NotificationItem {
     required this.time,
     this.route,
   });
+}
+
+class _KpiData {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final String subtitle;
+
+  const _KpiData(this.title, this.value, this.icon, this.color, this.subtitle);
 }

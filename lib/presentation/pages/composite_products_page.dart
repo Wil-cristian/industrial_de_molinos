@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../domain/entities/composite_product.dart';
 import '../../domain/entities/inventory_material.dart';
@@ -33,7 +32,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
     final filteredProducts = state.filteredProducts;
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       body: Column(
         children: [
           // ── Header ──
@@ -49,9 +48,9 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.arrow_back,
-                            color: AppTheme.primaryColor,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           onPressed: () => context.go('/'),
                           tooltip: 'Volver al menú',
@@ -68,13 +67,13 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                 style: Theme.of(context).textTheme.headlineSmall
                                     ?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: AppTheme.primaryColor,
+                                      color: Theme.of(context).colorScheme.primary,
                                     ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 '${state.products.length} productos registrados',
-                                style: TextStyle(color: Colors.grey[600]),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                               ),
                             ],
                           ),
@@ -249,16 +248,16 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.layers_outlined, size: 64, color: Colors.grey[400]),
+          Icon(Icons.layers_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 16),
           Text(
             'No hay productos compuestos',
-            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Text(
             'Crea tu primer producto compuesto (Molino, Transportador, etc.)',
-            style: TextStyle(color: Colors.grey[500]),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 24),
           FilledButton.icon(
@@ -294,7 +293,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               Text(
                 value,
@@ -357,7 +356,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                         Text(
                           product.code,
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -365,7 +364,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                     ),
                   ),
                   PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert, color: Colors.grey[400]),
+                    icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     onSelected: (value) => _handleProductAction(value, product),
                     itemBuilder: (context) => [
                       const PopupMenuItem(
@@ -414,7 +413,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(
                     product.description!,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -435,7 +434,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                 vertical: 1,
                               ),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryColor.withOpacity(0.1),
+                                color: Theme.of(context).colorScheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -443,7 +442,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryColor,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
                             ),
@@ -460,7 +459,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                               '${Helpers.formatNumber(comp.totalWeight)} kg',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.grey[500],
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -474,7 +473,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                     '+${product.components.length - 4} más...',
                     style: TextStyle(
                       fontSize: 10,
-                      color: Colors.grey[500],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -522,7 +521,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
   Widget _buildStatColumn(String label, String value) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+        Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: 4),
         Text(
           value,
@@ -643,7 +642,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                         ),
                         Text(
                           'Código: ${product.code}',
-                          style: TextStyle(color: Colors.grey[600]),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -656,16 +655,16 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryColor,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       Text(
                         'Compra: \$ ${Helpers.formatNumber(product.materialsCostPrice)}',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                       Text(
                         '${Helpers.formatNumber(product.totalWeight)} kg',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -681,7 +680,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
               if (product.description != null) ...[
                 Text(
                   product.description!,
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -703,14 +702,14 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 350),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: product.components.length,
                     separatorBuilder: (_, __) =>
-                        Divider(height: 1, color: Colors.grey[200]),
+                        Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                     itemBuilder: (context, index) {
                       final comp = product.components[index];
                       return Padding(
@@ -722,12 +721,12 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                           children: [
                             CircleAvatar(
                               radius: 16,
-                              backgroundColor: AppTheme.primaryColor
+                              backgroundColor: Theme.of(context).colorScheme.primary
                                   .withOpacity(0.1),
                               child: Text(
                                 '${comp.quantity}×',
                                 style: TextStyle(
-                                  color: AppTheme.primaryColor,
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
@@ -749,7 +748,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                     comp.dimensionsDescription,
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: Colors.grey[600],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -762,7 +761,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                   'V: \$ ${Helpers.formatNumber(comp.totalPrice)}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: AppTheme.primaryColor,
+                                    color: Theme.of(context).colorScheme.primary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -770,14 +769,14 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                   'C: \$ ${Helpers.formatNumber(comp.totalCostPrice)}',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Colors.grey[600],
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 Text(
                                   '${Helpers.formatNumber(comp.totalWeight)} kg',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Colors.grey[400],
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -878,7 +877,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
             value,
             style: TextStyle(
               fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-              color: valueColor ?? (isBold ? AppTheme.primaryColor : null),
+              color: valueColor ?? (isBold ? Theme.of(context).colorScheme.primary : null),
               fontSize: isBold ? 16 : null,
             ),
           ),
@@ -1124,7 +1123,7 @@ class _CompositeProductFormDialogState
                 children: [
                   Icon(
                     _isEditing ? Icons.edit : Icons.add_box,
-                    color: AppTheme.primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -1328,7 +1327,7 @@ class _CompositeProductFormDialogState
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             child: Column(
               children: [
@@ -1382,11 +1381,11 @@ class _CompositeProductFormDialogState
           padding: const EdgeInsets.symmetric(vertical: 5),
           decoration: BoxDecoration(
             color: isActive
-                ? AppTheme.primaryColor.withOpacity(0.1)
+                ? Theme.of(context).colorScheme.primaryContainer
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isActive ? AppTheme.primaryColor : Colors.transparent,
+              color: isActive ? Theme.of(context).colorScheme.primary : Colors.transparent,
             ),
           ),
           child: Row(
@@ -1395,7 +1394,7 @@ class _CompositeProductFormDialogState
               Icon(
                 icon,
                 size: 14,
-                color: isActive ? AppTheme.primaryColor : Colors.grey[600],
+                color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey[600],
               ),
               const SizedBox(width: 4),
               Text(
@@ -1403,7 +1402,7 @@ class _CompositeProductFormDialogState
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  color: isActive ? AppTheme.primaryColor : Colors.grey[600],
+                  color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey[600],
                 ),
               ),
             ],
@@ -1436,7 +1435,7 @@ class _CompositeProductFormDialogState
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
-                      color: AppTheme.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1479,7 +1478,7 @@ class _CompositeProductFormDialogState
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 10,
-                          color: AppTheme.primaryColor,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1502,12 +1501,12 @@ class _CompositeProductFormDialogState
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 10,
-                    color: AppTheme.primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 Text(
                   '${_selectedMaterial!.name} • ${Helpers.formatCurrency(_selectedMaterial!.effectiveCostPrice)}/kg',
-                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -1759,7 +1758,7 @@ class _CompositeProductFormDialogState
                 '${Helpers.formatCurrency(m.effectiveCostPrice)}/kg',
                 style: TextStyle(
                   fontSize: 10,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1917,7 +1916,7 @@ class _CompositeProductFormDialogState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
+        Text(label, style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: 2),
         Row(
           children: [
@@ -1929,7 +1928,7 @@ class _CompositeProductFormDialogState
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 child: Stack(
                   children: [
@@ -1938,7 +1937,7 @@ class _CompositeProductFormDialogState
                         height: 18,
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withOpacity(0.12),
+                          color: Theme.of(context).colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
@@ -1969,7 +1968,7 @@ class _CompositeProductFormDialogState
                                     ? FontWeight.bold
                                     : FontWeight.normal,
                                 color: isSel
-                                    ? AppTheme.primaryColor
+                                    ? Theme.of(context).colorScheme.primary
                                     : Colors.grey[500],
                               ),
                             ),
@@ -2078,7 +2077,7 @@ class _CompositeProductFormDialogState
               ? Center(
                   child: Text(
                     'No hay materiales',
-                    style: TextStyle(color: Colors.grey[500]),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 )
               : ListView.builder(
@@ -2105,12 +2104,12 @@ class _CompositeProductFormDialogState
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppTheme.primaryColor.withOpacity(0.1)
+                              ? Theme.of(context).colorScheme.primaryContainer
                               : Colors.white,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: isSelected
-                                ? AppTheme.primaryColor
+                                ? Theme.of(context).colorScheme.primary
                                 : Colors.grey[200]!,
                             width: isSelected ? 2 : 1,
                           ),
@@ -2141,7 +2140,7 @@ class _CompositeProductFormDialogState
                                           : FontWeight.w500,
                                       fontSize: 12,
                                       color: isSelected
-                                          ? AppTheme.primaryColor
+                                          ? Theme.of(context).colorScheme.primary
                                           : Colors.grey[800],
                                     ),
                                   ),
@@ -2149,7 +2148,7 @@ class _CompositeProductFormDialogState
                                     '${m.category} • Stock: ${m.stock.toStringAsFixed(1)} ${m.unit}',
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.grey[600],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -2161,15 +2160,15 @@ class _CompositeProductFormDialogState
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11,
                                 color: isSelected
-                                    ? AppTheme.primaryColor
+                                    ? Theme.of(context).colorScheme.primary
                                     : Colors.grey[700],
                               ),
                             ),
                             if (isSelected) ...[
                               const SizedBox(width: 8),
-                              const Icon(
+                              Icon(
                                 Icons.check_circle,
-                                color: AppTheme.primaryColor,
+                                color: Theme.of(context).colorScheme.primary,
                                 size: 18,
                               ),
                             ],
@@ -2187,7 +2186,7 @@ class _CompositeProductFormDialogState
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.grey[100],
-              border: Border(top: BorderSide(color: Colors.grey[300]!)),
+              border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
             ),
             child: Column(
               children: [
@@ -2205,7 +2204,7 @@ class _CompositeProductFormDialogState
                     ),
                     Text(
                       '${Helpers.formatCurrency(_selectedDirectMaterial!.effectiveCostPrice)}/${_selectedDirectMaterial!.unit}',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -2269,7 +2268,7 @@ class _CompositeProductFormDialogState
                     ),
                     Text(
                       ' ${_selectedDirectMaterial!.unit}',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const Spacer(),
                     Text(
@@ -2321,7 +2320,7 @@ class _CompositeProductFormDialogState
 
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -2381,13 +2380,13 @@ class _CompositeProductFormDialogState
                           Icon(
                             Icons.add_circle_outline,
                             size: 24,
-                            color: Colors.grey[400],
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(height: 2),
                           Text(
                             'Agrega componentes arriba',
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               fontSize: 10,
                             ),
                             textAlign: TextAlign.center,
@@ -2410,7 +2409,7 @@ class _CompositeProductFormDialogState
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.grey[200]!),
+                          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                         ),
                         child: Row(
                           children: [
@@ -2441,7 +2440,7 @@ class _CompositeProductFormDialogState
                                     comp.description,
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.grey[600],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -2461,7 +2460,7 @@ class _CompositeProductFormDialogState
                                   Helpers.formatCurrency(comp.totalPrice),
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Colors.grey[600],
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -2686,10 +2685,10 @@ class _CompositeProductFormDialogState
   Widget _sectionTitle(String text) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.bold,
-        color: AppTheme.primaryColor,
+        color: Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -2710,7 +2709,7 @@ class _CompositeProductFormDialogState
             value,
             style: TextStyle(
               fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-              color: bold ? AppTheme.primaryColor : null,
+              color: bold ? Theme.of(context).colorScheme.primary : null,
               fontSize: bold ? 15 : 13,
             ),
           ),

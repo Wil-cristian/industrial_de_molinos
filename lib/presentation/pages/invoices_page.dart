@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/account.dart';
@@ -189,7 +188,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryColor,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                         ),
                         _buildQuickStat(
@@ -817,7 +816,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
             fontSize: isTotal ? 18 : 14,
             color:
-                color ?? (isTotal ? AppTheme.primaryColor : Colors.grey[800]),
+                color ?? (isTotal ? Theme.of(context).colorScheme.primary : Colors.grey[800]),
           ),
         ),
       ],
@@ -2165,12 +2164,12 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withOpacity(0.1),
+                            color: Theme.of(context).colorScheme.primaryContainer,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
                             Icons.person,
-                            color: AppTheme.primaryColor,
+                            color: Theme.of(context).colorScheme.primary,
                             size: 22,
                           ),
                         ),
@@ -2270,7 +2269,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                               Icon(
                                 Icons.list_alt,
                                 size: 18,
-                                color: AppTheme.primaryColor,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -2531,7 +2530,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w900,
-                                      color: AppTheme.primaryColor,
+                                      color: Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
                                 ],
@@ -2618,7 +2617,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   : Icons.account_balance_wallet,
                               color: paid >= total
                                   ? Colors.green[600]
-                                  : AppTheme.primaryColor,
+                                  : Theme.of(context).colorScheme.primary,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
@@ -2685,7 +2684,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                         _buildPaymentInfoRow(
                           'Total',
                           total,
-                          AppTheme.primaryColor,
+                          Theme.of(context).colorScheme.primary,
                           Icons.receipt,
                         ),
                         const SizedBox(height: 8),
@@ -3758,7 +3757,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                   'Total',
                   Helpers.formatCurrency(total),
                   Icons.payments,
-                  AppTheme.primaryColor,
+                  Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 10),
                 _buildMiniStat(
@@ -3856,7 +3855,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                       children: [
                         Icon(
                           Icons.list_alt,
-                          color: AppTheme.primaryColor,
+                          color: Theme.of(context).colorScheme.primary,
                           size: 18,
                         ),
                         const SizedBox(width: 8),
@@ -3990,13 +3989,13 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppTheme.primaryColor.withOpacity(0.08),
-                          AppTheme.primaryColor.withOpacity(0.03),
+                          Theme.of(context).colorScheme.primaryContainer,
+                          Theme.of(context).colorScheme.primaryContainer,
                         ],
                       ),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: AppTheme.primaryColor.withOpacity(0.2),
+                        color: Theme.of(context).colorScheme.primaryContainer,
                       ),
                     ),
                     child: Row(
@@ -4007,7 +4006,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                             Icon(
                               Icons.payments,
                               size: 22,
-                              color: AppTheme.primaryColor,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                             const SizedBox(width: 10),
                             const Text(
@@ -4024,7 +4023,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
-                            color: AppTheme.primaryColor,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ],
@@ -4156,7 +4155,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
@@ -4164,7 +4163,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                     '${prod['quantity']}×',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       fontSize: 12,
                     ),
                   ),
@@ -4184,7 +4183,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                 Helpers.formatCurrency(total),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
+                  color: Theme.of(context).colorScheme.primary,
                   fontSize: 15,
                 ),
               ),
@@ -5207,7 +5206,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                   'Total',
                   '\$${Helpers.formatNumber(total)}',
                   Icons.payments,
-                  AppTheme.primaryColor,
+                  Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 12),
                 _buildStatCard(
@@ -5317,7 +5316,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.list_alt, color: AppTheme.primaryColor),
+                        Icon(Icons.list_alt, color: Theme.of(context).colorScheme.primary),
                         const SizedBox(width: 10),
                         const Text(
                           'Detalle de Productos',
@@ -5536,13 +5535,13 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppTheme.primaryColor.withOpacity(0.1),
-                          AppTheme.primaryColor.withOpacity(0.05),
+                          Theme.of(context).colorScheme.primaryContainer,
+                          Theme.of(context).colorScheme.primaryContainer,
                         ],
                       ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppTheme.primaryColor.withOpacity(0.3),
+                        color: Theme.of(context).colorScheme.primaryContainer,
                       ),
                     ),
                     child: Row(
@@ -5566,7 +5565,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
-                            color: AppTheme.primaryColor,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ],
@@ -5750,7 +5749,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
@@ -5758,7 +5757,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                     '${prod['quantity']}×',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       fontSize: 14,
                     ),
                   ),
@@ -5791,7 +5790,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                     Helpers.formatCurrency(total),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       fontSize: 18,
                     ),
                   ),

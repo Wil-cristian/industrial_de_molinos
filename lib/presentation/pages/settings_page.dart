@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../data/providers/auth_provider.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -66,10 +66,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     super.dispose();
   }
 
+  ColorScheme get cs => Theme.of(context).colorScheme;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7F8),
+      backgroundColor: cs.surfaceContainerLowest,
       body: Row(
         children: [
           // Panel lateral de navegación
@@ -102,8 +104,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Container(
       width: 280,
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(right: BorderSide(color: Colors.grey[200]!)),
+        color: cs.surface,
+        border: Border(right: BorderSide(color: cs.outlineVariant)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,7 +122,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       icon: const Icon(Icons.arrow_back),
                       onPressed: () => context.go('/'),
                       tooltip: 'Volver',
-                      color: AppTheme.primaryColor,
+                      color: cs.primary,
                     ),
                     const SizedBox(width: 8),
                     const Expanded(
@@ -139,7 +141,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   padding: const EdgeInsets.only(left: 48),
                   child: Text(
                     'Gestiona tus preferencias y cuenta',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                   ),
                 ),
               ],
@@ -167,21 +169,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
-              border: Border(top: BorderSide(color: Colors.grey[200]!)),
+              color: cs.surfaceContainerLowest,
+              border: Border(top: BorderSide(color: cs.outlineVariant)),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, size: 16, color: Colors.grey[500]),
+                Icon(Icons.info_outline, size: 16, color: cs.onSurfaceVariant),
                 const SizedBox(width: 8),
                 Text(
                   'Versión 1.0.0',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                 ),
                 const Spacer(),
                 Text(
                   'Flutter',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                 ),
               ],
             ),
@@ -201,7 +203,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       margin: const EdgeInsets.only(bottom: 4),
       child: Material(
         color: isSelected
-            ? AppTheme.primaryColor.withOpacity(0.1)
+            ? cs.primaryContainer
             : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
@@ -213,7 +215,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               border: Border(
                 left: BorderSide(
                   color: isSelected
-                      ? AppTheme.primaryColor
+                      ? cs.primary
                       : Colors.transparent,
                   width: 3,
                 ),
@@ -224,7 +226,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 Icon(
                   icon,
                   size: 20,
-                  color: isSelected ? AppTheme.primaryColor : Colors.grey[600],
+                  color: isSelected ? cs.primary : Colors.grey[600],
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -233,7 +235,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected
-                        ? AppTheme.primaryColor
+                        ? cs.primary
                         : Colors.grey[800],
                   ),
                 ),
@@ -249,8 +251,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+        color: cs.surface,
+        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
       ),
       child: Row(
         children: [
@@ -283,7 +285,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget _buildBreadcrumbSeparator() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Icon(Icons.chevron_right, size: 18, color: Colors.grey[400]),
+      child: Icon(Icons.chevron_right, size: 18, color: cs.onSurfaceVariant),
     );
   }
 
@@ -321,7 +323,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         const SizedBox(height: 4),
         Text(
           'Actualiza tu foto y detalles personales aquí.',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
         ),
         const SizedBox(height: 32),
         // Tarjeta de perfil
@@ -335,20 +337,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     width: 96,
                     height: 96,
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      color: cs.primaryContainer,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 4),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: cs.shadow.withValues(alpha: 0.1),
                           blurRadius: 8,
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.person,
                       size: 48,
-                      color: AppTheme.primaryColor,
+                      color: cs.primary,
                     ),
                   ),
                   Positioned(
@@ -357,7 +359,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor,
+                        color: cs.primary,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
@@ -386,12 +388,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     const SizedBox(height: 4),
                     Text(
                       '${_roleController.text} · Industrial de Molinos',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Lima, Perú',
-                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
                     ),
                   ],
                 ),
@@ -485,7 +487,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         const SizedBox(height: 4),
         Text(
           'Información legal y de contacto de tu negocio.',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
         ),
         const SizedBox(height: 32),
         // Logo de empresa
@@ -496,13 +498,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: cs.primaryContainer,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.business,
                   size: 48,
-                  color: AppTheme.primaryColor,
+                  color: cs.primary,
                 ),
               ),
               const SizedBox(width: 24),
@@ -520,7 +522,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     const SizedBox(height: 4),
                     Text(
                       'Se mostrará en facturas, cotizaciones y reportes.',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                     ),
                   ],
                 ),
@@ -624,7 +626,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
               Text(
                 'Último: $serie-$lastNumber',
-                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
             ],
           ),
@@ -640,7 +642,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 vertical: 12,
               ),
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor: cs.surfaceContainerLowest,
             ),
             controller: TextEditingController(text: serie),
             style: const TextStyle(fontSize: 14),
@@ -670,7 +672,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         const SizedBox(height: 4),
         Text(
           'Personaliza la apariencia y comportamiento.',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
         ),
         const SizedBox(height: 32),
         // Idioma y moneda
@@ -746,7 +748,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 trailing: Switch(
                   value: true,
                   onChanged: (v) {},
-                  activeColor: AppTheme.primaryColor,
+                  activeColor: cs.primary,
                 ),
               ),
             ],
@@ -762,7 +764,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -796,12 +798,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
+          color: selected ? cs.surface : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: cs.shadow.withValues(alpha: 0.05),
                     blurRadius: 4,
                   ),
                 ]
@@ -843,7 +845,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         const SizedBox(height: 4),
         Text(
           'Configura cómo y cuándo recibir alertas.',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
         ),
         const SizedBox(height: 32),
         _buildCard(
@@ -856,7 +858,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 trailing: Switch(
                   value: _emailNotifications,
                   onChanged: (v) => setState(() => _emailNotifications = v),
-                  activeColor: AppTheme.primaryColor,
+                  activeColor: cs.primary,
                 ),
               ),
               const Divider(height: 32),
@@ -866,7 +868,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 trailing: Switch(
                   value: true,
                   onChanged: (v) {},
-                  activeColor: AppTheme.primaryColor,
+                  activeColor: cs.primary,
                 ),
               ),
             ],
@@ -883,7 +885,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 trailing: Switch(
                   value: _stockAlerts,
                   onChanged: (v) => setState(() => _stockAlerts = v),
-                  activeColor: AppTheme.primaryColor,
+                  activeColor: cs.primary,
                 ),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
@@ -905,7 +907,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 trailing: Switch(
                   value: _overdueAlerts,
                   onChanged: (v) => setState(() => _overdueAlerts = v),
-                  activeColor: AppTheme.primaryColor,
+                  activeColor: cs.primary,
                 ),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
@@ -927,7 +929,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 trailing: Switch(
                   value: true,
                   onChanged: (v) {},
-                  activeColor: AppTheme.primaryColor,
+                  activeColor: cs.primary,
                 ),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
@@ -965,7 +967,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         const SizedBox(height: 4),
         Text(
           'Gestiona copias de seguridad y exportaciones.',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
         ),
         const SizedBox(height: 32),
         // Estado actual
@@ -980,7 +982,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
                 child: const Icon(
                   Icons.cloud_done,
-                  color: Colors.green,
+                  color: AppColors.success,
                   size: 32,
                 ),
               ),
@@ -999,11 +1001,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     const SizedBox(height: 4),
                     Text(
                       'Último respaldo: Hace 5 minutos',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                     ),
                     Text(
                       'Servidor: Supabase (Online)',
-                      style: TextStyle(color: Colors.green[600], fontSize: 13),
+                      style: TextStyle(color: AppColors.success, fontSize: 13),
                     ),
                   ],
                 ),
@@ -1013,7 +1015,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Sincronizando...'),
-                      backgroundColor: Colors.blue,
+                      backgroundColor: AppColors.info,
                     ),
                   );
                 },
@@ -1091,7 +1093,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
             ],
           ),
@@ -1122,7 +1124,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         const SizedBox(height: 4),
         Text(
           'Protege tu cuenta y datos.',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
         ),
         const SizedBox(height: 32),
         _buildCard(
@@ -1165,7 +1167,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           FilledButton(
                             onPressed: () => Navigator.pop(ctx, true),
                             style: FilledButton.styleFrom(
-                              backgroundColor: Colors.red,
+                              backgroundColor: AppColors.danger,
                             ),
                             child: const Text('Cerrar Sesión'),
                           ),
@@ -1188,23 +1190,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.red[50],
+            color: AppColors.danger.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.red[200]!),
+            border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(Icons.warning, color: Colors.red[700], size: 20),
+                  Icon(Icons.warning, color: AppColors.danger, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'Zona de Peligro',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.red[700],
+                      color: AppColors.danger,
                     ),
                   ),
                 ],
@@ -1238,12 +1240,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   title,
                   style: TextStyle(
                     fontWeight: FontWeight.w500,
-                    color: Colors.red[700],
+                    color: AppColors.danger,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                 ),
               ],
             ),
@@ -1268,11 +1270,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: cs.shadow.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1285,7 +1287,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                border: Border(bottom: BorderSide(color: cs.outlineVariant)),
               ),
               child: Text(
                 title,
@@ -1315,7 +1317,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         labelText: label,
         border: const OutlineInputBorder(),
         prefixIcon: prefixIcon != null
-            ? Icon(prefixIcon, color: Colors.grey[400])
+            ? Icon(prefixIcon, color: cs.onSurfaceVariant)
             : null,
         filled: !enabled,
         fillColor: enabled ? null : Colors.grey[100],
@@ -1331,7 +1333,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: cs.outlineVariant),
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
@@ -1363,7 +1365,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
               ),
             ],
           ),
@@ -1390,7 +1392,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Cambios guardados correctamente'),
-                backgroundColor: Colors.green,
+                backgroundColor: AppColors.success,
               ),
             );
           },
@@ -1421,11 +1423,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('$title completado'),
-                  backgroundColor: Colors.red,
+                  backgroundColor: AppColors.danger,
                 ),
               );
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
             child: const Text('Confirmar'),
           ),
         ],
@@ -1477,7 +1479,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Contraseña actualizada'),
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppColors.success,
                 ),
               );
             },

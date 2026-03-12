@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/providers.dart';
 import '../../data/providers/suppliers_provider.dart';
@@ -68,7 +68,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
     final state = ref.watch(inventoryProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       body: Column(
         children: [
           // Header compacto
@@ -87,9 +87,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                         Row(
                           children: [
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.arrow_back,
-                                color: AppTheme.primaryColor,
+                                color: Theme.of(context).colorScheme.primary,
                                 size: 20,
                               ),
                               onPressed: () => context.go('/'),
@@ -102,7 +102,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: AppTheme.primaryColor,
+                                      color: Theme.of(context).colorScheme.primary,
                                     ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -112,7 +112,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             Text(
                               '${state.materials.length} materiales',
                               style: TextStyle(
-                                color: Colors.grey[600],
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontSize: 12,
                               ),
                             ),
@@ -358,7 +358,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                           icon: const Icon(Icons.settings, size: 20),
                           tooltip: 'Administrar categorías',
                           style: IconButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                           ),
                         ),
                       ],
@@ -403,20 +403,20 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                         Icon(
                           Icons.inventory_2_outlined,
                           size: 64,
-                          color: Colors.grey[400],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'No hay materiales',
                           style: TextStyle(
                             fontSize: 18,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Agrega materiales al inventario para comenzar',
-                          style: TextStyle(color: Colors.grey[500]),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -522,7 +522,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               Text(
                 value,
@@ -579,7 +579,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             child: ListView.separated(
               itemCount: _filteredMaterials.length,
               separatorBuilder: (_, __) =>
-                  Divider(height: 1, color: Colors.grey[200]),
+                  Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
               itemBuilder: (context, index) {
                 final material = _filteredMaterials[index];
                 return _buildMaterialRow(material);
@@ -658,7 +658,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   if (material.description != null)
                     Text(
                       material.description!,
-                      style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -688,7 +688,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
               width: 50,
               child: Text(
                 material.unit,
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
             // Precio de compra (costo)
@@ -696,7 +696,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
               width: 70,
               child: Text(
                 '\$${costPrice.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 textAlign: TextAlign.right,
               ),
             ),
@@ -1005,7 +1005,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       content: Text(
                         'Stock insuficiente. Disponible: ${material.stock.toStringAsFixed(2)} ${material.unit}',
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.danger,
                     ),
                   );
                   return;
@@ -1122,7 +1122,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   ),
                   Text(
                     material.description!,
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ],
@@ -1155,7 +1155,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             width: 120,
             child: Text(
               label,
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
             ),
           ),
           Expanded(
@@ -1436,7 +1436,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                         content: Text(
                           'Proveedor "${created.name}" creado y seleccionado',
                         ),
-                        backgroundColor: Colors.green,
+                        backgroundColor: AppColors.success,
                       ),
                     );
                   }
@@ -1635,7 +1635,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                               ),
                               tooltip: 'Nueva categoría',
                               style: IconButton.styleFrom(
-                                foregroundColor: AppTheme.primaryColor,
+                                foregroundColor: Theme.of(context).colorScheme.primary,
                               ),
                             ),
                           ],
@@ -1899,7 +1899,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     content: Text(
                                       'Peso calculado: ${weight.toStringAsFixed(2)} kg',
                                     ),
-                                    backgroundColor: Colors.green,
+                                    backgroundColor: AppColors.success,
                                   ),
                                 );
                               },
@@ -1951,7 +1951,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   helperText: 'Lo que pagaste al proveedor',
                                   helperStyle: TextStyle(
                                     fontSize: 10,
-                                    color: Colors.grey[600],
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                   prefixText: '\$ ',
                                   prefixIcon: Icon(
@@ -1984,7 +1984,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     helperText: 'Lo que cobras al cliente',
                                     helperStyle: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.grey[600],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                     prefixText: '\$ ',
                                     prefixIcon: Icon(
@@ -2164,14 +2164,14 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     Icon(
                                       Icons.info_outline,
                                       size: 16,
-                                      color: Colors.grey[600],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Ingresa ambos precios para ver el margen de ganancia',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: Colors.grey[600],
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ],
@@ -2606,7 +2606,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
           return AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.category, color: AppTheme.primaryColor),
+                Icon(Icons.category, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 8),
                 const Text('Categorías de Materiales'),
                 const Spacer(),
@@ -2660,7 +2660,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                           trailing: cat.isSystem
@@ -2669,7 +2669,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     'Sistema',
                                     style: TextStyle(fontSize: 10),
                                   ),
-                                  backgroundColor: Colors.grey[200],
+                                  backgroundColor: Theme.of(context).colorScheme.outlineVariant,
                                   padding: EdgeInsets.zero,
                                   visualDensity: VisualDensity.compact,
                                 )
@@ -2717,7 +2717,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                                 onPressed: () =>
                                                     Navigator.pop(ctx, true),
                                                 style: FilledButton.styleFrom(
-                                                  backgroundColor: Colors.red,
+                                                  backgroundColor: AppColors.danger,
                                                 ),
                                                 child: const Text('Eliminar'),
                                               ),
@@ -2743,7 +2743,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                                   error ??
                                                       'No se pudo eliminar',
                                                 ),
-                                                backgroundColor: Colors.red,
+                                                backgroundColor: AppColors.danger,
                                               ),
                                             );
                                           }
@@ -2788,7 +2788,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
         builder: (context, setDialogState) => AlertDialog(
           title: Row(
             children: [
-              Icon(Icons.add_circle, color: AppTheme.primaryColor),
+              Icon(Icons.add_circle, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
               const Text('Nueva Categoría'),
             ],
@@ -2858,7 +2858,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             shape: BoxShape.circle,
                             border: isSelected
                                 ? Border.all(color: Colors.black, width: 2.5)
-                                : Border.all(color: Colors.grey[300]!),
+                                : Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                           ),
                           child: isSelected
                               ? const Icon(
@@ -3013,7 +3013,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Categoría "${created.name}" creada'),
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.success,
                     ),
                   );
                 } else if (context.mounted) {
@@ -3021,7 +3021,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(error ?? 'Error al crear'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.danger,
                     ),
                   );
                 }
@@ -3053,7 +3053,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
         builder: (context, setDialogState) => AlertDialog(
           title: Row(
             children: [
-              Icon(Icons.edit, color: AppTheme.primaryColor),
+              Icon(Icons.edit, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
               Text('Editar: ${cat.name}'),
             ],
@@ -3116,7 +3116,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             shape: BoxShape.circle,
                             border: isSelected
                                 ? Border.all(color: Colors.black, width: 2.5)
-                                : Border.all(color: Colors.grey[300]!),
+                                : Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                           ),
                           child: isSelected
                               ? const Icon(
@@ -3246,7 +3246,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Categoría "${updated.name}" actualizada'),
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.success,
                     ),
                   );
                 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../core/utils/weight_calculator.dart';
 import '../../data/providers/providers.dart';
@@ -75,7 +74,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
     final state = ref.watch(productsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       body: Stack(
         children: [
           // Contenido principal (sin sidebar - el router lo maneja)
@@ -94,9 +93,9 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                         Row(
                           children: [
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.arrow_back,
-                                color: AppTheme.primaryColor,
+                                color: Theme.of(context).colorScheme.primary,
                                 size: 20,
                               ),
                               onPressed: () => context.go('/'),
@@ -113,7 +112,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                         .titleMedium
                                         ?.copyWith(
                                           fontWeight: FontWeight.bold,
-                                          color: AppTheme.primaryColor,
+                                          color: Theme.of(context).colorScheme.primary,
                                         ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -121,7 +120,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                   Text(
                                     '${state.products.length} productos',
                                     style: TextStyle(
-                                      color: Colors.grey[600],
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -215,16 +214,16 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey[400]),
+                                Icon(Icons.receipt_long_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                 const SizedBox(height: 16),
                                 Text(
                                   'No hay recetas',
-                                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                                  style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Crea una receta para poder usarla en cotizaciones',
-                                  style: TextStyle(color: Colors.grey[500]),
+                                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                                 ),
                                 const SizedBox(height: 24),
                                 FilledButton.icon(
@@ -262,7 +261,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+              Text(label, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
             ],
           ),
@@ -312,10 +311,10 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.receipt_long, color: AppTheme.primaryColor, size: 24),
+                    child: Icon(Icons.receipt_long, color: Theme.of(context).colorScheme.primary, size: 24),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -324,7 +323,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                       children: [
                         Text(
                           product.code,
-                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                         Text(
                           product.name,
@@ -367,7 +366,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                       return Center(
                         child: Text(
                           'Sin materiales',
-                          style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       );
                     }
@@ -384,7 +383,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.inventory_2, size: 14, color: Colors.grey[600]),
+                              Icon(Icons.inventory_2, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                               const SizedBox(width: 4),
                               Text(
                                 'Materiales (${components.length})',
@@ -411,7 +410,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                         width: 6,
                                         height: 6,
                                         decoration: BoxDecoration(
-                                          color: AppTheme.primaryColor,
+                                          color: Theme.of(context).colorScheme.primary,
                                           shape: BoxShape.circle,
                                         ),
                                       ),
@@ -428,7 +427,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                         '${comp.quantity.toStringAsFixed(1)} ${comp.unit}',
                                         style: TextStyle(
                                           fontSize: 10,
-                                          color: Colors.grey[600],
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                                         ),
                                       ),
                                     ],
@@ -463,7 +462,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                             const SizedBox(width: 4),
                             Text(
                               'Costo: \$${Helpers.formatNumber(product.costPrice > 0 ? product.costPrice : product.totalCost)}',
-                              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                              style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
                             ),
                           ],
                         ),
@@ -484,7 +483,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                             padding: const EdgeInsets.only(top: 2),
                             child: Text(
                               'Peso: ${product.totalWeight.toStringAsFixed(1)} KG',
-                              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                              style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
                             ),
                           ),
                       ],
@@ -565,14 +564,14 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
           return AlertDialog(
             title: Row(
               children: [
-                const Icon(Icons.receipt_long, color: AppTheme.primaryColor),
+                Icon(Icons.receipt_long, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(product.name, style: const TextStyle(fontSize: 18)),
-                      Text(product.code, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                      Text(product.code, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -588,9 +587,9 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.inbox_outlined, size: 48, color: Colors.grey[400]),
+                              Icon(Icons.inbox_outlined, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
                               const SizedBox(height: 16),
-                              Text('Sin componentes', style: TextStyle(color: Colors.grey[600])),
+                              Text('Sin componentes', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                               const SizedBox(height: 8),
                               TextButton(
                                 onPressed: () {
@@ -608,7 +607,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                             Expanded(
                               child: Container(
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey[300]!),
+                                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Column(
@@ -632,14 +631,14 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                     Expanded(
                                       child: ListView.separated(
                                         itemCount: compState.components.length,
-                                        separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
+                                        separatorBuilder: (_, __) => Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                                         itemBuilder: (context, index) {
                                           final comp = compState.components[index];
                                           return Padding(
                                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                             child: Row(
                                               children: [
-                                                Expanded(flex: 3, child: Text('${index + 1}', style: TextStyle(fontSize: 11, color: Colors.grey[600]))),
+                                                Expanded(flex: 3, child: Text('${index + 1}', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant))),
                                                 Expanded(
                                                   flex: 10,
                                                   child: Column(
@@ -647,7 +646,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                                     children: [
                                                       Text(comp.name, style: const TextStyle(fontSize: 12)),
                                                       if (comp.description != null)
-                                                        Text(comp.description!, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                                                        Text(comp.description!, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                                                     ],
                                                   ),
                                                 ),
@@ -669,7 +668,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryColor.withOpacity(0.05),
+                                color: Theme.of(context).colorScheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -965,7 +964,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                       style: FilledButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         minimumSize: Size.zero,
-                                        backgroundColor: isCalculable ? Colors.blue : AppTheme.primaryColor,
+                                        backgroundColor: isCalculable ? Colors.blue : Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                   ),
@@ -1003,9 +1002,9 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.inbox_outlined, size: 40, color: Colors.grey[400]),
+                                      Icon(Icons.inbox_outlined, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                       const SizedBox(height: 8),
-                                      Text('Agrega materiales del panel izquierdo', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                                      Text('Agrega materiales del panel izquierdo', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
                                     ],
                                   ),
                                 )
@@ -1024,7 +1023,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
                                                   Text(comp.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12)),
-                                                  Text('\$${comp.unitCost.toStringAsFixed(2)} / ${comp.unit}', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+                                                  Text('\$${comp.unitCost.toStringAsFixed(2)} / ${comp.unit}', style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                                                 ],
                                               ),
                                             ),
@@ -1079,7 +1078,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                               decoration: BoxDecoration(
                                 color: Colors.grey[50],
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey[300]!),
+                                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                               ),
                               child: Column(
                                 children: [
@@ -1547,7 +1546,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                   // Título
                   Row(
                     children: [
-                      Icon(Icons.calculate, color: AppTheme.primaryColor),
+                      Icon(Icons.calculate, color: Theme.of(context).colorScheme.primary),
                       const SizedBox(width: 8),
                       Expanded(child: Text('Calcular Peso - ${material.name}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
                       IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(context)),
@@ -1606,7 +1605,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                       ),
                       if (useInches) ...[
                         const SizedBox(width: 8),
-                        Text('(fracciones)', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                        Text('(fracciones)', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       ],
                     ],
                   ),
@@ -1629,7 +1628,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                         ),
                       ),
                       const Spacer(),
-                      Text('Costo: \$ ${material.effectiveCostPrice.toStringAsFixed(2)}/KG', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                      Text('Costo: \$ ${material.effectiveCostPrice.toStringAsFixed(2)}/KG', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
                     ],
                   ),
                   const SizedBox(height: 16),

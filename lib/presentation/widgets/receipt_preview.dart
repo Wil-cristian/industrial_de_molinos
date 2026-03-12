@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/invoice.dart';
-import '../../core/theme/app_theme.dart';
+// Fixed colors for print-ready receipt (not theme-dependent)
+const _kPrimary = Color(0xFF1B4F72);
+const _kPrimaryContainer = Color(0xFFD4E3F3);
+const _kOnSurfaceVariant = Color(0xFF44474E);
+const _kOutlineVariant = Color(0xFFC4C6CF);
+const _kSurfaceContainerLow = Color(0xFFF3F3F6);
 
 // =====================================================
 // RECIBO DE CAJA MENOR - VERSIÓN CLIENTE
@@ -105,7 +110,7 @@ class ReceiptPreviewClient extends StatelessWidget {
             right: 0,
             child: Container(
               height: 4,
-              color: AppTheme.primaryColor,
+              color: _kPrimary,
             ),
           ),
         ],
@@ -124,7 +129,7 @@ class ReceiptPreviewClient extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.verified, color: AppTheme.primaryColor, size: 36),
+                  Icon(Icons.verified, color: _kPrimary, size: 36),
                   const SizedBox(width: 12),
                   const Text(
                     'RECIBO DE CAJA MENOR',
@@ -141,7 +146,7 @@ class ReceiptPreviewClient extends StatelessWidget {
               Text(
                 '#RCM-${invoice.number.toString().padLeft(4, '0')}',
                 style: TextStyle(
-                  color: Colors.grey[500],
+                  color: _kOnSurfaceVariant,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
                 ),
@@ -193,7 +198,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                       errorBuilder: (_, __, ___) => Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [AppTheme.primaryColor, AppTheme.primaryColor.withOpacity(0.7)],
+                            colors: [_kPrimary, _kPrimaryContainer],
                           ),
                         ),
                         child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 28),
@@ -214,11 +219,11 @@ class ReceiptPreviewClient extends StatelessWidget {
                     ),
                     Text(
                       companyAddress ?? '',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 12, color: _kOnSurfaceVariant),
                     ),
                     Text(
                       'NIT: ${companyNit ?? ''}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 12, color: _kOnSurfaceVariant),
                     ),
                   ],
                 ),
@@ -229,7 +234,7 @@ class ReceiptPreviewClient extends StatelessWidget {
               companyEmail ?? '',
               style: TextStyle(
                 fontSize: 12,
-                color: AppTheme.primaryColor,
+                color: _kPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -261,7 +266,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[400],
+                    color: _kOnSurfaceVariant,
                     letterSpacing: 1,
                   ),
                 ),
@@ -277,7 +282,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'NIT/CC: ${invoice.customerDocument}',
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(color: _kOnSurfaceVariant),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -291,7 +296,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontFamily: 'monospace',
-                      color: Colors.grey[600],
+                      color: _kOnSurfaceVariant,
                     ),
                   ),
                 ),
@@ -320,7 +325,7 @@ class ReceiptPreviewClient extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+          Text(label, style: TextStyle(color: _kOnSurfaceVariant, fontSize: 13)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
         ],
       ),
@@ -331,7 +336,7 @@ class ReceiptPreviewClient extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: _kOutlineVariant),
       ),
       child: Column(
         children: [
@@ -341,7 +346,7 @@ class ReceiptPreviewClient extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+              border: Border(bottom: BorderSide(color: _kOutlineVariant)),
             ),
             child: Row(
               children: [
@@ -352,7 +357,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
+                      color: _kOnSurfaceVariant,
                     ),
                   ),
                 ),
@@ -363,7 +368,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
+                      color: _kOnSurfaceVariant,
                     ),
                     textAlign: TextAlign.right,
                   ),
@@ -375,7 +380,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
+                      color: _kOnSurfaceVariant,
                     ),
                     textAlign: TextAlign.right,
                   ),
@@ -417,7 +422,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       item.description!,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 12, color: _kOnSurfaceVariant),
                     ),
                   ),
               ],
@@ -482,7 +487,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w900,
-                      color: AppTheme.primaryColor,
+                      color: _kPrimary,
                     ),
                   ),
                 ],
@@ -492,7 +497,7 @@ class ReceiptPreviewClient extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: Text(
                   'COP - Pesos Colombianos',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                  style: TextStyle(fontSize: 11, color: _kOnSurfaceVariant),
                 ),
               ),
             ],
@@ -511,7 +516,7 @@ class ReceiptPreviewClient extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[500])),
+          Text(label, style: TextStyle(color: _kOnSurfaceVariant)),
           Text(
             '\$${_formatNumber(value)}',
             style: const TextStyle(fontWeight: FontWeight.w500),
@@ -525,7 +530,7 @@ class ReceiptPreviewClient extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.only(top: 24),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Colors.grey[200]!, style: BorderStyle.solid)),
+        border: Border(top: BorderSide(color: _kOutlineVariant, style: BorderStyle.solid)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,9 +548,9 @@ class ReceiptPreviewClient extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text('Banco: BBVA Bancomer', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                Text('Cuenta: 36800017429 ahorros', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                Text('Celulares: $companyPhone', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                Text('Banco: BBVA Bancomer', style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant)),
+                Text('Cuenta: 36800017429 ahorros', style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant)),
+                Text('Celulares: $companyPhone', style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant)),
               ],
             ),
           ),
@@ -559,14 +564,14 @@ class ReceiptPreviewClient extends StatelessWidget {
                   style: TextStyle(
                     fontStyle: FontStyle.italic,
                     fontSize: 13,
-                    color: Colors.grey[600],
+                    color: _kOnSurfaceVariant,
                   ),
                   textAlign: TextAlign.right,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Si tiene alguna pregunta sobre este recibo, por favor contáctenos.',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                  style: TextStyle(fontSize: 11, color: _kOnSurfaceVariant),
                   textAlign: TextAlign.right,
                 ),
               ],
@@ -745,14 +750,14 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+        border: Border(bottom: BorderSide(color: _kOutlineVariant)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor,
+              color: _kPrimary,
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 20),
@@ -783,7 +788,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
           fontWeight: active ? FontWeight.bold : FontWeight.w500,
           color: active ? const Color(0xFF111418) : Colors.grey[500],
           decoration: active ? TextDecoration.underline : null,
-          decorationColor: AppTheme.primaryColor,
+          decorationColor: _kPrimary,
           decorationThickness: 2,
         ),
       ),
@@ -807,7 +812,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
+                  color: _kPrimary,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -815,7 +820,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               'Actualizado: Hoy, ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')} ${DateTime.now().hour >= 12 ? 'PM' : 'AM'}',
-              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 12, color: _kOnSurfaceVariant),
             ),
           ],
         ),
@@ -839,7 +844,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                   ),
                   Text(
                     'Recibo #RCM-${invoice.number.toString().padLeft(4, '0')} • Cliente: ${invoice.customerName}',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 14, color: _kOnSurfaceVariant),
                   ),
                 ],
               ),
@@ -863,11 +868,11 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: primary ? AppTheme.primaryColor : Colors.white,
+        color: primary ? _kPrimary : Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: primary ? null : Border.all(color: Colors.grey[300]!),
+        border: primary ? null : Border.all(color: _kOutlineVariant),
         boxShadow: primary
-            ? [BoxShadow(color: AppTheme.primaryColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
+            ? [BoxShadow(color: _kPrimaryContainer, blurRadius: 8, offset: const Offset(0, 2))]
             : null,
       ),
       child: Row(
@@ -896,7 +901,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
         const SizedBox(width: 16),
         Expanded(child: _buildStatCard('COSTOS OPERATIVOS', operational, Icons.engineering, '-5% optimización', null, Colors.teal, false)),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('GANANCIA NETA', profit, Icons.account_balance_wallet, 'Margen: ${margin.toStringAsFixed(1)}%', null, AppTheme.primaryColor, true)),
+        Expanded(child: _buildStatCard('GANANCIA NETA', profit, Icons.account_balance_wallet, 'Margen: ${margin.toStringAsFixed(1)}%', null, _kPrimary, true)),
       ],
     );
   }
@@ -921,7 +926,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: highlight ? AppTheme.primaryColor : Colors.grey[500]),
+              Icon(icon, size: 18, color: highlight ? _kPrimary : Colors.grey[500]),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -929,7 +934,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: highlight ? AppTheme.primaryColor : Colors.grey[500],
+                    color: highlight ? _kPrimary : Colors.grey[500],
                     letterSpacing: 0.5,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -943,7 +948,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: highlight ? AppTheme.primaryColor : const Color(0xFF111418),
+              color: highlight ? _kPrimary : const Color(0xFF111418),
             ),
           ),
           const SizedBox(height: 4),
@@ -981,8 +986,8 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             ),
             TextButton.icon(
               onPressed: () {},
-              icon: Icon(Icons.add, size: 16, color: AppTheme.primaryColor),
-              label: Text('Agregar Componente', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13)),
+              icon: Icon(Icons.add, size: 16, color: _kPrimary),
+              label: Text('Agregar Componente', style: TextStyle(color: _kPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
             ),
           ],
         ),
@@ -991,7 +996,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: _kOutlineVariant),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.03),
@@ -1008,7 +1013,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                  border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                  border: Border(bottom: BorderSide(color: _kOutlineVariant)),
                 ),
                 child: Row(
                   children: [
@@ -1035,7 +1040,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-                  border: Border(top: BorderSide(color: Colors.grey[200]!)),
+                  border: Border(top: BorderSide(color: _kOutlineVariant)),
                 ),
                 child: Row(
                   children: [
@@ -1045,7 +1050,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey[600],
+                        color: _kOnSurfaceVariant,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -1074,7 +1079,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
       style: TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w600,
-        color: Colors.grey[500],
+        color: _kOnSurfaceVariant,
         letterSpacing: 0.5,
       ),
       textAlign: right ? TextAlign.right : (center ? TextAlign.center : TextAlign.left),
@@ -1103,7 +1108,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontFamily: 'monospace',
-                color: Colors.grey[500],
+                color: _kOnSurfaceVariant,
               ),
             ),
           ),
@@ -1118,7 +1123,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                 if (details?['supplier'] != null)
                   Text(
                     'Prov: ${details!['supplier']}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    style: TextStyle(fontSize: 11, color: _kOnSurfaceVariant),
                   ),
               ],
             ),
@@ -1154,7 +1159,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             width: 100,
             child: Text(
               '\$${_formatNumber(item.unitPrice)}',
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant),
               textAlign: TextAlign.right,
             ),
           ),
@@ -1170,7 +1175,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             width: 40,
             child: IconButton(
               onPressed: () {},
-              icon: Icon(Icons.edit, size: 18, color: Colors.grey[400]),
+              icon: Icon(Icons.edit, size: 18, color: _kOnSurfaceVariant),
               padding: EdgeInsets.zero,
             ),
           ),
@@ -1216,7 +1221,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {},
-              child: Text('Ver detalle horas', style: TextStyle(color: AppTheme.primaryColor, fontSize: 12)),
+              child: Text('Ver detalle horas', style: TextStyle(color: _kPrimary, fontSize: 12)),
             ),
           ],
         ),
@@ -1225,7 +1230,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: _kOutlineVariant),
           ),
           child: Column(
             children: [
@@ -1238,10 +1243,10 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Expanded(child: Text('ROL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[500]))),
-                    SizedBox(width: 60, child: Text('HORAS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[500]), textAlign: TextAlign.right)),
-                    SizedBox(width: 70, child: Text('TARIFA/HR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[500]), textAlign: TextAlign.right)),
-                    SizedBox(width: 80, child: Text('TOTAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[500]), textAlign: TextAlign.right)),
+                    Expanded(child: Text('ROL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kOnSurfaceVariant))),
+                    SizedBox(width: 60, child: Text('HORAS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kOnSurfaceVariant), textAlign: TextAlign.right)),
+                    SizedBox(width: 70, child: Text('TARIFA/HR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kOnSurfaceVariant), textAlign: TextAlign.right)),
+                    SizedBox(width: 80, child: Text('TOTAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kOnSurfaceVariant), textAlign: TextAlign.right)),
                   ],
                 ),
               ),
@@ -1252,8 +1257,8 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                     child: Row(
                       children: [
                         Expanded(child: Text(l['role'] as String, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-                        SizedBox(width: 60, child: Text('${l['hours']}', style: TextStyle(fontSize: 13, color: Colors.grey[600]), textAlign: TextAlign.right)),
-                        SizedBox(width: 70, child: Text('\$${(l['rate'] as double).toStringAsFixed(2)}', style: TextStyle(fontSize: 13, color: Colors.grey[600]), textAlign: TextAlign.right)),
+                        SizedBox(width: 60, child: Text('${l['hours']}', style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant), textAlign: TextAlign.right)),
+                        SizedBox(width: 70, child: Text('\$${(l['rate'] as double).toStringAsFixed(2)}', style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant), textAlign: TextAlign.right)),
                         SizedBox(width: 80, child: Text('\$${_formatNumber(l['total'] as double)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
                       ],
                     ),
@@ -1262,15 +1267,15 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.05),
+                  color: _kPrimaryContainer,
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text('TOTAL MANO DE OBRA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                    Text('TOTAL MANO DE OBRA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _kPrimary)),
                     const SizedBox(width: 16),
-                    Text('\$${_formatNumber(totalLabor)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppTheme.primaryColor)),
+                    Text('\$${_formatNumber(totalLabor)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: _kPrimary)),
                   ],
                 ),
               ),
@@ -1310,7 +1315,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: _kOutlineVariant),
           ),
           child: Row(
             children: [
@@ -1320,7 +1325,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.factory, color: Colors.grey[600]),
+                child: Icon(Icons.factory, color: _kOnSurfaceVariant),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -1328,7 +1333,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Gastos Indirectos de Fábrica (15%)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    Text('Calculado sobre costo de materiales', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                    Text('Calculado sobre costo de materiales', style: TextStyle(fontSize: 11, color: _kOnSurfaceVariant)),
                   ],
                 ),
               ),
@@ -1349,7 +1354,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: _kOutlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1374,7 +1379,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(d['label']!, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    Text(d['label']!, style: TextStyle(fontSize: 12, color: _kOnSurfaceVariant)),
                     Text(d['value']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
                   ],
                 ),
@@ -1393,10 +1398,10 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             child: TextButton(
               onPressed: () {},
               style: TextButton.styleFrom(
-                backgroundColor: Colors.grey[100],
+                backgroundColor: _kSurfaceContainerLow,
                 padding: const EdgeInsets.symmetric(vertical: 10),
               ),
-              child: Text(buttonLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[600])),
+              child: Text(buttonLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _kOnSurfaceVariant)),
             ),
           ),
         ],
@@ -1438,14 +1443,14 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFFF6F7F8),
-        border: Border(top: BorderSide(color: Colors.grey[200]!)),
+        border: Border(top: BorderSide(color: _kOutlineVariant)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           TextButton(
             onPressed: () {},
-            child: Text('Cancelar', style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold)),
+            child: Text('Cancelar', style: TextStyle(color: _kOnSurfaceVariant, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(width: 16),
           ElevatedButton(

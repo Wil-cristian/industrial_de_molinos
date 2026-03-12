@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/datasources/invoice_scanner_service.dart';
 import '../../data/datasources/accounts_datasource.dart';
@@ -159,7 +158,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.primaryColor,
+        color: Theme.of(context).colorScheme.primary,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Row(
@@ -285,14 +284,14 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: _selectedFile != null
-                        ? AppTheme.primaryColor
+                        ? Theme.of(context).colorScheme.primary
                         : Colors.grey.shade300,
                     width: 2,
                     strokeAlign: BorderSide.strokeAlignCenter,
                   ),
                   borderRadius: BorderRadius.circular(16),
                   color: _selectedFile != null
-                      ? AppTheme.primaryColor.withOpacity(0.05)
+                      ? Theme.of(context).colorScheme.primaryContainer
                       : Colors.grey.shade50,
                 ),
                 child: Column(
@@ -303,7 +302,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                           : Icons.cloud_upload_outlined,
                       size: 64,
                       color: _selectedFile != null
-                          ? AppTheme.primaryColor
+                          ? Theme.of(context).colorScheme.primary
                           : Colors.grey.shade400,
                     ),
                     const SizedBox(height: 16),
@@ -314,7 +313,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: _selectedFile != null
-                            ? AppTheme.primaryColor
+                            ? Theme.of(context).colorScheme.primary
                             : Colors.grey.shade600,
                       ),
                     ),
@@ -390,12 +389,12 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(
+          SizedBox(
             width: 80,
             height: 80,
             child: CircularProgressIndicator(
               strokeWidth: 3,
-              color: AppTheme.primaryColor,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(height: 32),
@@ -642,11 +641,11 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: selected ? AppTheme.primaryColor : Colors.grey.shade300,
+            color: selected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
             width: selected ? 2 : 1,
           ),
           color: selected
-              ? AppTheme.primaryColor.withOpacity(0.05)
+              ? Theme.of(context).colorScheme.primaryContainer
               : Colors.transparent,
         ),
         child: Row(
@@ -655,14 +654,14 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
             Icon(
               icon,
               size: 18,
-              color: selected ? AppTheme.primaryColor : Colors.grey.shade500,
+              color: selected ? Theme.of(context).colorScheme.primary : Colors.grey.shade500,
             ),
             const SizedBox(width: 6),
             Text(
               label,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                color: selected ? AppTheme.primaryColor : Colors.grey.shade600,
+                color: selected ? Theme.of(context).colorScheme.primary : Colors.grey.shade600,
               ),
             ),
           ],
@@ -1116,7 +1115,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
           children: [
             Row(
               children: [
-                Icon(icon, size: 18, color: AppTheme.primaryColor),
+                Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   title,

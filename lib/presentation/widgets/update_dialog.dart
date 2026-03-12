@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../data/datasources/app_update_datasource.dart';
 
 /// Dialogo que muestra al usuario que hay una actualizacion disponible.
@@ -28,12 +28,12 @@ class UpdateDialog extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.accentColor.withValues(alpha: 0.2),
+              color: AppColors.info.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.system_update,
-              color: AppTheme.primaryColor,
+              color: Theme.of(context).colorScheme.primary,
               size: 28,
             ),
           ),
@@ -58,7 +58,7 @@ class UpdateDialog extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.backgroundColor,
+              color: Theme.of(context).colorScheme.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -66,10 +66,10 @@ class UpdateDialog extends StatelessWidget {
               children: [
                 Text(
                   'Version ${release.version}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 if (release.fileSizeMb != null) ...[
@@ -114,15 +114,15 @@ class UpdateDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppTheme.warningColor.withValues(alpha: 0.15),
+                color: AppColors.warning.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppTheme.warningColor.withValues(alpha: 0.4),
+                  color: AppColors.warning.withValues(alpha: 0.4),
                 ),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.warning_amber, color: AppTheme.warningColor, size: 20),
+                  Icon(Icons.warning_amber, color: AppColors.warning, size: 20),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -155,7 +155,7 @@ class UpdateDialog extends StatelessWidget {
           icon: const Icon(Icons.download, size: 18),
           label: const Text('Descargar'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
+            backgroundColor: Theme.of(context).colorScheme.primary,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),

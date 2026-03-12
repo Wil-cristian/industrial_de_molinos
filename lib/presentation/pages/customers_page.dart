@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/customers_datasource.dart';
@@ -86,23 +86,24 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final state = ref.watch(customersProvider);
     final filteredCustomers = _getFilteredCustomers(state.filteredCustomers);
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: cs.surfaceContainerLowest,
       body: Column(
         children: [
           // Header con tabs
           Container(
-            color: Colors.white,
+            color: cs.surface,
             padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.arrow_back,
-                    color: AppTheme.primaryColor,
+                    color: cs.primary,
                     size: 20,
                   ),
                   onPressed: () => context.go('/'),
@@ -113,9 +114,9 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                 Expanded(
                   child: TabBar(
                     controller: _tabController,
-                    indicatorColor: AppTheme.primaryColor,
-                    labelColor: AppTheme.primaryColor,
-                    unselectedLabelColor: Colors.grey[600],
+                    indicatorColor: cs.primary,
+                    labelColor: cs.primary,
+                    unselectedLabelColor: cs.onSurfaceVariant,
                     indicatorWeight: 3,
                     isScrollable: true,
                     tabAlignment: TabAlignment.start,
@@ -166,11 +167,12 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
     CustomersState state,
     List<Customer> filteredCustomers,
   ) {
+    final cs = theme.colorScheme;
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          color: Colors.white,
+          color: cs.surface,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -182,7 +184,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                   Text(
                     '${state.customers.length} clientes registrados',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: cs.onSurfaceVariant,
                     ),
                   ),
                   _buildQuickStat(
@@ -234,23 +236,23 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                             prefixIcon: const Icon(Icons.search),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(color: cs.outlineVariant),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(color: cs.outlineVariant),
                             ),
                             filled: true,
-                            fillColor: Colors.grey[50],
+                            fillColor: cs.surfaceContainerLowest,
                           ),
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: cs.outlineVariant),
                           borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey[50],
+                          color: cs.surfaceContainerLowest,
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
@@ -311,17 +313,17 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('Error: $e'),
-                                  backgroundColor: Colors.red,
+                                  backgroundColor: AppColors.danger,
                                 ),
                               );
                             }
                           }
                         },
-                        icon: const Icon(Icons.calculate, color: Colors.orange),
+                        icon: Icon(Icons.calculate, color: AppColors.warning),
                         label: const Text('Recalcular Saldos'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.orange[700],
-                          side: BorderSide(color: Colors.orange[300]!),
+                          foregroundColor: AppColors.warning,
+                          side: BorderSide(color: AppColors.warning.withValues(alpha: 0.5)),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 16,
@@ -341,11 +343,11 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
             padding: const EdgeInsets.all(4),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cs.surface,
                 borderRadius: BorderRadius.circular(4),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: cs.shadow.withValues(alpha: 0.05),
                     blurRadius: 2,
                     offset: const Offset(0, 1),
                   ),
@@ -363,7 +365,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                         padding: const EdgeInsets.all(0),
                         itemCount: filteredCustomers.length,
                         separatorBuilder: (context, index) =>
-                            Divider(height: 1, color: Colors.grey[200]),
+                            Divider(height: 1, color: cs.outlineVariant),
                         itemBuilder: (context, index) {
                           final customer = filteredCustomers[index];
                           return _buildCustomerTile(customer);
@@ -383,6 +385,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
     Color color,
     IconData icon,
   ) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
       decoration: BoxDecoration(
@@ -398,7 +401,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
               ),
               Text(
                 value,
@@ -416,23 +419,24 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
   }
 
   Widget _buildCustomerTile(Customer customer) {
+    final cs = Theme.of(context).colorScheme;
     final debt = customer.currentBalance;
     final creditLimit = customer.creditLimit;
     final debtPercentage = creditLimit > 0 ? (debt / creditLimit) : 0.0;
 
-    Color statusColor = customer.isActive ? Colors.green : Colors.grey;
+    Color statusColor = customer.isActive ? AppColors.success : cs.outline;
     Color typeColor = customer.type == CustomerType.business
-        ? Colors.blue
-        : Colors.purple;
+        ? cs.primary
+        : cs.tertiary;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       leading: CircleAvatar(
-        backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+        backgroundColor: cs.primaryContainer,
         child: Text(
           customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
-          style: const TextStyle(
-            color: AppTheme.primaryColor,
+          style: TextStyle(
+            color: cs.onPrimaryContainer,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -511,11 +515,11 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.badge, size: 14, color: Colors.grey[400]),
+                  Icon(Icons.badge, size: 14, color: cs.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     '${customer.documentType.displayName}: ${customer.documentNumber}',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                   ),
                 ],
               ),
@@ -523,11 +527,11 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.phone, size: 14, color: Colors.grey[400]),
+                    Icon(Icons.phone, size: 14, color: cs.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
                       customer.phone!,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                     ),
                   ],
                 ),
@@ -542,9 +546,9 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: debtPercentage.clamp(0.0, 1.0),
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor: cs.surfaceContainerHighest,
                       valueColor: AlwaysStoppedAnimation(
-                        debtPercentage > 0.8 ? Colors.red : Colors.orange,
+                        debtPercentage > 0.8 ? AppColors.danger : AppColors.warning,
                       ),
                     ),
                   ),
@@ -554,7 +558,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                   'Deuda: ${Formatters.currency(debt)}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: debtPercentage > 0.8 ? Colors.red : Colors.orange,
+                    color: debtPercentage > 0.8 ? AppColors.danger : AppColors.warning,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -602,24 +606,25 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
   }
 
   Widget _buildEmptyState() {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people_outline, size: 80, color: Colors.grey[300]),
+          Icon(Icons.people_outline, size: 80, color: cs.outlineVariant),
           const SizedBox(height: 16),
           Text(
             'No hay clientes registrados',
             style: TextStyle(
               fontSize: 18,
-              color: Colors.grey[500],
+              color: cs.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Agrega tu primer cliente para comenzar',
-            style: TextStyle(color: Colors.grey[400]),
+            style: TextStyle(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 24),
           FilledButton.icon(
@@ -633,24 +638,25 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
   }
 
   Widget _buildErrorState(String error) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 80, color: Colors.red[300]),
+          Icon(Icons.error_outline, size: 80, color: AppColors.danger.withValues(alpha: 0.6)),
           const SizedBox(height: 16),
           Text(
             'Error al cargar clientes',
             style: TextStyle(
               fontSize: 18,
-              color: Colors.red[500],
+              color: AppColors.danger,
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             error,
-            style: TextStyle(color: Colors.grey[400]),
+            style: TextStyle(color: cs.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -929,7 +935,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                       ScaffoldMessenger.of(dialogContext).showSnackBar(
                         const SnackBar(
                           content: Text('Cliente actualizado exitosamente'),
-                          backgroundColor: Colors.green,
+                          backgroundColor: AppColors.success,
                         ),
                       );
                     }
@@ -964,7 +970,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                       ScaffoldMessenger.of(dialogContext).showSnackBar(
                         const SnackBar(
                           content: Text('Cliente creado exitosamente'),
-                          backgroundColor: Colors.green,
+                          backgroundColor: AppColors.success,
                         ),
                       );
                     } else if (mounted) {
@@ -975,7 +981,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                           content: Text(
                             'Error al crear cliente: ${error ?? "Error desconocido"}',
                           ),
-                          backgroundColor: Colors.red,
+                          backgroundColor: AppColors.danger,
                           duration: const Duration(seconds: 5),
                         ),
                       );
@@ -1004,12 +1010,13 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
 
   // ignore: unused_element - Reserved for future use
   Widget _buildDetailRow(String label, String value) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(label, style: TextStyle(color: cs.onSurfaceVariant)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
         ],
       ),
@@ -1039,12 +1046,12 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Cliente "${customer.name}" eliminado'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.danger,
                   ),
                 );
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
             child: const Text('Eliminar'),
           ),
         ],
@@ -1126,6 +1133,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
 
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final cs = Theme.of(context).colorScheme;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: screenWidth < 600 ? const EdgeInsets.all(16) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
@@ -1139,7 +1147,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor,
+                color: cs.primary,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
@@ -1148,13 +1156,13 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                 children: [
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: Colors.white.withOpacity(0.2),
+                    backgroundColor: cs.onPrimary.withValues(alpha: 0.2),
                     child: Text(
                       customer.name.isNotEmpty
                           ? customer.name[0].toUpperCase()
                           : '?',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: cs.onPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 24,
                       ),
@@ -1167,8 +1175,8 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                       children: [
                         Text(
                           customer.displayName,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: cs.onPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                           ),
@@ -1177,7 +1185,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                         Text(
                           '${customer.documentType.displayName}: ${customer.documentNumber}',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: cs.onPrimary.withValues(alpha: 0.8),
                             fontSize: 13,
                           ),
                         ),
@@ -1191,7 +1199,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: cs.onPrimary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
@@ -1199,14 +1207,14 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                         Text(
                           'Deuda Total',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: cs.onPrimary.withValues(alpha: 0.8),
                             fontSize: 11,
                           ),
                         ),
                         Text(
                           Formatters.currency(customer.currentBalance),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: cs.onPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
@@ -1217,7 +1225,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                   const SizedBox(width: 12),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: Icon(Icons.close, color: cs.onPrimary),
                   ),
                 ],
               ),
@@ -1225,12 +1233,12 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
 
             // Tabs
             Container(
-              color: Colors.grey[100],
+              color: cs.surfaceContainerLow,
               child: TabBar(
                 controller: _tabController,
-                labelColor: AppTheme.primaryColor,
-                unselectedLabelColor: Colors.grey[600],
-                indicatorColor: AppTheme.primaryColor,
+                labelColor: cs.primary,
+                unselectedLabelColor: cs.onSurfaceVariant,
+                indicatorColor: cs.primary,
                 isScrollable: true,
                 tabAlignment: TabAlignment.center,
                 tabs: [
@@ -1378,15 +1386,16 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
   }
 
   Widget _buildSection(String title, List<Widget> children) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 14,
-            color: AppTheme.primaryColor,
+            color: cs.primary,
           ),
         ),
         const SizedBox(height: 12),
@@ -1401,17 +1410,18 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
     String value, {
     Color? valueColor,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey[500]),
+          Icon(icon, size: 18, color: cs.onSurfaceVariant),
           const SizedBox(width: 12),
           SizedBox(
             width: 140,
             child: Text(
               label,
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
             ),
           ),
           Expanded(
@@ -1426,16 +1436,17 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
   }
 
   Widget _buildFacturasTab(List invoices) {
+    final cs = Theme.of(context).colorScheme;
     if (invoices.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long, size: 60, color: Colors.grey[300]),
+            Icon(Icons.receipt_long, size: 60, color: cs.outlineVariant),
             const SizedBox(height: 16),
             Text(
               'Sin recibos registrados',
-              style: TextStyle(color: Colors.grey[500], fontSize: 16),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 16),
             ),
           ],
         ),
@@ -1968,16 +1979,16 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.payments_outlined, size: 60, color: Colors.grey[300]),
+            Icon(Icons.payments_outlined, size: 60, color: Theme.of(context).colorScheme.outlineVariant),
             const SizedBox(height: 16),
             Text(
               'Sin pagos registrados',
-              style: TextStyle(color: Colors.grey[500], fontSize: 16),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
               'Los pagos aparecerán aquí cuando se registren',
-              style: TextStyle(color: Colors.grey[400], fontSize: 13),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
             ),
           ],
         ),
@@ -2200,11 +2211,11 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.request_quote, size: 60, color: Colors.grey[300]),
+            Icon(Icons.request_quote, size: 60, color: Theme.of(context).colorScheme.outlineVariant),
             const SizedBox(height: 16),
             Text(
               'Sin cotizaciones registradas',
-              style: TextStyle(color: Colors.grey[500], fontSize: 16),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16),
             ),
           ],
         ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
 
 /// Widget que contiene el sidebar con su indicador de selección
 /// Usar dentro de un Stack para que el indicador se vea por encima del contenido
@@ -83,7 +82,7 @@ class _AppSidebarState extends State<AppSidebar> {
           // Sidebar
           Container(
             width: 80,
-            color: AppTheme.primaryColor,
+            color: Theme.of(context).colorScheme.primary,
             child: Column(
               children: [
                 // Logo
@@ -144,7 +143,7 @@ class _AppSidebarState extends State<AppSidebar> {
                 width: 8,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
+                  color: Theme.of(context).colorScheme.primary,
                   borderRadius: const BorderRadius.only(
                     topRight: Radius.circular(4),
                     bottomRight: Radius.circular(4),
