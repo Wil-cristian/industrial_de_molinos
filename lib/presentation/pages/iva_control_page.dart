@@ -329,7 +329,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
               children: [
                 Row(
                   children: [
-                    Expanded(flex: 2, child: periodoDropdown),
+                    Expanded(child: periodoDropdown),
                     const SizedBox(width: 8),
                     Expanded(child: tipoDropdown),
                   ],

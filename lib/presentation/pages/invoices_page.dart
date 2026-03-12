@@ -2649,8 +2649,8 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                     backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
                                     valueColor: AlwaysStoppedAnimation<Color>(
                                       paid >= total
-                                          ? const Color(0xFF2E7D32)[500]!
-                                          : AppColors.warning!,
+                                          ? const Color(0xFF4CAF50)
+                                          : AppColors.warning,
                                     ),
                                   ),
                                 ),
@@ -4036,7 +4036,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: paid >= total
-                          ? const Color(0xFF2E7D32)[50]
+                          ? const Color(0xFFE8F5E9)
                           : const Color(0xFFFFF3E0),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -5578,7 +5578,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: paid >= total
-                          ? const Color(0xFF2E7D32)[50]
+                          ? const Color(0xFFE8F5E9)
                           : const Color(0xFFFFF3E0),
                       borderRadius: BorderRadius.circular(8),
                     ),

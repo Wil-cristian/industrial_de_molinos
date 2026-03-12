@@ -323,7 +323,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                           ? '${(_selectedFile!.size / 1024).toStringAsFixed(0)} KB · Toca para cambiar'
                           : 'JPG, PNG o PDF · Máximo 10 MB',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFFFAFAFA)0,
+                        color: const Color(0xFFBDBDBD),
                       ),
                     ),
                   ],
@@ -654,7 +654,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
             Icon(
               icon,
               size: 18,
-              color: selected ? Theme.of(context).colorScheme.primary : const Color(0xFFFAFAFA)0,
+              color: selected ? Theme.of(context).colorScheme.primary : const Color(0xFFBDBDBD),
             ),
             const SizedBox(width: 6),
             Text(
@@ -2039,7 +2039,7 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                               Icon(
                                 Icons.inventory_2_outlined,
                                 size: 14,
-                                color: const Color(0xFFFAFAFA)0,
+                                color: const Color(0xFFBDBDBD),
                               ),
                             const SizedBox(width: 8),
                             Expanded(

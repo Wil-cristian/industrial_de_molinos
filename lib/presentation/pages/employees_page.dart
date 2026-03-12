@@ -8182,7 +8182,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
             const SizedBox(height: 8),
             Text(
               'Sin registros hoy',
-              style: TextStyle(color: const Color(0xFFFAFAFA)0),
+              style: TextStyle(color: const Color(0xFFBDBDBD)),
             ),
             const SizedBox(height: 4),
             Text(
@@ -8589,7 +8589,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                     Text(
                                       'Sin registros en este período',
                                       style: TextStyle(
-                                        color: const Color(0xFFFAFAFA)0,
+                                        color: const Color(0xFFBDBDBD),
                                       ),
                                     ),
                                   ],
