@@ -94,7 +94,7 @@ class AccountsDataSource {
 
   // ===================== MOVIMIENTOS =====================
 
-  /// Obtener el siguiente n鷐ero de referencia consecutivo
+  /// Obtener el siguiente n煤mero de referencia consecutivo
   static Future<int> getNextReferenceNumber() async {
     try {
       final response = await _client
@@ -202,7 +202,7 @@ class AccountsDataSource {
     return _movementFromJson(response);
   }
 
-  /// Crear traslado entre cuentas (usa RPC at髆ica para evitar race conditions)
+  /// Crear traslado entre cuentas (usa RPC at贸mica para evitar race conditions)
   static Future<List<CashMovement>> createTransfer({
     required String fromAccountId,
     required String toAccountId,
@@ -220,7 +220,7 @@ class AccountsDataSource {
     }
 
     try {
-      // Usar RPC at髆ica (SELECT FOR UPDATE + insert + balance update en una transacci髇)
+      // Usar RPC at贸mica (SELECT FOR UPDATE + insert + balance update en una transacci贸n)
       final result = await _client.rpc(
         'atomic_transfer',
         params: {
@@ -244,7 +244,7 @@ class AccountsDataSource {
 
       return [_movementFromJson(responses[0]), _movementFromJson(responses[1])];
     } catch (e) {
-      // Fallback: si la RPC no existe a鷑, usar el m閠odo cl醩ico
+      // Fallback: si la RPC no existe a煤n, usar el m茅todo cl谩sico
       if (e.toString().contains('function') &&
           e.toString().contains('not exist')) {
         return _createTransferLegacy(
@@ -329,7 +329,7 @@ class AccountsDataSource {
     return [_movementFromJson(responses[0]), _movementFromJson(responses[1])];
   }
 
-  /// Crear movimiento y actualizar balance (usa RPC at髆ica)
+  /// Crear movimiento y actualizar balance (usa RPC at贸mica)
   static Future<CashMovement> createMovementWithBalanceUpdate(
     CashMovement movement,
   ) async {
@@ -365,7 +365,7 @@ class AccountsDataSource {
           .single();
       return _movementFromJson(response);
     } catch (e) {
-      // Fallback si la RPC no existe a鷑
+      // Fallback si la RPC no existe a煤n
       if (e.toString().contains('function') &&
           e.toString().contains('not exist')) {
         return _createMovementWithBalanceLegacy(movement);
@@ -452,7 +452,7 @@ class AccountsDataSource {
 
   // ===================== REPORTES =====================
 
-  /// Calcular totales del d韆
+  /// Calcular totales del d铆a
   static Future<Map<String, double>> getDayTotals(DateTime date) async {
     final movements = await getMovementsByDate(date);
 
@@ -480,7 +480,7 @@ class AccountsDataSource {
     return accounts.fold<double>(0.0, (sum, account) => sum + account.balance);
   }
 
-  // ===================== CONVERSI覰 JSON =====================
+  // ===================== CONVERSI脫N JSON =====================
 
   static Account _accountFromJson(Map<String, dynamic> json) {
     return Account(
@@ -572,7 +572,7 @@ class AccountsDataSource {
     };
   }
 
-  // ===================== INICIALIZACI覰 =====================
+  // ===================== INICIALIZACI脫N =====================
 
   /// Crear cuentas predeterminadas si no existen
   static Future<void> initializeDefaultAccounts() async {

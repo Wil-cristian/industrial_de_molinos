@@ -67,13 +67,19 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                 style: Theme.of(context).textTheme.headlineSmall
                                     ?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 '${state.products.length} productos registrados',
-                                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             ],
                           ),
@@ -248,16 +254,25 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.layers_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.layers_outlined,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 16),
           Text(
             'No hay productos compuestos',
-            style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: 18,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Crea tu primer producto compuesto (Molino, Transportador, etc.)',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 24),
           FilledButton.icon(
@@ -293,7 +308,10 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 value,
@@ -356,7 +374,9 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                         Text(
                           product.code,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -364,7 +384,10 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                     ),
                   ),
                   PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    icon: Icon(
+                      Icons.more_vert,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                     onSelected: (value) => _handleProductAction(value, product),
                     itemBuilder: (context) => [
                       const PopupMenuItem(
@@ -392,11 +415,15 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete, size: 18, color: const Color(0xFFC62828)),
+                            Icon(
+                              Icons.delete,
+                              size: 18,
+                              color: Color(0xFFC62828),
+                            ),
                             SizedBox(width: 8),
                             Text(
                               'Eliminar',
-                              style: TextStyle(color: const Color(0xFFC62828)),
+                              style: TextStyle(color: Color(0xFFC62828)),
                             ),
                           ],
                         ),
@@ -413,7 +440,10 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(
                     product.description!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -434,7 +464,9 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                 vertical: 1,
                               ),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primaryContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -459,7 +491,9 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                               '${Helpers.formatNumber(comp.totalWeight)} kg',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -498,12 +532,20 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                       'Compra',
                       '\$ ${Helpers.formatNumber(product.materialsCostPrice)}',
                     ),
-                    Container(width: 1, height: 30, color: const Color(0xFFE0E0E0)),
+                    Container(
+                      width: 1,
+                      height: 30,
+                      color: const Color(0xFFE0E0E0),
+                    ),
                     _buildStatColumn(
                       'Venta',
                       '\$ ${Helpers.formatNumber(product.materialsCost)}',
                     ),
-                    Container(width: 1, height: 30, color: const Color(0xFFE0E0E0)),
+                    Container(
+                      width: 1,
+                      height: 30,
+                      color: const Color(0xFFE0E0E0),
+                    ),
                     _buildStatColumn(
                       'Ganancia',
                       '${product.realProfitMargin.toStringAsFixed(1)}%',
@@ -521,7 +563,13 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
   Widget _buildStatColumn(String label, String value) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 4),
         Text(
           value,
@@ -597,7 +645,9 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
           content: Text(
             success ? 'Producto duplicado exitosamente' : 'Error al duplicar',
           ),
-          backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+          backgroundColor: success
+              ? const Color(0xFF2E7D32)
+              : const Color(0xFFC62828),
         ),
       );
     }
@@ -642,7 +692,11 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                         ),
                         Text(
                           'Código: ${product.code}',
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),
@@ -660,11 +714,17 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                       ),
                       Text(
                         'Compra: \$ ${Helpers.formatNumber(product.materialsCostPrice)}',
-                        style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       Text(
                         '${Helpers.formatNumber(product.totalWeight)} kg',
-                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -680,7 +740,9 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
               if (product.description != null) ...[
                 Text(
                   product.description!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -702,14 +764,18 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 350),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: product.components.length,
-                    separatorBuilder: (_, __) =>
-                        Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
                     itemBuilder: (context, index) {
                       final comp = product.components[index];
                       return Padding(
@@ -721,8 +787,9 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                           children: [
                             CircleAvatar(
                               radius: 16,
-                              backgroundColor: Theme.of(context).colorScheme.primary
-                                  .withOpacity(0.1),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.1),
                               child: Text(
                                 '${comp.quantity}×',
                                 style: TextStyle(
@@ -748,7 +815,9 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                     comp.dimensionsDescription,
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -761,7 +830,9 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                   'V: \$ ${Helpers.formatNumber(comp.totalPrice)}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -769,14 +840,18 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                   'C: \$ ${Helpers.formatNumber(comp.totalCostPrice)}',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 Text(
                                   '${Helpers.formatNumber(comp.totalWeight)} kg',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -877,7 +952,9 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
             value,
             style: TextStyle(
               fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-              color: valueColor ?? (isBold ? Theme.of(context).colorScheme.primary : null),
+              color:
+                  valueColor ??
+                  (isBold ? Theme.of(context).colorScheme.primary : null),
               fontSize: isBold ? 16 : null,
             ),
           ),
@@ -896,7 +973,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.warning, color: const Color(0xFFC62828)),
+            Icon(Icons.warning, color: Color(0xFFC62828)),
             SizedBox(width: 12),
             Text('Confirmar eliminación'),
           ],
@@ -921,12 +998,16 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                     content: Text(
                       success ? 'Producto eliminado' : 'Error al eliminar',
                     ),
-                    backgroundColor: success ? const Color(0xFFC62828) : const Color(0xFFF9A825),
+                    backgroundColor: success
+                        ? const Color(0xFFC62828)
+                        : const Color(0xFFF9A825),
                   ),
                 );
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+            ),
             child: const Text('Eliminar'),
           ),
         ],
@@ -964,7 +1045,9 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                             : 'Producto creado exitosamente')
                       : 'Error al guardar',
                 ),
-                backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+                backgroundColor: success
+                    ? const Color(0xFF2E7D32)
+                    : const Color(0xFFC62828),
               ),
             );
           }
@@ -1250,7 +1333,7 @@ class _CompositeProductFormDialogState
             isDense: true,
             contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           ),
-          style: const TextStyle(fontSize: 12, color: const Color(0xDD000000)),
+          style: const TextStyle(fontSize: 12, color: Color(0xDD000000)),
           items: ProductCategories.all
               .map(
                 (cat) => DropdownMenuItem(
@@ -1327,7 +1410,9 @@ class _CompositeProductFormDialogState
             decoration: BoxDecoration(
               color: const Color(0xFFFAFAFA),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
             ),
             child: Column(
               children: [
@@ -1385,7 +1470,9 @@ class _CompositeProductFormDialogState
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isActive ? Theme.of(context).colorScheme.primary : Colors.transparent,
+              color: isActive
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.transparent,
             ),
           ),
           child: Row(
@@ -1394,7 +1481,9 @@ class _CompositeProductFormDialogState
               Icon(
                 icon,
                 size: 14,
-                color: isActive ? Theme.of(context).colorScheme.primary : const Color(0xFF757575),
+                color: isActive
+                    ? Theme.of(context).colorScheme.primary
+                    : const Color(0xFF757575),
               ),
               const SizedBox(width: 4),
               Text(
@@ -1402,7 +1491,9 @@ class _CompositeProductFormDialogState
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  color: isActive ? Theme.of(context).colorScheme.primary : const Color(0xFF757575),
+                  color: isActive
+                      ? Theme.of(context).colorScheme.primary
+                      : const Color(0xFF757575),
                 ),
               ),
             ],
@@ -1506,7 +1597,10 @@ class _CompositeProductFormDialogState
                 ),
                 Text(
                   '${_selectedMaterial!.name} • ${Helpers.formatCurrency(_selectedMaterial!.effectiveCostPrice)}/kg',
-                  style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -1536,7 +1630,11 @@ class _CompositeProductFormDialogState
                   ),
                 ),
                 const SizedBox(width: 6),
-                Icon(Icons.content_cut, size: 12, color: const Color(0xFFF57C00)),
+                Icon(
+                  Icons.content_cut,
+                  size: 12,
+                  color: const Color(0xFFF57C00),
+                ),
                 const SizedBox(width: 2),
                 SizedBox(
                   width: 40,
@@ -1667,7 +1765,11 @@ class _CompositeProductFormDialogState
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: isSelected ? color : const Color(0xFF9E9E9E), size: 14),
+            Icon(
+              icon,
+              color: isSelected ? color : const Color(0xFF9E9E9E),
+              size: 14,
+            ),
             const SizedBox(width: 3),
             Text(
               label,
@@ -1916,7 +2018,13 @@ class _CompositeProductFormDialogState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 2),
         Row(
           children: [
@@ -1928,7 +2036,9 @@ class _CompositeProductFormDialogState
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
                 ),
                 child: Stack(
                   children: [
@@ -2077,7 +2187,9 @@ class _CompositeProductFormDialogState
               ? Center(
                   child: Text(
                     'No hay materiales',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 )
               : ListView.builder(
@@ -2140,7 +2252,9 @@ class _CompositeProductFormDialogState
                                           : FontWeight.w500,
                                       fontSize: 12,
                                       color: isSelected
-                                          ? Theme.of(context).colorScheme.primary
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.primary
                                           : const Color(0xFF424242),
                                     ),
                                   ),
@@ -2148,7 +2262,9 @@ class _CompositeProductFormDialogState
                                     '${m.category} • Stock: ${m.stock.toStringAsFixed(1)} ${m.unit}',
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -2186,7 +2302,11 @@ class _CompositeProductFormDialogState
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
-              border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+              border: Border(
+                top: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
             ),
             child: Column(
               children: [
@@ -2204,7 +2324,10 @@ class _CompositeProductFormDialogState
                     ),
                     Text(
                       '${Helpers.formatCurrency(_selectedDirectMaterial!.effectiveCostPrice)}/${_selectedDirectMaterial!.unit}',
-                      style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -2268,7 +2391,10 @@ class _CompositeProductFormDialogState
                     ),
                     Text(
                       ' ${_selectedDirectMaterial!.unit}',
-                      style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const Spacer(),
                     Text(
@@ -2276,7 +2402,7 @@ class _CompositeProductFormDialogState
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: const Color(0xFF2E7D32),
+                        color: Color(0xFF2E7D32),
                       ),
                     ),
                   ],
@@ -2361,7 +2487,7 @@ class _CompositeProductFormDialogState
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF2E7D32),
+                      color: Color(0xFF2E7D32),
                     ),
                   ),
                 ],
@@ -2380,13 +2506,17 @@ class _CompositeProductFormDialogState
                           Icon(
                             Icons.add_circle_outline,
                             size: 24,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(height: 2),
                           Text(
                             'Agrega componentes arriba',
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                               fontSize: 10,
                             ),
                             textAlign: TextAlign.center,
@@ -2409,7 +2539,9 @@ class _CompositeProductFormDialogState
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -2440,7 +2572,9 @@ class _CompositeProductFormDialogState
                                     comp.description,
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -2460,7 +2594,9 @@ class _CompositeProductFormDialogState
                                   Helpers.formatCurrency(comp.totalPrice),
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -2759,7 +2895,7 @@ class _CompositeProductFormDialogState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Nombre y código son requeridos'),
-          backgroundColor: const Color(0xFFF9A825),
+          backgroundColor: Color(0xFFF9A825),
         ),
       );
       return;
@@ -2773,7 +2909,10 @@ class _CompositeProductFormDialogState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFC62828)),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFC62828),
+          ),
         );
       }
     } finally {

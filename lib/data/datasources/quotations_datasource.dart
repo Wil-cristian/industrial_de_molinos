@@ -71,7 +71,7 @@ class QuotationsDataSource {
     }).toList();
   }
 
-  /// Obtener cotización por ID con items
+  /// Obtener cotizaciÃ³n por ID con items
   static Future<Quotation?> getById(String id) async {
     try {
       final response = await _client
@@ -86,7 +86,7 @@ class QuotationsDataSource {
     }
   }
 
-  /// Obtener items de una cotización
+  /// Obtener items de una cotizaciÃ³n
   static Future<List<QuotationItem>> getItems(String quotationId) async {
     final response = await _client
         .from(_itemsTable)
@@ -96,19 +96,19 @@ class QuotationsDataSource {
     return response.map<QuotationItem>((json) => _itemFromJson(json)).toList();
   }
 
-  /// Generar nuevo número de cotización
+  /// Generar nuevo nÃºmero de cotizaciÃ³n
   static Future<String> generateNumber() async {
     final response = await _client.rpc('generate_quotation_number');
     return response as String;
   }
 
-  /// Crear cotización
+  /// Crear cotizaciÃ³n
   static Future<Quotation> create(Quotation quotation) async {
     try {
-      // Generar número automático
-      AppLogger.debug('?? Generando número de cotización...');
+      // Generar nÃºmero automÃ¡tico
+      AppLogger.debug('?? Generando nÃºmero de cotizaciÃ³n...');
       final number = await generateNumber();
-      AppLogger.success('? Número generado: $number');
+      AppLogger.success('? NÃºmero generado: $number');
 
       final data = _toJson(quotation);
       data['number'] = number;
@@ -118,14 +118,14 @@ class QuotationsDataSource {
       data.remove('updated_at');
       data.remove('synced');
 
-      AppLogger.debug('?? Insertando cotización: $data');
+      AppLogger.debug('?? Insertando cotizaciÃ³n: $data');
       final response = await _client
           .from(_table)
           .insert(data)
           .select()
           .single();
       final newId = response['id'];
-      AppLogger.success('? Cotización creada con ID: $newId');
+      AppLogger.success('? CotizaciÃ³n creada con ID: $newId');
 
       // Insertar items
       AppLogger.debug('?? Insertando ${quotation.items.length} items...');
@@ -135,16 +135,16 @@ class QuotationsDataSource {
       }
       AppLogger.success('? Items insertados');
 
-      // Retornar cotización con items
+      // Retornar cotizaciÃ³n con items
       return (await getById(newId))!;
     } catch (e, stack) {
-      AppLogger.error('? Error al crear cotización: $e');
+      AppLogger.error('? Error al crear cotizaciÃ³n: $e');
       AppLogger.error('Stack: $stack');
       rethrow;
     }
   }
 
-  /// Crear item de cotización
+  /// Crear item de cotizaciÃ³n
   static Future<QuotationItem> createItem(
     String quotationId,
     QuotationItem item,
@@ -171,7 +171,7 @@ class QuotationsDataSource {
     }
   }
 
-  /// Actualizar cotización
+  /// Actualizar cotizaciÃ³n
   static Future<Quotation> update(Quotation quotation) async {
     final data = _toJson(quotation);
     data.remove('id');
@@ -198,14 +198,14 @@ class QuotationsDataSource {
     await _client.from(_table).update({'status': status}).eq('id', id);
   }
 
-  /// Aprobar cotización y crear factura automáticamente (con descuento de materiales)
+  /// Aprobar cotizaciÃ³n y crear factura automÃ¡ticamente (con descuento de materiales)
   static Future<Map<String, dynamic>?> approveAndCreateInvoice(
     String quotationId, {
     String series = 'F001',
     bool deductMaterials = true,
   }) async {
     try {
-      AppLogger.debug('?? Aprobando cotización: $quotationId');
+      AppLogger.debug('?? Aprobando cotizaciÃ³n: $quotationId');
       final response = await _client.rpc(
         'approve_quotation_with_materials',
         params: {
@@ -215,7 +215,7 @@ class QuotationsDataSource {
         },
       );
 
-      AppLogger.success('? Respuesta de aprobación:');
+      AppLogger.success('? Respuesta de aprobaciÃ³n:');
       AppLogger.debug(' Response: $response');
       if (response is Map<String, dynamic>) {
         AppLogger.debug(' Invoice: ${response['invoice_number']}');
@@ -225,27 +225,27 @@ class QuotationsDataSource {
 
       return response as Map<String, dynamic>?;
     } catch (e) {
-      // NO usar fallback silencioso — la función con descuento de materiales es obligatoria
+      // NO usar fallback silencioso â€” la funciÃ³n con descuento de materiales es obligatoria
       AppLogger.error(
-        '? Error al aprobar cotización con descuento de inventario: $e',
+        '? Error al aprobar cotizaciÃ³n con descuento de inventario: $e',
       );
 
-      // Si el error es que la función no existe, dar instrucciones claras
+      // Si el error es que la funciÃ³n no existe, dar instrucciones claras
       final errorMsg = e.toString().toLowerCase();
       if (errorMsg.contains('function') &&
           (errorMsg.contains('not exist') ||
               errorMsg.contains('does not exist') ||
               errorMsg.contains('could not find'))) {
         throw Exception(
-          'La función approve_quotation_with_materials no existe en Supabase. '
-          'Ejecute la migración 036_bulk_inventory_operations.sql en el SQL Editor de Supabase.',
+          'La funciÃ³n approve_quotation_with_materials no existe en Supabase. '
+          'Ejecute la migraciÃ³n 036_bulk_inventory_operations.sql en el SQL Editor de Supabase.',
         );
       }
       rethrow;
     }
   }
 
-  /// Rechazar cotización
+  /// Rechazar cotizaciÃ³n
   static Future<void> reject(String quotationId, {String? reason}) async {
     try {
       await _client.rpc(
@@ -253,12 +253,12 @@ class QuotationsDataSource {
         params: {'p_quotation_id': quotationId, 'p_reason': reason},
       );
     } catch (e) {
-      AppLogger.error('? Error al rechazar cotización: $e');
+      AppLogger.error('? Error al rechazar cotizaciÃ³n: $e');
       rethrow;
     }
   }
 
-  /// Verificar disponibilidad de stock para cotización
+  /// Verificar disponibilidad de stock para cotizaciÃ³n
   static Future<List<Map<String, dynamic>>> checkStockAvailability(
     String quotationId,
   ) async {
@@ -274,7 +274,7 @@ class QuotationsDataSource {
     }
   }
 
-  /// Eliminar cotización (solo borradores, usa RPC segura)
+  /// Eliminar cotizaciÃ³n (solo borradores, usa RPC segura)
   static Future<void> delete(String id) async {
     try {
       await _client.rpc(
@@ -282,7 +282,7 @@ class QuotationsDataSource {
         params: {'p_quotation_id': id},
       );
     } catch (e) {
-      // Fallback directo si la RPC no existe aún
+      // Fallback directo si la RPC no existe aÃºn
       if (e.toString().contains('could not find')) {
         await _client.from(_table).delete().eq('id', id);
       } else {
@@ -291,14 +291,14 @@ class QuotationsDataSource {
     }
   }
 
-  /// Anular cotización atómicamente con blindaje anti-fraude
-  /// Si la factura asociada tiene pagos, la anulación será BLOQUEADA
+  /// Anular cotizaciÃ³n atÃ³micamente con blindaje anti-fraude
+  /// Si la factura asociada tiene pagos, la anulaciÃ³n serÃ¡ BLOQUEADA
   static Future<Map<String, dynamic>> annulQuotation(
     String quotationId, {
     String reason = 'Anulada por el usuario',
   }) async {
     try {
-      AppLogger.debug('?? Anulación segura de cotización: $quotationId');
+      AppLogger.debug('?? AnulaciÃ³n segura de cotizaciÃ³n: $quotationId');
       final response = await _client.rpc(
         'secure_annul_quotation',
         params: {'p_quotation_id': quotationId, 'p_reason': reason},
@@ -306,14 +306,14 @@ class QuotationsDataSource {
       final result = Map<String, dynamic>.from(response ?? {});
 
       if (result['success'] == true) {
-        AppLogger.success('? Cotización anulada: $result');
+        AppLogger.success('? CotizaciÃ³n anulada: $result');
       } else if (result['blocked'] == true) {
-        AppLogger.warning('?? Anulación bloqueada: ${result['reason']}');
+        AppLogger.warning('?? AnulaciÃ³n bloqueada: ${result['reason']}');
       }
 
       return result;
     } catch (e) {
-      AppLogger.error('? Error al anular cotización: $e');
+      AppLogger.error('? Error al anular cotizaciÃ³n: $e');
       rethrow;
     }
   }
@@ -359,7 +359,7 @@ class QuotationsDataSource {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  // Helpers de conversión
+  // Helpers de conversiÃ³n
   static Quotation _fromJson(
     Map<String, dynamic> json,
     List<QuotationItem> items,
@@ -424,7 +424,7 @@ class QuotationsDataSource {
       type: json['type'] ?? 'custom',
       productId: json['product_id'],
       materialId:
-          json['material_id'], // Columna correcta (inv_material_id fue eliminada en migración 028)
+          json['material_id'], // Columna correcta (inv_material_id fue eliminada en migraciÃ³n 028)
       quantity: json['quantity'] ?? 1,
       unitWeight: (json['unit_weight'] ?? 0).toDouble(),
       pricePerKg: (json['price_per_kg'] ?? 0).toDouble(),
@@ -464,15 +464,15 @@ class QuotationsDataSource {
     final dims = item.dimensions;
     switch (item.type) {
       case 'cylinder':
-        return 'Ø${dims['diameter']}mm × ${dims['thickness']}mm × ${dims['length']}mm';
+        return 'Ã˜${dims['diameter']}mm Ã— ${dims['thickness']}mm Ã— ${dims['length']}mm';
       case 'circular_plate':
-        return 'Ø${dims['diameter']}mm × ${dims['thickness']}mm';
+        return 'Ã˜${dims['diameter']}mm Ã— ${dims['thickness']}mm';
       case 'rectangular_plate':
-        return '${dims['width']}mm × ${dims['length']}mm × ${dims['thickness']}mm';
+        return '${dims['width']}mm Ã— ${dims['length']}mm Ã— ${dims['thickness']}mm';
       case 'shaft':
-        return 'Ø${dims['diameter']}mm × ${dims['length']}mm';
+        return 'Ã˜${dims['diameter']}mm Ã— ${dims['length']}mm';
       case 'ring':
-        return 'Øext ${dims['outerDiameter']}mm × Øint ${dims['innerDiameter']}mm × ${dims['thickness']}mm';
+        return 'Ã˜ext ${dims['outerDiameter']}mm Ã— Ã˜int ${dims['innerDiameter']}mm Ã— ${dims['thickness']}mm';
       default:
         return '';
     }

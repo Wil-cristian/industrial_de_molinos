@@ -29,7 +29,7 @@ void main() async {
     await _testSupabaseConnection();
   }
 
-  runApp(const ProviderScope(child: MolinosApp()));
+  runApp(const RestartWidget(child: ProviderScope(child: MolinosApp())));
 }
 
 Future<void> _testSupabaseConnection() async {
@@ -38,6 +38,33 @@ Future<void> _testSupabaseConnection() async {
     AppLogger.info('Conexión Supabase: ${connected ? "OK" : "FALLO"}');
   } catch (e) {
     AppLogger.error('Error verificando conexión Supabase', e);
+  }
+}
+
+/// Wrapper that forces a full rebuild of the widget tree (including ProviderScope),
+/// effectively performing a hot restart of the entire application state.
+class RestartWidget extends StatefulWidget {
+  final Widget child;
+  const RestartWidget({super.key, required this.child});
+
+  static void restart(BuildContext context) {
+    context.findAncestorStateOfType<_RestartWidgetState>()?.restartApp();
+  }
+
+  @override
+  State<RestartWidget> createState() => _RestartWidgetState();
+}
+
+class _RestartWidgetState extends State<RestartWidget> {
+  Key _key = UniqueKey();
+
+  void restartApp() {
+    setState(() => _key = UniqueKey());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyedSubtree(key: _key, child: widget.child);
   }
 }
 

@@ -177,7 +177,9 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             labelColor: Theme.of(context).colorScheme.primary,
-            unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+            unselectedLabelColor: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant,
             indicatorColor: Theme.of(context).colorScheme.primary,
             indicatorWeight: 2.5,
             labelStyle: const TextStyle(
@@ -225,7 +227,9 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
       icon: Icon(
         Icons.date_range,
         size: 16,
-        color: hasFilter ? AppColors.success : Theme.of(context).colorScheme.primary,
+        color: hasFilter
+            ? AppColors.success
+            : Theme.of(context).colorScheme.primary,
       ),
       label: Text(
         hasFilter
@@ -233,7 +237,9 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
             : 'Filtrar fechas',
         style: TextStyle(
           fontSize: 12,
-          color: hasFilter ? AppColors.success : Theme.of(context).colorScheme.primary,
+          color: hasFilter
+              ? AppColors.success
+              : Theme.of(context).colorScheme.primary,
         ),
       ),
       style: OutlinedButton.styleFrom(
@@ -259,7 +265,9 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: Theme.of(context).colorScheme.primary),
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).colorScheme.primary,
+            ),
           ),
           child: child!,
         );
@@ -403,11 +411,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                   '=',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                _EquationBlock(
-                  'Pasivos',
-                  state.totalPasivos,
-                  AppColors.danger,
-                ),
+                _EquationBlock('Pasivos', state.totalPasivos, AppColors.danger),
                 const Text(
                   '+',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -539,7 +543,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                     const Text(
                       'UTILIDAD NETA DEL PERIODO',
                       style: TextStyle(
-                        color: const Color(0xB3FFFFFF),
+                        color: Color(0xB3FFFFFF),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -645,10 +649,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                     DataCell(
                       Text(
                         Formatters.currency(m.gastos),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.danger,
-                        ),
+                        style: TextStyle(fontSize: 12, color: AppColors.danger),
                       ),
                     ),
                     DataCell(
@@ -692,7 +693,11 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           color: Colors.white,
           child: Row(
             children: [
-              Icon(Icons.filter_list, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.filter_list,
+                size: 18,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Cuenta:',
@@ -709,7 +714,10 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
                       'Todas las cuentas',
                       style: TextStyle(fontSize: 13),
                     ),
-                    style: const TextStyle(fontSize: 13, color: const Color(0xDD000000)),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xDD000000),
+                    ),
                     items: [
                       const DropdownMenuItem<String?>(
                         value: null,
@@ -752,7 +760,9 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -873,7 +883,9 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         child: Column(
           children: [
@@ -1085,7 +1097,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           SizedBox(height: 12),
           Text(
             'Cargando datos contables...',
-            style: TextStyle(color: const Color(0xFF9E9E9E)),
+            style: TextStyle(color: Color(0xFF9E9E9E)),
           ),
         ],
       ),
@@ -1120,13 +1132,19 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
           const SizedBox(height: 12),
           Text(
             message,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Los asientos se crean automáticamente\nal registrar movimientos de caja, facturas y pagos.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
@@ -1216,7 +1234,10 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                   // Fecha
                   Text(
                     Formatters.dateTime(e.entryDate),
-                    style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   // Monto
@@ -1240,7 +1261,10 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                 const SizedBox(height: 4),
                 Text(
                   e.description,
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   maxLines: _expanded ? null : 1,
                   overflow: _expanded ? null : TextOverflow.ellipsis,
                 ),
@@ -1422,7 +1446,10 @@ class _SummaryCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -1508,7 +1535,9 @@ class _BalanceSection extends StatelessWidget {
             (item) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: const Color(0xFFF5F5F5))),
+                border: Border(
+                  bottom: BorderSide(color: const Color(0xFFF5F5F5)),
+                ),
               ),
               child: Row(
                 children: [
@@ -1604,7 +1633,9 @@ class _ResultSection extends StatelessWidget {
             (item) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: const Color(0xFFF5F5F5))),
+                border: Border(
+                  bottom: BorderSide(color: const Color(0xFFF5F5F5)),
+                ),
               ),
               child: Row(
                 children: [
@@ -1653,7 +1684,13 @@ class _EquationBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 4),
         Text(
           Formatters.currency(value),

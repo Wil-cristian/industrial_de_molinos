@@ -1,22 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/responsive/responsive_helper.dart';
+import '../../main.dart';
 
-class QuickActionsButton extends StatefulWidget {
+class QuickActionsButton extends ConsumerStatefulWidget {
   const QuickActionsButton({super.key});
 
   @override
-  State<QuickActionsButton> createState() => _QuickActionsButtonState();
+  ConsumerState<QuickActionsButton> createState() => _QuickActionsButtonState();
 }
 
-class _QuickActionsButtonState extends State<QuickActionsButton>
+class _QuickActionsButtonState extends ConsumerState<QuickActionsButton>
     with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
 
   final List<QuickActionItem> _actions = [
+    QuickActionItem(
+      icon: Icons.refresh,
+      label: 'Recargar Vista',
+      route: '/',
+      color: const Color(0xFF546E7A),
+      isReload: true,
+    ),
     QuickActionItem(
       icon: Icons.account_balance_wallet,
       label: 'Caja Diaria',
@@ -58,6 +67,12 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
       label: 'Productos Compuestos',
       route: '/composite-products',
       color: const Color(0xFFFF5722),
+    ),
+    QuickActionItem(
+      icon: Icons.factory,
+      label: 'Orden Produccion',
+      route: '/production-orders',
+      color: const Color(0xFF607D8B),
     ),
     QuickActionItem(
       icon: Icons.badge,
@@ -121,6 +136,14 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
     });
   }
 
+  Future<void> _handleQuickActionTap(QuickActionItem action) async {
+    if (action.isReload) {
+      RestartWidget.restart(context);
+      return;
+    }
+    context.go(action.route);
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -144,7 +167,9 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
               child: AnimatedOpacity(
                 opacity: _isExpanded ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
-                child: Container(color: const Color(0xFF000000).withOpacity(0.3)),
+                child: Container(
+                  color: const Color(0xFF000000).withOpacity(0.3),
+                ),
               ),
             ),
           ),
@@ -185,9 +210,13 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withOpacity(0.3),
                         border: Border(
-                          bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                          bottom: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                       ),
                       child: Row(
@@ -195,21 +224,24 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primaryContainer,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.flash_on,
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimaryContainer,
                               size: 18,
                             ),
                           ),
                           const SizedBox(width: 10),
                           Text(
                             'Acciones Rápidas',
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -243,7 +275,9 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
             turns: _isExpanded ? 0.125 : 0,
             child: Material(
               elevation: 8,
-              shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.4),
+              shadowColor: Theme.of(
+                context,
+              ).colorScheme.primary.withOpacity(0.4),
               borderRadius: BorderRadius.circular(14),
               child: InkWell(
                 onTap: _toggleExpanded,
@@ -303,7 +337,8 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
                   child: Container(
-                    width: 40, height: 4,
+                    width: 40,
+                    height: 4,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.outlineVariant,
                       borderRadius: BorderRadius.circular(2),
@@ -320,14 +355,28 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                           color: Theme.of(context).colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(Icons.flash_on, color: Theme.of(context).colorScheme.onPrimaryContainer, size: 18),
+                        child: Icon(
+                          Icons.flash_on,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
+                          size: 18,
+                        ),
                       ),
                       const SizedBox(width: 10),
-                      Text('Acciones Rápidas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(
+                        'Acciones Rápidas',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+                Divider(
+                  height: 1,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
                   child: GridView.count(
@@ -337,24 +386,33 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                     mainAxisSpacing: 4,
                     crossAxisSpacing: 4,
                     childAspectRatio: 1.1,
-                    children: _actions.map((action) => _MobileActionItem(
-                      icon: action.icon,
-                      label: action.label,
-                      color: action.color,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        setState(() => _isExpanded = false);
-                        _animationController.reverse();
-                        context.go(action.route);
-                      },
-                    )).toList(),
+                    children: _actions
+                        .map(
+                          (action) => _MobileActionItem(
+                            icon: action.icon,
+                            label: action.label,
+                            color: action.color,
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              setState(() => _isExpanded = false);
+                              _animationController.reverse();
+                              _handleQuickActionTap(action);
+                            },
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
               ],
             ),
           ),
         ).whenComplete(() {
-          if (mounted) setState(() { _isExpanded = false; _animationController.reverse(); });
+          if (mounted) {
+            setState(() {
+              _isExpanded = false;
+              _animationController.reverse();
+            });
+          }
         });
       }
     });
@@ -398,7 +456,7 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
           child: InkWell(
             onTap: () {
               _toggleExpanded();
-              context.go(action.route);
+              _handleQuickActionTap(action);
             },
             borderRadius: BorderRadius.circular(12),
             child: Padding(
@@ -423,7 +481,11 @@ class _QuickActionsButtonState extends State<QuickActionsButton>
                       ),
                     ),
                   ),
-                  Icon(Icons.chevron_right, color: const Color(0xFFBDBDBD), size: 20),
+                  Icon(
+                    Icons.chevron_right,
+                    color: const Color(0xFFBDBDBD),
+                    size: 20,
+                  ),
                 ],
               ),
             ),
@@ -439,12 +501,14 @@ class QuickActionItem {
   final String label;
   final String route;
   final Color color;
+  final bool isReload;
 
   QuickActionItem({
     required this.icon,
     required this.label,
     required this.route,
     required this.color,
+    this.isReload = false,
   });
 }
 

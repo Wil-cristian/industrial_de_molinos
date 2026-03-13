@@ -2,7 +2,7 @@ import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_datasource.dart';
 
-/// Modelo para estadÌsticas de ventas
+/// Modelo para estad√≠sticas de ventas
 class SalesStats {
   final double totalSales;
   final int transactionCount;
@@ -21,7 +21,7 @@ class SalesStats {
   });
 }
 
-/// Modelo para datos de gr·ficos de ventas
+/// Modelo para datos de gr√°ficos de ventas
 class SalesChartData {
   final String label;
   final double currentValue;
@@ -34,7 +34,7 @@ class SalesChartData {
   });
 }
 
-/// Modelo para productos m·s vendidos
+/// Modelo para productos m√°s vendidos
 class TopProduct {
   final String productId;
   final String productName;
@@ -72,7 +72,7 @@ class CustomerSales {
   });
 }
 
-/// Modelo para reporte de inventario con an·lisis de m·rgenes
+/// Modelo para reporte de inventario con an√°lisis de m√°rgenes
 class InventoryReport {
   final String productId;
   final String productCode;
@@ -83,7 +83,7 @@ class InventoryReport {
   final double currentStock;
   final double minStock;
   final double unitPrice; // Precio de venta
-  final double costPrice; // Precio de compra/fabricaciÛn
+  final double costPrice; // Precio de compra/fabricaci√≥n
   final double totalValue;
   final bool isLowStock;
   final bool isOutOfStock;
@@ -108,12 +108,12 @@ class InventoryReport {
   double get profitPerUnit => unitPrice - costPrice;
 
   /// Margen de ganancia (markup sobre costo)
-  /// FÛrmula: (Precio Venta - Costo) / Costo * 100
+  /// F√≥rmula: (Precio Venta - Costo) / Costo * 100
   double get marginPercent =>
       costPrice > 0 ? ((unitPrice - costPrice) / costPrice * 100) : 0;
 
   /// Margen bruto (sobre precio de venta)
-  /// FÛrmula: (Precio Venta - Costo) / Precio Venta * 100
+  /// F√≥rmula: (Precio Venta - Costo) / Precio Venta * 100
   double get grossMarginPercent =>
       unitPrice > 0 ? ((unitPrice - costPrice) / unitPrice * 100) : 0;
 
@@ -132,10 +132,10 @@ class ReceivableReport {
   final String customerId;
   final String customerName;
   final double totalDebt;
-  final double current; // 0-30 dÌas
-  final double overdue30; // 31-60 dÌas
-  final double overdue60; // 61-90 dÌas
-  final double overdue90; // +90 dÌas
+  final double current; // 0-30 d√≠as
+  final double overdue30; // 31-60 d√≠as
+  final double overdue60; // 61-90 d√≠as
+  final double overdue90; // +90 d√≠as
   final int overdueInvoices;
 
   ReceivableReport({
@@ -153,13 +153,13 @@ class ReceivableReport {
 class ReportsDataSource {
   static SupabaseClient get _client => SupabaseDataSource.client;
 
-  /// Obtener estadÌsticas de ventas del perÌodo
+  /// Obtener estad√≠sticas de ventas del per√≠odo
   static Future<SalesStats> getSalesStats({
     required DateTime startDate,
     required DateTime endDate,
   }) async {
     try {
-      // Ventas del perÌodo actual
+      // Ventas del per√≠odo actual
       final currentResponse = await _client
           .from('invoices')
           .select('total, paid_amount, status')
@@ -178,7 +178,7 @@ class ReportsDataSource {
           ? totalSales / transactionCount
           : 0;
 
-      // PerÌodo anterior (misma duraciÛn)
+      // Per√≠odo anterior (misma duraci√≥n)
       final duration = endDate.difference(startDate);
       final prevEndDate = startDate.subtract(const Duration(days: 1));
       final prevStartDate = prevEndDate.subtract(duration);
@@ -199,7 +199,7 @@ class ReportsDataSource {
           ? ((totalSales - previousPeriodSales) / previousPeriodSales) * 100
           : (totalSales > 0
                 ? 100
-                : 0); // Si no hay perÌodo anterior pero hay ventas, 100% de crecimiento
+                : 0); // Si no hay per√≠odo anterior pero hay ventas, 100% de crecimiento
 
       // Calcular margen bruto real basado en costos de items
       double grossMargin = await _calculateGrossMargin(
@@ -238,7 +238,7 @@ class ReportsDataSource {
     if (totalSales <= 0) return 0;
 
     try {
-      // Obtener items de facturas del perÌodo
+      // Obtener items de facturas del per√≠odo
       // Nota: cost_price puede no existir en invoice_items, usamos un margen estimado
       final itemsResponse = await _client
           .from('invoice_items')
@@ -249,7 +249,7 @@ class ReportsDataSource {
           .lte('invoices.issue_date', endDate.toIso8601String())
           .neq('invoices.status', 'cancelled');
 
-      // ignore: unused_local_variable - Reservado para c·lculo futuro de margen real
+      // ignore: unused_local_variable - Reservado para c√°lculo futuro de margen real
       double totalRevenue = 0;
       for (var item in itemsResponse) {
         final qty = (item['quantity'] ?? 0).toDouble();
@@ -258,7 +258,7 @@ class ReportsDataSource {
       }
 
       // Si no tenemos datos de costos reales, usamos un margen estimado
-      // basado en el tipo de negocio industrial (30-40% tÌpico)
+      // basado en el tipo de negocio industrial (30-40% t√≠pico)
       // En el futuro, podemos agregar cost_price a invoice_items o
       // calcular desde materials/products
       return 35.0; // Margen estimado para negocio industrial
@@ -268,7 +268,7 @@ class ReportsDataSource {
     }
   }
 
-  /// Obtener datos de gr·fico de ventas mensuales
+  /// Obtener datos de gr√°fico de ventas mensuales
   static Future<List<SalesChartData>> getMonthlySalesChart({
     required int year,
   }) async {
@@ -333,19 +333,19 @@ class ReportsDataSource {
 
       return chartData;
     } catch (e) {
-      AppLogger.error('? Error obteniendo gr·fico de ventas: $e');
+      AppLogger.error('? Error obteniendo gr√°fico de ventas: $e');
       return [];
     }
   }
 
-  /// Obtener productos m·s vendidos
+  /// Obtener productos m√°s vendidos
   static Future<List<TopProduct>> getTopProducts({
     required DateTime startDate,
     required DateTime endDate,
     int limit = 10,
   }) async {
     try {
-      // Usar la vista v_top_selling_products que ya tiene la lÛgica correcta
+      // Usar la vista v_top_selling_products que ya tiene la l√≥gica correcta
       // Pero como necesitamos filtrar por fecha, hacemos la consulta directa
       final response = await _client
           .from('invoice_items')
@@ -411,7 +411,7 @@ class ReportsDataSource {
 
       return sorted.take(limit).toList();
     } catch (e) {
-      AppLogger.error('? Error obteniendo productos m·s vendidos: $e');
+      AppLogger.error('? Error obteniendo productos m√°s vendidos: $e');
       return [];
     }
   }
@@ -544,7 +544,7 @@ class ReportsDataSource {
 
         if (lowStockOnly && !isLowStock && !isOutOfStock) continue;
 
-        // Usar el precio m·s relevante disponible
+        // Usar el precio m√°s relevante disponible
         final price = costPrice > 0
             ? costPrice
             : (unitPrice > 0 ? unitPrice : pricePerKg);
@@ -568,7 +568,7 @@ class ReportsDataSource {
         );
       }
 
-      // Ordenar: primero los crÌticos (sin stock), luego bajo stock, luego el resto
+      // Ordenar: primero los cr√≠ticos (sin stock), luego bajo stock, luego el resto
       reports.sort((a, b) {
         if (a.isOutOfStock && !b.isOutOfStock) return -1;
         if (!a.isOutOfStock && b.isOutOfStock) return 1;
@@ -596,7 +596,7 @@ class ReportsDataSource {
       double totalValue = products.fold(0.0, (sum, p) => sum + p.totalValue);
       double totalStock = products.fold(0.0, (sum, p) => sum + p.currentStock);
 
-      // C·lculos de m·rgenes (sobre TODOS los productos)
+      // C√°lculos de m√°rgenes (sobre TODOS los productos)
       double totalStockCost = products.fold(
         0.0,
         (sum, p) => sum + p.stockCostValue,
@@ -641,7 +641,7 @@ class ReportsDataSource {
     }
   }
 
-  /// Obtener cuentas por cobrar (antig¸edad de saldos)
+  /// Obtener cuentas por cobrar (antig√ºedad de saldos)
   static Future<List<ReceivableReport>> getReceivablesReport() async {
     try {
       final now = DateTime.now();

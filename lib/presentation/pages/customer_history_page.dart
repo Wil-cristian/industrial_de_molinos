@@ -17,7 +17,10 @@ class CustomerHistoryPage extends ConsumerStatefulWidget {
 class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final _currencyFormat = NumberFormat.currency(symbol: '\$ ', decimalDigits: 2);
+  final _currencyFormat = NumberFormat.currency(
+    symbol: '\$ ',
+    decimalDigits: 2,
+  );
   final _dateFormat = DateFormat('dd/MM/yyyy');
 
   @override
@@ -69,32 +72,35 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline,
-                          size: 64, color: const Color(0xFFE57373)),
-                      const SizedBox(height: 16),
-                      Text('Error: ${state.error}'),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => ref
-                            .read(customerHistoryProvider.notifier)
-                            .loadCustomerHistory(widget.customerId),
-                        child: const Text('Reintentar'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: const Color(0xFFE57373),
                   ),
-                )
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildSummaryTab(state),
-                    _buildPurchasesTab(state),
-                    _buildProductsTab(state),
-                  ],
-                ),
+                  const SizedBox(height: 16),
+                  Text('Error: ${state.error}'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => ref
+                        .read(customerHistoryProvider.notifier)
+                        .loadCustomerHistory(widget.customerId),
+                    child: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            )
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSummaryTab(state),
+                _buildPurchasesTab(state),
+                _buildProductsTab(state),
+              ],
+            ),
     );
   }
 
@@ -129,7 +135,9 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                         child: Text(
                           metrics.name.substring(0, 1).toUpperCase(),
                           style: const TextStyle(
-                              fontSize: 24, color: Colors.white),
+                            fontSize: 24,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -153,16 +161,22 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                     ],
                   ),
                   const Divider(height: 24),
-                  _buildInfoRow('Cliente desde',
-                      metrics.customerSince != null
-                          ? _dateFormat.format(metrics.customerSince!)
-                          : '-'),
-                  _buildInfoRow('Última compra',
-                      metrics.lastPurchaseDate != null
-                          ? _dateFormat.format(metrics.lastPurchaseDate!)
-                          : 'Sin compras'),
-                  _buildInfoRow('Días sin comprar',
-                      metrics.daysSinceLastPurchase?.toString() ?? '-'),
+                  _buildInfoRow(
+                    'Cliente desde',
+                    metrics.customerSince != null
+                        ? _dateFormat.format(metrics.customerSince!)
+                        : '-',
+                  ),
+                  _buildInfoRow(
+                    'Última compra',
+                    metrics.lastPurchaseDate != null
+                        ? _dateFormat.format(metrics.lastPurchaseDate!)
+                        : 'Sin compras',
+                  ),
+                  _buildInfoRow(
+                    'Días sin comprar',
+                    metrics.daysSinceLastPurchase?.toString() ?? '-',
+                  ),
                 ],
               ),
             ),
@@ -170,8 +184,10 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
           const SizedBox(height: 16),
 
           // KPIs principales
-          Text('Métricas de Compra',
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Métricas de Compra',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -211,7 +227,9 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                   'Deuda Actual',
                   _currencyFormat.format(metrics.debt),
                   Icons.account_balance_wallet,
-                  metrics.debt > 0 ? const Color(0xFFC62828) : const Color(0xFF9E9E9E),
+                  metrics.debt > 0
+                      ? const Color(0xFFC62828)
+                      : const Color(0xFF9E9E9E),
                 ),
               ),
             ],
@@ -220,8 +238,10 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
           // CLV si está disponible
           if (clv != null) ...[
             const SizedBox(height: 24),
-            Text('Valor del Cliente (CLV)',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Valor del Cliente (CLV)',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             Card(
               color: const Color(0xFFE8EAF6),
@@ -232,12 +252,18 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildClvMetric('Meses como cliente',
-                            clv.monthsAsCustomer.toString()),
-                        _buildClvMetric('Ingreso mensual',
-                            _currencyFormat.format(clv.monthlyRevenue)),
-                        _buildClvMetric('Valor anual estimado',
-                            _currencyFormat.format(clv.estimatedAnnualValue)),
+                        _buildClvMetric(
+                          'Meses como cliente',
+                          clv.monthsAsCustomer.toString(),
+                        ),
+                        _buildClvMetric(
+                          'Ingreso mensual',
+                          _currencyFormat.format(clv.monthlyRevenue),
+                        ),
+                        _buildClvMetric(
+                          'Valor anual estimado',
+                          _currencyFormat.format(clv.estimatedAnnualValue),
+                        ),
                       ],
                     ),
                   ],
@@ -255,12 +281,18 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildInfoRow('Límite de crédito',
-                      _currencyFormat.format(metrics.creditLimit)),
                   _buildInfoRow(
-                      'Utilizado', _currencyFormat.format(metrics.debt)),
-                  _buildInfoRow('Disponible',
-                      _currencyFormat.format(metrics.creditLimit - metrics.debt)),
+                    'Límite de crédito',
+                    _currencyFormat.format(metrics.creditLimit),
+                  ),
+                  _buildInfoRow(
+                    'Utilizado',
+                    _currencyFormat.format(metrics.debt),
+                  ),
+                  _buildInfoRow(
+                    'Disponible',
+                    _currencyFormat.format(metrics.creditLimit - metrics.debt),
+                  ),
                   const SizedBox(height: 8),
                   LinearProgressIndicator(
                     value: metrics.creditLimit > 0
@@ -293,7 +325,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long, size: 64, color: const Color(0xFF9E9E9E)),
+            Icon(Icons.receipt_long, size: 64, color: Color(0xFF9E9E9E)),
             SizedBox(height: 16),
             Text('No hay compras registradas'),
           ],
@@ -337,22 +369,26 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
             trailing: _buildStatusChip(firstItem.invoiceStatus ?? 'pending'),
             children: [
               const Divider(height: 1),
-              ...items.map((item) => ListTile(
-                    dense: true,
-                    title: Text(item.productName ?? 'Producto'),
-                    subtitle: Text(item.productCode ?? ''),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('${item.quantity ?? 0} x ${_currencyFormat.format(item.unitPrice ?? 0)}'),
-                        Text(
-                          _currencyFormat.format(item.itemTotal ?? 0),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  )),
+              ...items.map(
+                (item) => ListTile(
+                  dense: true,
+                  title: Text(item.productName ?? 'Producto'),
+                  subtitle: Text(item.productCode ?? ''),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${item.quantity ?? 0} x ${_currencyFormat.format(item.unitPrice ?? 0)}',
+                      ),
+                      Text(
+                        _currencyFormat.format(item.itemTotal ?? 0),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -371,7 +407,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inventory_2, size: 64, color: const Color(0xFF9E9E9E)),
+            Icon(Icons.inventory_2, size: 64, color: Color(0xFF9E9E9E)),
             SizedBox(height: 16),
             Text('No hay productos comprados'),
           ],
@@ -412,16 +448,26 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                 ),
                 Row(
                   children: [
-                    Icon(Icons.date_range, size: 14, color: const Color(0xFF757575)),
+                    Icon(
+                      Icons.date_range,
+                      size: 14,
+                      color: const Color(0xFF757575),
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'Primera: ${product.firstPurchase != null ? _dateFormat.format(product.firstPurchase!) : '-'}',
-                      style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: const Color(0xFF757575),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Última: ${product.lastPurchase != null ? _dateFormat.format(product.lastPurchase!) : '-'}',
-                      style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: const Color(0xFF757575),
+                      ),
                     ),
                   ],
                 ),
@@ -440,7 +486,10 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
                 ),
                 Text(
                   'Qty: ${product.totalQuantity.toStringAsFixed(1)}',
-                  style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
+                  style: TextStyle(
+                    color: const Color(0xFF757575),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -455,8 +504,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
   // HELPERS
   // ============================================================
 
-  Widget _buildKpiCard(
-      String title, String value, IconData icon, Color color) {
+  Widget _buildKpiCard(String title, String value, IconData icon, Color color) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -504,7 +552,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF3F51B5),
+            color: Color(0xFF3F51B5),
           ),
         ),
         Text(
@@ -548,10 +596,7 @@ class _CustomerHistoryPageState extends ConsumerState<CustomerHistoryPage>
     }
 
     return Chip(
-      label: Text(
-        label,
-        style: TextStyle(color: color, fontSize: 11),
-      ),
+      label: Text(label, style: TextStyle(color: color, fontSize: 11)),
       backgroundColor: color.withOpacity(0.1),
       padding: EdgeInsets.zero,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

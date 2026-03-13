@@ -168,7 +168,9 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
       selectedColor: Theme.of(context).colorScheme.primaryContainer,
       checkmarkColor: Theme.of(context).colorScheme.primary,
       labelStyle: TextStyle(
-        color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
+        color: isSelected
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.onSurface,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 12,
       ),
@@ -180,7 +182,11 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.shopping_cart_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.shopping_cart_outlined,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 16),
           Text(
             'No hay órdenes de compra',
@@ -193,7 +199,9 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
           const SizedBox(height: 8),
           Text(
             'Crea una orden para solicitar materiales a tus proveedores',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -266,11 +274,17 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
                     const SizedBox(height: 4),
                     Text(
                       order.supplierName ?? 'Sin proveedor',
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
                     ),
                     Text(
                       '${order.itemCount} ítems • ${Formatters.dateShort(order.createdAt)}',
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -337,7 +351,10 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
           builder: (ctx, setDialogState) => AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.add_shopping_cart, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.add_shopping_cart,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 SizedBox(width: 8),
                 Text('Nueva Orden de Compra'),
               ],
@@ -639,7 +656,9 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                         Text(
                           'Proveedor',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 11,
                           ),
                         ),
@@ -660,7 +679,9 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                         Text(
                           'Fecha',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 11,
                           ),
                         ),
@@ -678,7 +699,9 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                         Text(
                           'Entrega esperada',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 11,
                           ),
                         ),
@@ -722,12 +745,18 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                           Icon(
                             Icons.inventory_2_outlined,
                             size: 40,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Sin ítems — agrega materiales a esta orden',
-                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
@@ -929,7 +958,10 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
         ),
         subtitle: Text(
           '${item.quantity} ${item.unit} × ${Formatters.currency(item.unitPrice)}',
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 12,
+          ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -941,7 +973,11 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
             if (_order.status.isEditable) ...[
               const SizedBox(width: 8),
               IconButton(
-                icon: Icon(Icons.edit, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                icon: Icon(
+                  Icons.edit,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 visualDensity: VisualDensity.compact,
                 onPressed: () => _showEditItemDialog(item),
               ),
@@ -1110,7 +1146,10 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
             return AlertDialog(
               title: Row(
                 children: [
-                  Icon(Icons.add_circle, color: Theme.of(context).colorScheme.primary),
+                  Icon(
+                    Icons.add_circle,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   SizedBox(width: 8),
                   Text('Agregar Material'),
                 ],
@@ -1441,7 +1480,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
             return AlertDialog(
               title: const Row(
                 children: [
-                  Icon(Icons.payments_outlined, color: const Color(0xFFFF5722)),
+                  Icon(Icons.payments_outlined, color: Color(0xFFFF5722)),
                   SizedBox(width: 8),
                   Text('Pagar a Proveedor'),
                 ],

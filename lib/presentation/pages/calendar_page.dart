@@ -90,20 +90,16 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
         children: [
           // Header ultra compacto
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 4,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             color: Colors.white,
             child: Row(
               children: [
                 Text(
                   'Calendario',
-                  style: Theme.of(context).textTheme.titleSmall
-                      ?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 // Navegador de mes inline
@@ -129,123 +125,122 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                            ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _displayedMonth = DateTime(
+                        _displayedMonth.year,
+                        _displayedMonth.month + 1,
+                      );
+                    });
+                  },
+                  icon: const Icon(Icons.chevron_right, size: 18),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
+                ),
+                const Spacer(),
+                // Filtros inline
+                _buildCompactFilter('type', _filterType),
+                const SizedBox(width: 4),
+                _buildCompactFilter('status', _filterStatus),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 28,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showActivityDialog(),
+                    icon: const Icon(Icons.add, size: 14),
+                    label: const Text('Nueva', style: TextStyle(fontSize: 11)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Contenido Principal
+          Expanded(
+            child: Row(
+              children: [
+                // Calendario
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    color: Colors.white,
+                    margin: const EdgeInsets.all(2),
+                    child: _buildCalendarGrid(),
+                  ),
+                ),
+                // Lista de Actividades
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    color: Colors.white,
+                    margin: const EdgeInsets.fromLTRB(0, 2, 2, 2),
+                    child: Column(
+                      children: [
+                        // Título de la fecha seleccionada
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _displayedMonth = DateTime(
-                                  _displayedMonth.year,
-                                  _displayedMonth.month + 1,
-                                );
-                              });
-                            },
-                            icon: const Icon(Icons.chevron_right, size: 18),
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 28,
-                              minHeight: 28,
-                            ),
-                          ),
-                          const Spacer(),
-                          // Filtros inline
-                          _buildCompactFilter('type', _filterType),
-                          const SizedBox(width: 4),
-                          _buildCompactFilter('status', _filterStatus),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            height: 28,
-                            child: ElevatedButton.icon(
-                              onPressed: () => _showActivityDialog(),
-                              icon: const Icon(Icons.add, size: 14),
-                              label: const Text(
-                                'Nueva',
-                                style: TextStyle(fontSize: 11),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
                               ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.event,
+                                size: 14,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _dateFormat(_selectedDate),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Contenido Principal
-                    Expanded(
-                      child: Row(
-                        children: [
-                          // Calendario
-                          Expanded(
-                            flex: 1,
-                            child: Container(
-                              color: Colors.white,
-                              margin: const EdgeInsets.all(2),
-                              child: _buildCalendarGrid(),
-                            ),
-                          ),
-                          // Lista de Actividades
-                          Expanded(
-                            flex: 1,
-                            child: Container(
-                              color: Colors.white,
-                              margin: const EdgeInsets.fromLTRB(0, 2, 2, 2),
-                              child: Column(
-                                children: [
-                                  // Título de la fecha seleccionada
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      border: Border(
-                                        bottom: BorderSide(
-                                          color: Theme.of(context).colorScheme.outlineVariant,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.event,
-                                          size: 14,
-                                          color: Theme.of(context).colorScheme.primary,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          _dateFormat(_selectedDate),
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: Theme.of(context).colorScheme.primary,
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Text(
-                                          '${_filteredActivities.length} actividades',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Expanded(child: _buildActivityList()),
-                                ],
+                              const Spacer(),
+                              Text(
+                                '${_filteredActivities.length} actividades',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        Expanded(child: _buildActivityList()),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -279,7 +274,9 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
         decoration: BoxDecoration(
           color: const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -289,7 +286,11 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               style: TextStyle(fontSize: 10, color: const Color(0xFF616161)),
             ),
             const SizedBox(width: 2),
-            Icon(Icons.arrow_drop_down, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 14,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ],
         ),
       ),
@@ -420,11 +421,18 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.event_note, size: 32, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            Icon(
+              Icons.event_note,
+              size: 32,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             const SizedBox(height: 8),
             Text(
               'Sin actividades',
-              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -480,7 +488,9 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 );
               }
             },
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFC62828)),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFC62828),
+            ),
             child: const Text('Eliminar'),
           ),
         ],
@@ -1098,7 +1108,10 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFC62828)),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFC62828),
+          ),
         );
       }
     }
@@ -1167,7 +1180,10 @@ class _ActivityCard extends StatelessWidget {
                       ),
                       Text(
                         activity.typeLabel,
-                        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -1228,7 +1244,7 @@ class _ActivityCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFFF9A825),
+                      color: Color(0xFFF9A825),
                     ),
                   ),
                 ),

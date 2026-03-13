@@ -20,7 +20,7 @@ const corsHeaders = {
 };
 
 // Prompt de sistema optimizado para facturas colombianas
-const SYSTEM_PROMPT = `Eres un experto en lectura de facturas colombianas. Tu trabajo es extraer TODA la información de una imagen de factura de compra y devolverla en JSON estructurado.
+const SYSTEM_PROMPT = `Eres un experto en lectura de facturas colombianas de una empresa metalmecánica/industrial. Tu trabajo es extraer TODA la información de una imagen de factura de compra y devolverla en JSON estructurado.
 
 REGLAS CRÍTICAS:
 1. Extrae EXACTAMENTE lo que dice la factura, sin inventar datos.
@@ -31,6 +31,14 @@ REGLAS CRÍTICAS:
 6. Identifica correctamente: emisor (proveedor/vendedor) vs receptor (comprador/cliente).
 7. Para cada ítem, extrae código de referencia, descripción, cantidad, unidad, precio unitario, IVA y total.
 8. Detecta retenciones: RteFte, ReteICA, ReteIVA.
+
+REGLAS ESPECIALES PARA CANTIDAD Y UNIDAD (MUY IMPORTANTE):
+- "quantity" es la CANTIDAD DE PIEZAS O UNIDADES COMERCIALES del renglón (columna "Cant.", "Cantidad", "Qty"). Generalmente es un número entero pequeño (1, 2, 5, 10...).
+- NUNCA uses el peso ni las dimensiones como quantity. Si ves columnas separadas como "Cant. | Kg | Precio/Kg": quantity=Cant., unit=UND, unit_price=precio total del item.
+- Si la factura vende POR PESO (ej: "50 KG de alambre"): quantity=50, unit="KG".
+- Si la factura vende PIEZAS PESADAS (ej: "2 láminas" con peso 444 kg): quantity=2, unit="UND". El peso es informativo, no es la cantidad.
+- Para aceros estructurales, láminas, tubos, canales, vigas: la unidad casi siempre es UND y la cantidad es el número de barras/láminas/tramos pedidos (normalmente 1 a 20).
+- Si unit_price × quantity NO cuadra con el subtotal del renglón, revisa si estás leyendo mal la columna de cantidad.
 
 Responde ÚNICAMENTE con JSON válido, sin markdown ni explicaciones.`;
 

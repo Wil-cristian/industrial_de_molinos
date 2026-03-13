@@ -228,14 +228,24 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                               prefixIcon: const Icon(Icons.search, size: 18),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant!),
+                                borderSide: BorderSide(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant!),
+                                borderSide: BorderSide(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
+                                ),
                               ),
                               filled: true,
-                              fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+                              fillColor: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerLowest,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 0,
@@ -249,9 +259,15 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10),
                             decoration: BoxDecoration(
-                              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant!),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
+                              ),
                               borderRadius: BorderRadius.circular(8),
-                              color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerLowest,
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
@@ -320,7 +336,8 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                             height: 28,
                             child: IconButton(
                               icon: const Icon(Icons.clear, size: 14),
-                              onPressed: () => setState(() => _dateRange = null),
+                              onPressed: () =>
+                                  setState(() => _dateRange = null),
                               tooltip: 'Limpiar',
                               padding: EdgeInsets.zero,
                             ),
@@ -378,7 +395,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 8, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 8,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 value,
@@ -418,7 +438,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             const SizedBox(height: 8),
             Text(
               'Los documentos emitidos aparecerán aquí',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -426,14 +448,18 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
     }
 
     return Padding(
-      padding: EdgeInsets.all(MediaQuery.of(context).size.width < 600 ? 12 : 24),
+      padding: EdgeInsets.all(
+        MediaQuery.of(context).size.width < 600 ? 12 : 24,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
+              color: Theme.of(
+                context,
+              ).colorScheme.shadow.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -445,67 +471,71 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             scrollDirection: Axis.horizontal,
             child: SingleChildScrollView(
               child: DataTable(
-                headingRowColor: WidgetStateProperty.all(Theme.of(context).colorScheme.surfaceContainerLowest),
+                headingRowColor: WidgetStateProperty.all(
+                  Theme.of(context).colorScheme.surfaceContainerLowest,
+                ),
                 dataRowMinHeight: 60,
                 dataRowMaxHeight: 70,
-                columnSpacing: MediaQuery.of(context).size.width < 600 ? 12 : 24,
-              columns: const [
-                DataColumn(
-                  label: Text(
-                    'Documento',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                columnSpacing: MediaQuery.of(context).size.width < 600
+                    ? 12
+                    : 24,
+                columns: const [
+                  DataColumn(
+                    label: Text(
+                      'Documento',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Cliente',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  DataColumn(
+                    label: Text(
+                      'Cliente',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Fecha',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  DataColumn(
+                    label: Text(
+                      'Fecha',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Vencimiento',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  DataColumn(
+                    label: Text(
+                      'Vencimiento',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Total',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  DataColumn(
+                    label: Text(
+                      'Total',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    numeric: true,
                   ),
-                  numeric: true,
-                ),
-                DataColumn(
-                  label: Text(
-                    'Pagado',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  DataColumn(
+                    label: Text(
+                      'Pagado',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    numeric: true,
                   ),
-                  numeric: true,
-                ),
-                DataColumn(
-                  label: Text(
-                    'Estado',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  DataColumn(
+                    label: Text(
+                      'Estado',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-                DataColumn(
-                  label: Text(
-                    '',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  DataColumn(
+                    label: Text(
+                      '',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-              ],
-              rows: invoices
-                  .map((invoice) => _buildInvoiceRow(invoice))
-                  .toList(),
+                ],
+                rows: invoices
+                    .map((invoice) => _buildInvoiceRow(invoice))
+                    .toList(),
+              ),
             ),
-          ),
           ),
         ),
       ),
@@ -558,7 +588,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
               ),
               Text(
                 '${invoice['items']} items',
-                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -584,7 +617,12 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                         : Theme.of(context).colorScheme.onSurface,
                   ),
                 )
-              : Text('-', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              : Text(
+                  '-',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
         ),
         DataCell(
           Text(
@@ -601,7 +639,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                 Formatters.currency(paid),
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: paid > 0 ? AppColors.success : Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: paid > 0
+                      ? AppColors.success
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               if (pending > 0)
@@ -638,7 +678,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
         ),
         DataCell(
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            icon: Icon(
+              Icons.more_vert,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             onSelected: (value) => _handleInvoiceAction(value, invoice),
             itemBuilder: (context) => [
               const PopupMenuItem(
@@ -817,7 +860,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
             fontSize: isTotal ? 18 : 14,
             color:
-                color ?? (isTotal ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface),
+                color ??
+                (isTotal
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface),
           ),
         ),
       ],
@@ -907,10 +953,18 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            insetPadding: MediaQuery.of(context).size.width < 600 ? const EdgeInsets.all(16) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+            insetPadding: MediaQuery.of(context).size.width < 600
+                ? const EdgeInsets.all(16)
+                : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
             child: Container(
-              width: MediaQuery.of(context).size.width < 600 ? double.maxFinite : 480,
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height < 700 ? MediaQuery.of(context).size.height * 0.85 : 600),
+              width: MediaQuery.of(context).size.width < 600
+                  ? double.maxFinite
+                  : 480,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height < 700
+                    ? MediaQuery.of(context).size.height * 0.85
+                    : 600,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -952,7 +1006,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                               Text(
                                 invoice['number'],
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                   fontSize: 13,
                                 ),
                               ),
@@ -978,7 +1034,11 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               border: Border(
-                                bottom: BorderSide(color: Theme.of(context).colorScheme.surfaceContainer!),
+                                bottom: BorderSide(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainer,
+                                ),
                               ),
                             ),
                             child: Column(
@@ -1057,9 +1117,15 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                 vertical: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerLowest,
                                 border: Border(
-                                  bottom: BorderSide(color: Theme.of(context).colorScheme.surfaceContainer!),
+                                  bottom: BorderSide(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainer,
+                                  ),
                                 ),
                               ),
                               child: Column(
@@ -1070,7 +1136,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -1106,10 +1174,14 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                       margin: const EdgeInsets.only(bottom: 6),
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.surface,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.surface,
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
-                                          color: AppColors.success.withOpacity(0.2),
+                                          color: AppColors.success.withOpacity(
+                                            0.2,
+                                          ),
                                         ),
                                       ),
                                       child: Column(
@@ -1122,7 +1194,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                                 width: 22,
                                                 height: 22,
                                                 decoration: BoxDecoration(
-                                                  color: const Color(0xFFE8F5E9),
+                                                  color: const Color(
+                                                    0xFFE8F5E9,
+                                                  ),
                                                   borderRadius:
                                                       BorderRadius.circular(6),
                                                 ),
@@ -1145,7 +1219,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w500,
-                                                    color: Theme.of(context).colorScheme.onSurface,
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.onSurface,
                                                   ),
                                                 ),
                                               ),
@@ -1156,7 +1232,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                                       vertical: 2,
                                                     ),
                                                 decoration: BoxDecoration(
-                                                  color: const Color(0xFFE3F2FD),
+                                                  color: const Color(
+                                                    0xFFE3F2FD,
+                                                  ),
                                                   borderRadius:
                                                       BorderRadius.circular(4),
                                                 ),
@@ -1192,14 +1270,18 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                                   Icon(
                                                     Icons.tag,
                                                     size: 12,
-                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Text(
                                                     reference,
                                                     style: TextStyle(
                                                       fontSize: 11,
-                                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
                                                     ),
                                                   ),
                                                 ],
@@ -1210,7 +1292,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                                   Icon(
                                                     Icons.notes,
                                                     size: 12,
-                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Expanded(
@@ -1218,7 +1302,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                                       notes,
                                                       style: TextStyle(
                                                         fontSize: 11,
-                                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
                                                       ),
                                                       overflow:
                                                           TextOverflow.ellipsis,
@@ -1247,7 +1333,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -1362,7 +1450,9 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerLowest,
                       borderRadius: const BorderRadius.vertical(
                         bottom: Radius.circular(16),
                       ),
@@ -1494,7 +1584,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFEBEE),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.danger.withOpacity(0.5)!),
+                  border: Border.all(color: AppColors.danger.withOpacity(0.5)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1525,7 +1615,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                     Text(
                       'Las facturas con pagos no pueden ser anuladas para '
                       'proteger la integridad contable del sistema.',
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -1601,7 +1694,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF3E0),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.warning.withOpacity(0.5)!),
+                border: Border.all(color: AppColors.warning.withOpacity(0.5)),
               ),
               child: Row(
                 children: [
@@ -1620,7 +1713,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             const SizedBox(height: 12),
             Text(
               'Estado actual: $status  |  Total: \$${total.toStringAsFixed(2)}',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -1829,9 +1925,13 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      insetPadding: MediaQuery.of(context).size.width < 600 ? const EdgeInsets.all(12) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      insetPadding: MediaQuery.of(context).size.width < 600
+          ? const EdgeInsets.all(12)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: SizedBox(
-        width: MediaQuery.of(context).size.width < 600 ? double.maxFinite : 1100,
+        width: MediaQuery.of(context).size.width < 600
+            ? double.maxFinite
+            : 1100,
         height: screenHeight * 0.9,
         child: Column(
           children: [
@@ -1956,11 +2056,11 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: paymentProgress,
-                        backgroundColor: Theme.of(context).colorScheme.surface.withOpacity(0.15),
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.surface.withOpacity(0.15),
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          paid >= total
-                              ? AppColors.success!
-                              : AppColors.warning!,
+                          paid >= total ? AppColors.success : AppColors.warning,
                         ),
                         minHeight: 4,
                       ),
@@ -1991,11 +2091,18 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
               ),
               child: Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.calendar_today,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'Emitida: ${Helpers.formatDate(inv['date'])}  •  Vence: ${Helpers.formatDate(inv['dueDate'])}',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
                   ),
                   const Spacer(),
                   OutlinedButton.icon(
@@ -2008,7 +2115,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                       style: TextStyle(color: AppColors.info, fontSize: 13),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: AppColors.info.withOpacity(0.5)!),
+                      side: BorderSide(color: AppColors.info.withOpacity(0.5)),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 8,
@@ -2046,13 +2153,19 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                         Navigator.pop(context);
                         widget.onCancel();
                       },
-                      icon: Icon(Icons.block, size: 16, color: AppColors.danger),
+                      icon: Icon(
+                        Icons.block,
+                        size: 16,
+                        color: AppColors.danger,
+                      ),
                       label: Text(
                         'Anular',
                         style: TextStyle(color: AppColors.danger, fontSize: 13),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.danger.withOpacity(0.5)!),
+                        side: BorderSide(
+                          color: AppColors.danger.withOpacity(0.5),
+                        ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
@@ -2154,7 +2267,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.shadow.withOpacity(0.04),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.shadow.withOpacity(0.04),
                           blurRadius: 8,
                         ),
                       ],
@@ -2165,7 +2280,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -2189,7 +2306,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                               Text(
                                 'NIT: ${inv['customerRuc'] ?? 'N/A'}',
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                   fontSize: 13,
                                 ),
                               ),
@@ -2204,14 +2323,18 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                 Icon(
                                   Icons.calendar_today,
                                   size: 13,
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   Helpers.formatDate(inv['date']),
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -2222,14 +2345,18 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                 Icon(
                                   Icons.event,
                                   size: 13,
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Vence: ${Helpers.formatDate(inv['dueDate'])}',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -2247,7 +2374,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.shadow.withOpacity(0.04),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.shadow.withOpacity(0.04),
                           blurRadius: 8,
                         ),
                       ],
@@ -2260,7 +2389,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerLowest,
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(12),
                             ),
@@ -2284,7 +2415,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                               Text(
                                 '${inv['items'] ?? products.length} items',
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                   fontSize: 12,
                                 ),
                               ),
@@ -2297,7 +2430,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                             horizontal: 16,
                             vertical: 8,
                           ),
-                          color: Theme.of(context).colorScheme.surfaceContainerLow,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerLow,
                           child: Row(
                             children: [
                               Expanded(
@@ -2307,7 +2442,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ),
@@ -2318,7 +2455,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -2330,7 +2469,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                   textAlign: TextAlign.right,
                                 ),
@@ -2342,7 +2483,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                   textAlign: TextAlign.right,
                                 ),
@@ -2363,7 +2506,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                 decoration: BoxDecoration(
                                   border: Border(
                                     bottom: BorderSide(
-                                      color: Theme.of(context).colorScheme.surfaceContainerLow!,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerLow,
                                     ),
                                   ),
                                 ),
@@ -2387,7 +2532,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                               '${comps.length} componentes',
                                               style: TextStyle(
                                                 fontSize: 10,
-                                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
                                               ),
                                             ),
                                         ],
@@ -2399,7 +2546,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                         '${prod['quantity']}',
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: Theme.of(context).colorScheme.onSurface,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
@@ -2414,7 +2563,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                         ),
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: Theme.of(context).colorScheme.onSurface,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                         ),
                                         textAlign: TextAlign.right,
                                       ),
@@ -2446,10 +2597,14 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                     bottom: 5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerLowest,
                                     border: Border(
                                       bottom: BorderSide(
-                                        color: Theme.of(context).colorScheme.surfaceContainerLow!,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerLow,
                                       ),
                                     ),
                                   ),
@@ -2458,7 +2613,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                       Icon(
                                         Icons.subdirectory_arrow_right,
                                         size: 14,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
                                       const SizedBox(width: 6),
                                       Expanded(
@@ -2466,7 +2623,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                           '${c['quantity']}× ${c['name'] ?? ''}',
                                           style: TextStyle(
                                             fontSize: 11,
-                                            color: Theme.of(context).colorScheme.onSurface,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
                                           ),
                                         ),
                                       ),
@@ -2478,7 +2637,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                           c['material'].toString(),
                                           style: TextStyle(
                                             fontSize: 10,
-                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
                                             fontStyle: FontStyle.italic,
                                           ),
                                         ),
@@ -2487,7 +2648,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                         '${Helpers.formatNumber((c['totalWeight'] as num?)?.toDouble() ?? 0)} kg',
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
                                         ),
                                       ),
                                     ],
@@ -2501,7 +2664,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerLowest,
                             borderRadius: const BorderRadius.vertical(
                               bottom: Radius.circular(12),
                             ),
@@ -2531,7 +2696,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w900,
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
                                   ),
                                 ],
@@ -2575,7 +2742,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   inv['notes'],
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Theme.of(context).colorScheme.onSurface,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                   ),
                                 ),
                               ],
@@ -2602,7 +2771,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.shadow.withOpacity(0.04),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.shadow.withOpacity(0.04),
                           blurRadius: 8,
                         ),
                       ],
@@ -2646,7 +2817,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   child: CircularProgressIndicator(
                                     value: paymentProgress,
                                     strokeWidth: 10,
-                                    backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainer,
                                     valueColor: AlwaysStoppedAnimation<Color>(
                                       paid >= total
                                           ? const Color(0xFF4CAF50)
@@ -2671,7 +2844,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                       'pagado',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ],
@@ -2692,16 +2867,14 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                         _buildPaymentInfoRow(
                           'Pagado',
                           paid,
-                          AppColors.success!,
+                          AppColors.success,
                           Icons.check_circle_outline,
                         ),
                         const SizedBox(height: 8),
                         _buildPaymentInfoRow(
                           'Pendiente',
                           pending,
-                          pending > 0
-                              ? AppColors.warning!
-                              : AppColors.success!,
+                          pending > 0 ? AppColors.warning : AppColors.success,
                           Icons.hourglass_empty,
                         ),
                         if (inv['paymentMethod'] != null) ...[
@@ -2775,7 +2948,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.shadow.withOpacity(0.04),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.shadow.withOpacity(0.04),
                           blurRadius: 8,
                         ),
                       ],
@@ -2788,7 +2963,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                             Icon(
                               Icons.history,
                               size: 18,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(width: 8),
                             const Text(
@@ -2813,21 +2990,27 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerLowest,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Column(
                               children: [
                                 Icon(
                                   Icons.hourglass_empty,
-                                  color: Theme.of(context).colorScheme.outlineVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
                                   size: 32,
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Sin pagos registrados',
                                   style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -2865,7 +3048,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE8F5E9),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: AppColors.success.withOpacity(0.15)!),
+                                border: Border.all(
+                                  color: AppColors.success.withOpacity(0.15),
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2876,7 +3061,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                         width: 32,
                                         height: 32,
                                         decoration: BoxDecoration(
-                                          color: AppColors.success.withOpacity(0.15),
+                                          color: AppColors.success.withOpacity(
+                                            0.15,
+                                          ),
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
@@ -2905,10 +3092,14 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                                     date,
                                                     style: TextStyle(
                                                       fontSize: 13,
-                                                      fontWeight: FontWeight.w600,
-                                                      color: Theme.of(context).colorScheme.onSurface,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.onSurface,
                                                     ),
-                                                    overflow: TextOverflow.ellipsis,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                                 if (timeStr.isNotEmpty) ...[
@@ -2917,7 +3108,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                                     timeStr,
                                                     style: TextStyle(
                                                       fontSize: 11,
-                                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
                                                     ),
                                                   ),
                                                 ],
@@ -2933,7 +3126,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                                         vertical: 1,
                                                       ),
                                                   decoration: BoxDecoration(
-                                                    color: const Color(0xFFE3F2FD),
+                                                    color: const Color(
+                                                      0xFFE3F2FD,
+                                                    ),
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                           4,
@@ -2956,7 +3151,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                                   Icon(
                                                     Icons.tag,
                                                     size: 12,
-                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
                                                   ),
                                                   const SizedBox(width: 3),
                                                   Flexible(
@@ -2964,7 +3161,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                                       reference,
                                                       style: TextStyle(
                                                         fontSize: 11,
-                                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
                                                       ),
                                                       overflow:
                                                           TextOverflow.ellipsis,
@@ -2996,7 +3195,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                       ),
                                       margin: const EdgeInsets.only(left: 42),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerLowest,
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Row(
@@ -3004,7 +3205,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                           Icon(
                                             Icons.notes,
                                             size: 13,
-                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
                                           ),
                                           const SizedBox(width: 6),
                                           Expanded(
@@ -3012,7 +3215,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                               notes,
                                               style: TextStyle(
                                                 fontSize: 11,
-                                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
                                                 fontStyle: FontStyle.italic,
                                               ),
                                             ),
@@ -3030,7 +3235,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerLowest,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -3040,7 +3247,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   'Total abonado',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -3089,7 +3298,10 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         Text(
@@ -3108,7 +3320,13 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
         Text(
           Helpers.formatCurrency(value),
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
@@ -3193,7 +3411,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                 Text(
                                   '#${inv['number']}',
                                   style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -3211,7 +3431,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   borderRadius: BorderRadius.circular(10),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.shadow.withOpacity(0.1),
                                       blurRadius: 10,
                                     ),
                                   ],
@@ -3232,7 +3454,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                       ),
                                       child: Icon(
                                         Icons.precision_manufacturing,
-                                        color: Theme.of(context).colorScheme.surface,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.surface,
                                         size: 30,
                                       ),
                                     ),
@@ -3251,7 +3475,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                 'NIT: 901946675-1',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: const Color(0xFF9E9E9E),
+                                  color: Color(0xFF9E9E9E),
                                 ),
                               ),
                             ],
@@ -3265,7 +3489,11 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                         decoration: BoxDecoration(
                           color: const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Theme.of(context).colorScheme.surfaceContainer!),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainer,
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -3278,7 +3506,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                       letterSpacing: 1.5,
                                     ),
                                   ),
@@ -3294,7 +3524,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   Text(
                                     'NIT/CC: ${inv['customerRuc'] ?? 'N/A'}',
                                     style: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                       fontSize: 13,
                                     ),
                                   ),
@@ -3323,7 +3555,11 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                       Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Theme.of(context).colorScheme.surfaceContainer!),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainer,
+                          ),
                         ),
                         child: Column(
                           children: [
@@ -3347,7 +3583,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: const Color(0xFF9E9E9E),
+                                        color: Color(0xFF9E9E9E),
                                       ),
                                     ),
                                   ),
@@ -3358,7 +3594,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -3370,7 +3608,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
                                       textAlign: TextAlign.right,
                                     ),
@@ -3382,7 +3622,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
                                       textAlign: TextAlign.right,
                                     ),
@@ -3398,7 +3640,11 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                 ),
                                 decoration: BoxDecoration(
                                   border: Border(
-                                    top: BorderSide(color: Theme.of(context).colorScheme.surfaceContainerLow!),
+                                    top: BorderSide(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerLow,
+                                    ),
                                   ),
                                 ),
                                 child: Row(
@@ -3418,7 +3664,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                       child: Text(
                                         '${prod['quantity']}',
                                         style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                           fontSize: 14,
                                         ),
                                         textAlign: TextAlign.center,
@@ -3433,7 +3681,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                               0,
                                         ),
                                         style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                           fontSize: 13,
                                         ),
                                         textAlign: TextAlign.right,
@@ -3502,7 +3752,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   _buildPaymentSummaryRow(
                                     'Pagado',
                                     paid,
-                                    AppColors.success!,
+                                    AppColors.success,
                                   ),
                                 ],
                                 if (total - paid > 0) ...[
@@ -3510,7 +3760,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   _buildPaymentSummaryRow(
                                     'Pendiente',
                                     total - paid,
-                                    AppColors.warning!,
+                                    AppColors.warning,
                                   ),
                                 ],
                               ],
@@ -3530,11 +3780,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.email,
-                              size: 18,
-                              color: AppColors.info,
-                            ),
+                            Icon(Icons.email, size: 18, color: AppColors.info),
                             const SizedBox(width: 10),
                             Text(
                               'industriasdemolinosasfact@gmail.com',
@@ -3569,7 +3815,13 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
   Widget _buildDateInfo(String label, String value) {
     return Row(
       children: [
-        Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 13,
+          ),
+        ),
         const SizedBox(width: 6),
         Text(
           value,
@@ -3640,7 +3892,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.04),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.shadow.withOpacity(0.04),
                     blurRadius: 8,
                   ),
                 ],
@@ -3654,7 +3908,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.shadow.withOpacity(0.08),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.shadow.withOpacity(0.08),
                           blurRadius: 6,
                         ),
                       ],
@@ -3697,7 +3953,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                         Text(
                           inv['number'],
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -3778,14 +4036,20 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.04),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.shadow.withOpacity(0.04),
                     blurRadius: 6,
                   ),
                 ],
               ),
               child: Row(
                 children: [
-                  Icon(Icons.person, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
+                  Icon(
+                    Icons.person,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -3801,7 +4065,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                         Text(
                           'NIT: ${inv['customerRuc'] ?? 'N/A'}',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 11,
                           ),
                         ),
@@ -3837,7 +4103,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.04),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.shadow.withOpacity(0.04),
                     blurRadius: 8,
                   ),
                 ],
@@ -3847,7 +4115,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerLowest,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(12),
                       ),
@@ -3871,7 +4141,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                         Text(
                           '${products.length} items',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -3891,7 +4163,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.04),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.shadow.withOpacity(0.04),
                     blurRadius: 8,
                   ),
                 ],
@@ -3928,7 +4202,11 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                       subtotal,
                       const Color(0xFF2E7D32),
                     ),
-                    _buildFinanceLine('IVA (19%)', tax, const Color(0xFF7B1FA2)),
+                    _buildFinanceLine(
+                      'IVA (19%)',
+                      tax,
+                      const Color(0xFF7B1FA2),
+                    ),
                   ]),
                   if (totalCost > 0) ...[
                     const SizedBox(height: 10),
@@ -4099,7 +4377,10 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
-            BoxShadow(color: Theme.of(context).colorScheme.shadow.withOpacity(0.04), blurRadius: 6),
+            BoxShadow(
+              color: Theme.of(context).colorScheme.shadow.withOpacity(0.04),
+              blurRadius: 6,
+            ),
           ],
         ),
         child: Column(
@@ -4117,7 +4398,10 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
             const SizedBox(height: 8),
             Text(
               title,
-              style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 10,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 2),
             Text(
@@ -4146,7 +4430,11 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.surfaceContainer!)),
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+          ),
+        ),
       ),
       child: Column(
         children: [
@@ -4225,7 +4513,9 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                   _buildMetricChip(
                     'Ganancia',
                     '${Helpers.formatCurrency(profit)} (${profitPct.toStringAsFixed(0)}%)',
-                    profit >= 0 ? const Color(0xFF1565C0) : const Color(0xFFC62828),
+                    profit >= 0
+                        ? const Color(0xFF1565C0)
+                        : const Color(0xFFC62828),
                   ),
                 ],
               ),
@@ -4248,7 +4538,13 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
               fontSize: 11,
             ),
           ),
-          Text(label, style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );
@@ -4314,7 +4610,10 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
           Expanded(
             child: Text(
               label,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 12,
+              ),
             ),
           ),
           Text(
@@ -4385,9 +4684,13 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      insetPadding: MediaQuery.of(context).size.width < 600 ? const EdgeInsets.all(12) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      insetPadding: MediaQuery.of(context).size.width < 600
+          ? const EdgeInsets.all(12)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: SizedBox(
-        width: MediaQuery.of(context).size.width < 600 ? double.maxFinite : 1100,
+        width: MediaQuery.of(context).size.width < 600
+            ? double.maxFinite
+            : 1100,
         height: screenHeight * 0.9,
         child: Column(
           children: [
@@ -4400,7 +4703,11 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
               ),
               child: Row(
                 children: [
-                  Icon(Icons.receipt_long, color: Theme.of(context).colorScheme.surface, size: 24),
+                  Icon(
+                    Icons.receipt_long,
+                    color: Theme.of(context).colorScheme.surface,
+                    size: 24,
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -4413,10 +4720,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                     ),
                   ),
                   Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
                       color: _getStatusColor(inv['status']),
                       borderRadius: BorderRadius.circular(12),
@@ -4480,7 +4784,10 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                       const SizedBox(width: 8),
                       Text(
                         'Fecha: ${Helpers.formatDate(inv['date'])}  •  Vence: ${Helpers.formatDate(inv['dueDate'])}',
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
@@ -4489,7 +4796,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                       _buildFooterButton(
                         'Imprimir',
                         Icons.print,
-                        AppColors.info!,
+                        AppColors.info,
                         () {
                           PrintService.printInvoice(widget.invoice);
                         },
@@ -4498,7 +4805,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                       _buildFooterButton(
                         'Enviar',
                         Icons.email,
-                        AppColors.success!,
+                        AppColors.success,
                         () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -4661,7 +4968,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                 Text(
                                   inv['number'],
                                   style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -4680,7 +4989,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                   borderRadius: BorderRadius.circular(8),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.shadow.withOpacity(0.1),
                                       blurRadius: 8,
                                     ),
                                   ],
@@ -4701,7 +5012,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                       ),
                                       child: Icon(
                                         Icons.precision_manufacturing,
-                                        color: Theme.of(context).colorScheme.surface,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.surface,
                                         size: 24,
                                       ),
                                     ),
@@ -4720,7 +5033,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                 'NIT: 901946675-1',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: const Color(0xFF9E9E9E),
+                                  color: Color(0xFF9E9E9E),
                                 ),
                               ),
                             ],
@@ -4734,7 +5047,11 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                         decoration: BoxDecoration(
                           color: const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Theme.of(context).colorScheme.surfaceContainer!),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainer,
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -4747,7 +5064,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                       letterSpacing: 1.5,
                                     ),
                                   ),
@@ -4764,7 +5083,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                   Text(
                                     'NIT/CC: ${inv['customerRuc'] ?? 'N/A'}',
                                     style: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                       fontSize: 14,
                                     ),
                                   ),
@@ -4793,7 +5114,11 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                       Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Theme.of(context).colorScheme.surfaceContainer!),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainer,
+                          ),
                         ),
                         child: Column(
                           children: [
@@ -4818,7 +5143,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: const Color(0xFF9E9E9E),
+                                        color: Color(0xFF9E9E9E),
                                       ),
                                     ),
                                   ),
@@ -4829,7 +5154,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -4841,7 +5168,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
                                       textAlign: TextAlign.right,
                                     ),
@@ -4858,7 +5187,11 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                 ),
                                 decoration: BoxDecoration(
                                   border: Border(
-                                    top: BorderSide(color: Theme.of(context).colorScheme.surfaceContainerLow!),
+                                    top: BorderSide(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerLow,
+                                    ),
                                   ),
                                 ),
                                 child: Row(
@@ -4879,7 +5212,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                         '${prod['quantity']}',
                                         style: TextStyle(
                                           fontWeight: FontWeight.w500,
-                                          color: Theme.of(context).colorScheme.onSurface,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                           fontSize: 15,
                                         ),
                                         textAlign: TextAlign.center,
@@ -4975,11 +5310,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.email,
-                              size: 20,
-                              color: AppColors.info,
-                            ),
+                            Icon(Icons.email, size: 20, color: AppColors.info),
                             const SizedBox(width: 12),
                             Text(
                               'industriasdemolinosasfact@gmail.com',
@@ -5014,7 +5345,13 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
   Widget _buildDateRow(String label, String value) {
     return Row(
       children: [
-        Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 14,
+          ),
+        ),
         const SizedBox(width: 8),
         Text(
           value,
@@ -5028,14 +5365,21 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.surfaceContainerLow!)),
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+          ),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
-            style: TextStyle(color: color ?? Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
+            style: TextStyle(
+              color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 14,
+            ),
           ),
           Text(
             '\$${Helpers.formatNumber(value)}',
@@ -5088,7 +5432,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.shadow.withOpacity(0.05),
                     blurRadius: 10,
                   ),
                 ],
@@ -5102,7 +5448,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.shadow.withOpacity(0.1),
                           blurRadius: 8,
                         ),
                       ],
@@ -5146,7 +5494,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                         Text(
                           inv['number'],
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 13,
                           ),
                         ),
@@ -5227,14 +5577,19 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.shadow.withOpacity(0.05),
                     blurRadius: 10,
                   ),
                 ],
               ),
               child: Row(
                 children: [
-                  Icon(Icons.person, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.person,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -5244,7 +5599,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                           'CLIENTE',
                           style: TextStyle(
                             fontSize: 10,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1,
                           ),
@@ -5260,7 +5617,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                         Text(
                           'NIT: ${inv['customerRuc'] ?? 'N/A'}',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -5296,7 +5655,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.shadow.withOpacity(0.05),
                     blurRadius: 10,
                   ),
                 ],
@@ -5307,17 +5668,24 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerLowest,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(12),
                       ),
                       border: Border(
-                        bottom: BorderSide(color: Theme.of(context).colorScheme.surfaceContainer!),
+                        bottom: BorderSide(
+                          color: Theme.of(context).colorScheme.surfaceContainer,
+                        ),
                       ),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.list_alt, color: Theme.of(context).colorScheme.primary),
+                        Icon(
+                          Icons.list_alt,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         const SizedBox(width: 10),
                         const Text(
                           'Detalle de Productos',
@@ -5330,7 +5698,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                         Text(
                           '${products.length} producto(s)',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 13,
                           ),
                         ),
@@ -5351,7 +5721,9 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.shadow.withOpacity(0.05),
                     blurRadius: 10,
                   ),
                 ],
@@ -5446,7 +5818,11 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                           subtotal,
                           const Color(0xFF2E7D32),
                         ),
-                        _buildCostLine('IVA (19%)', tax, const Color(0xFF7B1FA2)),
+                        _buildCostLine(
+                          'IVA (19%)',
+                          tax,
+                          const Color(0xFF7B1FA2),
+                        ),
                       ],
                     ),
                   ),
@@ -5682,7 +6058,10 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
-            BoxShadow(color: Theme.of(context).colorScheme.shadow.withOpacity(0.05), blurRadius: 10),
+            BoxShadow(
+              color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+              blurRadius: 10,
+            ),
           ],
         ),
         child: Column(
@@ -5700,7 +6079,10 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
             const SizedBox(height: 12),
             Text(
               title,
-              style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -5739,7 +6121,11 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.surfaceContainer!)),
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+          ),
+        ),
       ),
       child: Column(
         children: [
@@ -5779,7 +6165,10 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                     if (prod['type'] != null || totalWeight > 0)
                       Text(
                         '${prod['type'] ?? ''} ${totalWeight > 0 ? '• ${Helpers.formatNumber(totalWeight)} kg' : ''}',
-                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                   ],
                 ),
@@ -5797,7 +6186,10 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                   ),
                   Text(
                     'Total Venta',
-                    style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -5833,12 +6225,19 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                       ),
                       Text(
                         'Compra/kg',
-                        style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                Container(width: 1, height: 35, color: Theme.of(context).colorScheme.outlineVariant),
+                Container(
+                  width: 1,
+                  height: 35,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
                 // Venta/kg
                 Expanded(
                   child: Column(
@@ -5859,12 +6258,19 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                       ),
                       Text(
                         'Venta/kg',
-                        style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                Container(width: 1, height: 35, color: Theme.of(context).colorScheme.outlineVariant),
+                Container(
+                  width: 1,
+                  height: 35,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
                 // Ganancia
                 Expanded(
                   child: Column(
@@ -5889,12 +6295,19 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                       ),
                       Text(
                         'Ganancia',
-                        style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                Container(width: 1, height: 35, color: Theme.of(context).colorScheme.outlineVariant),
+                Container(
+                  width: 1,
+                  height: 35,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
                 // Costo Total
                 Expanded(
                   child: Column(
@@ -5915,7 +6328,10 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                       ),
                       Text(
                         'Costo Total',
-                        style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -5945,7 +6361,10 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
           Expanded(
             child: Text(
               label,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 13,
+              ),
             ),
           ),
           Text(

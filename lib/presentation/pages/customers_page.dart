@@ -101,11 +101,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
             child: Row(
               children: [
                 IconButton(
-                  icon: Icon(
-                    Icons.arrow_back,
-                    color: cs.primary,
-                    size: 20,
-                  ),
+                  icon: Icon(Icons.arrow_back, color: cs.primary, size: 20),
                   onPressed: () => context.go('/'),
                   tooltip: 'Volver al menú',
                   visualDensity: VisualDensity.compact,
@@ -229,8 +225,9 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                       SizedBox(
                         width: isNarrow ? constraints.maxWidth : 420,
                         child: TextField(
-                          onChanged: (value) =>
-                              ref.read(customersProvider.notifier).search(value),
+                          onChanged: (value) => ref
+                              .read(customersProvider.notifier)
+                              .search(value),
                           decoration: InputDecoration(
                             hintText: 'Buscar por nombre, documento o email...',
                             prefixIcon: const Icon(Icons.search),
@@ -278,8 +275,9 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                         ),
                       ),
                       OutlinedButton.icon(
-                        onPressed: () =>
-                            ref.read(customersProvider.notifier).loadCustomers(),
+                        onPressed: () => ref
+                            .read(customersProvider.notifier)
+                            .loadCustomers(),
                         icon: const Icon(Icons.refresh),
                         label: const Text('Actualizar'),
                         style: OutlinedButton.styleFrom(
@@ -299,12 +297,14 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                               ),
                             );
                             await CustomersDataSource.recalculateAllBalances();
-                            ref.read(customersProvider.notifier).loadCustomers();
+                            ref
+                                .read(customersProvider.notifier)
+                                .loadCustomers();
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('✅ Balances recalculados'),
-                                  backgroundColor: const Color(0xFF2E7D32),
+                                  backgroundColor: Color(0xFF2E7D32),
                                 ),
                               );
                             }
@@ -323,7 +323,9 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                         label: const Text('Recalcular Saldos'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.warning,
-                          side: BorderSide(color: AppColors.warning.withValues(alpha: 0.5)),
+                          side: BorderSide(
+                            color: AppColors.warning.withValues(alpha: 0.5),
+                          ),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 16,
@@ -479,14 +481,18 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                 Icon(
                   creditLimit > 0 ? Icons.credit_card : Icons.payments,
                   size: 12,
-                  color: creditLimit > 0 ? const Color(0xFF1565C0) : const Color(0xFF388E3C),
+                  color: creditLimit > 0
+                      ? const Color(0xFF1565C0)
+                      : const Color(0xFF388E3C),
                 ),
                 const SizedBox(width: 4),
                 Text(
                   creditLimit > 0 ? 'Crédito' : 'Contado',
                   style: TextStyle(
                     fontSize: 11,
-                    color: creditLimit > 0 ? const Color(0xFF1565C0) : const Color(0xFF388E3C),
+                    color: creditLimit > 0
+                        ? const Color(0xFF1565C0)
+                        : const Color(0xFF388E3C),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -531,7 +537,10 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                     const SizedBox(width: 4),
                     Text(
                       customer.phone!,
-                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -548,7 +557,9 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                       value: debtPercentage.clamp(0.0, 1.0),
                       backgroundColor: cs.surfaceContainerHighest,
                       valueColor: AlwaysStoppedAnimation(
-                        debtPercentage > 0.8 ? AppColors.danger : AppColors.warning,
+                        debtPercentage > 0.8
+                            ? AppColors.danger
+                            : AppColors.warning,
                       ),
                     ),
                   ),
@@ -558,7 +569,9 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                   'Deuda: ${Formatters.currency(debt)}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: debtPercentage > 0.8 ? AppColors.danger : AppColors.warning,
+                    color: debtPercentage > 0.8
+                        ? AppColors.danger
+                        : AppColors.warning,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -593,9 +606,9 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
             value: 'delete',
             child: Row(
               children: [
-                Icon(Icons.delete, size: 20, color: const Color(0xFFC62828)),
+                Icon(Icons.delete, size: 20, color: Color(0xFFC62828)),
                 SizedBox(width: 8),
-                Text('Eliminar', style: TextStyle(color: const Color(0xFFC62828))),
+                Text('Eliminar', style: TextStyle(color: Color(0xFFC62828))),
               ],
             ),
           ),
@@ -643,7 +656,11 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 80, color: AppColors.danger.withValues(alpha: 0.6)),
+          Icon(
+            Icons.error_outline,
+            size: 80,
+            color: AppColors.danger.withValues(alpha: 0.6),
+          ),
           const SizedBox(height: 16),
           Text(
             'Error al cargar clientes',
@@ -709,7 +726,9 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
         builder: (context, setDialogState) => AlertDialog(
           title: Text(isEditMode ? 'Editar Cliente' : 'Nuevo Cliente'),
           content: SizedBox(
-            width: MediaQuery.of(context).size.width < 600 ? double.maxFinite : 500,
+            width: MediaQuery.of(context).size.width < 600
+                ? double.maxFinite
+                : 500,
             child: Form(
               key: formKey,
               child: SingleChildScrollView(
@@ -1136,7 +1155,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
     final cs = Theme.of(context).colorScheme;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      insetPadding: screenWidth < 600 ? const EdgeInsets.all(16) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      insetPadding: screenWidth < 600
+          ? const EdgeInsets.all(16)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: Container(
         width: screenWidth < 600 ? double.maxFinite : 700,
         height: screenHeight < 700 ? screenHeight * 0.85 : 550,
@@ -1350,7 +1371,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
               Icons.payment,
               'Método',
               customer.creditLimit > 0 ? 'Crédito' : 'Contado',
-              valueColor: customer.creditLimit > 0 ? const Color(0xFF1565C0) : const Color(0xFF2E7D32),
+              valueColor: customer.creditLimit > 0
+                  ? const Color(0xFF1565C0)
+                  : const Color(0xFF2E7D32),
             ),
             if (customer.creditLimit > 0) ...[
               _buildInfoRow(Icons.calendar_today, 'Plazo', 'Crédito a 30 días'),
@@ -1370,7 +1393,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
               Icons.circle,
               'Estado',
               customer.isActive ? 'Activo' : 'Inactivo',
-              valueColor: customer.isActive ? const Color(0xFF2E7D32) : const Color(0xFF9E9E9E),
+              valueColor: customer.isActive
+                  ? const Color(0xFF2E7D32)
+                  : const Color(0xFF9E9E9E),
             ),
             _buildInfoRow(
               Icons.business,
@@ -1475,14 +1500,18 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
             radius: 20,
             backgroundColor: isPaid
                 ? const Color(0xFFE8F5E9)
-                : (isOverdue ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0)),
+                : (isOverdue
+                      ? const Color(0xFFFFEBEE)
+                      : const Color(0xFFFFF3E0)),
             child: Icon(
               isPaid
                   ? Icons.check_circle
                   : (isOverdue ? Icons.warning : Icons.schedule),
               color: isPaid
                   ? const Color(0xFF2E7D32)
-                  : (isOverdue ? const Color(0xFFC62828) : const Color(0xFFF9A825)),
+                  : (isOverdue
+                        ? const Color(0xFFC62828)
+                        : const Color(0xFFF9A825)),
               size: 20,
             ),
           ),
@@ -1499,7 +1528,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                   fontWeight: FontWeight.bold,
                   color: isPaid
                       ? const Color(0xFF2E7D32)
-                      : (isOverdue ? const Color(0xFFC62828) : const Color(0xFFF9A825)),
+                      : (isOverdue
+                            ? const Color(0xFFC62828)
+                            : const Color(0xFFF9A825)),
                 ),
               ),
             ],
@@ -1511,7 +1542,10 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                 children: [
                   Text(
                     Formatters.date(inv.issueDate),
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: const Color(0xFF757575),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Container(
@@ -1522,7 +1556,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                     decoration: BoxDecoration(
                       color: isPaid
                           ? const Color(0xFFC8E6C9)
-                          : (isOverdue ? const Color(0xFFFFCDD2) : const Color(0xFFFFE0B2)),
+                          : (isOverdue
+                                ? const Color(0xFFFFCDD2)
+                                : const Color(0xFFFFE0B2)),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -1578,7 +1614,10 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                     const SizedBox(width: 8),
                     Text(
                       'Vence: ${Formatters.date(inv.dueDate!)}',
-                      style: TextStyle(fontSize: 11, color: const Color(0xFF9E9E9E)),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: const Color(0xFF9E9E9E),
+                      ),
                     ),
                   ],
                 ],
@@ -1670,7 +1709,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
               ],
             ),
             content: SizedBox(
-              width: MediaQuery.of(context).size.width < 600 ? double.maxFinite : 420,
+              width: MediaQuery.of(context).size.width < 600
+                  ? double.maxFinite
+                  : 420,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1828,7 +1869,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                               content: Text(
                                 'Ingresa un monto válido mayor a 0',
                               ),
-                              backgroundColor: const Color(0xFFC62828),
+                              backgroundColor: Color(0xFFC62828),
                             ),
                           );
                           return;
@@ -1898,7 +1939,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                       )
                     : const Icon(Icons.check),
                 label: Text(isSaving ? 'Guardando...' : 'Registrar Pago'),
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                ),
               ),
             ],
           );
@@ -1979,16 +2022,26 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.payments_outlined, size: 60, color: Theme.of(context).colorScheme.outlineVariant),
+            Icon(
+              Icons.payments_outlined,
+              size: 60,
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
             const SizedBox(height: 16),
             Text(
               'Sin pagos registrados',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Los pagos aparecerán aquí cuando se registren',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -2014,7 +2067,11 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
           ),
           child: Row(
             children: [
-              Icon(Icons.check_circle, color: const Color(0xFF388E3C), size: 20),
+              Icon(
+                Icons.check_circle,
+                color: const Color(0xFF388E3C),
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Text(
                 'Total Pagado:',
@@ -2156,7 +2213,11 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.tag, size: 14, color: const Color(0xFFBDBDBD)),
+                            Icon(
+                              Icons.tag,
+                              size: 14,
+                              color: const Color(0xFFBDBDBD),
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -2211,11 +2272,18 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.request_quote, size: 60, color: Theme.of(context).colorScheme.outlineVariant),
+            Icon(
+              Icons.request_quote,
+              size: 60,
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
             const SizedBox(height: 16),
             Text(
               'Sin cotizaciones registradas',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -2241,14 +2309,18 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
             radius: 20,
             backgroundColor: isApproved
                 ? const Color(0xFFE8F5E9)
-                : (isRejected ? const Color(0xFFFFEBEE) : const Color(0xFFE3F2FD)),
+                : (isRejected
+                      ? const Color(0xFFFFEBEE)
+                      : const Color(0xFFE3F2FD)),
             child: Icon(
               isApproved
                   ? Icons.check_circle
                   : (isRejected ? Icons.cancel : Icons.description),
               color: isApproved
                   ? const Color(0xFF2E7D32)
-                  : (isRejected ? const Color(0xFFC62828) : const Color(0xFF1565C0)),
+                  : (isRejected
+                        ? const Color(0xFFC62828)
+                        : const Color(0xFF1565C0)),
               size: 20,
             ),
           ),
@@ -2265,7 +2337,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                   fontWeight: FontWeight.bold,
                   color: isApproved
                       ? const Color(0xFF2E7D32)
-                      : (isRejected ? const Color(0xFFC62828) : const Color(0xFF1565C0)),
+                      : (isRejected
+                            ? const Color(0xFFC62828)
+                            : const Color(0xFF1565C0)),
                 ),
               ),
             ],
@@ -2282,7 +2356,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                 decoration: BoxDecoration(
                   color: isApproved
                       ? const Color(0xFFC8E6C9)
-                      : (isRejected ? const Color(0xFFFFCDD2) : const Color(0xFFBBDEFB)),
+                      : (isRejected
+                            ? const Color(0xFFFFCDD2)
+                            : const Color(0xFFBBDEFB)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -2292,7 +2368,9 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
                     fontWeight: FontWeight.w600,
                     color: isApproved
                         ? const Color(0xFF388E3C)
-                        : (isRejected ? const Color(0xFFD32F2F) : const Color(0xFF1976D2)),
+                        : (isRejected
+                              ? const Color(0xFFD32F2F)
+                              : const Color(0xFF1976D2)),
                   ),
                 ),
               ),

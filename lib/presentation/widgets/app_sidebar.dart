@@ -30,6 +30,11 @@ class _AppSidebarState extends State<AppSidebar> {
       route: '/composite-products',
     ),
     NavItemData(
+      icon: Icons.factory,
+      label: 'Produccion',
+      route: '/production-orders',
+    ),
+    NavItemData(
       icon: Icons.warehouse,
       label: 'Materiales',
       route: '/materials',

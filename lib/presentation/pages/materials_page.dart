@@ -102,7 +102,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -112,7 +114,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             Text(
                               '${state.materials.length} materiales',
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                                 fontSize: 12,
                               ),
                             ),
@@ -146,7 +150,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                         height: 14,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          color: Theme.of(context).colorScheme.surface,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.surface,
                                         ),
                                       )
                                     : const Icon(Icons.shopping_cart, size: 16),
@@ -196,7 +202,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       decoration: BoxDecoration(
                         color: AppColors.success.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.success.withOpacity(0.7)!),
+                        border: Border.all(
+                          color: AppColors.success.withOpacity(0.7),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -265,7 +273,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       decoration: BoxDecoration(
                         color: AppColors.danger.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.danger.withOpacity(0.6)!),
+                        border: Border.all(
+                          color: AppColors.danger.withOpacity(0.6),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -300,7 +310,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       runSpacing: 8,
                       children: [
                         SizedBox(
-                          width: isNarrow ? constraints.maxWidth : constraints.maxWidth * 0.52,
+                          width: isNarrow
+                              ? constraints.maxWidth
+                              : constraints.maxWidth * 0.52,
                           child: TextField(
                             decoration: InputDecoration(
                               hintText: 'Buscar por nombre o código...',
@@ -319,7 +331,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                           ),
                         ),
                         SizedBox(
-                          width: isNarrow ? constraints.maxWidth - 52 : constraints.maxWidth * 0.34,
+                          width: isNarrow
+                              ? constraints.maxWidth - 52
+                              : constraints.maxWidth * 0.34,
                           child: DropdownButtonFormField<String>(
                             value: _selectedCategory,
                             isExpanded: true,
@@ -358,7 +372,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                           icon: const Icon(Icons.settings, size: 20),
                           tooltip: 'Administrar categorías',
                           style: IconButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
                           ),
                         ),
                       ],
@@ -410,13 +426,19 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                           'No hay materiales',
                           style: TextStyle(
                             fontSize: 18,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Agrega materiales al inventario para comenzar',
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),
@@ -522,7 +544,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 value,
@@ -545,7 +570,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
-          BoxShadow(color: Theme.of(context).colorScheme.shadow.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Column(
@@ -578,8 +606,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
           Expanded(
             child: ListView.separated(
               itemCount: _filteredMaterials.length,
-              separatorBuilder: (_, __) =>
-                  Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+              separatorBuilder: (_, __) => Divider(
+                height: 1,
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
               itemBuilder: (context, index) {
                 final material = _filteredMaterials[index];
                 return _buildMaterialRow(material);
@@ -658,7 +688,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   if (material.description != null)
                     Text(
                       material.description!,
-                      style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -688,7 +721,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
               width: 50,
               child: Text(
                 material.unit,
-                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             // Precio de compra (costo)
@@ -696,7 +732,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
               width: 70,
               child: Text(
                 '\$${costPrice.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.right,
               ),
             ),
@@ -803,7 +842,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                           Icon(
                             Icons.person_remove_outlined,
                             size: 16,
-                            color: const Color(0xFFFF5722),
+                            color: Color(0xFFFF5722),
                           ),
                           SizedBox(width: 8),
                           Text('Salida por Empleado'),
@@ -858,7 +897,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
         builder: (context, setDialogState) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.person_remove_outlined, color: const Color(0xFFFF5722)),
+              Icon(Icons.person_remove_outlined, color: Color(0xFFFF5722)),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -878,7 +917,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.08),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -892,7 +933,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       ),
                       Text(
                         'Stock: ${material.stock.toStringAsFixed(2)} ${material.unit}',
-                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                     ],
                   ),
@@ -978,7 +1022,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             FilledButton.icon(
               icon: const Icon(Icons.check, size: 18),
               label: const Text('Registrar Salida'),
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFF5722)),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFFF5722),
+              ),
               onPressed: () async {
                 final qty = double.tryParse(qtyCtrl.text) ?? 0;
                 if (qty <= 0) {
@@ -1122,7 +1168,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   ),
                   Text(
                     material.description!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ],
@@ -1155,7 +1203,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             width: 120,
             child: Text(
               label,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
             ),
           ),
           Expanded(
@@ -1314,7 +1365,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     decoration: BoxDecoration(
                       color: AppColors.info.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.info.withOpacity(0.2)),
+                      border: Border.all(
+                        color: AppColors.info.withOpacity(0.2),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1635,7 +1688,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                               ),
                               tooltip: 'Nueva categoría',
                               style: IconButton.styleFrom(
-                                foregroundColor: Theme.of(context).colorScheme.primary,
+                                foregroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
                               ),
                             ),
                           ],
@@ -1918,7 +1973,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     decoration: BoxDecoration(
                       color: AppColors.info.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.info.withOpacity(0.2)),
+                      border: Border.all(
+                        color: AppColors.info.withOpacity(0.2),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1951,7 +2008,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   helperText: 'Lo que pagaste al proveedor',
                                   helperStyle: TextStyle(
                                     fontSize: 10,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                   prefixText: '\$ ',
                                   prefixIcon: Icon(
@@ -1960,7 +2019,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     size: 20,
                                   ),
                                   filled: true,
-                                  fillColor: AppColors.warning.withOpacity(0.05),
+                                  fillColor: AppColors.warning.withOpacity(
+                                    0.05,
+                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -1984,7 +2045,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     helperText: 'Lo que cobras al cliente',
                                     helperStyle: TextStyle(
                                       fontSize: 10,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                     prefixText: '\$ ',
                                     prefixIcon: Icon(
@@ -1993,7 +2056,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       size: 20,
                                     ),
                                     filled: true,
-                                    fillColor: AppColors.success.withOpacity(0.05),
+                                    fillColor: AppColors.success.withOpacity(
+                                      0.05,
+                                    ),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
@@ -2155,7 +2220,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                               child: Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant
+                                      .withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -2164,14 +2232,18 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     Icon(
                                       Icons.info_outline,
                                       size: 16,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Ingresa ambos precios para ver el margen de ganancia',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ],
@@ -2259,7 +2331,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   value: null,
                                   child: Text(
                                     'Sin proveedor',
-                                    style: TextStyle(color: const Color(0xFF9E9E9E)),
+                                    style: TextStyle(color: Color(0xFF9E9E9E)),
                                   ),
                                 ),
                                 ...suppliers.map(
@@ -2412,7 +2484,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -2606,7 +2680,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
           return AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.category, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.category,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 const Text('Categorías de Materiales'),
                 const Spacer(),
@@ -2660,7 +2737,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                           trailing: cat.isSystem
@@ -2669,7 +2748,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     'Sistema',
                                     style: TextStyle(fontSize: 10),
                                   ),
-                                  backgroundColor: Theme.of(context).colorScheme.outlineVariant,
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
                                   padding: EdgeInsets.zero,
                                   visualDensity: VisualDensity.compact,
                                 )
@@ -2717,7 +2798,8 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                                 onPressed: () =>
                                                     Navigator.pop(ctx, true),
                                                 style: FilledButton.styleFrom(
-                                                  backgroundColor: AppColors.danger,
+                                                  backgroundColor:
+                                                      AppColors.danger,
                                                 ),
                                                 child: const Text('Eliminar'),
                                               ),
@@ -2743,7 +2825,8 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                                   error ??
                                                       'No se pudo eliminar',
                                                 ),
-                                                backgroundColor: AppColors.danger,
+                                                backgroundColor:
+                                                    AppColors.danger,
                                               ),
                                             );
                                           }
@@ -2788,7 +2871,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
         builder: (context, setDialogState) => AlertDialog(
           title: Row(
             children: [
-              Icon(Icons.add_circle, color: Theme.of(context).colorScheme.primary),
+              Icon(
+                Icons.add_circle,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(width: 8),
               const Text('Nueva Categoría'),
             ],
@@ -2857,8 +2943,15 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             color: c,
                             shape: BoxShape.circle,
                             border: isSelected
-                                ? Border.all(color: const Color(0xFF1B4F72), width: 2.5)
-                                : Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                                ? Border.all(
+                                    color: const Color(0xFF1B4F72),
+                                    width: 2.5,
+                                  )
+                                : Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
+                                  ),
                           ),
                           child: isSelected
                               ? Icon(
@@ -2897,7 +2990,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       radix: 16,
                                     ),
                                   ).withOpacity(0.2)
-                                : Theme.of(context).colorScheme.surfaceContainerLow,
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerLow,
                             borderRadius: BorderRadius.circular(6),
                             border: isSelected
                                 ? Border.all(
@@ -2921,7 +3016,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       radix: 16,
                                     ),
                                   )
-                                : Theme.of(context).colorScheme.onSurfaceVariant,
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       );
@@ -3115,8 +3212,15 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             color: c,
                             shape: BoxShape.circle,
                             border: isSelected
-                                ? Border.all(color: const Color(0xFF1B4F72), width: 2.5)
-                                : Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                                ? Border.all(
+                                    color: const Color(0xFF1B4F72),
+                                    width: 2.5,
+                                  )
+                                : Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
+                                  ),
                           ),
                           child: isSelected
                               ? Icon(
@@ -3154,7 +3258,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       radix: 16,
                                     ),
                                   ).withOpacity(0.2)
-                                : Theme.of(context).colorScheme.surfaceContainerLow,
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerLow,
                             borderRadius: BorderRadius.circular(6),
                             border: isSelected
                                 ? Border.all(
@@ -3178,7 +3284,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       radix: 16,
                                     ),
                                   )
-                                : Theme.of(context).colorScheme.onSurfaceVariant,
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       );
@@ -3352,7 +3460,9 @@ class _FractionInchFieldState extends State<_FractionInchField> {
           icon: Icon(
             Icons.format_list_numbered,
             size: 24,
-            color: widget.enabled ? AppColors.info : Theme.of(context).colorScheme.onSurfaceVariant,
+            color: widget.enabled
+                ? AppColors.info
+                : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           itemBuilder: (context) => commonFractions.entries
               .map(
@@ -3382,7 +3492,10 @@ class _FractionInchFieldState extends State<_FractionInchField> {
                       const SizedBox(width: 12),
                       Text(
                         '= ${e.value}"',
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 11),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),

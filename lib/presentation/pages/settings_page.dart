@@ -202,9 +202,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       child: Material(
-        color: isSelected
-            ? cs.primaryContainer
-            : Colors.transparent,
+        color: isSelected ? cs.primaryContainer : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           onTap: onTap,
@@ -214,9 +212,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             decoration: BoxDecoration(
               border: Border(
                 left: BorderSide(
-                  color: isSelected
-                      ? cs.primary
-                      : Colors.transparent,
+                  color: isSelected ? cs.primary : Colors.transparent,
                   width: 3,
                 ),
               ),
@@ -234,9 +230,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected
-                        ? cs.primary
-                        : const Color(0xFF424242),
+                    color: isSelected ? cs.primary : const Color(0xFF424242),
                   ),
                 ),
               ],
@@ -275,7 +269,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       child: Text(
         text,
         style: TextStyle(
-          color: onTap != null ? const Color(0xFF757575) : const Color(0xFF424242),
+          color: onTap != null
+              ? const Color(0xFF757575)
+              : const Color(0xFF424242),
           fontWeight: onTap != null ? FontWeight.normal : FontWeight.w600,
         ),
       ),
@@ -347,11 +343,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.person,
-                      size: 48,
-                      color: cs.primary,
-                    ),
+                    child: Icon(Icons.person, size: 48, color: cs.primary),
                   ),
                   Positioned(
                     bottom: 0,
@@ -388,12 +380,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     const SizedBox(height: 4),
                     Text(
                       '${_roleController.text} · Industrial de Molinos',
-                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Lima, Perú',
-                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
@@ -501,11 +499,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   color: cs.primaryContainer,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(
-                  Icons.business,
-                  size: 48,
-                  color: cs.primary,
-                ),
+                child: Icon(Icons.business, size: 48, color: cs.primary),
               ),
               const SizedBox(width: 24),
               Expanded(
@@ -522,7 +516,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     const SizedBox(height: 4),
                     Text(
                       'Se mostrará en facturas, cotizaciones y reportes.',
-                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -814,7 +811,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             Icon(
               icon,
               size: 16,
-              color: selected ? const Color(0xFF424242) : const Color(0xFF9E9E9E),
+              color: selected
+                  ? const Color(0xFF424242)
+                  : const Color(0xFF9E9E9E),
             ),
             const SizedBox(width: 6),
             Text(
@@ -822,7 +821,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                color: selected ? const Color(0xFF424242) : const Color(0xFF9E9E9E),
+                color: selected
+                    ? const Color(0xFF424242)
+                    : const Color(0xFF9E9E9E),
               ),
             ),
           ],
@@ -895,7 +896,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                   child: const Icon(
                     Icons.warning_amber,
-                    color: const Color(0xFFF9A825),
+                    color: Color(0xFFF9A825),
                     size: 20,
                   ),
                 ),
@@ -917,7 +918,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                   child: const Icon(
                     Icons.receipt_long,
-                    color: const Color(0xFFC62828),
+                    color: Color(0xFFC62828),
                     size: 20,
                   ),
                 ),
@@ -939,7 +940,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                   child: const Icon(
                     Icons.task_alt,
-                    color: const Color(0xFF1565C0),
+                    color: Color(0xFF1565C0),
                     size: 20,
                   ),
                 ),
@@ -1001,7 +1002,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     const SizedBox(height: 4),
                     Text(
                       'Último respaldo: Hace 5 minutos',
-                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
                     ),
                     Text(
                       'Servidor: Supabase (Online)',
@@ -1254,7 +1258,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onPressed: onTap,
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFFC62828),
-              side: const BorderSide(color: const Color(0xFFC62828)),
+              side: const BorderSide(color: Color(0xFFC62828)),
             ),
             child: const Text('Eliminar'),
           ),

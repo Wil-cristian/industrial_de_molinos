@@ -14,28 +14,105 @@ class AppBottomNavBar extends StatelessWidget {
   });
 
   static const _mainItems = [
-    _BottomNavItem(icon: Icons.account_balance_wallet, label: 'Caja', route: '/daily-cash', branchIndex: 1),
-    _BottomNavItem(icon: Icons.receipt_long, label: 'Ventas', route: '/invoices', branchIndex: 6),
-    _BottomNavItem(icon: Icons.people, label: 'Clientes', route: '/customers', branchIndex: 5),
-    _BottomNavItem(icon: Icons.warehouse, label: 'Materiales', route: '/materials', branchIndex: 4),
+    _BottomNavItem(
+      icon: Icons.account_balance_wallet,
+      label: 'Caja',
+      route: '/daily-cash',
+      branchIndex: 1,
+    ),
+    _BottomNavItem(
+      icon: Icons.receipt_long,
+      label: 'Ventas',
+      route: '/invoices',
+      branchIndex: 6,
+    ),
+    _BottomNavItem(
+      icon: Icons.people,
+      label: 'Clientes',
+      route: '/customers',
+      branchIndex: 5,
+    ),
+    _BottomNavItem(
+      icon: Icons.warehouse,
+      label: 'Materiales',
+      route: '/materials',
+      branchIndex: 4,
+    ),
   ];
 
   static const _moreItems = [
-    _BottomNavItem(icon: Icons.dashboard, label: 'Dashboard', route: '/', branchIndex: 0),
-    _BottomNavItem(icon: Icons.shopping_bag, label: 'Compras', route: '/expenses', branchIndex: 2),
-    _BottomNavItem(icon: Icons.layers, label: 'Productos', route: '/composite-products', branchIndex: 14),
-    _BottomNavItem(icon: Icons.request_quote, label: 'Cotizaciones', route: '/quotations', branchIndex: 7),
-    _BottomNavItem(icon: Icons.bar_chart, label: 'Reportes', route: '/reports', branchIndex: 8),
-    _BottomNavItem(icon: Icons.calendar_today, label: 'Calendario', route: '/calendar', branchIndex: 9),
-    _BottomNavItem(icon: Icons.badge, label: 'Empleados', route: '/employees', branchIndex: 10),
-    _BottomNavItem(icon: Icons.business_center, label: 'Activos', route: '/assets', branchIndex: 11),
-    _BottomNavItem(icon: Icons.account_balance, label: 'Contabilidad', route: '/accounting', branchIndex: 12),
-    _BottomNavItem(icon: Icons.receipt_long, label: 'Control IVA', route: '/iva-control', branchIndex: 13),
+    _BottomNavItem(
+      icon: Icons.dashboard,
+      label: 'Dashboard',
+      route: '/',
+      branchIndex: 0,
+    ),
+    _BottomNavItem(
+      icon: Icons.shopping_bag,
+      label: 'Compras',
+      route: '/expenses',
+      branchIndex: 2,
+    ),
+    _BottomNavItem(
+      icon: Icons.layers,
+      label: 'Productos',
+      route: '/composite-products',
+      branchIndex: 13,
+    ),
+    _BottomNavItem(
+      icon: Icons.factory,
+      label: 'Produccion',
+      route: '/production-orders',
+      branchIndex: 14,
+    ),
+    _BottomNavItem(
+      icon: Icons.request_quote,
+      label: 'Cotizaciones',
+      route: '/quotations',
+      branchIndex: 7,
+    ),
+    _BottomNavItem(
+      icon: Icons.bar_chart,
+      label: 'Reportes',
+      route: '/reports',
+      branchIndex: 8,
+    ),
+    _BottomNavItem(
+      icon: Icons.calendar_today,
+      label: 'Calendario',
+      route: '/calendar',
+      branchIndex: 9,
+    ),
+    _BottomNavItem(
+      icon: Icons.badge,
+      label: 'Empleados',
+      route: '/employees',
+      branchIndex: 10,
+    ),
+    _BottomNavItem(
+      icon: Icons.business_center,
+      label: 'Activos',
+      route: '/assets',
+      branchIndex: 11,
+    ),
+    _BottomNavItem(
+      icon: Icons.account_balance,
+      label: 'Contabilidad',
+      route: '/accounting',
+      branchIndex: 12,
+    ),
+    _BottomNavItem(
+      icon: Icons.receipt_long,
+      label: 'Control IVA',
+      route: '/iva-control',
+      branchIndex: 13,
+    ),
   ];
 
   int _getSelectedIndex() {
     for (int i = 0; i < _mainItems.length; i++) {
-      if (currentRoute.startsWith(_mainItems[i].route) && _mainItems[i].route != '/') {
+      if (currentRoute.startsWith(_mainItems[i].route) &&
+          _mainItems[i].route != '/') {
         return i;
       }
     }
@@ -219,7 +296,8 @@ class _MoreMenu extends StatelessWidget {
               crossAxisSpacing: 4,
               childAspectRatio: 1.1,
               children: items.map((item) {
-                final isActive = currentRoute.startsWith(item.route) && item.route != '/' ||
+                final isActive =
+                    currentRoute.startsWith(item.route) && item.route != '/' ||
                     (item.route == '/' && currentRoute == '/');
                 return _MoreMenuItem(
                   icon: item.icon,

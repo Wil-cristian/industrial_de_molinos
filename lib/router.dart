@@ -19,6 +19,7 @@ import 'presentation/pages/customer_history_page.dart';
 import 'presentation/pages/calendar_page.dart';
 import 'presentation/pages/assets_page.dart';
 import 'presentation/pages/employees_page.dart';
+import 'presentation/pages/production_orders_page.dart';
 import 'presentation/pages/login_page.dart';
 import 'presentation/pages/accounting_page.dart';
 import 'presentation/pages/iva_control_page.dart';
@@ -268,6 +269,16 @@ final GoRouter router = GoRouter(
               path: '/composite-products',
               pageBuilder: (context, state) =>
                   const NoTransitionPage(child: CompositeProductsPage()),
+            ),
+          ],
+        ),
+        // Branch 14: Ordenes de Produccion
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/production-orders',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: ProductionOrdersPage()),
             ),
           ],
         ),

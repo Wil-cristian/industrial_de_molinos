@@ -86,7 +86,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     final payrollState = ref.watch(payrollProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFEEEEEE);
+    final borderColor = isDark
+        ? const Color(0xFF334155)
+        : const Color(0xFFEEEEEE);
 
     return Scaffold(
       body: Column(
@@ -251,7 +253,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
             ),
           ),
           const SizedBox(width: 2),
-          Text(label, style: const TextStyle(fontSize: 10, color: const Color(0xFF9E9E9E))),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: Color(0xFF9E9E9E)),
+          ),
         ],
       ),
     );
@@ -922,7 +927,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
               color: const Color(0xFFC62828).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Icon(Icons.remove, size: 16, color: const Color(0xFFC62828)),
+            child: const Icon(Icons.remove, size: 16, color: Color(0xFFC62828)),
           ),
         ),
         const SizedBox(width: 12),
@@ -946,7 +951,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
               color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Icon(Icons.add, size: 16, color: const Color(0xFF2E7D32)),
+            child: const Icon(Icons.add, size: 16, color: Color(0xFF2E7D32)),
           ),
         ),
       ],
@@ -1345,7 +1350,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                                color: const Color(
+                                  0xFF2E7D32,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -1364,7 +1371,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF9A825).withValues(alpha: 0.1),
+                                color: const Color(
+                                  0xFFF9A825,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -2018,7 +2027,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   ),
                   child: const Icon(
                     Icons.edit_calendar,
-                    color: const Color(0xFF1565C0),
+                    color: Color(0xFF1565C0),
                     size: 20,
                   ),
                 ),
@@ -2116,7 +2125,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       },
                 icon: const Icon(Icons.save, size: 16),
                 label: const Text('Guardar'),
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1565C0)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF1565C0),
+                ),
               ),
             ],
           );
@@ -2502,8 +2513,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: weekTotal >= 44
-                                    ? const Color(0xFF2E7D32).withValues(alpha: 0.1)
-                                    : const Color(0xFFF9A825).withValues(alpha: 0.1),
+                                    ? const Color(
+                                        0xFF2E7D32,
+                                      ).withValues(alpha: 0.1)
+                                    : const Color(
+                                        0xFFF9A825,
+                                      ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -2679,14 +2694,18 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: (isPositive ? const Color(0xFF2E7D32) : const Color(0xFFC62828)).withValues(
-                alpha: 0.1,
-              ),
+              color:
+                  (isPositive
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFFC62828))
+                      .withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               isPositive ? Icons.add : Icons.remove,
-              color: isPositive ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+              color: isPositive
+                  ? const Color(0xFF2E7D32)
+                  : const Color(0xFFC62828),
               size: 16,
             ),
           ),
@@ -2715,7 +2734,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: isPositive ? const Color(0xFF43A047) : const Color(0xFFE53935),
+              color: isPositive
+                  ? const Color(0xFF43A047)
+                  : const Color(0xFFE53935),
             ),
           ),
         ],
@@ -3087,12 +3108,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: const Color(0xFF9E9E9E), size: 18),
+          const Icon(Icons.info_outline, color: Color(0xFF9E9E9E), size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(fontSize: 13, color: const Color(0xFF9E9E9E)),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF9E9E9E)),
             ),
           ),
         ],
@@ -3106,7 +3127,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF9E9E9E).withValues(alpha: 0.16)),
+        border: Border.all(
+          color: const Color(0xFF9E9E9E).withValues(alpha: 0.16),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3233,7 +3256,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF9E9E9E).withValues(alpha: 0.16)),
+        border: Border.all(
+          color: const Color(0xFF9E9E9E).withValues(alpha: 0.16),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3320,14 +3345,18 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     ThemeData theme,
   ) {
     final isPositive = adjustment.minutes > 0;
-    final color = isPositive ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+    final color = isPositive
+        ? const Color(0xFF2E7D32)
+        : const Color(0xFFC62828);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF9E9E9E).withValues(alpha: 0.16)),
+        border: Border.all(
+          color: const Color(0xFF9E9E9E).withValues(alpha: 0.16),
+        ),
       ),
       child: Row(
         children: [
@@ -3523,7 +3552,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     final textSecondary = isDark
         ? const Color(0xFFBDBDBD)
         : const Color(0xFF64748B);
-    final textMuted = isDark ? const Color(0xFF757575) : const Color(0xFF94A3B8);
+    final textMuted = isDark
+        ? const Color(0xFF757575)
+        : const Color(0xFF94A3B8);
 
     return Container(
       color: bgColor,
@@ -3677,7 +3708,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           border: Border.all(color: borderColor),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF000000).withValues(alpha: 0.02),
+                              color: const Color(
+                                0xFF000000,
+                              ).withValues(alpha: 0.02),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -4177,7 +4210,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         value: TaskStatus.pendiente,
                         child: Row(
                           children: [
-                            Icon(Icons.pending, color: const Color(0xFFF9A825), size: 18),
+                            Icon(
+                              Icons.pending,
+                              color: const Color(0xFFF9A825),
+                              size: 18,
+                            ),
                             const SizedBox(width: 8),
                             const Text('Pendiente'),
                           ],
@@ -4216,7 +4253,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         value: TaskStatus.cancelada,
                         child: Row(
                           children: [
-                            Icon(Icons.cancel, color: const Color(0xFFC62828), size: 18),
+                            Icon(
+                              Icons.cancel,
+                              color: const Color(0xFFC62828),
+                              size: 18,
+                            ),
                             const SizedBox(width: 8),
                             const Text('Cancelar'),
                           ],
@@ -4255,7 +4296,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+            ),
             onPressed: () async {
               Navigator.pop(context);
               final success = await ref
@@ -4267,7 +4310,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     content: Text(
                       success ? 'Tarea eliminada' : 'Error al eliminar',
                     ),
-                    backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+                    backgroundColor: success
+                        ? const Color(0xFF2E7D32)
+                        : const Color(0xFFC62828),
                   ),
                 );
               }
@@ -4534,7 +4579,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                 task.status != TaskStatus.cancelada) ...[
               const SizedBox(width: 8),
               IconButton(
-                icon: const Icon(Icons.check_circle, color: const Color(0xFF2E7D32)),
+                icon: const Icon(Icons.check_circle, color: Color(0xFF2E7D32)),
                 onPressed: () => _completeTask(task),
                 tooltip: 'Completar',
               ),
@@ -4779,7 +4824,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                   content: Text(
                                     'Ingresa un número de horas válido',
                                   ),
-                                  backgroundColor: const Color(0xFFC62828),
+                                  backgroundColor: Color(0xFFC62828),
                                 ),
                               );
                               return;
@@ -4852,22 +4897,43 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     final phoneController = TextEditingController(text: employee?.phone ?? '');
     final emailController = TextEditingController(text: employee?.email ?? '');
     final salaryController = TextEditingController(
-      text: employee?.salary?.toString() ?? '',
+      text: employee?.salary != null
+          ? employee!.salary!.toStringAsFixed(0)
+          : '',
+    );
+    final dailyRateController = TextEditingController(
+      text: (employee?.dailyRate ?? 0) > 0
+          ? employee!.dailyRate.toStringAsFixed(0)
+          : '',
     );
     String selectedDepartment = employee?.department ?? 'Producción';
     EmployeeStatus selectedStatus = employee?.status ?? EmployeeStatus.activo;
+    // 'daily' = pago por día · 'hourly' = pago por horas/mensual
+    String selectedPayType = employee?.payType ?? 'hourly';
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEditing ? 'Editar Empleado' : 'Nuevo Empleado'),
+          title: Row(
+            children: [
+              Icon(
+                isEditing ? Icons.edit : Icons.person_add,
+                size: 22,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 10),
+              Text(isEditing ? 'Editar Empleado' : 'Nuevo Empleado'),
+            ],
+          ),
           content: SizedBox(
-            width: 500,
+            width: 520,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Nombres ──────────────────────────────────
                   Row(
                     children: [
                       Expanded(
@@ -4900,6 +4966,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     ),
                   ),
                   const SizedBox(height: 16),
+                  // ── Departamento + Estado ─────────────────────
                   Row(
                     children: [
                       Expanded(
@@ -4961,6 +5028,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     ],
                   ),
                   const SizedBox(height: 16),
+                  // ── Contacto ──────────────────────────────────
                   Row(
                     children: [
                       Expanded(
@@ -4988,16 +5056,108 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: salaryController,
-                    decoration: const InputDecoration(
-                      labelText: 'Salario',
-                      border: OutlineInputBorder(),
-                      prefixText: '\$ ',
+                  const SizedBox(height: 20),
+                  // ── Tipo de pago ──────────────────────────────
+                  const Text(
+                    'Tipo de pago',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF757575),
                     ),
-                    keyboardType: TextInputType.number,
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _payTypeOption(
+                          setDialogState,
+                          label: 'Mensual / Por horas',
+                          icon: Icons.calendar_month,
+                          value: 'hourly',
+                          selected: selectedPayType,
+                          onTap: () =>
+                              setDialogState(() => selectedPayType = 'hourly'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _payTypeOption(
+                          setDialogState,
+                          label: 'Por día (Jornal)',
+                          icon: Icons.today,
+                          value: 'daily',
+                          selected: selectedPayType,
+                          onTap: () =>
+                              setDialogState(() => selectedPayType = 'daily'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  // ── Salario según tipo ────────────────────────
+                  if (selectedPayType == 'daily') ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF8E1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFFE082)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.today,
+                                size: 16,
+                                color: Color(0xFFF9A825),
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'PAGO DIARIO (JORNAL)',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFF9A825),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: dailyRateController,
+                            decoration: const InputDecoration(
+                              labelText: 'Valor por día *',
+                              helperText:
+                                  'Cuánto gana este empleado por cada día trabajado',
+                              border: OutlineInputBorder(),
+                              prefixText: '\$ ',
+                              suffixText: '/ día',
+                            ),
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    TextField(
+                      controller: salaryController,
+                      decoration: const InputDecoration(
+                        labelText: 'Salario mensual',
+                        border: OutlineInputBorder(),
+                        prefixText: '\$ ',
+                        suffixText: '/ mes',
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -5020,11 +5180,28 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   return;
                 }
 
+                if (selectedPayType == 'daily' &&
+                    (dailyRateController.text.isEmpty ||
+                        (double.tryParse(dailyRateController.text) ?? 0) <=
+                            0)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Ingresa el valor por día'),
+                      backgroundColor: Color(0xFFF9A825),
+                    ),
+                  );
+                  return;
+                }
+
+                final newDailyRate =
+                    double.tryParse(dailyRateController.text) ?? 0;
+                final newSalary = double.tryParse(salaryController.text);
+
                 final newEmployee = Employee(
                   id: employee?.id ?? '',
-                  firstName: firstNameController.text,
-                  lastName: lastNameController.text,
-                  position: positionController.text,
+                  firstName: firstNameController.text.trim(),
+                  lastName: lastNameController.text.trim(),
+                  position: positionController.text.trim(),
                   department: selectedDepartment,
                   phone: phoneController.text.isEmpty
                       ? null
@@ -5032,9 +5209,26 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   email: emailController.text.isEmpty
                       ? null
                       : emailController.text,
-                  salary: double.tryParse(salaryController.text),
+                  salary: selectedPayType == 'daily'
+                      ? (newDailyRate * 30) // estimado mensual
+                      : newSalary,
+                  payType: selectedPayType,
+                  dailyRate: selectedPayType == 'daily' ? newDailyRate : 0,
+                  // preservar campos que no se editan aquí
+                  salaryType: employee?.salaryType ?? 'mensual',
+                  attendanceBonus: employee?.attendanceBonus ?? 0,
+                  attendanceBonusDays: employee?.attendanceBonusDays ?? 6,
+                  workSchedule: employee?.workSchedule ?? 'tiempo_completo',
                   status: selectedStatus,
                   hireDate: employee?.hireDate ?? DateTime.now(),
+                  documentType: employee?.documentType,
+                  documentNumber: employee?.documentNumber,
+                  address: employee?.address,
+                  bloodType: employee?.bloodType,
+                  photoUrl: employee?.photoUrl,
+                  notes: employee?.notes,
+                  emergencyContact: employee?.emergencyContact,
+                  emergencyPhone: employee?.emergencyPhone,
                   createdAt: employee?.createdAt ?? DateTime.now(),
                   updatedAt: DateTime.now(),
                 );
@@ -5053,6 +5247,66 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
               },
               child: Text(isEditing ? 'Guardar' : 'Crear'),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _payTypeOption(
+    StateSetter setDialogState, {
+    required String label,
+    required IconData icon,
+    required String value,
+    required String selected,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = value == selected;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primaryContainer
+              : const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : const Color(0xFFE0E0E0),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : const Color(0xFF9E9E9E),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : const Color(0xFF424242),
+                ),
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                size: 16,
+                color: Theme.of(context).colorScheme.primary,
+              ),
           ],
         ),
       ),
@@ -5458,7 +5712,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('✅ Tarea actualizada'),
-                        backgroundColor: const Color(0xFF2E7D32),
+                        backgroundColor: Color(0xFF2E7D32),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -5510,7 +5764,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('❌ Error al crear la tarea'),
-                          backgroundColor: const Color(0xFFC62828),
+                          backgroundColor: Color(0xFFC62828),
                           duration: Duration(seconds: 3),
                         ),
                       );
@@ -6051,10 +6305,14 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF9A825).withValues(alpha: 0.05),
+                                  color: const Color(
+                                    0xFFF9A825,
+                                  ).withValues(alpha: 0.05),
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: const Color(0xFFF9A825).withValues(alpha: 0.3),
+                                    color: const Color(
+                                      0xFFF9A825,
+                                    ).withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Column(
@@ -6086,7 +6344,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                                     'Cuota ${loan.paidInstallments + 1}/${loan.installments} • ${Helpers.formatCurrency(loan.installmentAmount)}/mes',
                                                     style: TextStyle(
                                                       fontSize: 11,
-                                                      color: const Color(0xFF757575),
+                                                      color: const Color(
+                                                        0xFF757575,
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
@@ -6099,7 +6359,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                                     'Pendiente',
                                                     style: TextStyle(
                                                       fontSize: 10,
-                                                      color: const Color(0xFF9E9E9E),
+                                                      color: const Color(
+                                                        0xFF9E9E9E,
+                                                      ),
                                                     ),
                                                   ),
                                                   Text(
@@ -6109,7 +6371,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                                     style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.w600,
-                                                      color: const Color(0xFFF57C00),
+                                                      color: const Color(
+                                                        0xFFF57C00,
+                                                      ),
                                                       fontSize: 12,
                                                     ),
                                                   ),
@@ -6192,8 +6456,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                             child: CircularProgressIndicator(
                                               value: progress,
                                               strokeWidth: 5,
-                                              backgroundColor:
-                                                  const Color(0xFFE0E0E0),
+                                              backgroundColor: const Color(
+                                                0xFFE0E0E0,
+                                              ),
                                               color: isOvertime
                                                   ? const Color(0xFF2E7D32)
                                                   : isUndertime
@@ -6231,9 +6496,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                           ),
                                           label: const Text('0.5h'),
                                           style: OutlinedButton.styleFrom(
-                                            foregroundColor: const Color(0xFFC62828),
+                                            foregroundColor: const Color(
+                                              0xFFC62828,
+                                            ),
                                             side: const BorderSide(
-                                              color: const Color(0xFFC62828),
+                                              color: Color(0xFFC62828),
                                             ),
                                             padding: const EdgeInsets.symmetric(
                                               vertical: 8,
@@ -6252,7 +6519,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                           icon: const Icon(Icons.add, size: 18),
                                           label: const Text('0.5h'),
                                           style: FilledButton.styleFrom(
-                                            backgroundColor: const Color(0xFF2E7D32),
+                                            backgroundColor: const Color(
+                                              0xFF2E7D32,
+                                            ),
                                             padding: const EdgeInsets.symmetric(
                                               vertical: 8,
                                             ),
@@ -6323,13 +6592,13 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                                 ? theme.colorScheme.primary
                                                       .withValues(alpha: 0.15)
                                                 : hasExtra
-                                                ? const Color(0xFF2E7D32).withValues(
-                                                    alpha: 0.1,
-                                                  )
+                                                ? const Color(
+                                                    0xFF2E7D32,
+                                                  ).withValues(alpha: 0.1)
                                                 : hasDeduction
-                                                ? const Color(0xFFF9A825).withValues(
-                                                    alpha: 0.1,
-                                                  )
+                                                ? const Color(
+                                                    0xFFF9A825,
+                                                  ).withValues(alpha: 0.1)
                                                 : const Color(0xFFEEEEEE),
                                             borderRadius: BorderRadius.circular(
                                               6,
@@ -6434,7 +6703,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   ? '✅ +${hours}h añadida al ${date.day}/${date.month}'
                   : '✅ ${hours}h descontada del ${date.day}/${date.month}',
             ),
-            backgroundColor: hours > 0 ? const Color(0xFF2E7D32) : const Color(0xFFF9A825),
+            backgroundColor: hours > 0
+                ? const Color(0xFF2E7D32)
+                : const Color(0xFFF9A825),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -6442,7 +6713,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFC62828)),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFC62828),
+          ),
         );
       }
     }
@@ -6474,7 +6748,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   ? '✅ +${hours}h añadida a ${employee.firstName}'
                   : '✅ ${hours}h descontada de ${employee.firstName}',
             ),
-            backgroundColor: hours > 0 ? const Color(0xFF2E7D32) : const Color(0xFFF9A825),
+            backgroundColor: hours > 0
+                ? const Color(0xFF2E7D32)
+                : const Color(0xFFF9A825),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -6482,7 +6758,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFC62828)),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFC62828),
+          ),
         );
       }
     }
@@ -6500,7 +6779,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No hay empleados activos'),
-          backgroundColor: const Color(0xFFF9A825),
+          backgroundColor: Color(0xFFF9A825),
         ),
       );
       return;
@@ -6655,12 +6934,14 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFF2E7D32,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
                             Icons.fact_check,
-                            color: const Color(0xFF2E7D32),
+                            color: Color(0xFF2E7D32),
                             size: 22,
                           ),
                         ),
@@ -6693,7 +6974,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1565C0).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFF1565C0,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -6701,7 +6984,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF1565C0),
+                              color: Color(0xFF1565C0),
                             ),
                           ),
                         ),
@@ -6773,15 +7056,30 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildCalendarLegendDot(const Color(0xFF2E7D32), 'OK'),
+                            _buildCalendarLegendDot(
+                              const Color(0xFF2E7D32),
+                              'OK',
+                            ),
                             const SizedBox(width: 6),
-                            _buildCalendarLegendDot(const Color(0xFFC62828), 'Falta'),
+                            _buildCalendarLegendDot(
+                              const Color(0xFFC62828),
+                              'Falta',
+                            ),
                             const SizedBox(width: 6),
-                            _buildCalendarLegendDot(const Color(0xFFF9A825), 'Permiso'),
+                            _buildCalendarLegendDot(
+                              const Color(0xFFF9A825),
+                              'Permiso',
+                            ),
                             const SizedBox(width: 6),
-                            _buildCalendarLegendDot(const Color(0xFF7B1FA2), 'Incap.'),
+                            _buildCalendarLegendDot(
+                              const Color(0xFF7B1FA2),
+                              'Incap.',
+                            ),
                             const SizedBox(width: 6),
-                            _buildCalendarLegendDot(const Color(0xFFE0E0E0), 'Pend.'),
+                            _buildCalendarLegendDot(
+                              const Color(0xFFE0E0E0),
+                              'Pend.',
+                            ),
                           ],
                         ),
                       ],
@@ -6809,13 +7107,17 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               _buildAttendanceSummaryChip(
                                 Icons.cancel,
                                 '$absentCount',
-                                absentCount > 0 ? const Color(0xFFC62828) : const Color(0xFF9E9E9E),
+                                absentCount > 0
+                                    ? const Color(0xFFC62828)
+                                    : const Color(0xFF9E9E9E),
                               ),
                               const SizedBox(width: 4),
                               _buildAttendanceSummaryChip(
                                 Icons.event_busy,
                                 '$permisoCount',
-                                permisoCount > 0 ? const Color(0xFFF9A825) : const Color(0xFF9E9E9E),
+                                permisoCount > 0
+                                    ? const Color(0xFFF9A825)
+                                    : const Color(0xFF9E9E9E),
                               ),
                               const SizedBox(width: 4),
                               _buildAttendanceSummaryChip(
@@ -6832,14 +7134,16 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF9A825).withValues(alpha: 0.1),
+                                color: const Color(
+                                  0xFFF9A825,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Row(
                                 children: [
                                   Icon(
                                     Icons.warning_amber,
-                                    color: const Color(0xFFF9A825),
+                                    color: Color(0xFFF9A825),
                                     size: 16,
                                   ),
                                   SizedBox(width: 6),
@@ -6847,7 +7151,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                     'Domingo — día de descanso',
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: const Color(0xFFF9A825),
+                                      color: Color(0xFFF9A825),
                                     ),
                                   ),
                                 ],
@@ -6894,7 +7198,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                     : statusColor.withValues(alpha: 0.03),
                                 border: Border(
                                   bottom: BorderSide(
-                                    color: const Color(0xFF9E9E9E).withValues(alpha: 0.1),
+                                    color: const Color(
+                                      0xFF9E9E9E,
+                                    ).withValues(alpha: 0.1),
                                   ),
                                 ),
                               ),
@@ -7059,7 +7365,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF9A825).withValues(alpha: 0.06),
+                                color: const Color(
+                                  0xFFF9A825,
+                                ).withValues(alpha: 0.06),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Column(
@@ -7071,7 +7379,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                       style: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w500,
-                                        color: const Color(0xFFC62828),
+                                        color: Color(0xFFC62828),
                                       ),
                                     ),
                                   if (permisoCount > 0)
@@ -7080,7 +7388,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                       style: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w500,
-                                        color: const Color(0xFFF9A825),
+                                        color: Color(0xFFF9A825),
                                       ),
                                     ),
                                   if (incapacidadCount > 0)
@@ -7089,7 +7397,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                       style: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w500,
-                                        color: const Color(0xFF7B1FA2),
+                                        color: Color(0xFF7B1FA2),
                                       ),
                                     ),
                                 ],
@@ -7196,7 +7504,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
               children: [
                 Icon(
                   isPermiso ? Icons.event_busy : Icons.local_hospital,
-                  color: isPermiso ? const Color(0xFFF9A825) : const Color(0xFF7B1FA2),
+                  color: isPermiso
+                      ? const Color(0xFFF9A825)
+                      : const Color(0xFF7B1FA2),
                   size: 22,
                 ),
                 const SizedBox(width: 8),
@@ -7217,13 +7527,20 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: (isPermiso ? const Color(0xFFF9A825) : const Color(0xFF7B1FA2))
-                          .withValues(alpha: 0.06),
+                      color:
+                          (isPermiso
+                                  ? const Color(0xFFF9A825)
+                                  : const Color(0xFF7B1FA2))
+                              .withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.person, size: 18, color: const Color(0xFF757575)),
+                        Icon(
+                          Icons.person,
+                          size: 18,
+                          color: const Color(0xFF757575),
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           employeeName,
@@ -7355,8 +7672,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: (isPermiso ? const Color(0xFFF9A825) : const Color(0xFF7B1FA2))
-                          .withValues(alpha: 0.1),
+                      color:
+                          (isPermiso
+                                  ? const Color(0xFFF9A825)
+                                  : const Color(0xFF7B1FA2))
+                              .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -7365,7 +7685,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         Icon(
                           Icons.timer,
                           size: 16,
-                          color: isPermiso ? const Color(0xFFF9A825) : const Color(0xFF7B1FA2),
+                          color: isPermiso
+                              ? const Color(0xFFF9A825)
+                              : const Color(0xFF7B1FA2),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -7424,7 +7746,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                 icon: const Icon(Icons.check, size: 16),
                 label: Text(isPermiso ? 'Registrar Permiso' : 'Registrar'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: isPermiso ? const Color(0xFFF9A825) : const Color(0xFF7B1FA2),
+                  backgroundColor: isPermiso
+                      ? const Color(0xFFF9A825)
+                      : const Color(0xFF7B1FA2),
                 ),
               ),
             ],
@@ -7523,7 +7847,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
           child: Container(
             margin: const EdgeInsets.all(1.5),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF1565C0).withValues(alpha: 0.2) : bgColor,
+              color: isSelected
+                  ? const Color(0xFF1565C0).withValues(alpha: 0.2)
+                  : bgColor,
               borderRadius: BorderRadius.circular(6),
               border: isSelected
                   ? Border.all(color: const Color(0xFF1565C0), width: 2)
@@ -7605,7 +7931,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 3),
-        Text(label, style: TextStyle(fontSize: 9, color: const Color(0xFF757575))),
+        Text(
+          label,
+          style: TextStyle(fontSize: 9, color: const Color(0xFF757575)),
+        ),
       ],
     );
   }
@@ -7669,14 +7998,18 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isActive ? color : const Color(0xFF9E9E9E).withValues(alpha: 0.2),
+              color: isActive
+                  ? color
+                  : const Color(0xFF9E9E9E).withValues(alpha: 0.2),
               width: isActive ? 1.5 : 0.5,
             ),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: isActive ? color : const Color(0xFF9E9E9E).withValues(alpha: 0.3),
+            color: isActive
+                ? color
+                : const Color(0xFF9E9E9E).withValues(alpha: 0.3),
           ),
         ),
       ),
@@ -7747,7 +8080,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
             content: Text(
               'Domingo es día de descanso, no se registran ausencias',
             ),
-            backgroundColor: const Color(0xFFF9A825),
+            backgroundColor: Color(0xFFF9A825),
           ),
         );
       }
@@ -7789,7 +8122,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Todos presentes — asistencia completa'),
-            backgroundColor: const Color(0xFF2E7D32),
+            backgroundColor: Color(0xFF2E7D32),
           ),
         );
       }
@@ -7949,7 +8282,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                 ? '✅ Asistencia guardada — ${messages.join(", ")}'
                 : '⚠️ $successCount de ${successCount + failCount} registrados',
           ),
-          backgroundColor: failCount == 0 ? const Color(0xFF2E7D32) : const Color(0xFFF9A825),
+          backgroundColor: failCount == 0
+              ? const Color(0xFF2E7D32)
+              : const Color(0xFFF9A825),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -8222,7 +8557,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
             children: [
               Icon(
                 isActive ? Icons.play_circle : Icons.check_circle,
-                color: isActive ? const Color(0xFF2E7D32) : const Color(0xFF9E9E9E),
+                color: isActive
+                    ? const Color(0xFF2E7D32)
+                    : const Color(0xFF9E9E9E),
                 size: 20,
               ),
               const SizedBox(width: 12),
@@ -8232,7 +8569,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.login, size: 14, color: const Color(0xFF2E7D32)),
+                        Icon(
+                          Icons.login,
+                          size: 14,
+                          color: const Color(0xFF2E7D32),
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Entrada: ${_formatTime(checkIn)}',
@@ -8243,7 +8584,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         ),
                         if (checkOut != null) ...[
                           const SizedBox(width: 16),
-                          Icon(Icons.logout, size: 14, color: const Color(0xFFC62828)),
+                          Icon(
+                            Icons.logout,
+                            size: 14,
+                            color: const Color(0xFFC62828),
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Salida: ${_formatTime(checkOut)}',
@@ -8314,7 +8659,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFC62828)),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFC62828),
+          ),
         );
       }
     }
@@ -8347,7 +8695,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFC62828)),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFC62828),
+          ),
         );
       }
     }
@@ -8461,7 +8812,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                 onPressed: () => Navigator.pop(ctx),
                                 icon: const Icon(
                                   Icons.close,
-                                  color: const Color(0xB3FFFFFF),
+                                  color: Color(0xB3FFFFFF),
                                 ),
                               ),
                             ],
@@ -8490,7 +8841,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               PopupMenuButton<int>(
                                 icon: const Icon(
                                   Icons.date_range,
-                                  color: const Color(0xB3FFFFFF),
+                                  color: Color(0xB3FFFFFF),
                                   size: 20,
                                 ),
                                 tooltip: 'Rangos rápidos',
@@ -8672,12 +9023,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                                   ),
                                               decoration: BoxDecoration(
                                                 color: dayTotal >= 468
-                                                    ? const Color(0xFF2E7D32).withValues(
-                                                        alpha: 0.1,
-                                                      )
-                                                    : const Color(0xFFF9A825).withValues(
-                                                        alpha: 0.1,
-                                                      ),
+                                                    ? const Color(
+                                                        0xFF2E7D32,
+                                                      ).withValues(alpha: 0.1)
+                                                    : const Color(
+                                                        0xFFF9A825,
+                                                      ).withValues(alpha: 0.1),
                                                 borderRadius:
                                                     BorderRadius.circular(4),
                                               ),
@@ -8726,7 +9077,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                                 ' → ',
                                                 style: TextStyle(
                                                   fontSize: 12,
-                                                  color: const Color(0xFF9E9E9E),
+                                                  color: Color(0xFF9E9E9E),
                                                 ),
                                               ),
                                               Text(
@@ -8763,10 +9114,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                                         vertical: 1,
                                                       ),
                                                   decoration: BoxDecoration(
-                                                    color: const Color(0xFFF9A825)
-                                                        .withValues(
-                                                          alpha: 0.15,
-                                                        ),
+                                                    color: const Color(
+                                                      0xFFF9A825,
+                                                    ).withValues(alpha: 0.15),
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                           3,
@@ -8776,7 +9126,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                                     '+${(entry.overtimeMinutes / 60).toStringAsFixed(1)}h',
                                                     style: TextStyle(
                                                       fontSize: 10,
-                                                      color: const Color(0xFFFF8F00),
+                                                      color: const Color(
+                                                        0xFFFF8F00,
+                                                      ),
                                                       fontWeight:
                                                           FontWeight.w600,
                                                     ),
@@ -8793,10 +9145,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                                 decoration: BoxDecoration(
                                                   color:
                                                       entry.status == 'aprobado'
-                                                      ? const Color(0xFF2E7D32).withValues(
-                                                          alpha: 0.1,
-                                                        )
-                                                      : const Color(0xFF9E9E9E).withValues(
+                                                      ? const Color(
+                                                          0xFF2E7D32,
+                                                        ).withValues(alpha: 0.1)
+                                                      : const Color(
+                                                          0xFF9E9E9E,
+                                                        ).withValues(
                                                           alpha: 0.1,
                                                         ),
                                                   borderRadius:
@@ -8809,8 +9163,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                                     color:
                                                         entry.status ==
                                                             'aprobado'
-                                                        ? const Color(0xFF388E3C)
-                                                        : const Color(0xFF757575),
+                                                        ? const Color(
+                                                            0xFF388E3C,
+                                                          )
+                                                        : const Color(
+                                                            0xFF757575,
+                                                          ),
                                                   ),
                                                 ),
                                               ),
@@ -8864,7 +9222,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
               style: const TextStyle(color: Colors.white, fontSize: 12),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.edit_calendar, size: 14, color: const Color(0xB3FFFFFF)),
+            const Icon(Icons.edit_calendar, size: 14, color: Color(0xB3FFFFFF)),
           ],
         ),
       ),
@@ -8908,7 +9266,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Tarea completada'),
-          backgroundColor: const Color(0xFF2E7D32),
+          backgroundColor: Color(0xFF2E7D32),
         ),
       );
     }
@@ -8932,7 +9290,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   .read(employeesProvider.notifier)
                   .deleteEmployee(employee.id);
             },
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+            ),
             child: const Text('Eliminar'),
           ),
         ],
@@ -8990,7 +9350,8 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
       final diferencia = p.totalEarnings - p.baseSalary;
       if (diferencia >= 149000) {
         empleadosConBono++;
-        totalBonoCreadas += diferencia; // Usar la diferencia real (puede ser bono + HE)
+        totalBonoCreadas +=
+            diferencia; // Usar la diferencia real (puede ser bono + HE)
       }
     }
     // Para empleados sin nómina, estimar bono de asistencia estándar
@@ -9470,7 +9831,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                 children: [
                   Text(
                     label,
-                    style: TextStyle(color: const Color(0xFF757575), fontSize: 10),
+                    style: TextStyle(
+                      color: const Color(0xFF757575),
+                      fontSize: 10,
+                    ),
                   ),
                   Text(
                     value,
@@ -9496,7 +9860,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Icon(Icons.arrow_upward, size: 8, color: const Color(0xFF43A047)),
+                    Icon(
+                      Icons.arrow_upward,
+                      size: 8,
+                      color: const Color(0xFF43A047),
+                    ),
                   ],
                 ),
               ],
@@ -9812,7 +10180,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF9E9E9E),
+                      color: Color(0xFF9E9E9E),
                     ),
                   ),
                 ),
@@ -9823,7 +10191,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF9E9E9E),
+                      color: Color(0xFF9E9E9E),
                     ),
                   ),
                 ),
@@ -9834,7 +10202,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF9E9E9E),
+                      color: Color(0xFF9E9E9E),
                     ),
                   ),
                 ),
@@ -9845,7 +10213,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF9E9E9E),
+                      color: Color(0xFF9E9E9E),
                     ),
                   ),
                 ),
@@ -9856,7 +10224,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF9E9E9E),
+                      color: Color(0xFF9E9E9E),
                     ),
                   ),
                 ),
@@ -10135,7 +10503,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF9E9E9E),
+                      color: Color(0xFF9E9E9E),
                     ),
                   ),
                 ),
@@ -10146,7 +10514,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF9E9E9E),
+                      color: Color(0xFF9E9E9E),
                     ),
                   ),
                 ),
@@ -10157,7 +10525,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF9E9E9E),
+                      color: Color(0xFF9E9E9E),
                     ),
                   ),
                 ),
@@ -10168,7 +10536,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF9E9E9E),
+                      color: Color(0xFF9E9E9E),
                     ),
                   ),
                 ),
@@ -10300,7 +10668,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: status == 'Pagado' ? const Color(0xFF757575) : null,
+                            color: status == 'Pagado'
+                                ? const Color(0xFF757575)
+                                : null,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -10472,7 +10842,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               ),
                               Text(
                                 payroll.employeePosition ?? '',
-                                style: TextStyle(color: const Color(0xFF757575)),
+                                style: TextStyle(
+                                  color: const Color(0xFF757575),
+                                ),
                               ),
                             ],
                           ),
@@ -10486,7 +10858,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           decoration: BoxDecoration(
                             color: payroll.status == 'pagado'
                                 ? const Color(0xFF2E7D32).withValues(alpha: 0.1)
-                                : const Color(0xFFF9A825).withValues(alpha: 0.1),
+                                : const Color(
+                                    0xFFF9A825,
+                                  ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -10628,7 +11002,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                     FilledButton(
                                       onPressed: () => Navigator.pop(ctx, true),
                                       style: FilledButton.styleFrom(
-                                        backgroundColor: const Color(0xFFC62828),
+                                        backgroundColor: const Color(
+                                          0xFFC62828,
+                                        ),
                                       ),
                                       child: const Text('Eliminar'),
                                     ),
@@ -10756,7 +11132,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                 children: [
                   Text(
                     label,
-                    style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
+                    style: TextStyle(
+                      color: const Color(0xFF757575),
+                      fontSize: 12,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   FittedBox(
@@ -11040,7 +11419,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       : const Color(0xFFF9A825).withValues(alpha: 0.1),
                   child: Icon(
                     isPaid ? Icons.check : Icons.account_balance_wallet,
-                    color: isPaid ? const Color(0xFF2E7D32) : const Color(0xFFF9A825),
+                    color: isPaid
+                        ? const Color(0xFF2E7D32)
+                        : const Color(0xFFF9A825),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -11057,7 +11438,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       ),
                       Text(
                         'Fecha: ${Helpers.formatDate(loan.loanDate)}',
-                        style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
+                        style: TextStyle(
+                          color: const Color(0xFF757575),
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -11074,7 +11458,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     ),
                     Text(
                       '${loan.installments} cuotas',
-                      style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
+                      style: TextStyle(
+                        color: const Color(0xFF757575),
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -11154,7 +11541,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       onPressed: () => _confirmCancelLoan(loan),
                       icon: const Icon(Icons.cancel_outlined, size: 18),
                       label: const Text('Anular'),
-                      style: TextButton.styleFrom(foregroundColor: const Color(0xFFC62828)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFFC62828),
+                      ),
                     ),
                   ],
                 ],
@@ -11178,7 +11567,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('No hay cuentas configuradas'),
-            backgroundColor: const Color(0xFFC62828),
+            backgroundColor: Color(0xFFC62828),
           ),
         );
       }
@@ -11224,9 +11613,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         children: [
                           CircleAvatar(
                             radius: 20,
-                            backgroundColor: const Color(0xFF7B1FA2).withValues(
-                              alpha: 0.1,
-                            ),
+                            backgroundColor: const Color(
+                              0xFF7B1FA2,
+                            ).withValues(alpha: 0.1),
                             child: Text(
                               employee.initials,
                               style: TextStyle(
@@ -11262,7 +11651,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
 
                     Text(
                       'Dinero entregado por adelantado al empleado.',
-                      style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: const Color(0xFF757575),
+                      ),
                     ),
                     const SizedBox(height: 12),
 
@@ -11330,7 +11722,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           color: const Color(0xFF7B1FA2).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: const Color(0xFF7B1FA2).withValues(alpha: 0.3),
+                            color: const Color(
+                              0xFF7B1FA2,
+                            ).withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
@@ -11426,7 +11820,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('No hay cuentas configuradas'),
-            backgroundColor: const Color(0xFFC62828),
+            backgroundColor: Color(0xFFC62828),
           ),
         );
       }
@@ -11697,7 +12091,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2E7D32).withValues(alpha: 0.2),
+                                color: const Color(
+                                  0xFF2E7D32,
+                                ).withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: const Text(
@@ -11774,7 +12170,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             messenger.showSnackBar(
                               const SnackBar(
                                 content: Text('❌ Error al registrar el pago'),
-                                backgroundColor: const Color(0xFFC62828),
+                                backgroundColor: Color(0xFFC62828),
                               ),
                             );
                           }
@@ -11804,7 +12200,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: const Color(0xFFC62828)),
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFC62828)),
             SizedBox(width: 8),
             Text('Anular Préstamo'),
           ],
@@ -11862,13 +12258,17 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         ? '✅ Préstamo anulado correctamente'
                         : '❌ Error al anular préstamo',
                   ),
-                  backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+                  backgroundColor: success
+                      ? const Color(0xFF2E7D32)
+                      : const Color(0xFFC62828),
                 ),
               );
             },
             icon: const Icon(Icons.delete_forever),
             label: const Text('Anular'),
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+            ),
           ),
         ],
       ),
@@ -11966,7 +12366,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
           // ── INCAPACIDADES ACTIVAS ──
           Row(
             children: [
-              Icon(Icons.local_hospital, size: 20, color: const Color(0xFF7B1FA2)),
+              Icon(
+                Icons.local_hospital,
+                size: 20,
+                color: const Color(0xFF7B1FA2),
+              ),
               const SizedBox(width: 8),
               const Text(
                 'Incapacidades Activas',
@@ -12061,7 +12465,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     bool isPast = false,
   }) {
     final isPermiso = incapacity.type == 'permiso';
-    final activeColor = isPermiso ? const Color(0xFFF9A825) : const Color(0xFF7B1FA2);
+    final activeColor = isPermiso
+        ? const Color(0xFFF9A825)
+        : const Color(0xFF7B1FA2);
     final activeIcon = isPermiso ? Icons.event_busy : Icons.local_hospital;
 
     // Calcular días restantes
@@ -12167,7 +12573,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     children: [
                       Text(
                         'Desde',
-                        style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
+                        style: TextStyle(
+                          color: const Color(0xFF757575),
+                          fontSize: 12,
+                        ),
                       ),
                       Text(Helpers.formatDate(incapacity.startDate)),
                     ],
@@ -12179,7 +12588,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     children: [
                       Text(
                         'Hasta',
-                        style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
+                        style: TextStyle(
+                          color: const Color(0xFF757575),
+                          fontSize: 12,
+                        ),
                       ),
                       Text(Helpers.formatDate(incapacity.endDate)),
                     ],
@@ -12191,7 +12603,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     children: [
                       Text(
                         'Pago',
-                        style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
+                        style: TextStyle(
+                          color: const Color(0xFF757575),
+                          fontSize: 12,
+                        ),
                       ),
                       Text(
                         '${incapacity.paymentPercentage.toStringAsFixed(0)}%',
@@ -12244,7 +12659,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
               content: Text(
                 'No se pudo cargar el periodo activo. Verifica la conexión.',
               ),
-              backgroundColor: const Color(0xFFC62828),
+              backgroundColor: Color(0xFFC62828),
             ),
           );
         }
@@ -12717,7 +13132,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                         'En curso',
                                         style: TextStyle(
                                           fontSize: 10,
-                                          color: const Color(0xFFF9A825),
+                                          color: Color(0xFFF9A825),
                                         ),
                                       ),
                                     ),
@@ -12807,12 +13222,15 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           children: [
                             const Row(
                               children: [
-                                Icon(Icons.info_outline, color: const Color(0xFFF9A825)),
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Color(0xFFF9A825),
+                                ),
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     'Todos los empleados ya tienen nómina en esta quincena.',
-                                    style: TextStyle(color: const Color(0xFFF9A825)),
+                                    style: TextStyle(color: Color(0xFFF9A825)),
                                   ),
                                 ),
                               ],
@@ -12822,7 +13240,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               '¿Pagaste la nómina adelantada y quedaron días sin cubrir?',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: const Color(0xDD000000),
+                                color: Color(0xDD000000),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -12849,7 +13267,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                 ),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: const Color(0xFF1976D2),
-                                  side: BorderSide(color: const Color(0xFF64B5F6)),
+                                  side: BorderSide(
+                                    color: const Color(0xFF64B5F6),
+                                  ),
                                 ),
                               ),
                             ),
@@ -13197,7 +13617,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                           style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF7B1FA2),
+                                            color: Color(0xFF7B1FA2),
                                           ),
                                         ),
                                       ),
@@ -13212,7 +13632,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                   ),
                                   Text(
                                     'Bono: ${Helpers.formatCurrency(empAttendanceBonus)} ($empBonusDays días/sem)',
-                                    style: TextStyle(color: const Color(0xFF757575)),
+                                    style: TextStyle(
+                                      color: const Color(0xFF757575),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -13229,7 +13651,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                   ),
                                   Text(
                                     'Quincenal: ${Helpers.formatCurrency(baseSalary / 2)}',
-                                    style: TextStyle(color: const Color(0xFF757575)),
+                                    style: TextStyle(
+                                      color: const Color(0xFF757575),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -13243,10 +13667,14 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1565C0).withValues(alpha: 0.05),
+                          color: const Color(
+                            0xFF1565C0,
+                          ).withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: const Color(0xFF1565C0).withValues(alpha: 0.2),
+                            color: const Color(
+                              0xFF1565C0,
+                            ).withValues(alpha: 0.2),
                           ),
                         ),
                         child: Column(
@@ -13256,7 +13684,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               children: [
                                 const Icon(
                                   Icons.date_range,
-                                  color: const Color(0xFF1565C0),
+                                  color: Color(0xFF1565C0),
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
@@ -13546,12 +13974,18 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           decoration: BoxDecoration(
                             color: daysAbsent == 0
                                 ? const Color(0xFF2E7D32).withValues(alpha: 0.1)
-                                : const Color(0xFFF9A825).withValues(alpha: 0.1),
+                                : const Color(
+                                    0xFFF9A825,
+                                  ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: daysAbsent == 0
-                                  ? const Color(0xFF2E7D32).withValues(alpha: 0.3)
-                                  : const Color(0xFFF9A825).withValues(alpha: 0.3),
+                                  ? const Color(
+                                      0xFF2E7D32,
+                                    ).withValues(alpha: 0.3)
+                                  : const Color(
+                                      0xFFF9A825,
+                                    ).withValues(alpha: 0.3),
                             ),
                           ),
                           child: Column(
@@ -13743,8 +14177,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                 ),
                                 decoration: BoxDecoration(
                                   color: ganaBono
-                                      ? const Color(0xFF2E7D32).withValues(alpha: 0.1)
-                                      : const Color(0xFFC62828).withValues(alpha: 0.1),
+                                      ? const Color(
+                                          0xFF2E7D32,
+                                        ).withValues(alpha: 0.1)
+                                      : const Color(
+                                          0xFFC62828,
+                                        ).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Row(
@@ -13818,10 +14256,14 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2E7D32).withValues(alpha: 0.05),
+                          color: const Color(
+                            0xFF2E7D32,
+                          ).withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: const Color(0xFF2E7D32).withValues(alpha: 0.2),
+                            color: const Color(
+                              0xFF2E7D32,
+                            ).withValues(alpha: 0.2),
                           ),
                         ),
                         child: Column(
@@ -13916,7 +14358,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                                color: const Color(
+                                  0xFF2E7D32,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(
@@ -13951,10 +14395,14 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF9A825).withValues(alpha: 0.05),
+                          color: const Color(
+                            0xFFF9A825,
+                          ).withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: const Color(0xFFF9A825).withValues(alpha: 0.2),
+                            color: const Color(
+                              0xFFF9A825,
+                            ).withValues(alpha: 0.2),
                           ),
                         ),
                         child: Column(
@@ -13990,7 +14438,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF9A825).withValues(alpha: 0.1),
+                                color: const Color(
+                                  0xFFF9A825,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(
@@ -14027,7 +14477,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           color: const Color(0xFFF9A825).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: const Color(0xFFF9A825).withValues(alpha: 0.3),
+                            color: const Color(
+                              0xFFF9A825,
+                            ).withValues(alpha: 0.3),
                           ),
                         ),
                         child: Column(
@@ -14259,7 +14711,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           messenger.showSnackBar(
                             const SnackBar(
                               content: Text('Error al crear el periodo'),
-                              backgroundColor: const Color(0xFFC62828),
+                              backgroundColor: Color(0xFFC62828),
                             ),
                           );
                           return;
@@ -14344,7 +14796,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               content: Text(
                                 'No se encontró la nómina original para complementar',
                               ),
-                              backgroundColor: const Color(0xFFC62828),
+                              backgroundColor: Color(0xFFC62828),
                             ),
                           );
                         } else {
@@ -14487,7 +14939,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                 content: Text(
                                   '❌ Error al crear nómina. El empleado puede ya tener nómina en este periodo.',
                                 ),
-                                backgroundColor: const Color(0xFFC62828),
+                                backgroundColor: Color(0xFFC62828),
                               ),
                             );
                           }
@@ -14690,7 +15142,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(success ? 'Concepto agregado' : 'Error'),
-                        backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+                        backgroundColor: success
+                            ? const Color(0xFF2E7D32)
+                            : const Color(0xFFC62828),
                       ),
                     );
                   }
@@ -14717,7 +15171,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('No hay cuentas disponibles'),
-            backgroundColor: const Color(0xFFC62828),
+            backgroundColor: Color(0xFFC62828),
           ),
         );
       }
@@ -14835,7 +15289,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           Text(
                             Helpers.formatCurrency(balance),
                             style: TextStyle(
-                              color: hasEnough ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+                              color: hasEnough
+                                  ? const Color(0xFF2E7D32)
+                                  : const Color(0xFFC62828),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -14867,13 +15323,17 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.warning, color: const Color(0xFFC62828), size: 16),
+                        const Icon(
+                          Icons.warning,
+                          color: Color(0xFFC62828),
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Saldo insuficiente. Falta: ${Helpers.formatCurrency(payroll.netPay - selectedAccountBalance)}',
                             style: const TextStyle(
-                              color: const Color(0xFFC62828),
+                              color: Color(0xFFC62828),
                               fontSize: 12,
                             ),
                           ),
@@ -14949,7 +15409,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.check_circle, color: const Color(0xFF2E7D32), size: 20),
+                      Icon(
+                        Icons.check_circle,
+                        color: Color(0xFF2E7D32),
+                        size: 20,
+                      ),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -14998,7 +15462,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                 ? '✅ Pago de ${Helpers.formatCurrency(payroll.netPay)} registrado exitosamente'
                                 : '❌ Error al procesar el pago',
                           ),
-                          backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+                          backgroundColor: success
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFFC62828),
                         ),
                       );
                     },
@@ -15024,7 +15490,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('No hay cuentas disponibles'),
-            backgroundColor: const Color(0xFFC62828),
+            backgroundColor: Color(0xFFC62828),
           ),
         );
       }
@@ -15185,7 +15651,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           color: const Color(0xFFF9A825).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: const Color(0xFFF9A825).withValues(alpha: 0.3),
+                            color: const Color(
+                              0xFFF9A825,
+                            ).withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
@@ -15200,7 +15668,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: const Color(0xFFF9A825),
+                                color: Color(0xFFF9A825),
                               ),
                             ),
                           ],
@@ -15242,10 +15710,14 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1565C0).withValues(alpha: 0.05),
+                          color: const Color(
+                            0xFF1565C0,
+                          ).withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: const Color(0xFF1565C0).withValues(alpha: 0.2),
+                            color: const Color(
+                              0xFF1565C0,
+                            ).withValues(alpha: 0.2),
                           ),
                         ),
                         child: Column(
@@ -15290,12 +15762,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                         alignment: Alignment.center,
                                         decoration: BoxDecoration(
                                           color: isLast
-                                              ? const Color(0xFF2E7D32).withValues(
-                                                  alpha: 0.2,
-                                                )
-                                              : const Color(0xFF1565C0).withValues(
-                                                  alpha: 0.1,
-                                                ),
+                                              ? const Color(
+                                                  0xFF2E7D32,
+                                                ).withValues(alpha: 0.2)
+                                              : const Color(
+                                                  0xFF1565C0,
+                                                ).withValues(alpha: 0.1),
                                           shape: BoxShape.circle,
                                         ),
                                         child: Text(
@@ -15402,7 +15874,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           children: [
                             const Icon(
                               Icons.warning,
-                              color: const Color(0xFFC62828),
+                              color: Color(0xFFC62828),
                               size: 16,
                             ),
                             const SizedBox(width: 8),
@@ -15441,7 +15913,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         children: [
                           Icon(
                             Icons.info_outline,
-                            color: const Color(0xFF1565C0),
+                            color: Color(0xFF1565C0),
                             size: 20,
                           ),
                           SizedBox(width: 8),
@@ -15541,7 +16013,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
               children: [
                 Icon(
                   isPermiso ? Icons.event_busy : Icons.local_hospital,
-                  color: isPermiso ? const Color(0xFFF9A825) : const Color(0xFF7B1FA2),
+                  color: isPermiso
+                      ? const Color(0xFFF9A825)
+                      : const Color(0xFF7B1FA2),
                 ),
                 const SizedBox(width: 8),
                 Text(isPermiso ? 'Nuevo Permiso' : 'Nueva Incapacidad'),
@@ -15664,7 +16138,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.timer, color: const Color(0xFFF9A825)),
+                          const Icon(Icons.timer, color: Color(0xFFF9A825)),
                           const SizedBox(width: 8),
                           Text(
                             '$days días de incapacidad',
@@ -15733,7 +16207,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         content: Text(
                           success ? 'Incapacidad registrada' : 'Error',
                         ),
-                        backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+                        backgroundColor: success
+                            ? const Color(0xFF2E7D32)
+                            : const Color(0xFFC62828),
                       ),
                     );
                   }

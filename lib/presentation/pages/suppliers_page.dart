@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_spacing.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/suppliers_datasource.dart';
@@ -123,14 +122,20 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                         filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+                        fillColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerLowest,
                       ),
                     ),
                   ),
@@ -138,9 +143,13 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                       borderRadius: BorderRadius.circular(12),
-                      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerLowest,
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -193,7 +202,9 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                 borderRadius: BorderRadius.circular(4),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.shadow.withOpacity(0.05),
                     blurRadius: 2,
                     offset: const Offset(0, 1),
                   ),
@@ -233,20 +244,28 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                             Icon(
                               Icons.local_shipping_outlined,
                               size: 64,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(height: 16),
                             Text(
                               'No hay proveedores',
                               style: TextStyle(
                                 fontSize: 18,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Agrega proveedores para asociarlos a tus materiales',
-                              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ),
@@ -254,8 +273,10 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                     : ListView.separated(
                         padding: EdgeInsets.zero,
                         itemCount: filteredSuppliers.length,
-                        separatorBuilder: (_, __) =>
-                            Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+                        separatorBuilder: (_, __) => Divider(
+                          height: 1,
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
                         itemBuilder: (context, index) =>
                             _buildSupplierTile(filteredSuppliers[index]),
                       ),
@@ -288,7 +309,10 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 value,
@@ -307,7 +331,9 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
 
   Widget _buildSupplierTile(Supplier supplier) {
     final debt = supplier.currentDebt;
-    Color statusColor = supplier.isActive ? AppColors.success : Theme.of(context).colorScheme.onSurfaceVariant;
+    Color statusColor = supplier.isActive
+        ? AppColors.success
+        : Theme.of(context).colorScheme.onSurfaceVariant;
     Color typeColor = supplier.type == SupplierType.business
         ? AppColors.info
         : const Color(0xFF7B1FA2);
@@ -365,28 +391,49 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(Icons.badge, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.badge,
+                size: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 4),
               Text(
                 '${supplier.documentType}: ${supplier.documentNumber}',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
               if (supplier.phone != null && supplier.phone!.isNotEmpty) ...[
                 const SizedBox(width: 16),
-                Icon(Icons.phone, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.phone,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   supplier.phone!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
                 ),
               ],
               if (supplier.email != null && supplier.email!.isNotEmpty) ...[
                 const SizedBox(width: 16),
-                Icon(Icons.email, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.email,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   supplier.email!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ],
@@ -442,7 +489,10 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                 children: [
                   Icon(Icons.payments, size: 20, color: AppColors.success),
                   SizedBox(width: 8),
-                  Text('Registrar Pago', style: TextStyle(color: AppColors.success)),
+                  Text(
+                    'Registrar Pago',
+                    style: TextStyle(color: AppColors.success),
+                  ),
                 ],
               ),
             ),
@@ -624,7 +674,9 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                     decoration: BoxDecoration(
                       color: AppColors.info.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.info.withOpacity(0.2)),
+                      border: Border.all(
+                        color: AppColors.info.withOpacity(0.2),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -807,7 +859,9 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                   decoration: BoxDecoration(
                     color: AppColors.warning.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                    border: Border.all(
+                      color: AppColors.warning.withOpacity(0.3),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -942,20 +996,13 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 16,
-                        color: AppColors.info,
-                      ),
+                      Icon(Icons.info_outline, size: 16, color: AppColors.info),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Se creará un movimiento de egreso en caja, '
                           'un asiento contable automático y se reducirá la deuda.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.info,
-                          ),
+                          style: TextStyle(fontSize: 12, color: AppColors.info),
                         ),
                       ),
                     ],
@@ -1066,9 +1113,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                     )
                   : const Icon(Icons.payments, size: 18),
               label: Text(isProcessing ? 'Procesando...' : 'Registrar Pago'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.success,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.success),
             ),
           ],
         ),
@@ -1091,10 +1136,14 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: selected ? AppColors.success : Theme.of(context).colorScheme.outlineVariant,
+            color: selected
+                ? AppColors.success
+                : Theme.of(context).colorScheme.outlineVariant,
             width: selected ? 2 : 1,
           ),
-          color: selected ? AppColors.success.withOpacity(0.1) : Colors.transparent,
+          color: selected
+              ? AppColors.success.withOpacity(0.1)
+              : Colors.transparent,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1102,7 +1151,9 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
             Icon(
               icon,
               size: 18,
-              color: selected ? AppColors.success : Theme.of(context).colorScheme.onSurfaceVariant,
+              color: selected
+                  ? AppColors.success
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 6),
             Text(
@@ -1110,7 +1161,9 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                color: selected ? AppColors.success : Theme.of(context).colorScheme.onSurfaceVariant,
+                color: selected
+                    ? AppColors.success
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -1194,7 +1247,10 @@ class _SupplierDetailDialog extends ConsumerWidget {
                 ),
                 Text(
                   '${supplier.documentType}: ${supplier.documentNumber}',
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -1227,7 +1283,9 @@ class _SupplierDetailDialog extends ConsumerWidget {
               TabBar(
                 indicatorColor: Theme.of(context).colorScheme.primary,
                 labelColor: Theme.of(context).colorScheme.primary,
-                unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                unselectedLabelColor: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant,
                 tabs: [
                   Tab(
                     icon: const Icon(Icons.inventory, size: 18),
@@ -1267,7 +1325,7 @@ class _SupplierDetailDialog extends ConsumerWidget {
             avatar: const Icon(Icons.email, size: 14),
             label: Text(supplier.email!, style: const TextStyle(fontSize: 11)),
           ),
-        const Spacer(),
+        const SizedBox(width: 8),
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Cerrar'),
@@ -1290,17 +1348,27 @@ class _SupplierDetailDialog extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.inventory_2_outlined, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            Icon(
+              Icons.inventory_2_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             const SizedBox(height: 12),
             Text(
               'Sin materiales asociados',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 15),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 15,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               'Los materiales se asocian al crear un material\no al recibir una orden de compra',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
@@ -1320,7 +1388,10 @@ class _SupplierDetailDialog extends ConsumerWidget {
           children: [
             Text(
               '${smState.items.length} materiales',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
             ),
             const Spacer(),
             TextButton.icon(
@@ -1345,7 +1416,9 @@ class _SupplierDetailDialog extends ConsumerWidget {
                   dense: true,
                   leading: CircleAvatar(
                     radius: 18,
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer,
                     child: Icon(
                       Icons.inventory,
                       size: 18,
@@ -1363,7 +1436,10 @@ class _SupplierDetailDialog extends ConsumerWidget {
                     children: [
                       Text(
                         'Precio: ${Formatters.currency(sm.unitPrice)}',
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
                       ),
                       if (sm.lastPurchasePrice != null &&
                           sm.lastPurchasePrice != sm.unitPrice) ...[
@@ -1381,7 +1457,9 @@ class _SupplierDetailDialog extends ConsumerWidget {
                         Text(
                           '(${Formatters.dateShort(sm.lastPurchaseDate!)})',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 11,
                           ),
                         ),
@@ -1392,7 +1470,11 @@ class _SupplierDetailDialog extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (sm.isPreferred)
-                        const Icon(Icons.star, color: const Color(0xFFF9A825), size: 18),
+                        const Icon(
+                          Icons.star,
+                          color: Color(0xFFF9A825),
+                          size: 18,
+                        ),
                       IconButton(
                         icon: Icon(
                           Icons.delete,
@@ -1432,7 +1514,10 @@ class _SupplierDetailDialog extends ConsumerWidget {
               ),
               Text(
                 'Promedio: ${Formatters.currency(smState.items.isEmpty ? 0 : smState.items.fold(0.0, (s, i) => s + i.unitPrice) / smState.items.length)}',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -1463,12 +1548,18 @@ class _SupplierDetailDialog extends ConsumerWidget {
             const SizedBox(height: 12),
             Text(
               'Sin órdenes de compra',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 15),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 15,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               'Las órdenes se crean desde la pestaña "Órdenes de Compra"',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
             ),
           ],
         ),
@@ -1528,7 +1619,10 @@ class _SupplierDetailDialog extends ConsumerWidget {
                   ),
                   subtitle: Text(
                     '${order.itemCount} ítems • ${Formatters.dateShort(order.createdAt)}',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
                   ),
                   trailing: Column(
                     mainAxisAlignment: MainAxisAlignment.center,

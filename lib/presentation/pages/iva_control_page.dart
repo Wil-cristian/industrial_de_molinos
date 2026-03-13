@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/providers/iva_provider.dart';
 import '../../data/datasources/iva_datasource.dart';
 import '../widgets/invoice_scan_dialog.dart';
+import '../widgets/iva_sale_scan_dialog.dart';
 
 class IvaControlPage extends ConsumerStatefulWidget {
   const IvaControlPage({super.key});
@@ -117,21 +118,39 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                       ),
                       Text(
                         'Régimen Simple de Tributación',
-                        style: TextStyle(fontSize: 11, color: const Color(0xFF9E9E9E)),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF9E9E9E),
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
+              // Selector de período — visible en todas las pestañas
+              SizedBox(width: 200, child: _buildPeriodDropdown(state)),
               // Indicador resumen
               if (state.currentSettlement != null)
                 _buildMiniSummary(state.currentSettlement!),
               FilledButton.icon(
-                onPressed: () => _showScanInvoiceDialog(),
+                onPressed: () => _showScanCompraDialog(),
                 icon: const Icon(Icons.document_scanner, size: 18),
-                label: const Text('Escanear Factura'),
+                label: const Text('Escanear Compra'),
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: () => _showScanVentaDialog(),
+                icon: const Icon(Icons.receipt_long, size: 18),
+                label: const Text('Escanear Venta'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 10,
@@ -172,12 +191,54 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
   // ════════════════════════════════════════════════════════════
   //  ESCANEAR FACTURA CON IA
   // ════════════════════════════════════════════════════════════
-  Future<void> _showScanInvoiceDialog() async {
+
+  /// Botón COMPRA: abre el escáner completo (guarda en compras+IVA+inventario)
+  Future<void> _showScanCompraDialog() async {
     final period = await InvoiceScanDialog.show(context);
     if (period != null && mounted) {
-      // Cambiar al periodo de la factura y recargar
       ref.read(ivaProvider.notifier).changePeriod(period);
     }
+  }
+
+  /// Botón VENTA: abre el escáner de ventas (solo guarda en iva_invoices)
+  Future<void> _showScanVentaDialog() async {
+    final period = await IvaSaleScanDialog.show(context);
+    if (period != null && mounted) {
+      ref.read(ivaProvider.notifier).changePeriod(period);
+    }
+  }
+
+  // Dropdown de período reutilizable en el header
+  Widget _buildPeriodDropdown(IvaState state) {
+    final periods = _generatePeriods();
+    return DropdownButtonFormField<String>(
+      value: periods.contains(state.selectedPeriod)
+          ? state.selectedPeriod
+          : null,
+      decoration: const InputDecoration(
+        labelText: 'Período',
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        border: OutlineInputBorder(),
+      ),
+      isExpanded: true,
+      style: const TextStyle(fontSize: 13, color: Color(0xDD000000)),
+      items: periods.map((p) {
+        final parts = p.split('-');
+        final year = parts[0];
+        final bim = int.parse(parts[1]);
+        return DropdownMenuItem(
+          value: p,
+          child: Text(
+            '${getBimesterName(bim)} $year',
+            style: const TextStyle(fontSize: 13),
+          ),
+        );
+      }).toList(),
+      onChanged: (v) {
+        if (v != null) ref.read(ivaProvider.notifier).changePeriod(v);
+      },
+    );
   }
 
   Widget _buildMiniSummary(BimonthlySettlement s) {
@@ -200,7 +261,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
         children: [
           Text(
             '${s.bimesterName} ${s.year}',
-            style: const TextStyle(fontSize: 9, color: const Color(0xFF9E9E9E)),
+            style: const TextStyle(fontSize: 9, color: Color(0xFF9E9E9E)),
           ),
           Text(
             _currencyFormat.format(s.totalAPagar),
@@ -244,56 +305,19 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
   }
 
   Widget _buildFacturasToolbar(IvaState state) {
-    // Generar lista de periodos disponibles (último año)
-    final periods = _generatePeriods();
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
-        final periodoDropdown = DropdownButtonFormField<String>(
-          value: periods.contains(state.selectedPeriod)
-              ? state.selectedPeriod
-              : null,
-          decoration: const InputDecoration(
-            labelText: 'Periodo',
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 8,
-            ),
-            border: OutlineInputBorder(),
-          ),
-          isExpanded: true,
-          style: const TextStyle(fontSize: 13, color: const Color(0xDD000000)),
-          items: periods.map((p) {
-            final parts = p.split('-');
-            final year = parts[0];
-            final bim = int.parse(parts[1]);
-            return DropdownMenuItem(
-              value: p,
-              child: Text(
-                '${getBimesterName(bim)} $year',
-                style: const TextStyle(fontSize: 13),
-              ),
-            );
-          }).toList(),
-          onChanged: (v) {
-            if (v != null) ref.read(ivaProvider.notifier).changePeriod(v);
-          },
-        );
         final tipoDropdown = DropdownButtonFormField<String?>(
           value: state.selectedType,
           decoration: const InputDecoration(
             labelText: 'Tipo',
             isDense: true,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 8,
-            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             border: OutlineInputBorder(),
           ),
           isExpanded: true,
-          style: const TextStyle(fontSize: 13, color: const Color(0xDD000000)),
+          style: const TextStyle(fontSize: 13, color: Color(0xDD000000)),
           items: const [
             DropdownMenuItem(
               value: null,
@@ -327,13 +351,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             color: Colors.white,
             child: Column(
               children: [
-                Row(
-                  children: [
-                    Expanded(child: periodoDropdown),
-                    const SizedBox(width: 8),
-                    Expanded(child: tipoDropdown),
-                  ],
-                ),
+                tipoDropdown,
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -352,9 +370,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
           color: Colors.white,
           child: Row(
             children: [
-              Expanded(flex: 2, child: periodoDropdown),
-              const SizedBox(width: 8),
-              Expanded(child: tipoDropdown),
+              SizedBox(width: 180, child: tipoDropdown),
               const SizedBox(width: 8),
               _buildQuickSummary(state),
               const SizedBox(width: 8),
@@ -411,7 +427,10 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
           const SizedBox(height: 12),
           Text(
             'No hay facturas en este periodo',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 8),
           ElevatedButton.icon(
@@ -500,7 +519,10 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                     width: 80,
                     child: Text(
                       dateStr,
-                      style: const TextStyle(fontSize: 11, color: const Color(0xFF9E9E9E)),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF9E9E9E),
+                      ),
                     ),
                   ),
                   // Empresa
@@ -519,7 +541,9 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                             'NIT: ${inv.companyDocument}',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                       ],
@@ -569,7 +593,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                         child: const Icon(
                           Icons.star,
                           size: 14,
-                          color: const Color(0xFFF9A825),
+                          color: Color(0xFFF9A825),
                         ),
                       ),
                     ),
@@ -578,7 +602,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                     icon: const Icon(
                       Icons.delete_outline,
                       size: 16,
-                      color: const Color(0xFFC62828),
+                      color: Color(0xFFC62828),
                     ),
                     onPressed: () => _confirmDelete(inv),
                     padding: EdgeInsets.zero,
@@ -602,7 +626,9 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                             'CUFE: ${inv.cufe!.length > 30 ? '${inv.cufe!.substring(0, 30)}...' : inv.cufe}',
                             style: TextStyle(
                               fontSize: 9,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -679,7 +705,11 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(Icons.calculate, color: Theme.of(context).colorScheme.primary, size: 28),
+            Icon(
+              Icons.calculate,
+              color: Theme.of(context).colorScheme.primary,
+              size: 28,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -691,7 +721,10 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
                   ),
                   Text(
                     'Periodo: $bimName',
-                    style: const TextStyle(fontSize: 12, color: const Color(0xFF9E9E9E)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF9E9E9E),
+                    ),
                   ),
                 ],
               ),
@@ -762,7 +795,10 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             ),
             const SizedBox(height: 8),
             // Compras
-            _buildSectionHeader('COMPRAS (Descontable)', const Color(0xFF1565C0)),
+            _buildSectionHeader(
+              'COMPRAS (Descontable)',
+              const Color(0xFF1565C0),
+            ),
             _buildDetailRow('Base Compras', s.baseCompras),
             _buildDetailRow(
               'IVA Compras (19%)',
@@ -771,7 +807,10 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             ),
             const Divider(height: 24),
             // Cálculos
-            _buildSectionHeader('LIQUIDACIÓN', Theme.of(context).colorScheme.primary),
+            _buildSectionHeader(
+              'LIQUIDACIÓN',
+              Theme.of(context).colorScheme.primary,
+            ),
             _buildDetailRow('IVA Neto (Ventas - Compras)', s.ivaNeto),
             _buildDetailRow(
               'Anticipo Simple (${(s.tarifaSimple * 100).toStringAsFixed(1)}% x Base Ventas)',
@@ -872,7 +911,11 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
           children: [
             Row(
               children: [
-                Icon(Icons.history, size: 20, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.history,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 SizedBox(width: 8),
                 Text(
                   'Historial de Liquidaciones',
@@ -897,7 +940,9 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             ? AppColors.success.withValues(alpha: 0.05)
             : const Color(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0xFF9E9E9E).withValues(alpha: 0.2)),
+        border: Border.all(
+          color: const Color(0xFF9E9E9E).withValues(alpha: 0.2),
+        ),
       ),
       child: Row(
         children: [
@@ -917,9 +962,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: s.totalAPagar > 0
-                  ? AppColors.danger
-                  : AppColors.success,
+              color: s.totalAPagar > 0 ? AppColors.danger : AppColors.success,
             ),
           ),
           const SizedBox(width: 8),
@@ -935,7 +978,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
               s.settledAt != null
                   ? DateFormat('dd/MM/yy').format(s.settledAt!)
                   : 'Declarado',
-              style: const TextStyle(fontSize: 10, color: const Color(0xFF9E9E9E)),
+              style: const TextStyle(fontSize: 10, color: Color(0xFF9E9E9E)),
             ),
         ],
       ),
@@ -1569,7 +1612,10 @@ class _CalculadoraIvaState extends State<_CalculadoraIva> {
                   const SizedBox(height: 8),
                   Text(
                     'Tarifa IVA: ${(widget.ivaRate * 100).toStringAsFixed(0)}%',
-                    style: const TextStyle(fontSize: 12, color: const Color(0xFF9E9E9E)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF9E9E9E),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   // Desde Total
@@ -1599,7 +1645,9 @@ class _CalculadoraIvaState extends State<_CalculadoraIva> {
                       ElevatedButton(
                         onPressed: _calcFromTotal,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,

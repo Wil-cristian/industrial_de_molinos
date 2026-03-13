@@ -162,7 +162,7 @@ class ProductsDataSource {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  /// Obtener todas las categorías
+  /// Obtener todas las categorÃ­as
   static Future<List<Category>> getCategories() async {
     final response = await _client
         .from(_categoriesTable)
@@ -181,7 +181,7 @@ class ProductsDataSource {
         .toList();
   }
 
-  // Helpers de conversión
+  // Helpers de conversiÃ³n
   static Product _fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],

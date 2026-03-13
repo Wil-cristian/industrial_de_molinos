@@ -2,7 +2,7 @@ import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/asset.dart';
 
-/// Datasource para gestión de activos fijos
+/// Datasource para gestiÃ³n de activos fijos
 class AssetsDatasource {
   static final _client = Supabase.instance.client;
 
@@ -29,7 +29,7 @@ class AssetsDatasource {
           .map((json) => Asset.fromJson(json))
           .toList();
 
-      // Filtrar por búsqueda en memoria
+      // Filtrar por bÃºsqueda en memoria
       if (searchQuery != null && searchQuery.isNotEmpty) {
         final query = searchQuery.toLowerCase();
         assets = assets
@@ -177,7 +177,7 @@ class AssetsDatasource {
   /// Obtener activos que necesitan mantenimiento
   static Future<List<Asset>> getAssetsNeedingMaintenance() async {
     try {
-      // Obtener activos en mantenimiento o con mantenimiento próximo
+      // Obtener activos en mantenimiento o con mantenimiento prÃ³ximo
       final response = await _client
           .from('assets')
           .select()
@@ -190,7 +190,7 @@ class AssetsDatasource {
     }
   }
 
-  /// Obtener estadísticas de activos
+  /// Obtener estadÃ­sticas de activos
   static Future<Map<String, dynamic>> getAssetStats() async {
     try {
       final assets = await getAssets();
@@ -214,7 +214,7 @@ class AssetsDatasource {
         'inMaintenance': inMaintenance,
       };
     } catch (e) {
-      AppLogger.error('? Error calculando estadísticas: $e');
+      AppLogger.error('? Error calculando estadÃ­sticas: $e');
       return {
         'totalAssets': 0,
         'totalValue': 0.0,

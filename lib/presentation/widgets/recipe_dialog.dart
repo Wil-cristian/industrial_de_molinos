@@ -118,8 +118,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
       _items.fold(0.0, (sum, item) => sum + item.totalWeight);
   double get _totalMaterialCost =>
       _items.fold(0.0, (sum, item) => sum + item.totalCost);
-  double get _totalSalePrice =>
-      _items.fold(0.0, (sum, item) => sum + (item.totalWeight * item.salePricePerKg));
+  double get _totalSalePrice => _items.fold(
+    0.0,
+    (sum, item) => sum + (item.totalWeight * item.salePricePerKg),
+  );
   double get _laborCost => double.tryParse(_laborCostController.text) ?? 0;
   // El total ya incluye las pérdidas porque se añaden a cada item calculado
   double get _grandTotal => _totalMaterialCost + _laborCost;
@@ -150,7 +152,9 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                       decoration: BoxDecoration(
                         color: const Color(0xFFFAFAFA),
                         border: Border(
-                          right: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                          right: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                       ),
                       child: Column(
@@ -226,7 +230,11 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,10 +319,14 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFFF5F5F5),
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFFE0E0E0),
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : const Color(0xFFE0E0E0),
           ),
         ),
         child: Row(
@@ -334,14 +346,18 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
-                      color: isSelected ? Colors.white : const Color(0xFF424242),
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF424242),
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 9,
-                      color: isSelected ? const Color(0xB3FFFFFF) : const Color(0xFF9E9E9E),
+                      color: isSelected
+                          ? const Color(0xB3FFFFFF)
+                          : const Color(0xFF9E9E9E),
                     ),
                   ),
                 ],
@@ -375,7 +391,9 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
         decoration: BoxDecoration(
           color: isSelected ? color : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? color : const Color(0xFFE0E0E0)),
+          border: Border.all(
+            color: isSelected ? color : const Color(0xFFE0E0E0),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -426,7 +444,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           ),
           isExpanded: true,
           isDense: true,
-          style: const TextStyle(fontSize: 12, color: const Color(0xDD000000)),
+          style: const TextStyle(fontSize: 12, color: Color(0xDD000000)),
           items: materials.map((m) {
             return DropdownMenuItem(
               value: m,
@@ -457,13 +475,20 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.touch_app, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.touch_app,
+                size: 40,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(height: 8),
               Text(
                 _selectedCalculationType == null
                     ? 'Selecciona un tipo de material'
                     : 'Selecciona un material del dropdown',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -490,11 +515,19 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
           ),
           child: Row(
             children: [
-              Icon(Icons.inventory_2, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.inventory_2,
+                size: 18,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Inventario (${materials.length})',
@@ -538,7 +571,9 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
               ? Center(
                   child: Text(
                     'No hay materiales en inventario',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 )
               : ListView.builder(
@@ -608,7 +643,9 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                                           : FontWeight.w500,
                                       fontSize: 12,
                                       color: isSelected
-                                          ? Theme.of(context).colorScheme.primary
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.primary
                                           : const Color(0xFF424242),
                                     ),
                                   ),
@@ -616,7 +653,9 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                                     '${m.category} • Stock: ${m.stock.toStringAsFixed(1)} ${m.unit}',
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -655,7 +694,11 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
-              border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+              border: Border(
+                top: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
             ),
             child: Column(
               children: [
@@ -674,7 +717,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                     ),
                     Text(
                       '${Helpers.formatCurrency(_selectedDirectMaterial!.pricePerKg)}/${_selectedDirectMaterial!.unit}',
-                      style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -739,7 +785,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                     ),
                     Text(
                       ' ${_selectedDirectMaterial!.unit}',
-                      style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const Spacer(),
                     // Total
@@ -748,7 +797,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: const Color(0xFF2E7D32),
+                        color: Color(0xFF2E7D32),
                       ),
                     ),
                   ],
@@ -849,7 +898,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           const SizedBox(height: 4),
           Text(
             '${Helpers.formatCurrency(_selectedMaterial!.pricePerKg)}/kg',
-            style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
 
           const SizedBox(height: 12),
@@ -892,7 +944,9 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
             decoration: BoxDecoration(
               color: const Color(0xFF2E7D32).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.3)),
+              border: Border.all(
+                color: const Color(0xFF2E7D32).withOpacity(0.3),
+              ),
             ),
             child: Column(
               children: [
@@ -911,7 +965,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF2E7D32),
+                            color: Color(0xFF2E7D32),
                           ),
                         ),
                       ],
@@ -925,12 +979,13 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                         ),
                         Text(
                           Helpers.formatCurrency(
-                            _calculatedWeight * _selectedMaterial!.effectiveCostPrice,
+                            _calculatedWeight *
+                                _selectedMaterial!.effectiveCostPrice,
                           ),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF2E7D32),
+                            color: Color(0xFF2E7D32),
                           ),
                         ),
                       ],
@@ -949,7 +1004,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                     const SizedBox(width: 4),
                     Text(
                       'Pérdida:',
-                      style: TextStyle(fontSize: 11, color: const Color(0xFF616161)),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: const Color(0xFF616161),
+                      ),
                     ),
                     const SizedBox(width: 6),
                     // Campo de porcentaje
@@ -1131,7 +1189,9 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
             ),
             child: Stack(
               children: [
@@ -1302,7 +1362,11 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
       ),
       child: Row(
         children: [
@@ -1371,7 +1435,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                 const SizedBox(height: 4),
                 Text(
                   'Selecciona materiales del panel izquierdo',
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -1392,7 +1459,9 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           decoration: BoxDecoration(
             color: const Color(0xFFFAFAFA),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           child: Row(
             children: [
@@ -1419,7 +1488,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                     ),
                     Text(
                       item.description,
-                      style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -1436,7 +1508,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                   ),
                   Text(
                     Helpers.formatCurrency(item.totalCost),
-                    style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -1460,14 +1535,22 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
 
   Widget _buildCompactCostSummary() {
     // Calcular margen real
-    final margin = _grandTotal > 0 ? ((_totalSalePrice - _grandTotal) / _grandTotal * 100) : 0.0;
-    final marginColor = margin > 30 ? const Color(0xFF2E7D32) : margin > 15 ? const Color(0xFFF9A825) : const Color(0xFFC62828);
-    
+    final margin = _grandTotal > 0
+        ? ((_totalSalePrice - _grandTotal) / _grandTotal * 100)
+        : 0.0;
+    final marginColor = margin > 30
+        ? const Color(0xFF2E7D32)
+        : margin > 15
+        ? const Color(0xFFF9A825)
+        : const Color(0xFFC62828);
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5F5),
-        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+        border: Border(
+          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
       ),
       child: Column(
         children: [
@@ -1501,7 +1584,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
               // Total materiales
               Text(
                 'Materiales: ${Helpers.formatCurrency(_totalMaterialCost)}',
-                style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -1516,11 +1602,20 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.shopping_cart, size: 14, color: const Color(0xFFF57C00)),
+                        Icon(
+                          Icons.shopping_cart,
+                          size: 14,
+                          color: const Color(0xFFF57C00),
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Costo:',
-                          style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),
@@ -1543,11 +1638,20 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.sell, size: 14, color: const Color(0xFF388E3C)),
+                        Icon(
+                          Icons.sell,
+                          size: 14,
+                          color: const Color(0xFF388E3C),
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Venta:',
-                          style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),
@@ -1565,7 +1669,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
               // Indicador de margen
               if (_grandTotal > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: marginColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
@@ -1574,7 +1681,11 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
                   child: Column(
                     children: [
                       Icon(
-                        margin > 30 ? Icons.trending_up : margin > 15 ? Icons.trending_flat : Icons.trending_down,
+                        margin > 30
+                            ? Icons.trending_up
+                            : margin > 15
+                            ? Icons.trending_flat
+                            : Icons.trending_down,
                         size: 16,
                         color: marginColor,
                       ),
@@ -1596,7 +1707,10 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
             const SizedBox(height: 8),
             Text(
               'Peso total: ${_totalWeight.toStringAsFixed(1)} KG',
-              style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 10,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ],
@@ -1607,10 +1721,20 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
   Widget _buildPriceSuggestion(String label, double price, Color color) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
         Text(
           Helpers.formatCurrency(price),
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: color,
+          ),
         ),
       ],
     );
@@ -1666,17 +1790,19 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
     if (result != null && mounted) {
       // Agregar el componente con los datos calculados
       setState(() {
-        _items.add(_RecipeItem(
-          materialId: material.id,
-          name: material.name,
-          category: _selectedCalculationType ?? 'tubo',
-          description: result.dimensionDescription,
-          pricePerKg: material.effectiveCostPrice,
-          salePricePerKg: material.effectivePrice, // Precio de venta real
-          totalWeight: result.weight,
-          totalCost: result.cost,
-        ));
-        
+        _items.add(
+          _RecipeItem(
+            materialId: material.id,
+            name: material.name,
+            category: _selectedCalculationType ?? 'tubo',
+            description: result.dimensionDescription,
+            pricePerKg: material.effectiveCostPrice,
+            salePricePerKg: material.effectivePrice, // Precio de venta real
+            totalWeight: result.weight,
+            totalCost: result.cost,
+          ),
+        );
+
         // Limpiar selección
         _selectedMaterial = null;
         _selectedCalculationType = null;
@@ -1822,7 +1948,8 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
 
     // Peso total incluyendo pérdidas
     final pesoConPerdidas = _calculatedWeight * (1 + _wastePercentage / 100);
-    final costoConPerdidas = pesoConPerdidas * _selectedMaterial!.effectiveCostPrice;
+    final costoConPerdidas =
+        pesoConPerdidas * _selectedMaterial!.effectiveCostPrice;
 
     setState(() {
       _items.add(
@@ -1832,7 +1959,8 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
           category: _selectedMaterial!.category,
           description: description,
           pricePerKg: _selectedMaterial!.effectiveCostPrice,
-          salePricePerKg: _selectedMaterial!.effectivePrice, // Precio de venta real
+          salePricePerKg:
+              _selectedMaterial!.effectivePrice, // Precio de venta real
           totalWeight: pesoConPerdidas,
           totalCost: costoConPerdidas,
         ),

@@ -256,7 +256,7 @@ class EmployeesDatasource {
     }
   }
 
-  /// Obtener resúmenes semanales de tiempo del empleado
+  /// Obtener resÃºmenes semanales de tiempo del empleado
   static Future<List<EmployeeTimeSummary>> getTimeSummaries({
     required String employeeId,
     int limit = 4,
@@ -273,7 +273,7 @@ class EmployeesDatasource {
           .map((json) => EmployeeTimeSummary.fromJson(json))
           .toList();
     } catch (e) {
-      AppLogger.error('? Error cargando resúmenes de tiempo: $e');
+      AppLogger.error('? Error cargando resÃºmenes de tiempo: $e');
       return [];
     }
   }
@@ -308,7 +308,7 @@ class EmployeesDatasource {
   }
 
   /// Obtener ajustes de tiempo de TODOS los empleados en un rango de fechas.
-  /// Útil para el calendario de quincena.
+  /// Ãštil para el calendario de quincena.
   static Future<List<EmployeeTimeAdjustment>> getAllAdjustmentsInRange({
     required DateTime startDate,
     required DateTime endDate,
@@ -366,15 +366,15 @@ class EmployeesDatasource {
     }
   }
 
-  /// Eliminar todos los ajustes de tiempo de un empleado en una fecha específica.
-  /// Retorna la cantidad de registros eliminados (0 si no había).
+  /// Eliminar todos los ajustes de tiempo de un empleado en una fecha especÃ­fica.
+  /// Retorna la cantidad de registros eliminados (0 si no habÃ­a).
   static Future<int> deleteTimeAdjustmentsForDate({
     required String employeeId,
     required DateTime date,
   }) async {
     try {
       final dateStr = date.toIso8601String().split('T')[0];
-      // Primero obtener IDs para saber cuántos son
+      // Primero obtener IDs para saber cuÃ¡ntos son
       final existing = await _client
           .from('employee_time_adjustments')
           .select('id')

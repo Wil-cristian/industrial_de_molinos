@@ -12,21 +12,23 @@ class InvoicesDataSource {
 
   // ==================== READ ====================
 
-  /// Obtiene todos los recibos de caja menor
+  /// Obtiene todas las facturas de venta (excluye compras CMP)
   static Future<List<Invoice>> getAll() async {
     final response = await _client
         .from('invoices')
         .select()
+        .neq('series', 'CMP')
         .order('issue_date', ascending: false);
 
     return (response as List).map((json) => Invoice.fromJson(json)).toList();
   }
 
-  /// Obtiene recibos con filtro de estado
+  /// Obtiene facturas de venta con filtro de estado (excluye compras CMP)
   static Future<List<Invoice>> getByStatus(String status) async {
     final response = await _client
         .from('invoices')
         .select()
+        .neq('series', 'CMP')
         .eq('status', status)
         .order('issue_date', ascending: false);
 
@@ -56,12 +58,13 @@ class InvoicesDataSource {
     return (response as List).map((json) => Invoice.fromJson(json)).toList();
   }
 
-  /// Obtiene recibos vencidos
+  /// Obtiene facturas de venta vencidas (excluye compras CMP)
   static Future<List<Invoice>> getOverdue() async {
     final today = DateTime.now().toIso8601String().split('T')[0];
     final response = await _client
         .from('invoices')
         .select()
+        .neq('series', 'CMP')
         .lt('due_date', today)
         .not('status', 'in', '(paid,cancelled)')
         .order('due_date', ascending: true);
@@ -69,11 +72,12 @@ class InvoicesDataSource {
     return (response as List).map((json) => Invoice.fromJson(json)).toList();
   }
 
-  /// Obtiene recibos pendientes de pago
+  /// Obtiene facturas de venta pendientes de pago (excluye compras CMP)
   static Future<List<Invoice>> getPending() async {
     final response = await _client
         .from('invoices')
         .select()
+        .neq('series', 'CMP')
         .not('status', 'in', '(paid,cancelled)')
         .order('issue_date', ascending: false);
 
@@ -93,7 +97,7 @@ class InvoicesDataSource {
         .toList();
   }
 
-  /// Genera el siguiente número de recibo para una serie
+  /// Genera el siguiente nÃºmero de recibo para una serie
   static Future<String> generateNumber(String series) async {
     final response = await _client.rpc(
       'generate_invoice_number',
@@ -117,7 +121,7 @@ class InvoicesDataSource {
     String? quotationId,
     String? notes,
   }) async {
-    // Generar número
+    // Generar nÃºmero
     final number = await generateNumber(series);
 
     // Calcular montos
@@ -215,7 +219,7 @@ class InvoicesDataSource {
     }
 
     // NOTA: El descuento de inventario se hace en updateStatus() cuando
-    // el estado cambia a 'issued', NO aquí al crear el borrador.
+    // el estado cambia a 'issued', NO aquÃ­ al crear el borrador.
     // Esto evita el descuento doble.
 
     return invoice;
@@ -240,7 +244,7 @@ class InvoicesDataSource {
     // Obtener estado actual para manejar stock
     final currentInvoice = await getById(id);
 
-    // Si se está emitiendo el recibo, descontar stock
+    // Si se estÃ¡ emitiendo el recibo, descontar stock
     if (status == 'issued') {
       await _updateStockForInvoice(id, decrease: true);
     }
@@ -254,7 +258,7 @@ class InvoicesDataSource {
         await _updateStockForInvoice(id, decrease: false); // Restaurar stock
       }
 
-      // Revertir pagos si había alguno
+      // Revertir pagos si habÃ­a alguno
       if (currentInvoice.paidAmount > 0) {
         await _revertPayments(id, currentInvoice);
       }
@@ -262,7 +266,7 @@ class InvoicesDataSource {
 
     await _client.from('invoices').update({'status': status}).eq('id', id);
 
-    // Recalcular balance del cliente después de cualquier cambio de estado
+    // Recalcular balance del cliente despuÃ©s de cualquier cambio de estado
     if (currentInvoice?.customerId != null &&
         currentInvoice!.customerId!.isNotEmpty) {
       try {
@@ -270,7 +274,7 @@ class InvoicesDataSource {
           currentInvoice.customerId!,
         );
         AppLogger.success(
-          '? Balance del cliente recalculado después de cambio de estado: $newBalance',
+          '? Balance del cliente recalculado despuÃ©s de cambio de estado: $newBalance',
         );
       } catch (e) {
         AppLogger.warning('?? No se pudo recalcular balance del cliente: $e');
@@ -278,7 +282,7 @@ class InvoicesDataSource {
     }
   }
 
-  /// Revierte los pagos de una factura anulada (usa RPC atómica)
+  /// Revierte los pagos de una factura anulada (usa RPC atÃ³mica)
   static Future<void> _revertPayments(String invoiceId, Invoice invoice) async {
     // Verificar que no haya reversiones previas
     final existingReversals = await _client
@@ -292,16 +296,16 @@ class InvoicesDataSource {
     }
 
     try {
-      // Intentar usar la RPC atómica
+      // Intentar usar la RPC atÃ³mica
       await _client.rpc(
         'atomic_revert_invoice_payments',
         params: {'p_invoice_id': invoiceId},
       );
       AppLogger.success(
-        '? Pagos revertidos atómicamente para factura $invoiceId',
+        '? Pagos revertidos atÃ³micamente para factura $invoiceId',
       );
     } catch (e) {
-      // Fallback: si la RPC no existe, usar el método clásico
+      // Fallback: si la RPC no existe, usar el mÃ©todo clÃ¡sico
       if (e.toString().contains('function') &&
           e.toString().contains('not exist')) {
         await _revertPaymentsLegacy(invoiceId, invoice);
@@ -336,7 +340,7 @@ class InvoicesDataSource {
             category: MovementCategory.gastos_reducibles,
             amount: amount,
             description:
-                'Reversión por anulación - ${invoice.series}-${invoice.number}',
+                'ReversiÃ³n por anulaciÃ³n - ${invoice.series}-${invoice.number}',
             reference: 'ANULACION-${invoice.series}-${invoice.number}',
             personName: invoice.customerName,
             date: DateTime.now(),
@@ -368,26 +372,26 @@ class InvoicesDataSource {
   }) async {
     if (decrease) {
       try {
-        // Usar la función unificada de descuento (server-side, atómica)
+        // Usar la funciÃ³n unificada de descuento (server-side, atÃ³mica)
         await _client.rpc(
           'deduct_inventory_for_invoice',
           params: {'p_invoice_id': invoiceId},
         );
-        AppLogger.success('? Stock descontado vía RPC para factura $invoiceId');
+        AppLogger.success('? Stock descontado vÃ­a RPC para factura $invoiceId');
       } catch (e) {
-        AppLogger.error('? Error al descontar inventario vía RPC: $e');
-        rethrow; // No usar fallback manual — la RPC es la fuente de verdad
+        AppLogger.error('? Error al descontar inventario vÃ­a RPC: $e');
+        rethrow; // No usar fallback manual â€” la RPC es la fuente de verdad
       }
     } else {
-      // Restaurar stock (cancelación)
+      // Restaurar stock (cancelaciÃ³n)
       try {
         await _client.rpc(
           'revert_invoice_material_deduction',
           params: {'p_invoice_id': invoiceId},
         );
-        AppLogger.success('? Stock restaurado vía RPC para factura $invoiceId');
+        AppLogger.success('? Stock restaurado vÃ­a RPC para factura $invoiceId');
       } catch (e) {
-        AppLogger.error('? Error al restaurar stock vía RPC: $e');
+        AppLogger.error('? Error al restaurar stock vÃ­a RPC: $e');
         rethrow;
       }
     }
@@ -418,7 +422,7 @@ class InvoicesDataSource {
         throw Exception('No se puede registrar pago en un recibo anulado');
       }
       if (invoice.status.name == 'paid') {
-        throw Exception('El recibo ya está completamente pagado');
+        throw Exception('El recibo ya estÃ¡ completamente pagado');
       }
 
       // Validar que no exceda el monto pendiente
@@ -429,7 +433,7 @@ class InvoicesDataSource {
         );
       }
 
-      // Insertar pago - solo campos básicos que seguro existen
+      // Insertar pago - solo campos bÃ¡sicos que seguro existen
       final paymentData = <String, dynamic>{
         'invoice_id': invoiceId,
         'amount': amount,
@@ -470,7 +474,7 @@ class InvoicesDataSource {
           })
           .eq('id', invoiceId);
 
-      // Si se especificó una cuenta, crear movimiento de caja
+      // Si se especificÃ³ una cuenta, crear movimiento de caja
       if (accountId != null && accountId.isNotEmpty) {
         final movement = CashMovement(
           id: '',
@@ -521,7 +525,7 @@ class InvoicesDataSource {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  /// Obtener todos los pagos de un cliente (a través de sus facturas)
+  /// Obtener todos los pagos de un cliente (a travÃ©s de sus facturas)
   static Future<List<Map<String, dynamic>>> getPaymentsByCustomerId(
     String customerId,
   ) async {
@@ -536,7 +540,7 @@ class InvoicesDataSource {
 
     final invoiceIds = invoiceList.map((i) => i['id'] as String).toList();
 
-    // Crear un mapa de invoice_id -> número de factura
+    // Crear un mapa de invoice_id -> nÃºmero de factura
     final invoiceMap = <String, String>{};
     for (final inv in invoiceList) {
       invoiceMap[inv['id']] = '${inv['series']}-${inv['number']}';
@@ -549,7 +553,7 @@ class InvoicesDataSource {
         .inFilter('invoice_id', invoiceIds)
         .order('payment_date', ascending: false);
 
-    // Enriquecer cada pago con el número de factura
+    // Enriquecer cada pago con el nÃºmero de factura
     final result = List<Map<String, dynamic>>.from(payments).map((p) {
       return {...p, 'invoice_number': invoiceMap[p['invoice_id']] ?? 'N/A'};
     }).toList();
@@ -590,9 +594,9 @@ class InvoicesDataSource {
 
   // ==================== DELETE ====================
 
-  /// Elimina un recibo (solo si está en borrador)
+  /// Elimina un recibo (solo si estÃ¡ en borrador)
   static Future<bool> delete(String id) async {
-    // Verificar que esté en borrador
+    // Verificar que estÃ© en borrador
     final invoice = await getById(id);
     if (invoice == null || invoice.status != InvoiceStatus.draft) {
       return false;
@@ -607,7 +611,7 @@ class InvoicesDataSource {
     await updateStatus(id, 'cancelled');
   }
 
-  // ==================== ANULACIÓN SEGURA (BLINDAJE) ====================
+  // ==================== ANULACIÃ“N SEGURA (BLINDAJE) ====================
 
   /// Verifica si una factura puede ser anulada (consulta server-side)
   static Future<Map<String, dynamic>> canCancelInvoice(String invoiceId) async {
@@ -633,7 +637,7 @@ class InvoicesDataSource {
     required String reason,
   }) async {
     try {
-      AppLogger.debug('?? Anulación segura de factura: $invoiceId');
+      AppLogger.debug('?? AnulaciÃ³n segura de factura: $invoiceId');
       final response = await _client.rpc(
         'secure_cancel_invoice',
         params: {'p_invoice_id': invoiceId, 'p_reason': reason},
@@ -645,17 +649,17 @@ class InvoicesDataSource {
           '? Factura anulada de forma segura: ${result['invoice_number']}',
         );
       } else if (result['blocked'] == true) {
-        AppLogger.warning('?? Anulación BLOQUEADA: ${result['reason']}');
+        AppLogger.warning('?? AnulaciÃ³n BLOQUEADA: ${result['reason']}');
       }
 
       return result;
     } catch (e) {
-      AppLogger.error('? Error en anulación segura: $e');
+      AppLogger.error('? Error en anulaciÃ³n segura: $e');
       rethrow;
     }
   }
 
-  /// Obtiene historial de anulaciones (auditoría)
+  /// Obtiene historial de anulaciones (auditorÃ­a)
   static Future<List<Map<String, dynamic>>> getCancellationHistory({
     int limit = 50,
   }) async {
@@ -673,7 +677,7 @@ class InvoicesDataSource {
 
   // ==================== STATISTICS ====================
 
-  /// Obtiene estadísticas de ventas del mes actual
+  /// Obtiene estadÃ­sticas de ventas del mes actual
   static Future<Map<String, dynamic>> getMonthlyStats() async {
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
@@ -682,6 +686,7 @@ class InvoicesDataSource {
     final response = await _client
         .from('invoices')
         .select('total, paid_amount, status')
+        .neq('series', 'CMP')
         .gte('issue_date', startDate)
         .neq('status', 'cancelled');
 
@@ -725,7 +730,7 @@ class InvoicesDataSource {
     };
   }
 
-  /// Obtiene los últimos N recibos
+  /// Obtiene los Ãºltimos N recibos
   static Future<List<Invoice>> getRecent({int limit = 5}) async {
     final response = await _client
         .from('invoices')

@@ -215,9 +215,11 @@ class InvoiceScanResult {
       cufe: invoiceData['cufe'] as String?,
       paymentMethod: invoiceData['payment_method'] as String?,
       creditDays: (invoiceData['credit_days'] as num?)?.toInt() ?? 0,
-      items: (data['items'] as List?)
-              ?.map((e) =>
-                  ScannedInvoiceItem.fromJson(e as Map<String, dynamic>))
+      items:
+          (data['items'] as List?)
+              ?.map(
+                (e) => ScannedInvoiceItem.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
       subtotal: (totals['subtotal'] as num?)?.toDouble() ?? 0,
@@ -225,8 +227,7 @@ class InvoiceScanResult {
       taxBase: (totals['tax_base'] as num?)?.toDouble() ?? 0,
       taxRate: (totals['tax_rate'] as num?)?.toDouble() ?? 19.0,
       taxAmount: (totals['tax_amount'] as num?)?.toDouble() ?? 0,
-      retentionRteFte:
-          (totals['retention_rte_fte'] as num?)?.toDouble() ?? 0,
+      retentionRteFte: (totals['retention_rte_fte'] as num?)?.toDouble() ?? 0,
       retentionIca: (totals['retention_ica'] as num?)?.toDouble() ?? 0,
       retentionIva: (totals['retention_iva'] as num?)?.toDouble() ?? 0,
       freight: (totals['freight'] as num?)?.toDouble() ?? 0,
@@ -274,7 +275,7 @@ class InvoiceScanResult {
                 'name': 'factura_scan.jpg',
                 'path': imagePath,
                 'type': 'image/jpeg',
-              }
+              },
             ]
           : [],
       creditDays: creditDays,
@@ -320,6 +321,7 @@ class InvoiceScannerService {
   static SupabaseClient get _client => SupabaseDataSource.client;
   static const String _bucket = 'attachments';
   static const String _functionName = 'scan-invoice';
+  static const int _workerLimitRetries = 5;
 
   /// Escanear factura desde un PlatformFile (file_picker)
   static Future<ScanResponse> scanFromFile(PlatformFile file) async {
@@ -358,10 +360,15 @@ class InvoiceScannerService {
 
       // 3. Convertir a base64 y enviar directo (evita problemas de URL pública)
       final base64Image = 'data:$mimeType;base64,${base64Encode(fileBytes)}';
-      AppLogger.info('☁️ Imagen codificada: ${(fileBytes.length / 1024).toStringAsFixed(0)} KB');
+      AppLogger.info(
+        '☁️ Imagen codificada: ${(fileBytes.length / 1024).toStringAsFixed(0)} KB',
+      );
 
       // 4. Llamar Edge Function con base64
-      final result = await _callScanFunction(base64Image, isBase64: true);
+      final result = await _callScanFunctionWithRetry(
+        base64Image,
+        isBase64: true,
+      );
 
       if (result == null) {
         return ScanResponse(
@@ -371,9 +378,7 @@ class InvoiceScannerService {
       }
 
       // 5. Parsear resultado
-      final scanResult = InvoiceScanResult.fromJson(
-        result,
-      );
+      final scanResult = InvoiceScanResult.fromJson(result);
 
       AppLogger.success(
         '✅ Factura escaneada: ${scanResult.invoiceNumber} | '
@@ -398,29 +403,28 @@ class InvoiceScannerService {
       AppLogger.info('📸 Escaneando desde bytes ($fileName)');
 
       // 1. Subir a Storage
-      final storagePath = 'invoices/scan_${DateTime.now().millisecondsSinceEpoch}_$fileName';
-      
-      await _client.storage.from(_bucket).uploadBinary(
-        storagePath,
-        bytes,
-        fileOptions: const FileOptions(
-          contentType: 'image/jpeg',
-          upsert: true,
-        ),
-      );
+      final storagePath =
+          'invoices/scan_${DateTime.now().millisecondsSinceEpoch}_$fileName';
+
+      await _client.storage
+          .from(_bucket)
+          .uploadBinary(
+            storagePath,
+            bytes,
+            fileOptions: const FileOptions(
+              contentType: 'image/jpeg',
+              upsert: true,
+            ),
+          );
 
       // 2. URL pública
-      final publicUrl =
-          _client.storage.from(_bucket).getPublicUrl(storagePath);
+      final publicUrl = _client.storage.from(_bucket).getPublicUrl(storagePath);
 
       // 3. Llamar función
-      final result = await _callScanFunction(publicUrl);
+      final result = await _callScanFunctionWithRetry(publicUrl);
 
       if (result == null) {
-        return ScanResponse(
-          success: false,
-          error: 'No se recibió respuesta',
-        );
+        return ScanResponse(success: false, error: 'No se recibió respuesta');
       }
 
       final scanResult = InvoiceScanResult.fromJson(
@@ -471,11 +475,13 @@ class InvoiceScannerService {
         mimeType = 'image/jpeg';
     }
 
-    await _client.storage.from(_bucket).uploadBinary(
-      storagePath,
-      fileBytes,
-      fileOptions: FileOptions(contentType: mimeType, upsert: true),
-    );
+    await _client.storage
+        .from(_bucket)
+        .uploadBinary(
+          storagePath,
+          fileBytes,
+          fileOptions: FileOptions(contentType: mimeType, upsert: true),
+        );
 
     return storagePath;
   }
@@ -489,12 +495,19 @@ class InvoiceScannerService {
         ? {'image_base64': imageData}
         : {'image_url': imageData};
 
-    final response = await _client.functions.invoke(
-      _functionName,
-      body: body,
-    );
+    final response = await _client.functions.invoke(_functionName, body: body);
 
     if (response.status != 200) {
+      if (response.status == 546) {
+        throw Exception(
+          'WORKER_LIMIT: Function sin recursos de cómputo temporales. Reintente en unos segundos.',
+        );
+      }
+      if (response.status == 504) {
+        throw Exception(
+          'GATEWAY_TIMEOUT: La función tardó demasiado en responder (504). Reintentando...',
+        );
+      }
       final errorMsg = response.data is Map
           ? response.data['error'] ?? 'Error ${response.status}'
           : 'Error ${response.status}';
@@ -513,14 +526,57 @@ class InvoiceScannerService {
     return null;
   }
 
+  static Future<Map<String, dynamic>?> _callScanFunctionWithRetry(
+    String imageData, {
+    bool isBase64 = false,
+  }) async {
+    final totalAttempts = _workerLimitRetries + 1;
+    for (int attempt = 1; attempt <= totalAttempts; attempt++) {
+      try {
+        return await _callScanFunction(imageData, isBase64: isBase64);
+      } catch (e) {
+        final isWorkerLimit = _isWorkerLimitError(e.toString());
+        final isLastAttempt = attempt == totalAttempts;
+
+        final isRetryable =
+            isWorkerLimit || _isGatewayTimeoutError(e.toString());
+        if (!isRetryable || isLastAttempt) {
+          rethrow;
+        }
+
+        final delaySeconds = 2 * attempt;
+        final reason = isWorkerLimit ? 'WORKER_LIMIT' : 'GATEWAY_TIMEOUT (504)';
+        AppLogger.warning(
+          '⚠️ $reason detectado. Reintentando escaneo ($attempt/$totalAttempts) en $delaySeconds s...',
+        );
+        await Future.delayed(Duration(seconds: delaySeconds));
+      }
+    }
+
+    throw Exception('No se pudo completar el escaneo tras varios reintentos.');
+  }
+
+  static bool _isWorkerLimitError(String error) {
+    final normalized = error.toLowerCase();
+    return normalized.contains('worker_limit') ||
+        normalized.contains('status: 546') ||
+        normalized.contains('error 546') ||
+        normalized.contains('not having enough compute resources');
+  }
+
+  static bool _isGatewayTimeoutError(String error) {
+    final normalized = error.toLowerCase();
+    return normalized.contains('gateway_timeout') ||
+        normalized.contains('status: 504') ||
+        normalized.contains('reasonphrase: gateway timeout') ||
+        normalized.contains('error 504');
+  }
+
   /// Verificar si el servicio está disponible (API key configurada)
   static Future<bool> isAvailable() async {
     try {
       // Intento liviano: invoke con body vacío para ver si la función existe
-      await _client.functions.invoke(
-        _functionName,
-        body: {'ping': true},
-      );
+      await _client.functions.invoke(_functionName, body: {'ping': true});
       // Si responde (aunque sea error), la función existe
       return true;
     } catch (e) {

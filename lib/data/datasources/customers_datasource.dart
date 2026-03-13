@@ -88,7 +88,7 @@ class CustomersDataSource {
     return _fromJson(response);
   }
 
-  /// Eliminar cliente (hard delete ó borra permanentemente con todas sus relaciones)
+  /// Eliminar cliente (hard delete ‚Äî borra permanentemente con todas sus relaciones)
   static Future<void> delete(String id) async {
     await _client.from(_table).delete().eq('id', id);
   }
@@ -162,7 +162,7 @@ class CustomersDataSource {
           ' - Status: "$status", Total: $total, Pagado: $paidAmount',
         );
 
-        // Si el status NO est· en la lista de "sin deuda", sumar la deuda pendiente
+        // Si el status NO est√° en la lista de "sin deuda", sumar la deuda pendiente
         if (!noDebtStatuses.contains(status)) {
           final pending = total - paidAmount;
           totalPending += pending;
@@ -215,7 +215,7 @@ class CustomersDataSource {
     return response.map<Customer>((json) => _fromJson(json)).toList();
   }
 
-  // Helpers de conversiÛn
+  // Helpers de conversi√≥n
 
   // Mapeo de tipos de documento antiguos a nuevos (Colombia)
   static DocumentType _mapDocumentType(String? dbValue) {
@@ -265,7 +265,7 @@ class CustomersDataSource {
   }
 
   static Map<String, dynamic> _toJson(Customer customer) {
-    // Normalizar document_type para enviar solo valores v·lidos de BD
+    // Normalizar document_type para enviar solo valores v√°lidos de BD
     final normalizedDocType = customer.documentType.normalized.name;
 
     return {

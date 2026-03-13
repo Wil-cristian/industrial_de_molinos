@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../domain/entities/asset.dart';
@@ -62,33 +63,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             Expanded(
               child: state.isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : Row(
-                      children: [
-                        // Left: Grid
-                        Expanded(
-                          flex: _selectedAsset != null ? 3 : 1,
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildStatsCards(state),
-                                const SizedBox(height: 12),
-                                _buildFilters(state),
-                                const SizedBox(height: 12),
-                                _buildAssetsGrid(state),
-                              ],
-                            ),
-                          ),
-                        ),
-                        // Right: Detail panel
-                        if (_selectedAsset != null)
-                          SizedBox(
-                            width: 420,
-                            child: _buildDetailPanel(_selectedAsset!),
-                          ),
-                      ],
-                    ),
+                  : _buildResponsiveContent(state),
             ),
           ],
         ),
@@ -96,13 +71,85 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     );
   }
 
+  Widget _buildResponsiveContent(AssetsState state) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop =
+            constraints.maxWidth >= ResponsiveHelper.tabletBreakpoint;
+        final isMobile =
+            constraints.maxWidth < ResponsiveHelper.mobileBreakpoint;
+
+        if (isDesktop) {
+          return Row(
+            children: [
+              Expanded(
+                flex: _selectedAsset != null ? 3 : 1,
+                child: _buildMainContent(state, isMobile: false),
+              ),
+              if (_selectedAsset != null)
+                SizedBox(width: 420, child: _buildDetailPanel(_selectedAsset!)),
+            ],
+          );
+        }
+
+        return _buildMainContent(state, isMobile: isMobile);
+      },
+    );
+  }
+
+  Widget _buildMainContent(AssetsState state, {required bool isMobile}) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        isMobile ? 12 : 20,
+        12,
+        isMobile ? 12 : 20,
+        20,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildStatsCards(state),
+          const SizedBox(height: 12),
+          _buildFilters(state),
+          const SizedBox(height: 12),
+          _buildAssetsGrid(state),
+          if (!isMobile && _selectedAsset != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF000000).withOpacity(0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: SizedBox(
+                height: 640,
+                child: _buildDetailPanel(_selectedAsset!, embedded: true),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveHelper.isMobile(context) ? 12 : 20,
+        vertical: ResponsiveHelper.isMobile(context) ? 10 : 8,
+      ),
       color: Colors.white,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isNarrow = constraints.maxWidth < 880;
+          final isMobile =
+              constraints.maxWidth < ResponsiveHelper.mobileBreakpoint;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -124,7 +171,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                       children: [
                         Text(
                           'Activos Fijos e Inversiones',
-                          maxLines: 1,
+                          maxLines: isMobile ? 2 : 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
@@ -134,10 +181,12 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                         ),
                         Text(
                           'Herramientas, maquinaria y equipos',
-                          maxLines: 1,
+                          maxLines: isMobile ? 2 : 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -151,14 +200,17 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  FilledButton.icon(
-                    onPressed: _showAddAssetDialog,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: Text(isNarrow ? 'Nuevo' : 'Nuevo Activo'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+                  SizedBox(
+                    width: isMobile ? double.infinity : null,
+                    child: FilledButton.icon(
+                      onPressed: _showAddAssetDialog,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(isNarrow ? 'Nuevo' : 'Nuevo Activo'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                   ),
@@ -174,14 +226,18 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
   Widget _buildStatsCards(AssetsState state) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final narrow = constraints.maxWidth < 500;
+        final singleColumn = constraints.maxWidth < 360;
+        final narrow = constraints.maxWidth < 720;
         if (narrow) {
+          final cardWidth = singleColumn
+              ? constraints.maxWidth
+              : (constraints.maxWidth - 8) / 2;
           return Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               SizedBox(
-                width: (constraints.maxWidth - 8) / 2,
+                width: cardWidth,
                 child: _buildStatCard(
                   'Activos',
                   '${state.totalAssets}',
@@ -190,7 +246,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 ),
               ),
               SizedBox(
-                width: (constraints.maxWidth - 8) / 2,
+                width: cardWidth,
                 child: _buildStatCard(
                   'Valor',
                   '\$ ${Helpers.formatNumber(state.totalValue)}',
@@ -199,7 +255,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 ),
               ),
               SizedBox(
-                width: (constraints.maxWidth - 8) / 2,
+                width: cardWidth,
                 child: _buildStatCard(
                   'Inversión',
                   '\$ ${Helpers.formatNumber(state.totalInvestment)}',
@@ -208,7 +264,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 ),
               ),
               SizedBox(
-                width: (constraints.maxWidth - 8) / 2,
+                width: cardWidth,
                 child: _buildStatCard(
                   'Mant.',
                   '${state.inMaintenance}',
@@ -298,7 +354,10 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -325,112 +384,130 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Wrap(
-        spacing: 16,
-        runSpacing: 12,
-        children: [
-          SizedBox(
-            width: 240,
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) {
-                ref.read(assetsProvider.notifier).search(value);
-              },
-              decoration: InputDecoration(
-                hintText: 'Buscar activo...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: const Color(0xFFF5F5F5),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 180,
-            child: DropdownButtonFormField<String>(
-              value: state.categoryFilter,
-              isExpanded: true,
-              decoration: InputDecoration(
-                labelText: 'Categoría',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: const Color(0xFFF5F5F5),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 600;
+          final searchWidth = compact ? constraints.maxWidth : 240.0;
+          final filterWidth = compact
+              ? (constraints.maxWidth < 380
+                    ? constraints.maxWidth
+                    : (constraints.maxWidth - 12) / 2)
+              : 180.0;
+
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: searchWidth,
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    ref.read(assetsProvider.notifier).search(value);
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Buscar activo...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF5F5F5),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
                 ),
               ),
-              items: const [
-                DropdownMenuItem(value: 'todas', child: Text('Todas')),
-                DropdownMenuItem(
-                  value: 'maquinaria',
-                  child: Text('Maquinaria'),
-                ),
-                DropdownMenuItem(
-                  value: 'herramientas',
-                  child: Text('Herramientas'),
-                ),
-                DropdownMenuItem(value: 'equipos', child: Text('Equipos')),
-                DropdownMenuItem(value: 'vehiculos', child: Text('Vehículos')),
-                DropdownMenuItem(
-                  value: 'mobiliario',
-                  child: Text('Mobiliario'),
-                ),
-                DropdownMenuItem(value: 'otros', child: Text('Otros')),
-              ],
-              onChanged: (value) {
-                ref
-                    .read(assetsProvider.notifier)
-                    .filterByCategory(value ?? 'todas');
-              },
-            ),
-          ),
-          SizedBox(
-            width: 160,
-            child: DropdownButtonFormField<String>(
-              value: state.statusFilter,
-              isExpanded: true,
-              decoration: InputDecoration(
-                labelText: 'Estado',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: const Color(0xFFF5F5F5),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+              SizedBox(
+                width: filterWidth,
+                child: DropdownButtonFormField<String>(
+                  value: state.categoryFilter,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'Categoría',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF5F5F5),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'todas', child: Text('Todas')),
+                    DropdownMenuItem(
+                      value: 'maquinaria',
+                      child: Text('Maquinaria'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'herramientas',
+                      child: Text('Herramientas'),
+                    ),
+                    DropdownMenuItem(value: 'equipos', child: Text('Equipos')),
+                    DropdownMenuItem(
+                      value: 'vehiculos',
+                      child: Text('Vehículos'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'mobiliario',
+                      child: Text('Mobiliario'),
+                    ),
+                    DropdownMenuItem(value: 'otros', child: Text('Otros')),
+                  ],
+                  onChanged: (value) {
+                    ref
+                        .read(assetsProvider.notifier)
+                        .filterByCategory(value ?? 'todas');
+                  },
                 ),
               ),
-              items: const [
-                DropdownMenuItem(value: 'todos', child: Text('Todos')),
-                DropdownMenuItem(value: 'activo', child: Text('Activo')),
-                DropdownMenuItem(
-                  value: 'mantenimiento',
-                  child: Text('Mantenimiento'),
+              SizedBox(
+                width: filterWidth,
+                child: DropdownButtonFormField<String>(
+                  value: state.statusFilter,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'Estado',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF5F5F5),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'todos', child: Text('Todos')),
+                    DropdownMenuItem(value: 'activo', child: Text('Activo')),
+                    DropdownMenuItem(
+                      value: 'mantenimiento',
+                      child: Text('Mantenimiento'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'baja',
+                      child: Text('Dado de Baja'),
+                    ),
+                    DropdownMenuItem(value: 'vendido', child: Text('Vendido')),
+                  ],
+                  onChanged: (value) {
+                    ref
+                        .read(assetsProvider.notifier)
+                        .filterByStatus(value ?? 'todos');
+                  },
                 ),
-                DropdownMenuItem(value: 'baja', child: Text('Dado de Baja')),
-                DropdownMenuItem(value: 'vendido', child: Text('Vendido')),
-              ],
-              onChanged: (value) {
-                ref
-                    .read(assetsProvider.notifier)
-                    .filterByStatus(value ?? 'todos');
-              },
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -453,7 +530,10 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               const SizedBox(height: 16),
               Text(
                 'No hay activos registrados',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: 8),
               TextButton.icon(
@@ -469,9 +549,20 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = _selectedAsset != null
+        final isMobile =
+            constraints.maxWidth < ResponsiveHelper.mobileBreakpoint;
+        final isDesktop =
+            constraints.maxWidth >= ResponsiveHelper.tabletBreakpoint;
+        final columns = isMobile
+            ? 1
+            : _selectedAsset != null && isDesktop
             ? (constraints.maxWidth > 500 ? 2 : 1)
-            : (constraints.maxWidth > 700 ? 3 : 2);
+            : (constraints.maxWidth > 1100 ? 3 : 2);
+        final aspectRatio = isMobile
+            ? 1.05
+            : constraints.maxWidth < 900
+            ? 1.2
+            : 1.5;
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -479,7 +570,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             crossAxisCount: columns,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 1.5,
+            childAspectRatio: aspectRatio,
           ),
           itemCount: filteredAssets.length,
           itemBuilder: (context, index) {
@@ -494,18 +585,29 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
   Widget _buildAssetCard(Asset asset) {
     final isSelected = _selectedAsset?.id == asset.id;
     return GestureDetector(
-      onTap: () => _selectAsset(asset),
+      onTap: () {
+        if (ResponsiveHelper.isMobile(context)) {
+          _openAssetDetailSheet(asset);
+          return;
+        }
+        _selectAsset(asset);
+      },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: isSelected
-              ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
+              ? Border.all(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 2,
+                )
               : null,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF000000).withOpacity(isSelected ? 0.1 : 0.05),
+              color: const Color(
+                0xFF000000,
+              ).withOpacity(isSelected ? 0.1 : 0.05),
               blurRadius: isSelected ? 14 : 10,
               offset: const Offset(0, 4),
             ),
@@ -544,7 +646,10 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                       ),
                       Text(
                         asset.categoryLabel,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -574,7 +679,10 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             if (asset.description != null)
               Text(
                 asset.description!,
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -614,11 +722,18 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             if (asset.location != null)
               Row(
                 children: [
-                  Icon(Icons.location_on, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.location_on,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     asset.location!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
@@ -628,7 +743,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     );
   }
 
-  void _selectAsset(Asset asset) async {
+  Future<void> _selectAsset(Asset asset) async {
     setState(() => _selectedAsset = asset);
     final history = await ref
         .read(assetsProvider.notifier)
@@ -639,11 +754,55 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     }
   }
 
-  Widget _buildDetailPanel(Asset asset) {
+  Future<void> _openAssetDetailSheet(Asset asset) async {
+    await _selectAsset(asset);
+    if (!mounted || _selectedAsset == null) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return FractionallySizedBox(
+          heightFactor: 0.92,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              child: _buildDetailPanel(
+                _selectedAsset!,
+                embedded: true,
+                showCloseButton: false,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (mounted) {
+      setState(() => _selectedAsset = null);
+    }
+  }
+
+  Widget _buildDetailPanel(
+    Asset asset, {
+    bool embedded = false,
+    bool showCloseButton = true,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(left: BorderSide(color: const Color(0xFFEEEEEE))),
+        border: embedded
+            ? null
+            : Border(left: BorderSide(color: const Color(0xFFEEEEEE))),
       ),
       child: Column(
         children: [
@@ -651,7 +810,9 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: const Color(0xFFEEEEEE))),
+              border: Border(
+                bottom: BorderSide(color: const Color(0xFFEEEEEE)),
+              ),
             ),
             child: Row(
               children: [
@@ -674,18 +835,24 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         asset.categoryLabel,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => setState(() => _selectedAsset = null),
-                ),
+                if (showCloseButton)
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => setState(() => _selectedAsset = null),
+                  ),
               ],
             ),
           ),
@@ -862,12 +1029,24 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+            ),
           ),
         ],
       ),
@@ -919,9 +1098,14 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        insetPadding: const EdgeInsets.all(16),
         title: const Text('Editar notas'),
-        content: SizedBox(
-          width: 400,
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: ResponsiveHelper.isMobile(context)
+                ? double.infinity
+                : 400,
+          ),
           child: TextField(
             controller: controller,
             maxLines: 6,
@@ -989,11 +1173,18 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             ),
             child: Column(
               children: [
-                Icon(Icons.build_outlined, size: 32, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.build_outlined,
+                  size: 32,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Sin registros de mantenimiento',
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -1033,34 +1224,63 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                   ),
                 ),
               ),
-              const Spacer(),
-              Text(
-                '${m.maintenanceDate.day}/${m.maintenanceDate.month}/${m.maintenanceDate.year}',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${m.maintenanceDate.day}/${m.maintenanceDate.month}/${m.maintenanceDate.year}',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(m.description, style: const TextStyle(fontSize: 13)),
           const SizedBox(height: 4),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
             children: [
-              if (m.cost > 0) ...[
-                Icon(Icons.attach_money, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                Text(
-                  Helpers.formatNumber(m.cost),
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+              if (m.cost > 0)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.attach_money,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    Text(
+                      Helpers.formatNumber(m.cost),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-              ],
-              if (m.performedBy != null) ...[
-                Icon(Icons.person, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                const SizedBox(width: 2),
-                Text(
-                  m.performedBy!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+              if (m.performedBy != null)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.person,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      m.performedBy!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
             ],
           ),
           if (m.nextMaintenanceDate != null) ...[
@@ -1071,7 +1291,10 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 const SizedBox(width: 4),
                 Text(
                   'Próximo: ${m.nextMaintenanceDate!.day}/${m.nextMaintenanceDate!.month}/${m.nextMaintenanceDate!.year}',
-                  style: TextStyle(color: const Color(0xFF42A5F5), fontSize: 12),
+                  style: TextStyle(
+                    color: const Color(0xFF42A5F5),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -1129,28 +1352,31 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          insetPadding: const EdgeInsets.all(16),
           title: Text(isEditing ? 'Editar Activo' : 'Nuevo Activo'),
-          content: SizedBox(
-            width: 600,
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: ResponsiveHelper.isMobile(context)
+                  ? double.infinity
+                  : 600,
+            ),
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 520;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        flex: 2,
-                        child: TextField(
+                      if (compact) ...[
+                        TextField(
                           controller: nameController,
                           decoration: const InputDecoration(
                             labelText: 'Nombre del activo *',
                             border: OutlineInputBorder(),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
                           value: selectedCategory,
                           decoration: const InputDecoration(
                             labelText: 'Categoría',
@@ -1186,23 +1412,74 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                             setDialogState(() => selectedCategory = value!);
                           },
                         ),
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: nameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nombre del activo *',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: selectedCategory,
+                                decoration: const InputDecoration(
+                                  labelText: 'Categoría',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 'maquinaria',
+                                    child: Text('Maquinaria'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'herramientas',
+                                    child: Text('Herramientas'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'equipos',
+                                    child: Text('Equipos'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'vehiculos',
+                                    child: Text('Vehículos'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'mobiliario',
+                                    child: Text('Mobiliario'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'otros',
+                                    child: Text('Otros'),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  setDialogState(
+                                    () => selectedCategory = value!,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Descripción',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 2,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Descripción',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
+                      const SizedBox(height: 16),
+                      if (compact) ...[
+                        TextField(
                           controller: purchasePriceController,
                           decoration: const InputDecoration(
                             labelText: 'Precio de compra *',
@@ -1216,10 +1493,8 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                             }
                           },
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextField(
+                        const SizedBox(height: 16),
+                        TextField(
                           controller: currentValueController,
                           decoration: const InputDecoration(
                             labelText: 'Valor actual *',
@@ -1228,14 +1503,42 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                           ),
                           keyboardType: TextInputType.number,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ListTile(
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: purchasePriceController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Precio de compra *',
+                                  border: OutlineInputBorder(),
+                                  prefixText: '\$ ',
+                                ),
+                                keyboardType: TextInputType.number,
+                                onChanged: (value) {
+                                  if (currentValueController.text.isEmpty) {
+                                    currentValueController.text = value;
+                                  }
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: currentValueController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Valor actual *',
+                                  border: OutlineInputBorder(),
+                                  prefixText: '\$ ',
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 16),
+                      if (compact) ...[
+                        ListTile(
                           title: const Text('Fecha de compra'),
                           subtitle: Text(
                             '${purchaseDate.day}/${purchaseDate.month}/${purchaseDate.year}',
@@ -1257,10 +1560,8 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                             }
                           },
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
                           value: selectedStatus,
                           decoration: const InputDecoration(
                             labelText: 'Estado',
@@ -1288,58 +1589,153 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                             setDialogState(() => selectedStatus = value!);
                           },
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ListTile(
+                                title: const Text('Fecha de compra'),
+                                subtitle: Text(
+                                  '${purchaseDate.day}/${purchaseDate.month}/${purchaseDate.year}',
+                                ),
+                                trailing: const Icon(Icons.calendar_today),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: BorderSide(
+                                    color: const Color(0xFFBDBDBD),
+                                  ),
+                                ),
+                                onTap: () async {
+                                  final date = await showDatePicker(
+                                    context: context,
+                                    initialDate: purchaseDate,
+                                    firstDate: DateTime(2000),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (date != null) {
+                                    setDialogState(() => purchaseDate = date);
+                                  }
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: selectedStatus,
+                                decoration: const InputDecoration(
+                                  labelText: 'Estado',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 'activo',
+                                    child: Text('Activo'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'mantenimiento',
+                                    child: Text('Mantenimiento'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'baja',
+                                    child: Text('Dado de Baja'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'vendido',
+                                    child: Text('Vendido'),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  setDialogState(() => selectedStatus = value!);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 16),
+                      if (compact) ...[
+                        TextField(
                           controller: brandController,
                           decoration: const InputDecoration(
                             labelText: 'Marca',
                             border: OutlineInputBorder(),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextField(
+                        const SizedBox(height: 16),
+                        TextField(
                           controller: modelController,
                           decoration: const InputDecoration(
                             labelText: 'Modelo',
                             border: OutlineInputBorder(),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
+                        const SizedBox(height: 16),
+                        TextField(
                           controller: serialController,
                           decoration: const InputDecoration(
                             labelText: 'Número de serie',
                             border: OutlineInputBorder(),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextField(
+                        const SizedBox(height: 16),
+                        TextField(
                           controller: locationController,
                           decoration: const InputDecoration(
                             labelText: 'Ubicación',
                             border: OutlineInputBorder(),
                           ),
                         ),
-                      ),
+                      ] else ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: brandController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Marca',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: modelController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Modelo',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: serialController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Número de serie',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: locationController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Ubicación',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ),
@@ -1437,51 +1833,57 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          insetPadding: const EdgeInsets.all(16),
           title: Text('Mantenimiento - ${asset.name}'),
-          content: SizedBox(
-            width: 500,
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: ResponsiveHelper.isMobile(context)
+                  ? double.infinity
+                  : 500,
+            ),
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: maintenanceType,
-                    decoration: const InputDecoration(
-                      labelText: 'Tipo de mantenimiento',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'preventivo',
-                        child: Text('Preventivo'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'correctivo',
-                        child: Text('Correctivo'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'emergencia',
-                        child: Text('Emergencia'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setDialogState(() => maintenanceType = value!);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Descripción del trabajo *',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 480;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: TextField(
+                      DropdownButtonFormField<String>(
+                        value: maintenanceType,
+                        decoration: const InputDecoration(
+                          labelText: 'Tipo de mantenimiento',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'preventivo',
+                            child: Text('Preventivo'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'correctivo',
+                            child: Text('Correctivo'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'emergencia',
+                            child: Text('Emergencia'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => maintenanceType = value!);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Descripción del trabajo *',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 16),
+                      if (compact) ...[
+                        TextField(
                           controller: costController,
                           decoration: const InputDecoration(
                             labelText: 'Costo',
@@ -1490,47 +1892,72 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                           ),
                           keyboardType: TextInputType.number,
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextField(
+                        const SizedBox(height: 16),
+                        TextField(
                           controller: performedByController,
                           decoration: const InputDecoration(
                             labelText: 'Realizado por',
                             border: OutlineInputBorder(),
                           ),
                         ),
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: costController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Costo',
+                                  border: OutlineInputBorder(),
+                                  prefixText: '\$ ',
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: performedByController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Realizado por',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        title: const Text('Próximo mantenimiento'),
+                        subtitle: Text(
+                          nextMaintenanceDate != null
+                              ? '${nextMaintenanceDate!.day}/${nextMaintenanceDate!.month}/${nextMaintenanceDate!.year}'
+                              : 'No programado',
+                        ),
+                        trailing: const Icon(Icons.calendar_today),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(color: const Color(0xFFBDBDBD)),
+                        ),
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now().add(
+                              const Duration(days: 30),
+                            ),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 730),
+                            ),
+                          );
+                          if (date != null) {
+                            setDialogState(() => nextMaintenanceDate = date);
+                          }
+                        },
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 16),
-                  ListTile(
-                    title: const Text('Próximo mantenimiento'),
-                    subtitle: Text(
-                      nextMaintenanceDate != null
-                          ? '${nextMaintenanceDate!.day}/${nextMaintenanceDate!.month}/${nextMaintenanceDate!.year}'
-                          : 'No programado',
-                    ),
-                    trailing: const Icon(Icons.calendar_today),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: const Color(0xFFBDBDBD)),
-                    ),
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now().add(
-                          const Duration(days: 30),
-                        ),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 730)),
-                      );
-                      if (date != null) {
-                        setDialogState(() => nextMaintenanceDate = date);
-                      }
-                    },
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ),
@@ -1657,12 +2084,16 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                     content: Text(
                       success ? 'Activo eliminado' : 'Error al eliminar',
                     ),
-                    backgroundColor: success ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+                    backgroundColor: success
+                        ? const Color(0xFF2E7D32)
+                        : const Color(0xFFC62828),
                   ),
                 );
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+            ),
             child: const Text('Eliminar'),
           ),
         ],
