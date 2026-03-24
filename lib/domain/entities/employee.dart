@@ -27,6 +27,7 @@ class Employee {
   final double dailyRate;
   final double attendanceBonus;
   final int attendanceBonusDays;
+  final String? nfcCardId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -54,6 +55,7 @@ class Employee {
     this.dailyRate = 0,
     this.attendanceBonus = 0,
     this.attendanceBonusDays = 6,
+    this.nfcCardId,
     this.emergencyContact,
     this.emergencyPhone,
     this.bloodType,
@@ -139,6 +141,7 @@ class Employee {
           ? (json['attendance_bonus'] as num).toDouble()
           : 0,
       attendanceBonusDays: json['attendance_bonus_days'] as int? ?? 6,
+      nfcCardId: json['nfc_card_id'] as String?,
       emergencyContact: json['emergency_contact'] as String?,
       emergencyPhone: json['emergency_phone'] as String?,
       bloodType: json['blood_type'] as String?,
@@ -171,6 +174,7 @@ class Employee {
       'daily_rate': dailyRate,
       'attendance_bonus': attendanceBonus,
       'attendance_bonus_days': attendanceBonusDays,
+      'nfc_card_id': nfcCardId,
       'is_active': status == EmployeeStatus.activo,
       'notes': notes,
     };

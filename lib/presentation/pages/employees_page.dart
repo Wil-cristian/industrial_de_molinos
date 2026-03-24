@@ -1,3 +1,4 @@
+import 'dart:async';
 // ignore_for_file: unused_element, unused_local_variable, unused_field
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,8 @@ import '../../data/datasources/employees_datasource.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../domain/entities/cash_movement.dart';
 import '../../core/utils/helpers.dart';
+import '../../core/utils/print_service.dart';
+import '../../core/services/nfc_reader_service.dart';
 
 class EmployeesPage extends ConsumerStatefulWidget {
   final bool openNewDialog;
@@ -676,6 +679,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           case 'task':
                             _showAssignTaskDialog(employee);
                             break;
+                          case 'nfc':
+                            _showNfcAssignDialog(employee);
+                            break;
                           case 'edit':
                             _showEmployeeDialog(employee: employee);
                             break;
@@ -684,17 +690,43 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             break;
                         }
                       },
-                      itemBuilder: (context) => const [
-                        PopupMenuItem(
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
                           value: 'detail',
                           child: Text('Ver detalle'),
                         ),
-                        PopupMenuItem(
+                        const PopupMenuItem(
                           value: 'task',
                           child: Text('Asignar tarea'),
                         ),
-                        PopupMenuItem(value: 'edit', child: Text('Editar')),
-                        PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                        PopupMenuItem(
+                          value: 'nfc',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.nfc,
+                                size: 18,
+                                color: employee.nfcCardId != null
+                                    ? Colors.green
+                                    : null,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                employee.nfcCardId != null
+                                    ? 'Cambiar tarjeta NFC'
+                                    : 'Asignar tarjeta NFC',
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Text('Editar'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Eliminar'),
+                        ),
                       ],
                     ),
                     onTap: () {
@@ -6200,6 +6232,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                     'Ingreso',
                                     _formatDate(employee.hireDate),
                                   ),
+                                  _buildInfoRow(
+                                    Icons.nfc,
+                                    'NFC',
+                                    employee.nfcCardId ?? 'Sin asignar',
+                                  ),
                                 ],
                               ),
                             ),
@@ -6723,32 +6760,161 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
   }
 
   void _addHours(Employee employee, double hours) async {
-    final minutes = (hours * 60).round();
-    final type = hours > 0 ? 'overtime' : 'deduction';
+    // Mostrar diálogo para elegir fecha (hoy o pasada)
+    final now = DateTime.now();
+    DateTime selectedDate = now;
+    final hoursCtrl = TextEditingController(text: hours.abs().toString());
+    final isPositive = hours > 0;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  isPositive ? Icons.more_time : Icons.timer_off,
+                  color: isPositive
+                      ? const Color(0xFF388E3C)
+                      : const Color(0xFFC62828),
+                ),
+                const SizedBox(width: 8),
+                Text(isPositive ? 'Agregar Horas Extra' : 'Descontar Horas'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: hoursCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: isPositive ? 'Horas extra' : 'Horas a descontar',
+                    prefixIcon: const Icon(Icons.timer),
+                    helperText: 'Ej: 1.5 = 1h 30min',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: selectedDate,
+                      firstDate: now.subtract(const Duration(days: 60)),
+                      lastDate: now,
+                      locale: const Locale('es', 'CO'),
+                    );
+                    if (picked != null) {
+                      setDlgState(() => selectedDate = picked);
+                    }
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Fecha',
+                      prefixIcon: Icon(Icons.calendar_today),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${selectedDate.day}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}',
+                        ),
+                        if (selectedDate.day == now.day &&
+                            selectedDate.month == now.month &&
+                            selectedDate.year == now.year)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF1B4F72,
+                              ).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Hoy',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1B4F72),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  final h = double.tryParse(hoursCtrl.text.trim());
+                  if (h != null && h > 0) {
+                    Navigator.pop(ctx, {'hours': h, 'date': selectedDate});
+                  }
+                },
+                icon: Icon(isPositive ? Icons.add : Icons.remove, size: 18),
+                label: Text(isPositive ? 'Agregar' : 'Descontar'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: isPositive
+                      ? const Color(0xFF388E3C)
+                      : const Color(0xFFC62828),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (result == null) return;
+
+    final finalHours = result['hours'] as double;
+    final finalDate = result['date'] as DateTime;
+    final minutes = (finalHours * 60).round();
+    final type = isPositive ? 'overtime' : 'deduction';
 
     try {
       await ref
           .read(employeesProvider.notifier)
           .createTimeAdjustment(
             employeeId: employee.id,
-            minutes: minutes.abs(),
+            minutes: minutes,
             type: type,
-            date: DateTime.now(),
-            reason: hours > 0 ? 'Hora extra manual' : 'Descuento manual',
+            date: finalDate,
+            reason: isPositive
+                ? 'Hora extra manual - ${finalDate.day}/${finalDate.month.toString().padLeft(2, '0')}'
+                : 'Descuento manual - ${finalDate.day}/${finalDate.month.toString().padLeft(2, '0')}',
           );
 
       // Recargar datos del empleado
       await ref.read(employeesProvider.notifier).loadTimeOverview(employee.id);
 
       if (mounted) {
+        final dateLabel =
+            (finalDate.day == now.day &&
+                finalDate.month == now.month &&
+                finalDate.year == now.year)
+            ? 'hoy'
+            : '${finalDate.day}/${finalDate.month.toString().padLeft(2, '0')}';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              hours > 0
-                  ? '✅ +${hours}h añadida a ${employee.firstName}'
-                  : '✅ ${hours}h descontada de ${employee.firstName}',
+              isPositive
+                  ? '✅ +${finalHours}h añadida a ${employee.firstName} ($dateLabel)'
+                  : '✅ -${finalHours}h descontada de ${employee.firstName} ($dateLabel)',
             ),
-            backgroundColor: hours > 0
+            backgroundColor: isPositive
                 ? const Color(0xFF2E7D32)
                 : const Color(0xFFF9A825),
             duration: const Duration(seconds: 2),
@@ -9272,6 +9438,215 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     }
   }
 
+  void _showNfcAssignDialog(Employee employee) {
+    final cardController = TextEditingController(
+      text: employee.nfcCardId ?? '',
+    );
+    bool isListening = false;
+    String? statusMessage;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.nfc, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(child: Text('Tarjeta NFC - ${employee.fullName}')),
+            ],
+          ),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (employee.nfcCardId != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.green.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.credit_card,
+                          color: Colors.green,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Tarjeta actual: ${employee.nfcCardId}',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                Text(
+                  employee.nfcCardId != null
+                      ? 'Ingresa el nuevo ID o escanea la tarjeta para reemplazar:'
+                      : 'Escanea la tarjeta en el lector USB o ingresa el ID manualmente:',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: cardController,
+                  decoration: InputDecoration(
+                    labelText: 'ID de tarjeta NFC',
+                    hintText: 'Ej: 0A0042F3B2',
+                    prefixIcon: const Icon(Icons.contactless),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: isListening
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : null,
+                  ),
+                  textCapitalization: TextCapitalization.characters,
+                ),
+                const SizedBox(height: 12),
+                if (!isListening)
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      setDialogState(() {
+                        isListening = true;
+                        statusMessage = 'Esperando escaneo de tarjeta...';
+                      });
+                      // Escuchar el próximo escaneo HID
+                      late StreamSubscription<NfcScanResult> sub;
+                      sub = NfcReaderService.instance.onCardScanned.listen((
+                        scan,
+                      ) {
+                        cardController.text = scan.cardId;
+                        sub.cancel();
+                        setDialogState(() {
+                          isListening = false;
+                          statusMessage = '✅ Tarjeta detectada: ${scan.cardId}';
+                        });
+                      });
+                      // Iniciar lectura si no está activa
+                      NfcReaderService.instance.startNfcReading();
+                      // Timeout de 30 segundos
+                      Future.delayed(const Duration(seconds: 30), () {
+                        if (isListening) {
+                          sub.cancel();
+                          if (context.mounted) {
+                            setDialogState(() {
+                              isListening = false;
+                              statusMessage =
+                                  '⏱ Tiempo agotado. Intenta de nuevo.';
+                            });
+                          }
+                        }
+                      });
+                    },
+                    icon: const Icon(Icons.sensors),
+                    label: const Text('Escanear tarjeta del lector USB'),
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      setDialogState(() {
+                        isListening = false;
+                        statusMessage = null;
+                      });
+                    },
+                    icon: const Icon(Icons.stop),
+                    label: const Text('Cancelar escaneo'),
+                  ),
+                if (statusMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    statusMessage!,
+                    style: TextStyle(
+                      color: statusMessage!.startsWith('✅')
+                          ? Colors.green
+                          : statusMessage!.startsWith('⏱')
+                          ? Colors.orange
+                          : Theme.of(context).colorScheme.primary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            if (employee.nfcCardId != null)
+              TextButton.icon(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  final success = await EmployeesDatasource.removeNfcCard(
+                    employee.id,
+                  );
+                  if (success && mounted) {
+                    ref.read(employeesProvider.notifier).loadEmployees();
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Tarjeta NFC removida'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.link_off, color: Colors.red),
+                label: const Text(
+                  'Quitar tarjeta',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                final cardId = cardController.text.trim();
+                if (cardId.isEmpty) return;
+                Navigator.pop(context);
+                final success = await EmployeesDatasource.assignNfcCard(
+                  employeeId: employee.id,
+                  nfcCardId: cardId,
+                );
+                if (mounted) {
+                  ref.read(employeesProvider.notifier).loadEmployees();
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        success
+                            ? 'Tarjeta $cardId asignada a ${employee.fullName}'
+                            : 'Error al asignar tarjeta (puede estar en uso)',
+                      ),
+                      backgroundColor: success ? Colors.green : Colors.red,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.save),
+              label: const Text('Asignar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _confirmDelete(Employee employee) {
     showDialog(
       context: context,
@@ -10413,6 +10788,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                   if (v == 'pagar') {
                                     _showPayPayrollDialog(payroll);
                                   }
+                                  if (v == 'pago_mensual') {
+                                    _showMonthlyPaymentDialog(payroll);
+                                  }
+                                  if (v == 'imprimir') {
+                                    _printPayroll(payroll);
+                                  }
                                 },
                                 itemBuilder: (_) => [
                                   const PopupMenuItem(
@@ -10435,6 +10816,28 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                       child: Text(
                                         'Pagar',
                                         style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  if (payroll.status != 'pagado')
+                                    const PopupMenuItem(
+                                      value: 'pago_mensual',
+                                      child: Text(
+                                        'Pago Mensual',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF1565C0),
+                                        ),
+                                      ),
+                                    ),
+                                  if (payroll.status == 'pagado')
+                                    const PopupMenuItem(
+                                      value: 'imprimir',
+                                      child: Text(
+                                        'Imprimir comprobante',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF2E7D32),
+                                        ),
                                       ),
                                     ),
                                 ],
@@ -10571,6 +10974,8 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     onPagar: () => _showPayPayrollDialog(payroll),
                     onEditar: () => _showAddConceptDialog(payroll),
                     showActions: true,
+                    onPagoMensual: () => _showMonthlyPaymentDialog(payroll),
+                    onEliminar: () => _confirmDeletePayroll(payroll),
                   );
                 }),
                 // Sin nómina creada
@@ -10608,7 +11013,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     onTap: () => _showPayrollDetailDialog(payroll),
                     onPagar: null,
                     onEditar: null,
-                    showActions: false,
+                    showActions: true,
+                    onImprimir: () => _printPayroll(payroll),
+                    onEliminar: () => _confirmDeletePayroll(payroll),
                   );
                 }),
               ],
@@ -10632,6 +11039,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     required VoidCallback? onEditar,
     required bool showActions,
     VoidCallback? onCrear,
+    VoidCallback? onPagoMensual,
+    VoidCallback? onImprimir,
+    VoidCallback? onEliminar,
   }) {
     return InkWell(
       onTap: onTap,
@@ -10754,6 +11164,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         if (v == 'ver' && onTap != null) onTap();
                         if (v == 'editar' && onEditar != null) onEditar();
                         if (v == 'pagar' && onPagar != null) onPagar();
+                        if (v == 'pago_mensual' && onPagoMensual != null) {
+                          onPagoMensual();
+                        }
+                        if (v == 'imprimir' && onImprimir != null) onImprimir();
+                        if (v == 'eliminar' && onEliminar != null) onEliminar();
                       },
                       itemBuilder: (_) => [
                         const PopupMenuItem(
@@ -10773,6 +11188,39 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             child: Text(
                               'Pagar',
                               style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        if (onPagoMensual != null)
+                          const PopupMenuItem(
+                            value: 'pago_mensual',
+                            child: Text(
+                              'Pago Mensual',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF1565C0),
+                              ),
+                            ),
+                          ),
+                        if (onImprimir != null)
+                          const PopupMenuItem(
+                            value: 'imprimir',
+                            child: Text(
+                              'Imprimir comprobante',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                          ),
+                        if (onEliminar != null)
+                          const PopupMenuItem(
+                            value: 'eliminar',
+                            child: Text(
+                              'Eliminar nómina',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFFC62828),
+                              ),
                             ),
                           ),
                       ],
@@ -12666,8 +13114,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
         return;
       }
     } else {
-      // SIEMPRE recargar préstamos y conceptos para tener datos frescos
-      await ref.read(payrollProvider.notifier).loadLoans();
+      // Recargar préstamos y conceptos para tener datos frescos
+      await Future.wait([
+        ref.read(payrollProvider.notifier).loadLoans(),
+        ref.read(payrollProvider.notifier).loadConcepts(),
+      ]);
     }
 
     var currentPayrollState = ref.read(payrollProvider);
@@ -12744,20 +13195,19 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     final defaultPeriods = await PayrollDatasource.getPeriods(
       year: defaultPYear,
     );
-    final defaultPeriod = defaultPeriods
+    // Buscar TODOS los periodos que coinciden (puede haber duplicados)
+    final matchingPeriods = defaultPeriods
         .where(
           (p) => p.periodType == 'quincenal' && p.periodNumber == defaultPNum,
         )
-        .firstOrNull;
+        .toList();
 
     Set<String> employeesWithPayroll = {};
     List<EmployeePayroll> existingPayrollsList = [];
-    if (defaultPeriod != null) {
-      final defaultPayrolls = await PayrollDatasource.getPayrolls(
-        periodId: defaultPeriod.id,
-      );
-      employeesWithPayroll = defaultPayrolls.map((p) => p.employeeId).toSet();
-      existingPayrollsList = defaultPayrolls;
+    for (final period in matchingPeriods) {
+      final payrolls = await PayrollDatasource.getPayrolls(periodId: period.id);
+      employeesWithPayroll.addAll(payrolls.map((p) => p.employeeId));
+      existingPayrollsList.addAll(payrolls);
     }
 
     var availableEmployees = employees
@@ -12800,6 +13250,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     bool includeActiveLoans = true;
     bool isLoadingHours = false;
     Set<String> absentDates = {}; // Fechas con ausencia/permiso/incapacidad
+
+    // Horas extras manuales (para agregar retroactivamente)
+    double?
+    manualOvertimeHours; // null = usar auto-detectadas, número = override manual
+    bool showOvertimeEditor = false;
+    final overtimeController = TextEditingController();
 
     // Fecha de corte personalizable (para quincena actual)
     DateTime? customEndDate;
@@ -12949,6 +13405,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
       };
     }
 
+    // Bonos extras manuales: lista de {descripcion, monto}
+    List<Map<String, dynamic>> extraBonuses = [];
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -13039,8 +13498,14 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                 ? dailyRate * calendarDays
                 : baseSalary / 2;
             final overtimeMultiplier = getOvertimeMultiplier(overtimeType);
-            overtimePay = overtimeHours * hourlyRate * overtimeMultiplier;
-            underHoursDiscount = underHours * hourlyRate;
+            // Usar horas extras manuales si fueron ingresadas, sino las auto-detectadas
+            final effectiveOvertimeHours = manualOvertimeHours ?? overtimeHours;
+            overtimePay =
+                effectiveOvertimeHours * hourlyRate * overtimeMultiplier;
+            underHoursDiscount =
+                (manualOvertimeHours != null && manualOvertimeHours! > 0)
+                ? 0
+                : underHours * hourlyRate;
             // Bono: si hay override manual, usar ese; si no, automático
             ganaBono = bonoManualOverride ?? !pierdeBono;
             bonoAsistencia = (ganaBono && selectedEmployee != null)
@@ -13077,7 +13542,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
             );
           }
 
-          final totalEarnings = fortnightSalary + overtimePay + bonoAsistencia;
+          final extraBonusTotal = extraBonuses.fold(
+            0.0,
+            (sum, b) => sum + (b['monto'] as double),
+          );
+          final totalEarnings =
+              fortnightSalary + overtimePay + bonoAsistencia + extraBonusTotal;
           final totalDeductions = underHoursDiscount + loanDeduction;
           final netPay = totalEarnings - totalDeductions;
 
@@ -13153,25 +13623,26 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                           final periods = await PayrollDatasource.getPeriods(
                             year: pYear,
                           );
-                          final matchingPeriod = periods
+                          // Buscar TODOS los periodos que coinciden (puede haber duplicados)
+                          final matchingPeriods = periods
                               .where(
                                 (p) =>
                                     p.periodType == 'quincenal' &&
                                     p.periodNumber == pNum,
                               )
-                              .firstOrNull;
+                              .toList();
 
                           Set<String> withPayroll = {};
                           List<EmployeePayroll> fetchedPayrolls = [];
-                          if (matchingPeriod != null) {
+                          for (final mp in matchingPeriods) {
                             final payrolls =
                                 await PayrollDatasource.getPayrolls(
-                                  periodId: matchingPeriod.id,
+                                  periodId: mp.id,
                                 );
-                            withPayroll = payrolls
-                                .map((p) => p.employeeId)
-                                .toSet();
-                            fetchedPayrolls = payrolls;
+                            withPayroll.addAll(
+                              payrolls.map((p) => p.employeeId),
+                            );
+                            fetchedPayrolls.addAll(payrolls);
                           }
 
                           setState(() {
@@ -13202,6 +13673,9 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             calendarDays = 15;
                             fullCalendarDays = 15;
                             pierdeBono = false;
+                            manualOvertimeHours = null;
+                            showOvertimeEditor = false;
+                            overtimeController.clear();
                           });
                         }
                       },
@@ -13410,6 +13884,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               isLoadingHours = true;
                               // Resetear complementStartDate para recalcular por empleado
                               if (isComplemento) complementStartDate = null;
+                              // Resetear horas extras manuales al cambiar empleado
+                              manualOvertimeHours = null;
+                              showOvertimeEditor = false;
+                              overtimeController.clear();
                             });
 
                             // Cargar asistencia real de la quincena seleccionada
@@ -14249,149 +14727,308 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     ],
                     const SizedBox(height: 16),
 
-                    // Horas extras con selector de tipo (solo si hay horas extra)
-                    if (selectedEmployee != null &&
-                        overtimeHours > 0 &&
-                        !isDailyPay)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(
-                            0xFF2E7D32,
-                          ).withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
+                    // === SECCIÓN DE HORAS EXTRAS (siempre visible para empleados no diarios) ===
+                    if (selectedEmployee != null && !isDailyPay) ...[
+                      // Caso 1: Hay horas extras (auto-detectadas o manuales) → mostrar detalle
+                      if ((manualOvertimeHours ?? overtimeHours) > 0 ||
+                          showOvertimeEditor)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
                             color: const Color(
                               0xFF2E7D32,
-                            ).withValues(alpha: 0.2),
+                            ).withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(
+                                0xFF2E7D32,
+                              ).withValues(alpha: 0.2),
+                            ),
                           ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.more_time,
-                                  color: const Color(0xFF388E3C),
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Horas Extra Detectadas',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF2E7D32),
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  '+${overtimeHours.toStringAsFixed(1)}h',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF388E3C),
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Tipo de recargo:',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: const Color(0xFF757575),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              value: overtimeType,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                              ),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'normal',
-                                  child: Text(
-                                    'Normal (sin recargo)',
-                                    style: TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                                DropdownMenuItem(
-                                  value: '25',
-                                  child: Text(
-                                    'Diurna +25%',
-                                    style: TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                                DropdownMenuItem(
-                                  value: '75',
-                                  child: Text(
-                                    'Nocturna +75%',
-                                    style: TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                                DropdownMenuItem(
-                                  value: '100',
-                                  child: Text(
-                                    'Dom/Fest Diurna +100%',
-                                    style: TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                                DropdownMenuItem(
-                                  value: '150',
-                                  child: Text(
-                                    'Dom/Fest Nocturna +150%',
-                                    style: TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                              ],
-                              onChanged: (v) =>
-                                  setState(() => overtimeType = v ?? 'normal'),
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF2E7D32,
-                                ).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Text(
-                                    '${overtimeHours.toStringAsFixed(1)}h × ${Helpers.formatCurrency(hourlyRate)} × ${getOvertimeMultiplier(overtimeType)}x',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: const Color(0xFF616161),
+                                  Icon(
+                                    Icons.more_time,
+                                    color: const Color(0xFF388E3C),
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      overtimeHours > 0 &&
+                                              manualOvertimeHours == null
+                                          ? 'Horas Extra Detectadas'
+                                          : 'Horas Extra',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF2E7D32),
+                                      ),
                                     ),
                                   ),
-                                  Text(
-                                    '+ ${Helpers.formatCurrency(overtimePay)}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF388E3C),
+                                  if (!showOvertimeEditor) ...[
+                                    Text(
+                                      '+${(manualOvertimeHours ?? overtimeHours).toStringAsFixed(1)}h',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF388E3C),
+                                        fontSize: 16,
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 8),
+                                    InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          showOvertimeEditor = true;
+                                          overtimeController.text =
+                                              (manualOvertimeHours ??
+                                                      overtimeHours)
+                                                  .toStringAsFixed(1);
+                                        });
+                                      },
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4),
+                                        child: Icon(
+                                          Icons.edit,
+                                          size: 18,
+                                          color: const Color(0xFF388E3C),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (manualOvertimeHours != null)
+                                    InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          manualOvertimeHours = null;
+                                          showOvertimeEditor = false;
+                                          overtimeController.clear();
+                                        });
+                                      },
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4),
+                                        child: Icon(
+                                          Icons.close,
+                                          size: 18,
+                                          color: const Color(0xFFC62828),
+                                        ),
+                                      ),
+                                    ),
                                 ],
                               ),
-                            ),
-                          ],
+                              // Editor de horas extras
+                              if (showOvertimeEditor) ...[
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: overtimeController,
+                                        keyboardType:
+                                            const TextInputType.numberWithOptions(
+                                              decimal: true,
+                                            ),
+                                        decoration: InputDecoration(
+                                          labelText: 'Horas extra',
+                                          hintText: 'Ej: 4.5',
+                                          prefixIcon: const Icon(
+                                            Icons.timer,
+                                            size: 20,
+                                          ),
+                                          border: const OutlineInputBorder(),
+                                          isDense: true,
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 10,
+                                              ),
+                                          helperText: overtimeHours > 0
+                                              ? 'Auto-detectadas: ${overtimeHours.toStringAsFixed(1)}h'
+                                              : null,
+                                          helperStyle: TextStyle(
+                                            fontSize: 11,
+                                            color: const Color(0xFF757575),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    FilledButton(
+                                      onPressed: () {
+                                        final value = double.tryParse(
+                                          overtimeController.text.trim(),
+                                        );
+                                        if (value != null && value > 0) {
+                                          setState(() {
+                                            manualOvertimeHours = value;
+                                            showOvertimeEditor = false;
+                                          });
+                                        } else if (overtimeController.text
+                                                .trim()
+                                                .isEmpty ||
+                                            value == 0) {
+                                          setState(() {
+                                            manualOvertimeHours = null;
+                                            showOvertimeEditor = false;
+                                          });
+                                        }
+                                      },
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFF388E3C,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                      child: const Text('Aplicar'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              if ((manualOvertimeHours ?? overtimeHours) > 0 &&
+                                  !showOvertimeEditor) ...[
+                                if (manualOvertimeHours != null &&
+                                    overtimeHours > 0)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      'Auto-detectadas: ${overtimeHours.toStringAsFixed(1)}h → Manual: ${manualOvertimeHours!.toStringAsFixed(1)}h',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: const Color(0xFF757575),
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Tipo de recargo:',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: const Color(0xFF757575),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                DropdownButtonFormField<String>(
+                                  value: overtimeType,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                      value: 'normal',
+                                      child: Text(
+                                        'Normal (sin recargo)',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: '25',
+                                      child: Text(
+                                        'Diurna +25%',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: '75',
+                                      child: Text(
+                                        'Nocturna +75%',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: '100',
+                                      child: Text(
+                                        'Dom/Fest Diurna +100%',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: '150',
+                                      child: Text(
+                                        'Dom/Fest Nocturna +150%',
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (v) => setState(
+                                    () => overtimeType = v ?? 'normal',
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFF2E7D32,
+                                    ).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        '${(manualOvertimeHours ?? overtimeHours).toStringAsFixed(1)}h × ${Helpers.formatCurrency(hourlyRate)} × ${getOvertimeMultiplier(overtimeType)}x',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: const Color(0xFF616161),
+                                        ),
+                                      ),
+                                      Text(
+                                        '+ ${Helpers.formatCurrency(overtimePay)}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF388E3C),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                      ),
+                      // Caso 2: No hay horas extras → mostrar botón para agregar
+                      if ((manualOvertimeHours ?? overtimeHours) <= 0 &&
+                          !showOvertimeEditor)
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              showOvertimeEditor = true;
+                              overtimeController.clear();
+                            });
+                          },
+                          icon: const Icon(Icons.more_time, size: 18),
+                          label: const Text('Agregar Horas Extra'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF388E3C),
+                            side: BorderSide(
+                              color: const Color(
+                                0xFF388E3C,
+                              ).withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ),
+                    ],
 
-                    // Descuento por horas faltantes (solo si faltan horas)
+                    // Descuento por horas faltantes (solo si faltan horas y no hay override manual)
                     if (selectedEmployee != null &&
                         underHours > 0 &&
-                        !isDailyPay)
+                        !isDailyPay &&
+                        (manualOvertimeHours == null ||
+                            manualOvertimeHours! <= 0))
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -14591,6 +15228,186 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                     if (selectedEmployee != null) ...[
                       const Divider(height: 24),
 
+                      // ── Bonos Extras ──────────────────────────────────────
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3E5F5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFCE93D8)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.card_giftcard,
+                                  size: 18,
+                                  color: Color(0xFF7B1FA2),
+                                ),
+                                const SizedBox(width: 6),
+                                const Expanded(
+                                  child: Text(
+                                    'Bonos / Extras',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: Color(0xFF6A1B9A),
+                                    ),
+                                  ),
+                                ),
+                                TextButton.icon(
+                                  onPressed: () {
+                                    final descCtrl = TextEditingController();
+                                    final montoCtrl = TextEditingController();
+                                    showDialog(
+                                      context: context,
+                                      builder: (subCtx) => AlertDialog(
+                                        title: const Text(
+                                          'Agregar Bono / Extra',
+                                        ),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            TextField(
+                                              controller: descCtrl,
+                                              decoration: const InputDecoration(
+                                                labelText:
+                                                    'Descripción (opcional)',
+                                                hintText:
+                                                    'Ej: Prima, Comisión, etc.',
+                                                border: OutlineInputBorder(),
+                                              ),
+                                              autofocus: true,
+                                              textCapitalization:
+                                                  TextCapitalization.sentences,
+                                            ),
+                                            const SizedBox(height: 12),
+                                            TextField(
+                                              controller: montoCtrl,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Monto (\$)',
+                                                prefixText: '\$ ',
+                                                border: OutlineInputBorder(),
+                                              ),
+                                              keyboardType:
+                                                  const TextInputType.numberWithOptions(
+                                                    decimal: true,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(subCtx),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () {
+                                              final desc = descCtrl.text.trim();
+                                              final monto = double.tryParse(
+                                                montoCtrl.text
+                                                    .replaceAll('.', '')
+                                                    .replaceAll(',', '.'),
+                                              );
+                                              if (monto != null && monto > 0) {
+                                                setState(() {
+                                                  extraBonuses.add({
+                                                    'descripcion':
+                                                        desc.isNotEmpty
+                                                        ? desc
+                                                        : 'Bono Extra',
+                                                    'monto': monto,
+                                                  });
+                                                });
+                                                Navigator.pop(subCtx);
+                                              }
+                                            },
+                                            child: const Text('Agregar'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: const Text('Agregar'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFF7B1FA2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (extraBonuses.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  'Sin bonos extras. Usa + Agregar para incluir primas, comisiones u otros.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              )
+                            else
+                              ...extraBonuses.asMap().entries.map((entry) {
+                                final i = entry.key;
+                                final b = entry.value;
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.add_circle_outline,
+                                        size: 14,
+                                        color: Color(0xFF7B1FA2),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          b['descripcion'] as String,
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ),
+                                      Text(
+                                        Helpers.formatCurrency(
+                                          b['monto'] as double,
+                                        ),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: Color(0xFF388E3C),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.close,
+                                          size: 16,
+                                          color: Color(0xFF9E9E9E),
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(
+                                          minWidth: 28,
+                                          minHeight: 28,
+                                        ),
+                                        onPressed: () => setState(() {
+                                          extraBonuses.removeAt(i);
+                                        }),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
                       // Resumen de cálculos
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -14624,9 +15441,15 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                 bonoAsistencia,
                                 false,
                               ),
+                            for (final b in extraBonuses)
+                              _buildPayrollSummaryRow(
+                                b['descripcion'] as String,
+                                b['monto'] as double,
+                                false,
+                              ),
                             if (overtimePay > 0)
                               _buildPayrollSummaryRow(
-                                'Horas Extra (${overtimeHours.toStringAsFixed(1)}h ${getOvertimeLabel(overtimeType)})',
+                                'Horas Extra (${(manualOvertimeHours ?? overtimeHours).toStringAsFixed(1)}h ${getOvertimeLabel(overtimeType)})',
                                 overtimePay,
                                 false,
                               ),
@@ -14834,9 +15657,22 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             // Agregar detalles SIN recargar estado (skipReload: true)
                             // para evitar reloads intermedios que sobreescriben totales
 
+                            // Re-leer conceptos frescos del provider
+                            final freshPayrollState = ref.read(payrollProvider);
+                            // Si conceptos vacíos, cargar solo conceptos (no loadAll)
+                            if (freshPayrollState.concepts.isEmpty) {
+                              print(
+                                '⚠️ Conceptos vacíos, cargando conceptos...',
+                              );
+                              await ref
+                                  .read(payrollProvider.notifier)
+                                  .loadConcepts();
+                            }
+
                             // Intentar agregar BONO DE ASISTENCIA como detalle
                             if (bonoAsistencia > 0) {
-                              final bonoConcept = currentPayrollState.concepts
+                              final latestState = ref.read(payrollProvider);
+                              final bonoConcept = latestState.concepts
                                   .where((c) => c.code == 'BONO_ASISTENCIA')
                                   .firstOrNull;
                               if (bonoConcept != null) {
@@ -14851,28 +15687,72 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                           ? 'Bono semanal ($weekBonusCount sem × ${Helpers.formatCurrency(empAttendanceBonus)})'
                                           : 'Bono asistencia quincenal (asistencia perfecta)',
                                     );
-                              } else {
                                 print(
-                                  '⚠️ Concepto BONO_ASISTENCIA no encontrado en BD',
+                                  '✅ Bono de asistencia agregado: ${Helpers.formatCurrency(bonoAsistencia)}',
+                                );
+                              } else {
+                                // Fallback: insertar directamente sin concepto
+                                print(
+                                  '⚠️ Concepto BONO_ASISTENCIA no encontrado, insertando directamente',
+                                );
+                                await PayrollDatasource.addPayrollDetailDirect(
+                                  payrollId: payroll.id,
+                                  conceptCode: 'BONO_ASISTENCIA',
+                                  conceptName: 'Bono por Asistencia',
+                                  type: 'ingreso',
+                                  amount: bonoAsistencia,
+                                  notes: isDailyPay
+                                      ? 'Bono semanal ($weekBonusCount sem × ${Helpers.formatCurrency(empAttendanceBonus)})'
+                                      : 'Bono asistencia quincenal (asistencia perfecta)',
+                                );
+                                print(
+                                  '✅ Bono insertado directamente: ${Helpers.formatCurrency(bonoAsistencia)}',
                                 );
                               }
                             }
 
-                            // Agregar horas extras si hay
-                            if (overtimeHours > 0 && !isDailyPay) {
+                            // Agregar horas extras si hay (manuales o auto-detectadas)
+                            final effectiveOT =
+                                manualOvertimeHours ?? overtimeHours;
+                            if (effectiveOT > 0 && !isDailyPay) {
                               await ref
                                   .read(payrollProvider.notifier)
                                   .addOvertimeHours(
                                     payrollId: payroll.id,
-                                    hours: overtimeHours,
+                                    hours: effectiveOT,
                                     type: overtimeType,
                                     hourlyRate: baseSalary / hoursPerMonth,
                                     skipReload: true,
                                   );
+
+                              // Si las horas son manuales (no auto-detectadas), registrarlas
+                              // como ajuste de tiempo para que queden en el historial de asistencia
+                              if (manualOvertimeHours != null &&
+                                  manualOvertimeHours! > 0) {
+                                final otMinutes = (manualOvertimeHours! * 60)
+                                    .round();
+                                // Distribuir las horas en la fecha de fin de la quincena
+                                await EmployeesDatasource.createTimeAdjustment(
+                                  employeeId: selectedEmployeeId!,
+                                  minutes: otMinutes,
+                                  type: 'overtime',
+                                  date: effectiveCutDate,
+                                  reason:
+                                      'Horas extra nómina (${manualOvertimeHours!.toStringAsFixed(1)}h ${getOvertimeLabel(overtimeType)})',
+                                  notes:
+                                      'Registrado al crear nómina - periodo ${qStart.day}/${qStart.month} al ${effectiveCutDate.day}/${effectiveCutDate.month}/${effectiveCutDate.year}',
+                                );
+                                print(
+                                  '✅ Registradas ${manualOvertimeHours!.toStringAsFixed(1)}h extras como ajuste de tiempo',
+                                );
+                              }
                             }
 
-                            // Agregar descuento por horas faltantes si hay
-                            if (underHours > 0 && !isDailyPay) {
+                            // Agregar descuento por horas faltantes si hay (solo si no hay override manual)
+                            if (underHours > 0 &&
+                                !isDailyPay &&
+                                (manualOvertimeHours == null ||
+                                    manualOvertimeHours! <= 0)) {
                               await ref
                                   .read(payrollProvider.notifier)
                                   .addUnderHoursDiscount(
@@ -14894,6 +15774,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                                     .addLoanInstallmentDiscount(
                                       payrollId: payroll.id,
                                       loan: loan,
+                                      skipReload: true,
                                     );
                                 if (!loanSuccess) {
                                   print(
@@ -14908,6 +15789,21 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                             } else {
                               print(
                                 'ℹ️ Sin préstamos a descontar: includeActiveLoans=$includeActiveLoans, activeLoans=${activeLoans.length}',
+                              );
+                            }
+
+                            // Agregar bonos extras manuales
+                            for (final b in extraBonuses) {
+                              await PayrollDatasource.addPayrollDetailDirect(
+                                payrollId: payroll.id,
+                                conceptCode: 'BONO_EXTRA',
+                                conceptName: b['descripcion'] as String,
+                                type: 'ingreso',
+                                amount: b['monto'] as double,
+                                notes: 'Bono extra manual',
+                              );
+                              print(
+                                '✅ Bono extra agregado: ${b['descripcion']} = ${Helpers.formatCurrency(b['monto'] as double)}',
                               );
                             }
 
@@ -15477,6 +16373,885 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // IMPRIMIR COMPROBANTE DE NÓMINA
+  // ═══════════════════════════════════════════════════════════════
+  void _printPayroll(EmployeePayroll payroll) async {
+    try {
+      // Cargar detalles de la nómina
+      final details = await PayrollDatasource.getPayrollDetails(payroll.id);
+
+      // Buscar empleado para obtener tipo de pago
+      final empState = ref.read(employeesProvider);
+      final employee = empState.employees
+          .where((e) => e.id == payroll.employeeId)
+          .firstOrNull;
+
+      // Obtener nombre del periodo
+      final allPeriods = await PayrollDatasource.getPeriods();
+      final period = allPeriods
+          .where((p) => p.id == payroll.periodId)
+          .firstOrNull;
+      final periodDisplay = period?.displayName ?? payroll.periodName ?? 'N/A';
+
+      // Construir mapa de datos
+      final payrollData = <String, dynamic>{
+        'employeeName': payroll.employeeName ?? 'Sin nombre',
+        'employeePosition': payroll.employeePosition ?? '',
+        'baseSalary': payroll.baseSalary,
+        'daysWorked': payroll.daysWorked,
+        'totalEarnings': payroll.totalEarnings,
+        'totalDeductions': payroll.totalDeductions,
+        'netPay': payroll.netPay,
+        'paymentDate': payroll.paymentDate,
+        'notes': payroll.notes ?? '',
+        'isDailyPay': employee?.isDailyPay ?? false,
+        'dailyRate': employee?.dailyRate ?? 0.0,
+      };
+
+      // Convertir detalles a mapas
+      final detailMaps = details
+          .map(
+            (d) => <String, dynamic>{
+              'conceptName': d.conceptName,
+              'conceptCode': d.conceptCode,
+              'type': d.type,
+              'quantity': d.quantity,
+              'unitValue': d.unitValue,
+              'amount': d.amount,
+              'notes': d.notes,
+            },
+          )
+          .toList();
+
+      await PrintService.printPayroll(
+        payroll: payrollData,
+        details: detailMaps,
+        periodDisplay: periodDisplay,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al imprimir: $e'),
+            backgroundColor: const Color(0xFFC62828),
+          ),
+        );
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // ELIMINAR NÓMINA (con confirmación)
+  // ═══════════════════════════════════════════════════════════════
+  void _confirmDeletePayroll(EmployeePayroll payroll) {
+    final isPagado = payroll.status == 'pagado';
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar Nómina'),
+        content: Text(
+          isPagado
+              ? '¿Eliminar la nómina PAGADA de ${payroll.employeeName}?\n\n'
+                    'Se revertirá el movimiento de caja y se devolverá el saldo a la cuenta.\n'
+                    'Esto permite recrearla con los datos correctos.'
+              : '¿Eliminar la nómina de ${payroll.employeeName}?\n\n'
+                    'Esto permite recrearla con los datos actualizados.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _executeDeletePayroll(payroll);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+            ),
+            child: Text(isPagado ? 'Eliminar y Revertir Pago' : 'Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _executeDeletePayroll(EmployeePayroll payroll) async {
+    try {
+      // Si está pagada, primero revertir el movimiento de caja
+      if (payroll.status == 'pagado' && payroll.cashMovementId != null) {
+        // Obtener el movimiento de caja para saber el monto y la cuenta
+        final movement = await Supabase.instance.client
+            .from('cash_movements')
+            .select()
+            .eq('id', payroll.cashMovementId!)
+            .maybeSingle();
+
+        if (movement != null) {
+          final accountId = movement['account_id'] as String?;
+          final amount = (movement['amount'] as num?)?.toDouble() ?? 0;
+
+          // Devolver el saldo a la cuenta (el pago restó, ahora sumamos)
+          if (accountId != null && amount > 0) {
+            final account = await Supabase.instance.client
+                .from('accounts')
+                .select('balance')
+                .eq('id', accountId)
+                .single();
+            final currentBalance =
+                (account['balance'] as num?)?.toDouble() ?? 0;
+            await AccountsDataSource.updateAccountBalance(
+              accountId,
+              currentBalance + amount,
+            );
+            print(
+              '✅ Saldo devuelto: $amount a cuenta $accountId (nuevo: ${currentBalance + amount})',
+            );
+          }
+
+          // Limpiar referencia en la nómina antes de eliminar el movimiento
+          await Supabase.instance.client
+              .from('payroll')
+              .update({
+                'cash_movement_id': null,
+                'account_id': null,
+                'status': 'borrador',
+              })
+              .eq('id', payroll.id);
+
+          // Eliminar movimiento de caja
+          await Supabase.instance.client
+              .from('cash_movements')
+              .delete()
+              .eq('id', payroll.cashMovementId!);
+          print('✅ Movimiento de caja eliminado: ${payroll.cashMovementId}');
+        } else {
+          // Movimiento no encontrado, limpiar referencia
+          await Supabase.instance.client
+              .from('payroll')
+              .update({
+                'cash_movement_id': null,
+                'account_id': null,
+                'status': 'borrador',
+              })
+              .eq('id', payroll.id);
+        }
+      }
+
+      // Eliminar la nómina (detalles se eliminan por CASCADE)
+      final success = await ref
+          .read(payrollProvider.notifier)
+          .deletePayroll(payroll.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? '✅ Nómina de ${payroll.employeeName} eliminada. Puedes recrearla con los datos correctos.'
+                  : '❌ Error al eliminar la nómina',
+            ),
+            backgroundColor: success
+                ? const Color(0xFF2E7D32)
+                : const Color(0xFFC62828),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error eliminando nómina: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar: $e'),
+            backgroundColor: const Color(0xFFC62828),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showMonthlyPaymentDialog(EmployeePayroll payroll) async {
+    // Determinar mes/año del periodo actual
+    // periodNumber: mes*2-1 = Q1, mes*2 = Q2
+    final isQ1 = payroll.periodId.isNotEmpty; // placeholder
+    int targetMonth = 0;
+    int targetYear = 0;
+
+    // Cargar TODOS los periodos (sin filtrar por año) para encontrar el periodo de esta nómina
+    final allPeriods = await PayrollDatasource.getPeriods();
+    PayrollPeriod? thisPeriod;
+    for (final p in allPeriods) {
+      if (p.id == payroll.periodId) {
+        thisPeriod = p;
+        break;
+      }
+    }
+
+    if (thisPeriod == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se encontró el periodo de esta nómina'),
+            backgroundColor: Color(0xFFC62828),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Calcular mes a partir del periodNumber
+    final pNum = thisPeriod.periodNumber;
+    final pYear = thisPeriod.year;
+    final pIsQ1 = pNum.isOdd;
+    targetMonth = pIsQ1 ? (pNum + 1) ~/ 2 : pNum ~/ 2;
+    targetYear = pYear;
+
+    // Buscar el otro periodo del mismo mes (Q1 y Q2)
+    final q1Num = targetMonth * 2 - 1;
+    final q2Num = targetMonth * 2;
+    final otherNum = pIsQ1 ? q2Num : q1Num;
+
+    // Buscar periodos Q1 y Q2 del mes
+    var monthPeriods = allPeriods
+        .where(
+          (p) =>
+              p.year == targetYear &&
+              p.periodType == 'quincenal' &&
+              (p.periodNumber == q1Num || p.periodNumber == q2Num),
+        )
+        .toList();
+
+    // Si falta uno de los dos periodos, crearlo automáticamente
+    final hasQ1Period = monthPeriods.any((p) => p.periodNumber == q1Num);
+    final hasQ2Period = monthPeriods.any((p) => p.periodNumber == q2Num);
+
+    if (!hasQ1Period) {
+      final q1Start = DateTime(targetYear, targetMonth, 1);
+      final q1End = DateTime(targetYear, targetMonth, 15);
+      final newPeriod = await PayrollDatasource.createPeriod(
+        periodType: 'quincenal',
+        periodNumber: q1Num,
+        year: targetYear,
+        startDate: q1Start,
+        endDate: q1End,
+      );
+      if (newPeriod != null) monthPeriods.add(newPeriod);
+    }
+    if (!hasQ2Period) {
+      final q2Start = DateTime(targetYear, targetMonth, 16);
+      final q2End = DateTime(
+        targetYear,
+        targetMonth + 1,
+        0,
+      ); // último día del mes
+      final newPeriod = await PayrollDatasource.createPeriod(
+        periodType: 'quincenal',
+        periodNumber: q2Num,
+        year: targetYear,
+        startDate: q2Start,
+        endDate: q2End,
+      );
+      if (newPeriod != null) monthPeriods.add(newPeriod);
+    }
+
+    // Cargar nóminas del empleado en ambos periodos
+    List<EmployeePayroll> monthPayrolls = [];
+    for (final period in monthPeriods) {
+      final payrolls = await PayrollDatasource.getPayrolls(
+        periodId: period.id,
+        employeeId: payroll.employeeId,
+      );
+      monthPayrolls.addAll(payrolls);
+    }
+
+    // Si falta la nómina de alguna quincena, crearla duplicando valores de la existente
+    final hasQ1Payroll = monthPayrolls.any((p) {
+      final period = monthPeriods
+          .where((pr) => pr.id == p.periodId)
+          .firstOrNull;
+      return period != null && period.periodNumber == q1Num;
+    });
+    final hasQ2Payroll = monthPayrolls.any((p) {
+      final period = monthPeriods
+          .where((pr) => pr.id == p.periodId)
+          .firstOrNull;
+      return period != null && period.periodNumber == q2Num;
+    });
+
+    // Referencia: nómina existente para copiar valores
+    final referencePayroll = monthPayrolls.isNotEmpty
+        ? monthPayrolls.first
+        : payroll;
+
+    print('📋 Pago Mensual: hasQ1=$hasQ1Payroll, hasQ2=$hasQ2Payroll');
+    print(
+      '📋 Referencia: id=${referencePayroll.id}, netPay=${referencePayroll.netPay}, baseSalary=${referencePayroll.baseSalary}',
+    );
+
+    // Cargar detalles de la nómina de referencia para copiarlos
+    final referenceDetails = await PayrollDatasource.getPayrollDetails(
+      referencePayroll.id,
+    );
+    print('📋 Detalles de referencia: ${referenceDetails.length} conceptos');
+
+    // Helper para crear nómina copia con detalles
+    Future<void> createCopyPayroll(PayrollPeriod targetPeriod) async {
+      try {
+        print(
+          '📋 Creando copia para periodo ${targetPeriod.periodNumber}/${targetPeriod.year}...',
+        );
+        final newPayroll = await PayrollDatasource.createPayroll(
+          employeeId: payroll.employeeId,
+          periodId: targetPeriod.id,
+          baseSalary: referencePayroll.baseSalary,
+          daysWorked: referencePayroll.daysWorked > 0
+              ? referencePayroll.daysWorked
+              : 15,
+        );
+        if (newPayroll != null) {
+          print(
+            '📋 Nómina creada: id=${newPayroll.id}, netPay=${newPayroll.netPay}',
+          );
+          // Copiar todos los payroll_details de la referencia
+          for (final detail in referenceDetails) {
+            try {
+              await Supabase.instance.client.from('payroll_details').insert({
+                'payroll_id': newPayroll.id,
+                'concept_id': detail.conceptId,
+                'concept_code': detail.conceptCode,
+                'concept_name': detail.conceptName,
+                'type': detail.type,
+                'quantity': detail.quantity,
+                'unit_value': detail.unitValue,
+                'amount': detail.amount,
+                'notes': detail.notes ?? 'Copia para pago mensual',
+              });
+            } catch (e) {
+              print('⚠️ Error copiando detalle ${detail.conceptCode}: $e');
+            }
+          }
+          // Recalcular totales a partir de los detalles copiados
+          await Supabase.instance.client.rpc(
+            'calculate_payroll_totals',
+            params: {'p_payroll_id': newPayroll.id},
+          );
+          // Si no hay detalles (nómina simple), forzar totales directamente
+          if (referenceDetails.isEmpty) {
+            await PayrollDatasource.updatePayroll(newPayroll.id, {
+              'total_earnings': referencePayroll.totalEarnings,
+              'total_deductions': referencePayroll.totalDeductions,
+              'net_pay': referencePayroll.netPay,
+            });
+          }
+          await PayrollDatasource.updatePayroll(newPayroll.id, {
+            'notes':
+                'Auto-creada para pago mensual (copia de ${thisPeriod?.displayName ?? "periodo"})',
+          });
+          // Recargar para tener datos actualizados
+          final reloaded = await PayrollDatasource.getPayrolls(
+            periodId: targetPeriod.id,
+            employeeId: payroll.employeeId,
+          );
+          print(
+            '📋 Recargadas ${reloaded.length} nóminas, netPay=${reloaded.isNotEmpty ? reloaded.first.netPay : "N/A"}',
+          );
+          monthPayrolls.addAll(reloaded);
+        } else {
+          print('❌ createPayroll retornó null para periodo ${targetPeriod.id}');
+        }
+      } catch (e) {
+        print('❌ Error creando copia de nómina: $e');
+      }
+    }
+
+    if (!hasQ1Payroll) {
+      final q1Period = monthPeriods
+          .where((p) => p.periodNumber == q1Num)
+          .firstOrNull;
+      if (q1Period != null) {
+        await createCopyPayroll(q1Period);
+      } else {
+        print('❌ No se encontró periodo Q1 ($q1Num) en monthPeriods');
+      }
+    }
+    if (!hasQ2Payroll) {
+      final q2Period = monthPeriods
+          .where((p) => p.periodNumber == q2Num)
+          .firstOrNull;
+      if (q2Period != null) {
+        await createCopyPayroll(q2Period);
+      } else {
+        print('❌ No se encontró periodo Q2 ($q2Num) en monthPeriods');
+      }
+    }
+
+    // Deduplicar nóminas por ID
+    final seenIds = <String>{};
+    monthPayrolls = monthPayrolls.where((p) => seenIds.add(p.id)).toList();
+
+    print('📋 Total nóminas del mes: ${monthPayrolls.length}');
+    for (final p in monthPayrolls) {
+      print('  → ${p.id} status=${p.status} netPay=${p.netPay}');
+    }
+
+    // Filtrar solo pendientes/aprobados (no pagados)
+    final pendingPayrolls = monthPayrolls
+        .where((p) => p.status != 'pagado')
+        .toList();
+    final paidPayrolls = monthPayrolls
+        .where((p) => p.status == 'pagado')
+        .toList();
+
+    print(
+      '📋 Pendientes: ${pendingPayrolls.length}, Ya pagadas: ${paidPayrolls.length}',
+    );
+
+    if (pendingPayrolls.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Todas las nóminas del mes ya están pagadas'),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
+        );
+      }
+      return;
+    }
+
+    final totalToPay = pendingPayrolls.fold(0.0, (sum, p) => sum + p.netPay);
+    final totalPaid = paidPayrolls.fold(0.0, (sum, p) => sum + p.netPay);
+
+    const meses = [
+      '',
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    final monthLabel = targetMonth >= 1 && targetMonth <= 12
+        ? meses[targetMonth]
+        : 'Mes $targetMonth';
+
+    // Cargar cuentas
+    final accountsData = await Supabase.instance.client
+        .from('accounts')
+        .select()
+        .eq('is_active', true)
+        .order('name');
+
+    if (accountsData.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No hay cuentas disponibles'),
+            backgroundColor: Color(0xFFC62828),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    DateTime paymentDate = DateTime.now();
+    String? selectedAccountId = accountsData[0]['id'];
+    double selectedAccountBalance = (accountsData[0]['balance'] ?? 0)
+        .toDouble();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.calendar_month, color: Color(0xFF1565C0)),
+              const SizedBox(width: 8),
+              Text('Pago Mensual — $monthLabel $targetYear'),
+            ],
+          ),
+          content: SizedBox(
+            width: 500,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1565C0).withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: const Color(
+                            0xFF1565C0,
+                          ).withValues(alpha: 0.1),
+                          child: Text(
+                            (payroll.employeeName ?? 'E')[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: Color(0xFF1565C0),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                payroll.employeeName ?? 'Empleado',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                payroll.employeePosition ?? '',
+                                style: const TextStyle(
+                                  color: Color(0xFF757575),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text(
+                              'Total Mensual:',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            Text(
+                              Helpers.formatCurrency(totalToPay),
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1565C0),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Desglose por quincena
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Desglose por Quincena',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const Divider(height: 16),
+                        // Quincenas pendientes
+                        ...pendingPayrolls.map((p) {
+                          final period = monthPeriods
+                              .where((pr) => pr.id == p.periodId)
+                              .firstOrNull;
+                          final qLabel = period?.displayName ?? 'Quincena';
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.pending,
+                                  size: 16,
+                                  color: Color(0xFFF9A825),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    qLabel,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                                Text(
+                                  Helpers.formatCurrency(p.netPay),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1565C0),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        // Quincenas ya pagadas
+                        ...paidPayrolls.map((p) {
+                          final period = monthPeriods
+                              .where((pr) => pr.id == p.periodId)
+                              .firstOrNull;
+                          final qLabel = period?.displayName ?? 'Quincena';
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  size: 16,
+                                  color: Color(0xFF2E7D32),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '$qLabel (ya pagada)',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF9E9E9E),
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  Helpers.formatCurrency(p.netPay),
+                                  style: const TextStyle(
+                                    color: Color(0xFF9E9E9E),
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        const Divider(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'A pagar (${pendingPayrolls.length} quincena${pendingPayrolls.length > 1 ? "s" : ""}):',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              Helpers.formatCurrency(totalToPay),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Color(0xFF1565C0),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Cuenta de pago
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Cuenta de Pago',
+                      prefixIcon: Icon(Icons.account_balance),
+                      border: OutlineInputBorder(),
+                    ),
+                    value: selectedAccountId,
+                    items: accountsData.map<DropdownMenuItem<String>>((acc) {
+                      final balance = (acc['balance'] ?? 0).toDouble();
+                      final hasEnough = balance >= totalToPay;
+                      return DropdownMenuItem(
+                        value: acc['id'] as String,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(acc['name'] ?? 'Cuenta'),
+                            Text(
+                              Helpers.formatCurrency(balance),
+                              style: TextStyle(
+                                color: hasEnough
+                                    ? const Color(0xFF2E7D32)
+                                    : const Color(0xFFC62828),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        final acc = accountsData.firstWhere(
+                          (a) => a['id'] == value,
+                        );
+                        setState(() {
+                          selectedAccountId = value;
+                          selectedAccountBalance = (acc['balance'] ?? 0)
+                              .toDouble();
+                        });
+                      }
+                    },
+                  ),
+
+                  if (selectedAccountBalance < totalToPay) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC62828).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.warning,
+                            color: Color(0xFFC62828),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Saldo insuficiente. Falta: ${Helpers.formatCurrency(totalToPay - selectedAccountBalance)}',
+                              style: const TextStyle(
+                                color: Color(0xFFC62828),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+
+                  // Fecha de pago
+                  const Text(
+                    'Fecha de pago:',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: paymentDate,
+                        firstDate: DateTime.now().subtract(
+                          const Duration(days: 30),
+                        ),
+                        lastDate: DateTime.now().add(const Duration(days: 30)),
+                      );
+                      if (date != null) {
+                        setState(() => paymentDate = date);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today,
+                            color: Color(0xFF1565C0),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            '${paymentDate.day.toString().padLeft(2, '0')}/${paymentDate.month.toString().padLeft(2, '0')}/${paymentDate.year}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const Spacer(),
+                          const Icon(
+                            Icons.edit_calendar,
+                            color: Color(0xFF9E9E9E),
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton.icon(
+              onPressed:
+                  selectedAccountId == null ||
+                      selectedAccountBalance < totalToPay
+                  ? null
+                  : () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      Navigator.pop(context);
+
+                      int successCount = 0;
+                      for (final p in pendingPayrolls) {
+                        final success = await ref
+                            .read(payrollProvider.notifier)
+                            .processPayment(
+                              payrollId: p.id,
+                              accountId: selectedAccountId!,
+                              paymentDate: paymentDate,
+                            );
+                        if (success) successCount++;
+                      }
+
+                      // Refrescar Caja Diaria
+                      ref.read(dailyCashProvider.notifier).load();
+
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            successCount == pendingPayrolls.length
+                                ? '✅ Pago mensual de ${Helpers.formatCurrency(totalToPay)} registrado ($successCount quincenas)'
+                                : '⚠️ Se pagaron $successCount de ${pendingPayrolls.length} quincenas',
+                          ),
+                          backgroundColor:
+                              successCount == pendingPayrolls.length
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFFF9A825),
+                        ),
+                      );
+                    },
+              icon: const Icon(Icons.check),
+              label: Text('Pagar $monthLabel completo'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF1565C0),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showLoanDialog({Employee? employee}) async {
     // Cargar cuentas disponibles
     final accountsData = await Supabase.instance.client
@@ -15525,11 +17300,11 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     ];
 
     List<Map<String, dynamic>> futureQuincenas = [];
+    int pastQuincenasStartIndex = 0; // Índice donde empiezan las pasadas
     {
-      // Empezar desde la quincena actual o siguiente
+      // Primero: quincena actual + futuras (12 = 6 meses)
       DateTime refDate = DateTime(now.year, now.month, now.day);
-      for (int i = 0; i < 24; i++) {
-        // 24 quincenas futuras (1 año)
+      for (int i = 0; i < 12; i++) {
         final int qMonth = refDate.month;
         final int qYear = refDate.year;
         final bool isQ1 = refDate.day <= 15;
@@ -15551,9 +17326,41 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
           refDate = DateTime(qYear, qMonth + 1, 1);
         }
       }
+
+      pastQuincenasStartIndex = futureQuincenas.length;
+
+      // Después: quincenas pasadas (más reciente primero, scrolleando hacia abajo)
+      DateTime pastDate = DateTime(now.year, now.month, now.day);
+      for (int i = 0; i < 6; i++) {
+        // Retroceder una quincena
+        if (pastDate.day <= 15) {
+          pastDate = pastDate.month == 1
+              ? DateTime(pastDate.year - 1, 12, 16)
+              : DateTime(pastDate.year, pastDate.month - 1, 16);
+        } else {
+          pastDate = DateTime(pastDate.year, pastDate.month, 1);
+        }
+
+        final int qMonth = pastDate.month;
+        final int qYear = pastDate.year;
+        final bool isQ1 = pastDate.day <= 15;
+        final int periodNumber = isQ1 ? (qMonth * 2 - 1) : (qMonth * 2);
+        final String label =
+            '${meses[qMonth]} Q${isQ1 ? 1 : 2} $qYear (pasada)';
+
+        futureQuincenas.add({
+          'label': label,
+          'periodNumber': periodNumber,
+          'year': qYear,
+          'month': qMonth,
+          'isQ1': isQ1,
+          'isPast': true,
+        });
+      }
     }
 
-    int selectedStartQuincenaIndex = 0; // Por defecto la quincena actual
+    int selectedStartQuincenaIndex =
+        0; // Por defecto la quincena actual (primera)
 
     showDialog(
       context: context,
@@ -15685,18 +17492,29 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         helperText: 'Quincena donde empieza el descuento',
                       ),
                       value: selectedStartQuincenaIndex,
-                      items: futureQuincenas
-                          .take(12) // Mostrar 6 meses adelante
-                          .toList()
-                          .asMap()
-                          .entries
-                          .map(
-                            (entry) => DropdownMenuItem(
-                              value: entry.key,
-                              child: Text(entry.value['label'] as String),
-                            ),
-                          )
-                          .toList(),
+                      items:
+                          futureQuincenas // 12 futuras + 6 pasadas
+                              .toList()
+                              .asMap()
+                              .entries
+                              .map((entry) {
+                                final isPast = entry.value['isPast'] == true;
+                                return DropdownMenuItem(
+                                  value: entry.key,
+                                  child: Text(
+                                    entry.value['label'] as String,
+                                    style: TextStyle(
+                                      color: isPast
+                                          ? const Color(0xFF9E9E9E)
+                                          : null,
+                                      fontStyle: isPast
+                                          ? FontStyle.italic
+                                          : null,
+                                    ),
+                                  ),
+                                );
+                              })
+                              .toList(),
                       onChanged: (value) {
                         if (value != null) {
                           setState(() => selectedStartQuincenaIndex = value);
@@ -15742,66 +17560,106 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                               ],
                             ),
                             const SizedBox(height: 8),
-                            ...List.generate(
-                              installments > 12 ? 12 : installments,
-                              (i) {
-                                final qIdx = selectedStartQuincenaIndex + i;
-                                final qLabel = qIdx < futureQuincenas.length
-                                    ? futureQuincenas[qIdx]['label'] as String
-                                    : '...';
-                                final isLast = i == installments - 1;
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 2,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 24,
-                                        height: 24,
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          color: isLast
-                                              ? const Color(
-                                                  0xFF2E7D32,
-                                                ).withValues(alpha: 0.2)
-                                              : const Color(
-                                                  0xFF1565C0,
-                                                ).withValues(alpha: 0.1),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Text(
-                                          '${i + 1}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: isLast
-                                                ? const Color(0xFF388E3C)
-                                                : const Color(0xFF1976D2),
-                                          ),
-                                        ),
+                            ...List.generate(installments > 12 ? 12 : installments, (
+                              i,
+                            ) {
+                              // Calcular la quincena avanzando hacia adelante desde
+                              // la quincena de inicio (no usar índice directo en
+                              // futureQuincenas, que mezcla futuras y pasadas).
+                              final startQ =
+                                  futureQuincenas[selectedStartQuincenaIndex];
+                              int qMonth = startQ['month'] as int;
+                              int qYear = startQ['year'] as int;
+                              bool isQ1 = startQ['isQ1'] as bool;
+                              // Avanzar i quincenas hacia el futuro
+                              for (int k = 0; k < i; k++) {
+                                if (isQ1) {
+                                  isQ1 = false; // Q1 → Q2 mismo mes
+                                } else {
+                                  isQ1 = true; // Q2 → Q1 mes siguiente
+                                  qMonth++;
+                                  if (qMonth > 12) {
+                                    qMonth = 1;
+                                    qYear++;
+                                  }
+                                }
+                              }
+                              const qMeses = [
+                                '',
+                                'Ene',
+                                'Feb',
+                                'Mar',
+                                'Abr',
+                                'May',
+                                'Jun',
+                                'Jul',
+                                'Ago',
+                                'Sep',
+                                'Oct',
+                                'Nov',
+                                'Dic',
+                              ];
+                              final now2 = DateTime.now();
+                              final isPast =
+                                  DateTime(
+                                    qYear,
+                                    qMonth,
+                                    isQ1 ? 15 : 28,
+                                  ).isBefore(
+                                    DateTime(now2.year, now2.month, now2.day),
+                                  );
+                              final qLabel =
+                                  '${qMeses[qMonth]} Q${isQ1 ? 1 : 2} $qYear${isPast ? ' (pasada)' : ''}';
+                              final isLast = i == installments - 1;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 2,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 24,
+                                      height: 24,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: isLast
+                                            ? const Color(
+                                                0xFF2E7D32,
+                                              ).withValues(alpha: 0.2)
+                                            : const Color(
+                                                0xFF1565C0,
+                                              ).withValues(alpha: 0.1),
+                                        shape: BoxShape.circle,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        qLabel,
-                                        style: const TextStyle(fontSize: 13),
-                                      ),
-                                      const Spacer(),
-                                      Text(
-                                        Helpers.formatCurrency(
-                                          installmentAmount,
-                                        ),
+                                      child: Text(
+                                        '${i + 1}',
                                         style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: const Color(0xFFF57C00),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: isLast
+                                              ? const Color(0xFF388E3C)
+                                              : const Color(0xFF1976D2),
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      qLabel,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      Helpers.formatCurrency(installmentAmount),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: const Color(0xFFF57C00),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
                             if (installments > 12)
                               Padding(
                                 padding: const EdgeInsets.only(top: 4),

@@ -599,4 +599,161 @@ class EmployeesDatasource {
       return false;
     }
   }
+
+  // ========== NFC ATTENDANCE ==========
+
+  /// Registrar entrada/salida por NFC usando función RPC (por nfc_card_id)
+  static Future<Map<String, dynamic>> registerNfcAttendance({
+    required String nfcCardId,
+    String? deviceName,
+  }) async {
+    try {
+      AppLogger.debug('📱 Registrando asistencia NFC: $nfcCardId');
+      final response = await _client.rpc(
+        'register_nfc_attendance',
+        params: {'p_nfc_card_id': nfcCardId, 'p_device_name': deviceName},
+      );
+
+      final result = Map<String, dynamic>.from(response as Map);
+      if (result['success'] == true) {
+        AppLogger.success(
+          '✅ NFC ${result['action']}: ${result['employee_name']}',
+        );
+      } else {
+        AppLogger.warning('⚠️ NFC rechazado: ${result['message']}');
+      }
+      return result;
+    } catch (e) {
+      AppLogger.error('❌ Error registrando NFC: $e');
+      return {
+        'success': false,
+        'error': 'SYSTEM_ERROR',
+        'message': 'Error del sistema: $e',
+      };
+    }
+  }
+
+  /// Buscar empleado por NFC card ID
+  static Future<Employee?> getEmployeeByNfc(String nfcCardId) async {
+    try {
+      final response = await _client
+          .from('employees')
+          .select()
+          .eq('nfc_card_id', nfcCardId)
+          .maybeSingle();
+
+      if (response == null) return null;
+      return Employee.fromJson(response);
+    } catch (e) {
+      AppLogger.error('❌ Error buscando empleado por NFC: $e');
+      return null;
+    }
+  }
+
+  /// Asignar tarjeta NFC a un empleado
+  static Future<bool> assignNfcCard({
+    required String employeeId,
+    required String nfcCardId,
+  }) async {
+    try {
+      await _client
+          .from('employees')
+          .update({'nfc_card_id': nfcCardId})
+          .eq('id', employeeId);
+      AppLogger.success('✅ Tarjeta NFC asignada');
+      return true;
+    } catch (e) {
+      AppLogger.error('❌ Error asignando tarjeta NFC: $e');
+      return false;
+    }
+  }
+
+  /// Desasignar tarjeta NFC de un empleado
+  static Future<bool> removeNfcCard(String employeeId) async {
+    try {
+      await _client
+          .from('employees')
+          .update({'nfc_card_id': null})
+          .eq('id', employeeId);
+      AppLogger.success('✅ Tarjeta NFC removida');
+      return true;
+    } catch (e) {
+      AppLogger.error('❌ Error removiendo tarjeta NFC: $e');
+      return false;
+    }
+  }
+
+  /// Obtener historial de escaneos NFC
+  static Future<List<Map<String, dynamic>>> getNfcAttendanceLog({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? employeeId,
+    int limit = 50,
+  }) async {
+    try {
+      var query = _client
+          .from('nfc_attendance_log')
+          .select('*, employees(first_name, last_name, photo_url)');
+
+      if (employeeId != null) {
+        query = query.eq('employee_id', employeeId);
+      }
+      if (startDate != null) {
+        query = query.gte('scanned_at', startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        query = query.lte('scanned_at', endDate.toIso8601String());
+      }
+
+      final response = await query
+          .order('scanned_at', ascending: false)
+          .limit(limit);
+
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      AppLogger.error('❌ Error cargando log NFC: $e');
+      return [];
+    }
+  }
+
+  /// Obtener estado actual de asistencia de todos los empleados (hoy)
+  static Future<List<Map<String, dynamic>>> getTodayAttendanceStatus() async {
+    try {
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      final response = await _client
+          .from('employees')
+          .select(
+            'id, first_name, last_name, position, department, photo_url, nfc_card_id, employee_time_entries!inner(id, check_in, check_out, source)',
+          )
+          .eq('is_active', true)
+          .eq('employee_time_entries.entry_date', today);
+
+      // También obtener empleados sin entrada hoy
+      final allActive = await _client
+          .from('employees')
+          .select(
+            'id, first_name, last_name, position, department, photo_url, nfc_card_id',
+          )
+          .eq('is_active', true)
+          .order('first_name');
+
+      final withEntries = Map.fromEntries(
+        (response as List).map((e) => MapEntry(e['id'] as String, e)),
+      );
+
+      return (allActive as List).map((emp) {
+        final id = emp['id'] as String;
+        if (withEntries.containsKey(id)) {
+          return Map<String, dynamic>.from(withEntries[id] as Map);
+        }
+        return {
+          ...Map<String, dynamic>.from(emp as Map),
+          'employee_time_entries': <Map<String, dynamic>>[],
+        };
+      }).toList();
+    } catch (e) {
+      AppLogger.error('❌ Error cargando estado asistencia: $e');
+      return [];
+    }
+  }
 }

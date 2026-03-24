@@ -11,7 +11,7 @@ class PrintService {
   static const String companyName = 'Industrial de Molinos';
   static const String companyNit = 'NIT: 901946675-1';
   static const String companyAddress = 'Vrd la playita - Supía, Caldas';
-  static const String companyPhone = 'Tel: 3217551145 - 3136446632';
+  static const String companyPhone = 'Tel: 3043047353';
   static const String companyEmail = 'industriasdemolinosasfact@gmail.com';
 
   static final _currencyFormat = NumberFormat.currency(
@@ -1411,5 +1411,318 @@ class PrintService {
     } catch (_) {
       return false;
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // IMPRIMIR COMPROBANTE DE NÓMINA
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Genera e imprime el comprobante de pago de nómina.
+  /// [payroll] datos de la nómina pagada.
+  /// [details] lista de conceptos (ingresos y descuentos).
+  /// [periodDisplay] nombre del periodo (ej. "Ene Q1 2026").
+  static Future<void> printPayroll({
+    required Map<String, dynamic> payroll,
+    required List<Map<String, dynamic>> details,
+    required String periodDisplay,
+  }) async {
+    final pdf = await _buildPayrollPdf(
+      payroll: payroll,
+      details: details,
+      periodDisplay: periodDisplay,
+    );
+    await Printing.layoutPdf(
+      onLayout: (_) => pdf.save(),
+      name: 'Nomina_${payroll['employeeName'] ?? 'SN'}_$periodDisplay',
+    );
+  }
+
+  /// Genera PDF de comprobante de nómina y lo comparte / guarda.
+  static Future<void> sharePayrollPdf({
+    required Map<String, dynamic> payroll,
+    required List<Map<String, dynamic>> details,
+    required String periodDisplay,
+  }) async {
+    final pdf = await _buildPayrollPdf(
+      payroll: payroll,
+      details: details,
+      periodDisplay: periodDisplay,
+    );
+    await Printing.sharePdf(
+      bytes: await pdf.save(),
+      filename: 'Nomina_${payroll['employeeName'] ?? 'SN'}_$periodDisplay.pdf',
+    );
+  }
+
+  static Future<pw.Document> _buildPayrollPdf({
+    required Map<String, dynamic> payroll,
+    required List<Map<String, dynamic>> details,
+    required String periodDisplay,
+  }) async {
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: await _loadFont('Helvetica'),
+        bold: await _loadFont('Helvetica-Bold'),
+      ),
+    );
+
+    final logo = await _loadLogo();
+
+    final employeeName = (payroll['employeeName'] as String?) ?? 'Sin nombre';
+    final employeePosition = (payroll['employeePosition'] as String?) ?? '';
+    final baseSalary = (payroll['baseSalary'] as num?)?.toDouble() ?? 0;
+    final daysWorked = (payroll['daysWorked'] as num?)?.toInt() ?? 0;
+    final totalEarnings = (payroll['totalEarnings'] as num?)?.toDouble() ?? 0;
+    final totalDeductions =
+        (payroll['totalDeductions'] as num?)?.toDouble() ?? 0;
+    final netPay = (payroll['netPay'] as num?)?.toDouble() ?? 0;
+    final paymentDate = payroll['paymentDate'] is DateTime
+        ? payroll['paymentDate'] as DateTime
+        : DateTime.now();
+    final notes = (payroll['notes'] as String?) ?? '';
+    final isDailyPay = (payroll['isDailyPay'] as bool?) ?? false;
+    final dailyRate = (payroll['dailyRate'] as num?)?.toDouble() ?? 0;
+
+    final incomes = details.where((d) => d['type'] == 'ingreso').toList();
+    final deductions = details.where((d) => d['type'] == 'descuento').toList();
+
+    // Construir lista completa de ingresos: salario base + detalles de tipo ingreso
+    final allIncomes = <Map<String, dynamic>>[
+      if (isDailyPay && dailyRate > 0)
+        {
+          'conceptName':
+              'Pago Diario ($daysWorked días × ${_formatCurrency(dailyRate)})',
+          'quantity': daysWorked.toDouble(),
+          'unitValue': dailyRate,
+          'amount': baseSalary,
+        }
+      else
+        {
+          'conceptName': 'Salario Quincenal ($daysWorked días)',
+          'quantity': 1.0,
+          'unitValue': baseSalary,
+          'amount': baseSalary,
+        },
+      ...incomes,
+    ];
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.letter,
+        margin: const pw.EdgeInsets.all(40),
+        header: (context) =>
+            _buildPdfHeader(logo, 'COMPROBANTE DE NÓMINA', periodDisplay),
+        footer: (context) => pw.Column(
+          children: [
+            // ── Firmas siempre en el pie ──
+            pw.SizedBox(height: 30),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSignatureLine('Firma Empleador'),
+                _buildSignatureLine('Firma Empleado'),
+              ],
+            ),
+            pw.SizedBox(height: 10),
+            _buildPdfFooter(context),
+          ],
+        ),
+        build: (context) => [
+          // ── Info empleado y periodo ──
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: _buildInfoBlock('EMPLEADO', [
+                  employeeName,
+                  if (employeePosition.isNotEmpty) 'Cargo: $employeePosition',
+                ]),
+              ),
+              pw.SizedBox(width: 20),
+              pw.Expanded(
+                child: _buildInfoBlock('DETALLES DE PAGO', [
+                  'Periodo: $periodDisplay',
+                  'Días trabajados: $daysWorked',
+                  if (isDailyPay && dailyRate > 0)
+                    'Tarifa diaria: ${_formatCurrency(dailyRate)}'
+                  else
+                    'Salario base: ${_formatCurrency(baseSalary)}',
+                  'Fecha de pago: ${_formatDate(paymentDate)}',
+                ]),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 20),
+
+          // ── Tabla de INGRESOS ──
+          pw.Text(
+            'INGRESOS',
+            style: pw.TextStyle(
+              fontSize: 11,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.green800,
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          _buildPayrollConceptsTable(allIncomes, isIncome: true),
+          pw.SizedBox(height: 6),
+          pw.Align(
+            alignment: pw.Alignment.centerRight,
+            child: pw.Text(
+              'Total Ingresos: ${_formatCurrency(totalEarnings)}',
+              style: pw.TextStyle(
+                fontSize: 10,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.green800,
+              ),
+            ),
+          ),
+          pw.SizedBox(height: 16),
+
+          // ── Tabla de DESCUENTOS ──
+          if (deductions.isNotEmpty) ...[
+            pw.Text(
+              'DESCUENTOS',
+              style: pw.TextStyle(
+                fontSize: 11,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.red800,
+              ),
+            ),
+            pw.SizedBox(height: 6),
+            _buildPayrollConceptsTable(deductions, isIncome: false),
+            pw.SizedBox(height: 6),
+            pw.Align(
+              alignment: pw.Alignment.centerRight,
+              child: pw.Text(
+                'Total Descuentos: ${_formatCurrency(totalDeductions)}',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.red800,
+                ),
+              ),
+            ),
+            pw.SizedBox(height: 16),
+          ],
+
+          // ── NETO A PAGAR ──
+          pw.Container(
+            padding: const pw.EdgeInsets.all(14),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.blue50,
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: PdfColors.blue800, width: 1.5),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  'NETO A PAGAR',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blue900,
+                  ),
+                ),
+                pw.Text(
+                  _formatCurrency(netPay),
+                  style: pw.TextStyle(
+                    fontSize: 16,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blue900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Notas ──
+          if (notes.isNotEmpty) ...[
+            pw.SizedBox(height: 20),
+            pw.Container(
+              padding: const pw.EdgeInsets.all(12),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey100,
+                borderRadius: pw.BorderRadius.circular(4),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'NOTAS',
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(notes, style: const pw.TextStyle(fontSize: 10)),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    return pdf;
+  }
+
+  /// Tabla de conceptos de nómina (ingresos o descuentos)
+  static pw.Widget _buildPayrollConceptsTable(
+    List<Map<String, dynamic>> concepts, {
+    required bool isIncome,
+  }) {
+    final headerColor = isIncome ? PdfColors.green800 : PdfColors.red800;
+    return pw.TableHelper.fromTextArray(
+      headerDecoration: pw.BoxDecoration(color: headerColor),
+      headerStyle: pw.TextStyle(
+        color: PdfColors.white,
+        fontWeight: pw.FontWeight.bold,
+        fontSize: 9,
+      ),
+      cellStyle: const pw.TextStyle(fontSize: 9),
+      cellAlignment: pw.Alignment.centerLeft,
+      headerAlignment: pw.Alignment.centerLeft,
+      columnWidths: {
+        0: const pw.FlexColumnWidth(4),
+        1: const pw.FlexColumnWidth(1.2),
+        2: const pw.FlexColumnWidth(1.8),
+        3: const pw.FlexColumnWidth(1.8),
+      },
+      headers: ['Concepto', 'Cant.', 'Vlr. Unitario', 'Total'],
+      data: concepts.map((c) {
+        final qty = (c['quantity'] as num?)?.toDouble() ?? 1;
+        final unitValue = (c['unitValue'] as num?)?.toDouble() ?? 0;
+        final amount = (c['amount'] as num?)?.toDouble() ?? 0;
+        final name = c['conceptName'] ?? c['concept_name'] ?? '';
+        final detailNotes = c['notes'] as String? ?? '';
+        final displayName = detailNotes.isNotEmpty
+            ? '$name\n$detailNotes'
+            : name;
+        return [
+          displayName,
+          qty % 1 == 0 ? qty.toInt().toString() : qty.toStringAsFixed(2),
+          _formatCurrency(unitValue),
+          _formatCurrency(amount),
+        ];
+      }).toList(),
+      cellAlignments: {
+        0: pw.Alignment.centerLeft,
+        1: pw.Alignment.center,
+        2: pw.Alignment.centerRight,
+        3: pw.Alignment.centerRight,
+      },
+      headerAlignments: {
+        0: pw.Alignment.centerLeft,
+        1: pw.Alignment.center,
+        2: pw.Alignment.centerRight,
+        3: pw.Alignment.centerRight,
+      },
+      oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    );
   }
 }

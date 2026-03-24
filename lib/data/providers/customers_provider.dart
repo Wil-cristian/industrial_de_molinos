@@ -33,11 +33,14 @@ class CustomersState {
   List<Customer> get filteredCustomers {
     if (searchQuery.isEmpty) return customers;
     final query = searchQuery.toLowerCase();
-    return customers.where((c) =>
-      c.name.toLowerCase().contains(query) ||
-      c.documentNumber.toLowerCase().contains(query) ||
-      (c.tradeName?.toLowerCase().contains(query) ?? false)
-    ).toList();
+    return customers
+        .where(
+          (c) =>
+              c.name.toLowerCase().contains(query) ||
+              c.documentNumber.toLowerCase().contains(query) ||
+              (c.tradeName?.toLowerCase().contains(query) ?? false),
+        )
+        .toList();
   }
 }
 
@@ -52,24 +55,43 @@ class CustomersNotifier extends Notifier<CustomersState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       print('🔄 Cargando clientes desde Supabase...');
-      final customers = await CustomersDataSource.getAll(activeOnly: activeOnly);
+      final customers = await CustomersDataSource.getAll(
+        activeOnly: activeOnly,
+      );
       print('✅ Clientes cargados: ${customers.length}');
-      
-      // Calcular deuda real desde facturas para cada cliente
+
+      // Calcular deuda real desde facturas en batch (una sola consulta)
+      final debtMap = await CustomersDataSource.getCalculatedDebtBatch(
+        customers.map((c) => c.id).toList(),
+      );
+
       final customersWithRealDebt = <Customer>[];
+      final updateFutures = <Future>[];
+
       for (final customer in customers) {
-        final realDebt = await CustomersDataSource.getCalculatedDebt(customer.id);
-        // Crear una copia del cliente con la deuda real
+        final realDebt = debtMap[customer.id] ?? 0.0;
         customersWithRealDebt.add(customer.copyWith(currentBalance: realDebt));
-        
-        // Si la deuda en BD es diferente, actualizar
+
+        // Si la deuda en BD es diferente, actualizar (en paralelo)
         if ((customer.currentBalance - realDebt).abs() > 0.01) {
-          print('📊 Cliente ${customer.name}: Deuda BD=${customer.currentBalance}, Real=$realDebt');
-          await CustomersDataSource.updateBalance(customer.id, realDebt);
+          print(
+            '📊 Cliente ${customer.name}: Deuda BD=${customer.currentBalance}, Real=$realDebt',
+          );
+          updateFutures.add(
+            CustomersDataSource.updateBalance(customer.id, realDebt),
+          );
         }
       }
-      
-      state = state.copyWith(customers: customersWithRealDebt, isLoading: false);
+
+      // Ejecutar updates en paralelo
+      if (updateFutures.isNotEmpty) {
+        await Future.wait(updateFutures);
+      }
+
+      state = state.copyWith(
+        customers: customersWithRealDebt,
+        isLoading: false,
+      );
     } catch (e) {
       print('❌ Error cargando clientes: $e');
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -85,9 +107,7 @@ class CustomersNotifier extends Notifier<CustomersState> {
       print('🔄 Provider: Creando cliente ${customer.name}...');
       final created = await CustomersDataSource.create(customer);
       print('✅ Provider: Cliente creado con ID: ${created.id}');
-      state = state.copyWith(
-        customers: [...state.customers, created],
-      );
+      state = state.copyWith(customers: [...state.customers, created]);
       return created;
     } catch (e, stackTrace) {
       print('❌ Provider: Error creando cliente: $e');
@@ -100,9 +120,9 @@ class CustomersNotifier extends Notifier<CustomersState> {
   Future<bool> updateCustomer(Customer customer) async {
     try {
       final updated = await CustomersDataSource.update(customer);
-      final customers = state.customers.map((c) =>
-        c.id == customer.id ? updated : c
-      ).toList();
+      final customers = state.customers
+          .map((c) => c.id == customer.id ? updated : c)
+          .toList();
       state = state.copyWith(customers: customers);
       return true;
     } catch (e) {
@@ -129,12 +149,17 @@ class CustomersNotifier extends Notifier<CustomersState> {
 }
 
 /// Provider principal de clientes
-final customersProvider = NotifierProvider<CustomersNotifier, CustomersState>(() {
-  return CustomersNotifier();
-});
+final customersProvider = NotifierProvider<CustomersNotifier, CustomersState>(
+  () {
+    return CustomersNotifier();
+  },
+);
 
 /// Provider para cliente individual
-final customerByIdProvider = FutureProvider.family<Customer?, String>((ref, id) async {
+final customerByIdProvider = FutureProvider.family<Customer?, String>((
+  ref,
+  id,
+) async {
   return await CustomersDataSource.getById(id);
 });
 

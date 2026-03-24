@@ -56,7 +56,7 @@ class _SaleBatchItem {
       clientNitCtrl = TextEditingController(),
       subtotalCtrl = TextEditingController(text: '0.00'),
       taxAmountCtrl = TextEditingController(text: '0.00'),
-      taxRateCtrl = TextEditingController(text: '19.00'),
+      taxRateCtrl = TextEditingController(text: '0.00'),
       reteFteCtrl = TextEditingController(text: '0.00'),
       reteIcaCtrl = TextEditingController(text: '0.00'),
       reteIvaCtrl = TextEditingController(text: '0.00'),

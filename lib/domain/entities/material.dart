@@ -7,6 +7,7 @@ class Material {
   final String name;
   final String? description;
   final String category; // tubo, lamina, eje, rodamiento, tornilleria, etc.
+  final String? subcategoryId; // UUID de la subcategoría (opcional)
   final String shape; // cylinder, plate, solid_cylinder, bearing, custom
 
   // Precios
@@ -44,6 +45,7 @@ class Material {
     required this.name,
     this.description,
     this.category = 'general',
+    this.subcategoryId,
     this.shape = 'custom',
     this.pricePerKg = 0,
     this.unitPrice = 0,
@@ -138,6 +140,7 @@ class Material {
     String? name,
     String? description,
     String? category,
+    String? subcategoryId,
     String? shape,
     double? pricePerKg,
     double? unitPrice,
@@ -165,6 +168,7 @@ class Material {
       name: name ?? this.name,
       description: description ?? this.description,
       category: category ?? this.category,
+      subcategoryId: subcategoryId ?? this.subcategoryId,
       shape: shape ?? this.shape,
       pricePerKg: pricePerKg ?? this.pricePerKg,
       unitPrice: unitPrice ?? this.unitPrice,
@@ -196,6 +200,7 @@ class Material {
       name: json['name'] ?? '',
       description: json['description'],
       category: json['category'] ?? 'general',
+      subcategoryId: json['subcategory_id'],
       shape: json['shape'] ?? 'custom',
       pricePerKg: (json['price_per_kg'] ?? 0).toDouble(),
       unitPrice: (json['unit_price'] ?? 0).toDouble(),
@@ -230,6 +235,7 @@ class Material {
       'name': name,
       'description': description,
       'category': category,
+      'subcategory_id': subcategoryId,
       'shape': shape,
       'price_per_kg': pricePerKg,
       'unit_price': unitPrice,

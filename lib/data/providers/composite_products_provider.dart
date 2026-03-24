@@ -42,7 +42,9 @@ class CompositeProductsState {
           p.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
           p.code.toLowerCase().contains(searchQuery.toLowerCase());
       final matchesCategory =
-          selectedCategory == 'todos' || p.category == selectedCategory;
+          selectedCategory == 'todos' ||
+          (p.category != null &&
+              p.category!.toLowerCase() == selectedCategory.toLowerCase());
       return matchesSearch && matchesCategory;
     }).toList();
   }

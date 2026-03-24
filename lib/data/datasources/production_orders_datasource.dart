@@ -3,6 +3,7 @@ import 'package:supabase/src/supabase_client.dart';
 import '../../core/utils/logger.dart';
 import '../../domain/entities/production_order.dart';
 import 'supabase_datasource.dart';
+import 'audit_log_datasource.dart';
 
 class ProductionOrdersDataSource {
   static SupabaseClient get _client => SupabaseDataSource.client;
@@ -182,7 +183,22 @@ class ProductionOrdersDataSource {
         await _client.from('production_stages').insert(stageRows);
       }
 
-      return await getById(orderId);
+      final order = await getById(orderId);
+      if (order != null) {
+        AuditLogDatasource.log(
+          action: 'create',
+          module: 'production',
+          recordId: orderId,
+          description:
+              'Creó orden de producción $code: ${input.product.name} x${input.quantity}',
+          details: {
+            'code': code,
+            'product': input.product.name,
+            'quantity': input.quantity,
+          },
+        );
+      }
+      return order;
     } catch (e) {
       AppLogger.error('Error creando OP: $e');
       rethrow;
@@ -196,6 +212,13 @@ class ProductionOrdersDataSource {
     }
 
     await _client.from('production_orders').update(values).eq('id', orderId);
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'production',
+      recordId: orderId,
+      description: 'Cambió estado de orden de producción a: $status',
+      details: {'new_status': status},
+    );
   }
 
   static Future<void> updateStage(ProductionStage stage) async {

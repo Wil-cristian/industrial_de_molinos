@@ -8,6 +8,8 @@ import '../../domain/entities/inventory_material.dart';
 import '../../domain/entities/material.dart' as mat;
 import '../../data/providers/composite_products_provider.dart';
 import '../../data/providers/inventory_provider.dart';
+import '../../data/providers/settings_provider.dart';
+import '../../domain/entities/company_settings.dart';
 
 class CompositeProductsPage extends ConsumerStatefulWidget {
   const CompositeProductsPage({super.key});
@@ -23,6 +25,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
     super.initState();
     Future.microtask(() {
       ref.read(compositeProductsProvider.notifier).loadProducts();
+      ref.read(settingsProvider.notifier).loadAll();
     });
   }
 
@@ -30,6 +33,14 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(compositeProductsProvider);
     final filteredProducts = state.filteredProducts;
+
+    // Sync dynamic categories from settings
+    final settingsState = ref.watch(settingsProvider);
+    if (settingsState.categories.isNotEmpty) {
+      ProductCategories.setCategories(
+        settingsState.categories.map((c) => c.name).toList(),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -61,7 +72,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Productos Compuestos',
+                                'Productos',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.headlineSmall
@@ -92,14 +103,14 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                       runSpacing: 8,
                       children: [
                         _buildQuickStat(
-                          'Molinos',
-                          '${state.products.where((p) => p.category == ProductCategories.molino).length}',
+                          'Compuestos',
+                          '${state.products.where((p) => p.components.isNotEmpty).length}',
                           const Color(0xFF1565C0),
                           Icons.settings,
                         ),
                         _buildQuickStat(
-                          'Otros',
-                          '${state.products.where((p) => p.category != ProductCategories.molino).length}',
+                          'Simples',
+                          '${state.products.where((p) => p.components.isEmpty).length}',
                           const Color(0xFF2E7D32),
                           Icons.category,
                         ),
@@ -195,21 +206,23 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                 : filteredProducts.isEmpty
                 ? _buildEmptyState()
                 : Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(16),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        final columns = constraints.maxWidth >= 1200
+                        final columns = constraints.maxWidth >= 1400
+                            ? 4
+                            : constraints.maxWidth >= 1000
                             ? 3
-                            : constraints.maxWidth >= 760
+                            : constraints.maxWidth >= 600
                             ? 2
                             : 1;
                         return GridView.builder(
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: columns,
-                                childAspectRatio: columns == 1 ? 1.6 : 1.2,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
+                                childAspectRatio: columns <= 2 ? 2.2 : 1.6,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
                               ),
                           itemCount: filteredProducts.length,
                           itemBuilder: (context, index) {
@@ -261,7 +274,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No hay productos compuestos',
+            'No hay productos',
             style: TextStyle(
               fontSize: 18,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -269,7 +282,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Crea tu primer producto compuesto (Molino, Transportador, etc.)',
+            'Crea tu primer producto o escanea una factura de venta',
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -330,13 +343,13 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
 
   Widget _buildProductCard(CompositeProduct product) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: InkWell(
         onTap: () => _showProductDetail(product),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -344,20 +357,21 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
               Row(
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: _getCategoryColor(
                         product.category ?? '',
                       ).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       _getCategoryIcon(product.category ?? ''),
                       color: _getCategoryColor(product.category ?? ''),
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,7 +380,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                           product.name,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 13,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -377,7 +391,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                             color: Theme.of(
                               context,
                             ).colorScheme.onSurfaceVariant,
-                            fontSize: 12,
+                            fontSize: 11,
                           ),
                         ),
                       ],
@@ -432,19 +446,19 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
 
               // Descripción
               if (product.description != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
                     product.description!,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -452,7 +466,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
               // Lista de componentes dentro de la tarjeta
               if (product.components.isNotEmpty)
                 ...product.components
-                    .take(4)
+                    .take(3)
                     .map(
                       (comp) => Padding(
                         padding: const EdgeInsets.only(bottom: 3),
@@ -500,11 +514,11 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                         ),
                       ),
                     ),
-              if (product.components.length > 4)
+              if (product.components.length > 3)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 3),
+                  padding: const EdgeInsets.only(bottom: 2),
                   child: Text(
-                    '+${product.components.length - 4} más...',
+                    '+${product.components.length - 3} más...',
                     style: TextStyle(
                       fontSize: 10,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -517,10 +531,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
 
               // Stats
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAFAFA),
                   borderRadius: BorderRadius.circular(8),
@@ -534,7 +545,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                     ),
                     Container(
                       width: 1,
-                      height: 30,
+                      height: 24,
                       color: const Color(0xFFE0E0E0),
                     ),
                     _buildStatColumn(
@@ -543,7 +554,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                     ),
                     Container(
                       width: 1,
-                      height: 30,
+                      height: 24,
                       color: const Color(0xFFE0E0E0),
                     ),
                     _buildStatColumn(
@@ -566,14 +577,14 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
         Text(
           label,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 10,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           value,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
         ),
       ],
     );
@@ -584,37 +595,45 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
   // ═══════════════════════════════════════════════════
 
   Color _getCategoryColor(String category) {
-    switch (category) {
-      case ProductCategories.molino:
-        return const Color(0xFF1565C0);
-      case ProductCategories.transportador:
-        return const Color(0xFF2E7D32);
-      case ProductCategories.tanque:
-        return const Color(0xFFF9A825);
-      case ProductCategories.estructura:
-        return const Color(0xFF7B1FA2);
-      case ProductCategories.maquinaria:
-        return const Color(0xFF009688);
-      default:
-        return const Color(0xFF9E9E9E);
-    }
+    final cats = ProductCategories.all;
+    final idx = cats.indexWhere(
+      (c) => c.toLowerCase() == category.toLowerCase(),
+    );
+    const palette = [
+      Color(0xFF1565C0),
+      Color(0xFF2E7D32),
+      Color(0xFFF9A825),
+      Color(0xFF7B1FA2),
+      Color(0xFF009688),
+      Color(0xFF9E9E9E),
+      Color(0xFFE65100),
+      Color(0xFF283593),
+      Color(0xFFC62828),
+      Color(0xFF00695C),
+    ];
+    if (idx >= 0) return palette[idx % palette.length];
+    return const Color(0xFF9E9E9E);
   }
 
   IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case ProductCategories.molino:
-        return Icons.settings;
-      case ProductCategories.transportador:
-        return Icons.conveyor_belt;
-      case ProductCategories.tanque:
-        return Icons.local_drink;
-      case ProductCategories.estructura:
-        return Icons.foundation;
-      case ProductCategories.maquinaria:
-        return Icons.precision_manufacturing;
-      default:
-        return Icons.category;
-    }
+    final cats = ProductCategories.all;
+    final idx = cats.indexWhere(
+      (c) => c.toLowerCase() == category.toLowerCase(),
+    );
+    const icons = [
+      Icons.settings,
+      Icons.conveyor_belt,
+      Icons.local_drink,
+      Icons.foundation,
+      Icons.precision_manufacturing,
+      Icons.category,
+      Icons.build,
+      Icons.architecture,
+      Icons.engineering,
+      Icons.construction,
+    ];
+    if (idx >= 0) return icons[idx % icons.length];
+    return Icons.category;
   }
 
   // ═══════════════════════════════════════════════════
@@ -663,8 +682,10 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
-          width: 700,
-          constraints: const BoxConstraints(maxHeight: 600),
+          width: 750,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -762,7 +783,6 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
 
               Flexible(
                 child: Container(
-                  constraints: const BoxConstraints(maxHeight: 350),
                   decoration: BoxDecoration(
                     border: Border.all(
                       color: Theme.of(context).colorScheme.outlineVariant,
@@ -785,6 +805,22 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                         ),
                         child: Row(
                           children: [
+                            // Número de orden
+                            SizedBox(
+                              width: 24,
+                              child: Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
                             CircleAvatar(
                               radius: 16,
                               backgroundColor: Theme.of(
@@ -1092,7 +1128,8 @@ class _CompositeProductFormDialogState
 
   // ── Estado del panel de agregar componente ──
   String _addMode = 'calculado'; // 'calculado' | 'directo'
-  String? _selectedCalculationType; // 'lamina' | 'tubo' | 'eje'
+  String?
+  _selectedCalculationType; // 'lamina' | 'tubo' | 'eje' | 'eje_cuadrado'
   mat.Material? _selectedMaterial;
   mat.Material? _selectedDirectMaterial;
   double _calculatedWeight = 0;
@@ -1106,6 +1143,9 @@ class _CompositeProductFormDialogState
   final _diametroExtController = TextEditingController(text: '1');
   final _espesorParedController = TextEditingController(text: '1/4');
   final _diametroController = TextEditingController(text: '1');
+  final _ladoController = TextEditingController(
+    text: '1',
+  ); // Lado de eje cuadrado
   final _cantidadController = TextEditingController(text: '1');
   final _directQuantityController = TextEditingController(text: '1');
   final _wasteController = TextEditingController(text: '5');
@@ -1119,7 +1159,16 @@ class _CompositeProductFormDialogState
     _codeController = TextEditingController(text: p?.code ?? '');
     _nameController = TextEditingController(text: p?.name ?? '');
     _descriptionController = TextEditingController(text: p?.description ?? '');
-    _selectedCategory = p?.category ?? ProductCategories.molino;
+    _selectedCategory = p?.category ?? ProductCategories.all.first;
+    // Ensure selected category exists in list (case-insensitive)
+    final matchIdx = ProductCategories.all.indexWhere(
+      (c) => c.toLowerCase() == _selectedCategory.toLowerCase(),
+    );
+    if (matchIdx >= 0) {
+      _selectedCategory = ProductCategories.all[matchIdx];
+    } else if (ProductCategories.all.isNotEmpty) {
+      _selectedCategory = ProductCategories.all.first;
+    }
     _laborHoursController = TextEditingController(
       text: (p?.laborHours ?? 0).toString(),
     );
@@ -1325,27 +1374,45 @@ class _CompositeProductFormDialogState
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _selectedCategory,
-          decoration: const InputDecoration(
-            labelText: 'Categoría',
-            border: OutlineInputBorder(),
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          ),
-          style: const TextStyle(fontSize: 12, color: Color(0xDD000000)),
-          items: ProductCategories.all
-              .map(
-                (cat) => DropdownMenuItem(
-                  value: cat,
-                  child: Text(
-                    ProductCategories.getDisplayName(cat),
-                    style: const TextStyle(fontSize: 12),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                decoration: const InputDecoration(
+                  labelText: 'Categoría',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
                   ),
                 ),
-              )
-              .toList(),
-          onChanged: (v) => setState(() => _selectedCategory = v!),
+                style: const TextStyle(fontSize: 12, color: Color(0xDD000000)),
+                items: ProductCategories.all
+                    .map(
+                      (cat) => DropdownMenuItem(
+                        value: cat,
+                        child: Text(
+                          ProductCategories.getDisplayName(cat),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedCategory = v!),
+              ),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              onPressed: () => _showManageCategoriesDialog(context),
+              icon: const Icon(Icons.settings, size: 20),
+              tooltip: 'Administrar categorías',
+              style: IconButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -1552,6 +1619,13 @@ class _CompositeProductFormDialogState
                         'eje',
                         Icons.horizontal_rule,
                         const Color(0xFFF9A825),
+                      ),
+                      const SizedBox(width: 4),
+                      _typeChip(
+                        'Cuad',
+                        'eje_cuadrado',
+                        Icons.square_outlined,
+                        const Color(0xFF8E24AA),
                       ),
                     ],
                   ),
@@ -1797,6 +1871,7 @@ class _CompositeProductFormDialogState
         case 'tubo':
           return cat.contains('tubo') || cat.contains('tuberia');
         case 'eje':
+        case 'eje_cuadrado':
           return cat.contains('eje') || cat.contains('barra');
         default:
           return true;
@@ -1980,6 +2055,30 @@ class _CompositeProductFormDialogState
             ),
           ],
         );
+      case 'eje_cuadrado':
+        return Row(
+          children: [
+            Expanded(child: _buildThicknessSelector(_ladoController, 'Lado')),
+            const SizedBox(width: 4),
+            Expanded(
+              child: TextField(
+                controller: _largoController,
+                decoration: const InputDecoration(
+                  labelText: 'Largo cm',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 11),
+                keyboardType: TextInputType.number,
+                onChanged: (_) => _calculateWeight(),
+              ),
+            ),
+          ],
+        );
       default:
         return const SizedBox.shrink();
     }
@@ -2021,80 +2120,84 @@ class _CompositeProductFormDialogState
         Text(
           label,
           style: TextStyle(
-            fontSize: 9,
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 3),
         Row(
           children: [
-            // Wheel picker compacto
-            SizedBox(
-              width: 55,
-              height: 42,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
+            // Wheel picker
+            Expanded(
+              child: SizedBox(
+                height: 64,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
                   ),
-                ),
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Container(
-                        height: 18,
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(3),
+                  child: Stack(
+                    children: [
+                      Center(
+                        child: Container(
+                          height: 26,
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
                         ),
                       ),
-                    ),
-                    ListWheelScrollView.useDelegate(
-                      itemExtent: 18,
-                      diameterRatio: 1.2,
-                      perspective: 0.002,
-                      physics: const FixedExtentScrollPhysics(),
-                      controller: FixedExtentScrollController(
-                        initialItem: initialIndex,
-                      ),
-                      onSelectedItemChanged: (index) {
-                        setState(() => controller.text = commonSizes[index]);
-                        _calculateWeight();
-                      },
-                      childDelegate: ListWheelChildBuilderDelegate(
-                        childCount: commonSizes.length,
-                        builder: (context, index) {
-                          final size = commonSizes[index];
-                          final isSel = controller.text == size;
-                          return Center(
-                            child: Text(
-                              '$size"',
-                              style: TextStyle(
-                                fontSize: isSel ? 11 : 8,
-                                fontWeight: isSel
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                color: isSel
-                                    ? Theme.of(context).colorScheme.primary
-                                    : const Color(0xFF9E9E9E),
-                              ),
-                            ),
-                          );
+                      ListWheelScrollView.useDelegate(
+                        itemExtent: 26,
+                        diameterRatio: 1.8,
+                        perspective: 0.001,
+                        physics: const FixedExtentScrollPhysics(),
+                        controller: FixedExtentScrollController(
+                          initialItem: initialIndex,
+                        ),
+                        onSelectedItemChanged: (index) {
+                          setState(() => controller.text = commonSizes[index]);
+                          _calculateWeight();
                         },
+                        childDelegate: ListWheelChildBuilderDelegate(
+                          childCount: commonSizes.length,
+                          builder: (context, index) {
+                            final size = commonSizes[index];
+                            final isSel = controller.text == size;
+                            return Center(
+                              child: Text(
+                                '$size"',
+                                style: TextStyle(
+                                  fontSize: isSel ? 13 : 10,
+                                  fontWeight: isSel
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSel
+                                      ? Theme.of(context).colorScheme.primary
+                                      : const Color(0xFF9E9E9E),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             // Input manual
             SizedBox(
-              width: 40,
-              height: 42,
+              width: 56,
+              height: 64,
               child: TextField(
                 controller: controller,
                 decoration: InputDecoration(
@@ -2102,16 +2205,16 @@ class _CompositeProductFormDialogState
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 4,
-                    vertical: 6,
+                    vertical: 10,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   filled: true,
                   fillColor: Colors.white,
                 ),
                 style: const TextStyle(
-                  fontSize: 10,
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
@@ -2664,6 +2767,14 @@ class _CompositeProductFormDialogState
         final volumenCm3 = math.pi * r * r * largo;
         pesoUnitario = (volumenCm3 * steelDensity) / 1000;
       }
+    } else if (_selectedCalculationType == 'eje_cuadrado') {
+      final ladoPulg = _parseFraction(_ladoController.text);
+      final largo = double.tryParse(_largoController.text) ?? 0;
+      final ladoCm = ladoPulg * 2.54;
+      if (ladoCm > 0 && largo > 0) {
+        final volumenCm3 = ladoCm * ladoCm * largo;
+        pesoUnitario = (volumenCm3 * steelDensity) / 1000;
+      }
     }
 
     setState(() {
@@ -2705,6 +2816,7 @@ class _CompositeProductFormDialogState
     _diametroExtController.text = '1';
     _espesorParedController.text = '1/4';
     _diametroController.text = '1';
+    _ladoController.text = '1';
     _cantidadController.text = '1';
     _calculatedWeight = 0;
     _wastePercentage = 5;
@@ -2746,6 +2858,11 @@ class _CompositeProductFormDialogState
           'Ø${_diametroController.text}" × ${_largoController.text}cm';
       shape = MaterialShape.solidCylinder;
       outerDiameter = _parseFraction(_diametroController.text) * 25.4;
+      length = (double.tryParse(_largoController.text) ?? 0) * 10;
+    } else if (_selectedCalculationType == 'eje_cuadrado') {
+      description = '◻${_ladoController.text}" × ${_largoController.text}cm';
+      shape = MaterialShape.solidSquare;
+      width = _parseFraction(_ladoController.text) * 25.4; // lado en mm
       length = (double.tryParse(_largoController.text) ?? 0) * 10;
     }
 
@@ -2917,6 +3034,380 @@ class _CompositeProductFormDialogState
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  ADMINISTRAR CATEGORÍAS DE PRODUCTOS
+  // ═══════════════════════════════════════════════════════
+
+  void _showManageCategoriesDialog(BuildContext parentContext) {
+    showDialog(
+      context: parentContext,
+      builder: (context) => _ManageCategoriesDialog(ref: ref),
+    ).then((_) {
+      // Refresh categories after dialog closes
+      final cats = ref.read(settingsProvider).categories;
+      if (cats.isNotEmpty) {
+        ProductCategories.setCategories(cats.map((c) => c.name).toList());
+      }
+      setState(() {
+        // Ensure selected category still exists
+        if (!ProductCategories.all.contains(_selectedCategory)) {
+          _selectedCategory = ProductCategories.all.first;
+        }
+      });
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  DIÁLOGO ADMINISTRAR CATEGORÍAS
+// ═══════════════════════════════════════════════════════
+
+class _ManageCategoriesDialog extends ConsumerStatefulWidget {
+  final WidgetRef ref;
+  const _ManageCategoriesDialog({required this.ref});
+
+  @override
+  ConsumerState<_ManageCategoriesDialog> createState() =>
+      _ManageCategoriesDialogState();
+}
+
+class _ManageCategoriesDialogState
+    extends ConsumerState<_ManageCategoriesDialog> {
+  @override
+  Widget build(BuildContext context) {
+    final settingsState = ref.watch(settingsProvider);
+    final categories = settingsState.categories;
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.category, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          const Text('Administrar Categorías'),
+          const Spacer(),
+          IconButton(
+            onPressed: () => _showAddCategoryDialog(context),
+            icon: const Icon(Icons.add_circle),
+            tooltip: 'Nueva categoría',
+            color: theme.colorScheme.primary,
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 450,
+        height: 400,
+        child: categories.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.category_outlined,
+                      size: 48,
+                      color: theme.colorScheme.outline,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No hay categorías',
+                      style: TextStyle(color: theme.colorScheme.outline),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: () => _showAddCategoryDialog(context),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Agregar categoría'),
+                    ),
+                  ],
+                ),
+              )
+            : ListView.separated(
+                itemCount: categories.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final cat = categories[index];
+                  return ListTile(
+                    dense: true,
+                    leading: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      child: Text(
+                        cat.name.isNotEmpty ? cat.name[0].toUpperCase() : '?',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      cat.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle:
+                        cat.description != null && cat.description!.isNotEmpty
+                        ? Text(
+                            cat.description!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          )
+                        : null,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.edit,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
+                          onPressed: () =>
+                              _showEditCategoryDialog(context, cat),
+                          tooltip: 'Editar',
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: Color(0xFFC62828),
+                          ),
+                          onPressed: () => _confirmDeleteCategory(context, cat),
+                          tooltip: 'Eliminar',
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cerrar'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showAddCategoryDialog(BuildContext parentContext) async {
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: parentContext,
+      builder: (context) => AlertDialog(
+        title: const Text('Nueva Categoría'),
+        content: SizedBox(
+          width: 350,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre *',
+                  hintText: 'Ej: Bombas, Válvulas...',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+                autofocus: true,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción (opcional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (nameCtrl.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('El nombre es requerido'),
+                    backgroundColor: Color(0xFFE65100),
+                  ),
+                );
+                return;
+              }
+              final newCat = ProductCategory(
+                id: '',
+                name: nameCtrl.text.trim(),
+                description: descCtrl.text.trim().isNotEmpty
+                    ? descCtrl.text.trim()
+                    : null,
+              );
+              final ok = await ref
+                  .read(settingsProvider.notifier)
+                  .addCategory(newCat);
+              if (ok && context.mounted) {
+                Navigator.pop(context, true);
+              } else if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Error al crear categoría'),
+                    backgroundColor: Color(0xFFC62828),
+                  ),
+                );
+              }
+            },
+            child: const Text('Crear'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) setState(() {});
+  }
+
+  Future<void> _showEditCategoryDialog(
+    BuildContext parentContext,
+    ProductCategory cat,
+  ) async {
+    final nameCtrl = TextEditingController(text: cat.name);
+    final descCtrl = TextEditingController(text: cat.description ?? '');
+
+    final result = await showDialog<bool>(
+      context: parentContext,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar Categoría'),
+        content: SizedBox(
+          width: 350,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre *',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+                autofocus: true,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción (opcional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (nameCtrl.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('El nombre es requerido'),
+                    backgroundColor: Color(0xFFE65100),
+                  ),
+                );
+                return;
+              }
+              final updated = ProductCategory(
+                id: cat.id,
+                name: nameCtrl.text.trim(),
+                description: descCtrl.text.trim().isNotEmpty
+                    ? descCtrl.text.trim()
+                    : null,
+                parentId: cat.parentId,
+                isActive: cat.isActive,
+                createdAt: cat.createdAt,
+              );
+              final ok = await ref
+                  .read(settingsProvider.notifier)
+                  .updateCategory(updated);
+              if (ok && context.mounted) {
+                Navigator.pop(context, true);
+              } else if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Error al actualizar categoría'),
+                    backgroundColor: Color(0xFFC62828),
+                  ),
+                );
+              }
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) setState(() {});
+  }
+
+  Future<void> _confirmDeleteCategory(
+    BuildContext parentContext,
+    ProductCategory cat,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: parentContext,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Categoría'),
+        content: Text(
+          '¿Estás seguro de eliminar la categoría "${cat.name}"?\n\n'
+          'Los productos que la usen quedarán sin categoría asignada.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+            ),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final ok = await ref
+          .read(settingsProvider.notifier)
+          .deleteCategory(cat.id);
+      if (ok && mounted) {
+        setState(() {});
+        if (parentContext.mounted) {
+          ScaffoldMessenger.of(parentContext).showSnackBar(
+            SnackBar(
+              content: Text('Categoría "${cat.name}" eliminada'),
+              backgroundColor: const Color(0xFF2E7D32),
+            ),
+          );
+        }
+      }
     }
   }
 }

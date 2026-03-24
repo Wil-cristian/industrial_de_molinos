@@ -1,0 +1,14 @@
+-- Migration 063: Separate historical invoices into HIS series
+-- Old invoices (pre-app, Feb 2025 and Feb 2026) moved from VTA to HIS
+-- VTA invoices renumbered to close the gap
+
+-- Already executed manually on 2026-03-18:
+-- VTA-00000004 → HIS-00000001 (Eduardo Villada, 2025-02-28)
+-- VTA-00000005 → HIS-00000002 (Eduardo Villada, 2026-02-11)
+-- VTA-00000006 → HIS-00000003 (Carlos Mario Arenas, 2026-02-20)
+-- VTA-00000007 → HIS-00000004 (Buseta, 2026-02-09)
+-- VTA-00000008 → HIS-00000005 (La Palomera, 2026-02-11)
+-- VTA-00000009 → HIS-00000006 (William Rodriguez, 2026-02-03)
+-- VTA-00000010 → VTA-00000004 (Hector Saraza)
+-- VTA-00000011 → VTA-00000005 (Jairo Giraldo)
+-- VTA-00000012 → VTA-00000006 (Duvan Osorio)

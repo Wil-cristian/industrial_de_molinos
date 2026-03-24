@@ -24,6 +24,10 @@ class Invoice {
   final PaymentMethod? paymentMethod;
   final String? notes;
   final List<InvoiceItem> items;
+  final double materialCostTotal;
+  final double materialCostPending;
+  final DateTime? deliveryDate;
+  final String salePaymentType; // cash, credit, advance
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -46,6 +50,10 @@ class Invoice {
     this.paymentMethod,
     this.notes,
     this.items = const [],
+    this.materialCostTotal = 0,
+    this.materialCostPending = 0,
+    this.deliveryDate,
+    this.salePaymentType = 'cash',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -85,6 +93,10 @@ class Invoice {
     PaymentMethod? paymentMethod,
     String? notes,
     List<InvoiceItem>? items,
+    double? materialCostTotal,
+    double? materialCostPending,
+    DateTime? deliveryDate,
+    String? salePaymentType,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -107,6 +119,10 @@ class Invoice {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       notes: notes ?? this.notes,
       items: items ?? this.items,
+      materialCostTotal: materialCostTotal ?? this.materialCostTotal,
+      materialCostPending: materialCostPending ?? this.materialCostPending,
+      deliveryDate: deliveryDate ?? this.deliveryDate,
+      salePaymentType: salePaymentType ?? this.salePaymentType,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -114,7 +130,7 @@ class Invoice {
 
   factory Invoice.fromJson(Map<String, dynamic> json) {
     // Parsear items si vienen incluidos en el JSON
-    final itemsList = json['items'];
+    final itemsList = json['invoice_items'] ?? json['items'];
     List<InvoiceItem> parsedItems = [];
     if (itemsList != null && itemsList is List) {
       parsedItems = itemsList
@@ -145,6 +161,13 @@ class Invoice {
           : null,
       notes: json['notes'],
       items: parsedItems,
+      materialCostTotal: (json['material_cost_total'] as num?)?.toDouble() ?? 0,
+      materialCostPending:
+          (json['material_cost_pending'] as num?)?.toDouble() ?? 0,
+      deliveryDate: json['delivery_date'] != null
+          ? DateTime.parse(json['delivery_date'])
+          : null,
+      salePaymentType: json['sale_payment_type'] ?? 'cash',
       createdAt: DateTime.parse(
         json['created_at'] ?? DateTime.now().toIso8601String(),
       ),
@@ -173,6 +196,10 @@ class Invoice {
       'status': status.name,
       'payment_method': paymentMethod?.name,
       'notes': notes,
+      'material_cost_total': materialCostTotal,
+      'material_cost_pending': materialCostPending,
+      'delivery_date': deliveryDate?.toIso8601String().split('T')[0],
+      'sale_payment_type': salePaymentType,
     };
   }
 

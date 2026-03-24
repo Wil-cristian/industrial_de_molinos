@@ -457,6 +457,8 @@ class _ProductionOrdersPageState extends ConsumerState<ProductionOrdersPage> {
                 ),
         ),
         const SizedBox(height: 12),
+        _KpiCards(order: order),
+        const SizedBox(height: 12),
         _buildSectionCard(
           title: 'Flujo de Procesos en Cadena',
           icon: Icons.account_tree,
@@ -467,17 +469,11 @@ class _ProductionOrdersPageState extends ConsumerState<ProductionOrdersPage> {
           ),
           child: order.stages.isEmpty
               ? const Text('Sin etapas configuradas')
-              : Column(
-                  children: order.stages
-                      .map(
-                        (stage) => _StageTile(
-                          stage: stage,
-                          onEdit: () =>
-                              _openStageDialog(order: order, stage: stage),
-                          onDelete: () => _deleteStage(order.id, stage.id),
-                        ),
-                      )
-                      .toList(),
+              : _ProcessChainBoard(
+                  stages: order.stages,
+                  onEditStage: (stage) =>
+                      _openStageDialog(order: order, stage: stage),
+                  onDeleteStage: (stage) => _deleteStage(order.id, stage.id),
                 ),
         ),
         const SizedBox(height: 12),
@@ -1371,114 +1367,578 @@ class _StageTile extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final width = MediaQuery.sizeOf(context).width;
     final isCompact = width < 480;
+    final isDone = stage.status == 'completada';
+    final isInProgress = stage.status == 'en_proceso';
+    final processIcon = _iconForProcess(stage.processName);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+    final Color leftRail = isDone
+        ? const Color(0xFF2E7D32)
+        : (isInProgress ? const Color(0xFF1565C0) : cs.outlineVariant);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        color: cs.surfaceContainerHighest.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(12),
+        color: cs.surfaceContainerHighest.withOpacity(0.42),
+        border: Border.all(
+          color: isInProgress
+              ? cs.primary.withOpacity(0.32)
+              : cs.outlineVariant,
+          width: isInProgress ? 1.1 : 0.8,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isCompact)
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: cs.primaryContainer,
-                  child: Text(
-                    stage.sequenceOrder.toString(),
-                    style: TextStyle(
-                      color: cs.onPrimaryContainer,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                width: 4,
+                height: isCompact ? 86 : 74,
+                margin: const EdgeInsets.only(right: 10, top: 2),
+                decoration: BoxDecoration(
+                  color: leftRail,
+                  borderRadius: BorderRadius.circular(99),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    stage.processName,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                _StatusChip(status: stage.status),
-                IconButton(
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit, size: 18),
-                  tooltip: 'Editar etapa',
-                ),
-                IconButton(
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  tooltip: 'Eliminar etapa',
-                ),
-              ],
-            )
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      radius: 14,
-                      backgroundColor: cs.primaryContainer,
-                      child: Text(
-                        stage.sequenceOrder.toString(),
-                        style: TextStyle(
-                          color: cs.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                    if (!isCompact)
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundColor: cs.primaryContainer,
+                            child: Icon(
+                              processIcon,
+                              size: 14,
+                              color: cs.onPrimaryContainer,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              stage.processName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '#${stage.sequenceOrder}',
+                            style: TextStyle(
+                              color: cs.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (isInProgress) const _PulsingIndicator(),
+                          if (isInProgress) const SizedBox(width: 8),
+                          _StatusChip(status: stage.status),
+                          IconButton(
+                            onPressed: onEdit,
+                            icon: const Icon(Icons.edit, size: 18),
+                            tooltip: 'Editar etapa',
+                          ),
+                          IconButton(
+                            onPressed: onDelete,
+                            icon: const Icon(Icons.delete_outline, size: 18),
+                            tooltip: 'Eliminar etapa',
+                          ),
+                        ],
+                      )
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 14,
+                                backgroundColor: cs.primaryContainer,
+                                child: Icon(
+                                  processIcon,
+                                  size: 14,
+                                  color: cs.onPrimaryContainer,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  stage.processName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '#${stage.sequenceOrder}',
+                                style: TextStyle(
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              if (isInProgress) const _PulsingIndicator(),
+                              if (isInProgress) const SizedBox(width: 8),
+                              _StatusChip(status: stage.status),
+                              const Spacer(),
+                              IconButton(
+                                onPressed: onEdit,
+                                icon: const Icon(Icons.edit, size: 18),
+                                tooltip: 'Editar etapa',
+                              ),
+                              IconButton(
+                                onPressed: onDelete,
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
+                                ),
+                                tooltip: 'Eliminar etapa',
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
+                    const SizedBox(height: 4),
+                    Text('Mesa: ${stage.workstation}'),
+                    Text(
+                      'Empleado: ${stage.assignedEmployeeName ?? 'Sin asignar'} • Horas: ${stage.actualHours.toStringAsFixed(1)}/${stage.estimatedHours.toStringAsFixed(1)}',
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        stage.processName,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                    if (stage.resources.isNotEmpty)
+                      Text('Recursos: ${stage.resources.join(', ')}'),
+                    if (stage.report != null && stage.report!.trim().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text('Informe: ${stage.report!}'),
                       ),
-                    ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    _StatusChip(status: stage.status),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit, size: 18),
-                      tooltip: 'Editar etapa',
-                    ),
-                    IconButton(
-                      onPressed: onDelete,
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                      tooltip: 'Eliminar etapa',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          const SizedBox(height: 4),
-          Text('Mesa: ${stage.workstation}'),
-          Text(
-            'Empleado: ${stage.assignedEmployeeName ?? 'Sin asignar'} • Horas: ${stage.actualHours.toStringAsFixed(1)}/${stage.estimatedHours.toStringAsFixed(1)}',
+              ),
+            ],
           ),
-          if (stage.resources.isNotEmpty)
-            Text('Recursos: ${stage.resources.join(', ')}'),
-          if (stage.report != null && stage.report!.trim().isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text('Informe: ${stage.report!}'),
-            ),
         ],
       ),
     );
   }
+}
+
+// ── KPI mini cards ─────────────────────────────────────────────────────────
+class _KpiCards extends StatelessWidget {
+  final ProductionOrder order;
+  const _KpiCards({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final days = order.daysUntilDue;
+    final efficiency = order.efficiencyRatio;
+
+    String daysLabel;
+    Color daysColor;
+    IconData daysIcon;
+    if (days == null) {
+      daysLabel = 'Sin fecha';
+      daysColor = cs.onSurfaceVariant;
+      daysIcon = Icons.event_busy;
+    } else if (days < 0) {
+      daysLabel = '${(-days)}d vencida';
+      daysColor = cs.error;
+      daysIcon = Icons.warning_amber_rounded;
+    } else if (days == 0) {
+      daysLabel = 'Vence hoy';
+      daysColor = Colors.orange;
+      daysIcon = Icons.today;
+    } else {
+      daysLabel = '${days}d restantes';
+      daysColor = days <= 3 ? Colors.orange : const Color(0xFF2E7D32);
+      daysIcon = Icons.schedule;
+    }
+
+    String effLabel;
+    Color effColor;
+    IconData effIcon;
+    if (efficiency == null) {
+      effLabel = 'Sin datos';
+      effColor = cs.onSurfaceVariant;
+      effIcon = Icons.speed;
+    } else {
+      final pct = (efficiency * 100).round();
+      effLabel = '$pct% efic.';
+      effColor = efficiency >= 1.0
+          ? const Color(0xFF2E7D32)
+          : const Color(0xFFB71C1C);
+      effIcon = efficiency >= 1.0 ? Icons.trending_up : Icons.trending_down;
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: _KpiChip(
+            icon: Icons.donut_large,
+            label: '${(order.progress * 100).round()}%',
+            sublabel: 'Avance',
+            color: order.progress >= 1.0 ? const Color(0xFF2E7D32) : cs.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _KpiChip(
+            icon: daysIcon,
+            label: daysLabel,
+            sublabel: 'Plazo',
+            color: daysColor,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _KpiChip(
+            icon: effIcon,
+            label: effLabel,
+            sublabel: 'Eficiencia',
+            color: effColor,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _KpiChip(
+            icon: Icons.attach_money,
+            label: Helpers.formatCurrency(order.estimatedMaterialCost),
+            sublabel: 'Costo mat.',
+            color: cs.tertiary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _KpiChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String sublabel;
+  final Color color;
+  const _KpiChip({
+    required this.icon,
+    required this.label,
+    required this.sublabel,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.88, end: 1.0),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutBack,
+      builder: (context, scale, child) =>
+          Transform.scale(scale: scale, child: child),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.30)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              sublabel,
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Process chain board ──────────────────────────────────────────────────────
+class _ProcessChainBoard extends StatelessWidget {
+  final List<ProductionStage> stages;
+  final ValueChanged<ProductionStage> onEditStage;
+  final ValueChanged<ProductionStage> onDeleteStage;
+
+  const _ProcessChainBoard({
+    required this.stages,
+    required this.onEditStage,
+    required this.onDeleteStage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final completed = stages.where((s) => s.status == 'completada').length;
+    final progress = stages.isEmpty ? 0.0 : completed / stages.length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                cs.primaryContainer.withOpacity(0.45),
+                cs.tertiaryContainer.withOpacity(0.30),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.route, size: 18, color: cs.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Cadena productiva: $completed/${stages.length} etapas completadas',
+                      style: TextStyle(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0, end: progress),
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, _) => LinearProgressIndicator(
+                  value: value,
+                  minHeight: 8,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isWideTimeline = constraints.maxWidth >= 920;
+
+            Widget timelineRow() {
+              return Row(
+                children: List.generate(stages.length, (index) {
+                  final stage = stages[index];
+                  final normalized = stage.status.toLowerCase();
+                  final isDone = normalized == 'completada';
+                  final isProgress = normalized == 'en_proceso';
+                  final nodeBg = isDone
+                      ? const Color(0xFFC8E6C9)
+                      : (isProgress
+                            ? const Color(0xFFBBDEFB)
+                            : cs.surfaceContainerHighest);
+                  final nodeFg = isDone
+                      ? const Color(0xFF1B5E20)
+                      : (isProgress
+                            ? const Color(0xFF0D47A1)
+                            : cs.onSurfaceVariant);
+
+                  return Row(
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOutCubic,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: nodeBg,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: nodeFg.withOpacity(0.25)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _iconForProcess(stage.processName),
+                              size: 15,
+                              color: nodeFg,
+                            ),
+                            const SizedBox(width: 6),
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: isWideTimeline ? 150 : 120,
+                              ),
+                              child: Text(
+                                stage.processName,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: nodeFg,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (index < stages.length - 1)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 240),
+                            curve: Curves.easeOut,
+                            width: isWideTimeline ? 34 : 24,
+                            height: 3,
+                            decoration: BoxDecoration(
+                              color: (isDone || isProgress)
+                                  ? const Color(0xFF90CAF9)
+                                  : cs.outline.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                }),
+              );
+            }
+
+            if (isWideTimeline) {
+              return timelineRow();
+            }
+
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: timelineRow(),
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        ...List.generate(stages.length, (index) {
+          final stage = stages[index];
+          return TweenAnimationBuilder<double>(
+            key: ValueKey(stage.id),
+            tween: Tween<double>(begin: 0.96, end: 1),
+            duration: Duration(milliseconds: 220 + (index * 40)),
+            curve: Curves.easeOutCubic,
+            builder: (context, scale, child) => Opacity(
+              opacity: scale,
+              child: Transform.scale(scale: scale, child: child),
+            ),
+            child: _StageTile(
+              stage: stage,
+              onEdit: () => onEditStage(stage),
+              onDelete: () => onDeleteStage(stage),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _PulsingIndicator extends StatefulWidget {
+  const _PulsingIndicator();
+
+  @override
+  State<_PulsingIndicator> createState() => _PulsingIndicatorState();
+}
+
+class _PulsingIndicatorState extends State<_PulsingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 820),
+    )..repeat(reverse: true);
+    _opacity = Tween<double>(
+      begin: 0.35,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _opacity,
+      builder: (context, _) {
+        final value = _opacity.value;
+        return Transform.scale(
+          scale: 0.92 + (value * 0.12),
+          child: Container(
+            width: 9,
+            height: 9,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1565C0).withOpacity(value),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1565C0).withOpacity(0.25 * value),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+IconData _iconForProcess(String processName) {
+  final p = processName.toLowerCase();
+  if (p.contains('corte')) return Icons.content_cut;
+  if (p.contains('torno')) return Icons.settings;
+  if (p.contains('solda')) return Icons.bolt;
+  if (p.contains('armad')) return Icons.handyman;
+  if (p.contains('calidad') || p.contains('inspe')) return Icons.verified;
+  if (p.contains('pint')) return Icons.format_paint;
+  if (p.contains('empaque')) return Icons.inventory_2;
+  return Icons.precision_manufacturing;
 }
 
 class _StatusChip extends StatelessWidget {

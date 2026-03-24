@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/company_settings.dart';
 import '../../domain/entities/material_price.dart';
+import '../../domain/entities/storage_location.dart';
 import 'supabase_datasource.dart';
 
 class SettingsDataSource {
@@ -26,7 +27,9 @@ class SettingsDataSource {
   }
 
   /// Actualizar configuración de la empresa
-  static Future<CompanySettings> updateCompanySettings(CompanySettings settings) async {
+  static Future<CompanySettings> updateCompanySettings(
+    CompanySettings settings,
+  ) async {
     final data = settings.toJson();
     data.remove('id');
     data.remove('created_at');
@@ -34,8 +37,11 @@ class SettingsDataSource {
     data['updated_at'] = DateTime.now().toIso8601String();
 
     // Verificar si existe un registro
-    final existing = await _client.from('company_settings').select('id').limit(1);
-    
+    final existing = await _client
+        .from('company_settings')
+        .select('id')
+        .limit(1);
+
     if (existing.isNotEmpty) {
       final response = await _client
           .from('company_settings')
@@ -75,9 +81,12 @@ class SettingsDataSource {
   /// Actualizar costos operativos
   static Future<void> updateOperationalCosts(OperationalCosts costs) async {
     final data = costs.toJson();
-    
-    final existing = await _client.from('operational_costs').select('id').limit(1);
-    
+
+    final existing = await _client
+        .from('operational_costs')
+        .select('id')
+        .limit(1);
+
     if (existing.isNotEmpty) {
       await _client
           .from('operational_costs')
@@ -95,18 +104,19 @@ class SettingsDataSource {
   /// Obtener todas las categorías
   static Future<List<ProductCategory>> getCategories() async {
     try {
-      final response = await _client
-          .from('categories')
-          .select()
-          .order('name');
-      return response.map<ProductCategory>((json) => ProductCategory.fromJson(json)).toList();
+      final response = await _client.from('categories').select().order('name');
+      return response
+          .map<ProductCategory>((json) => ProductCategory.fromJson(json))
+          .toList();
     } catch (e) {
       return [];
     }
   }
 
   /// Crear categoría
-  static Future<ProductCategory> createCategory(ProductCategory category) async {
+  static Future<ProductCategory> createCategory(
+    ProductCategory category,
+  ) async {
     final data = category.toJson();
     final response = await _client
         .from('categories')
@@ -117,7 +127,9 @@ class SettingsDataSource {
   }
 
   /// Actualizar categoría
-  static Future<ProductCategory> updateCategory(ProductCategory category) async {
+  static Future<ProductCategory> updateCategory(
+    ProductCategory category,
+  ) async {
     final data = category.toJson();
     final response = await _client
         .from('categories')
@@ -145,14 +157,18 @@ class SettingsDataSource {
           .select()
           .order('type')
           .order('name');
-      return response.map<PayrollConcept>((json) => PayrollConcept.fromJson(json)).toList();
+      return response
+          .map<PayrollConcept>((json) => PayrollConcept.fromJson(json))
+          .toList();
     } catch (e) {
       return [];
     }
   }
 
   /// Obtener conceptos activos por tipo
-  static Future<List<PayrollConcept>> getPayrollConceptsByType(String type) async {
+  static Future<List<PayrollConcept>> getPayrollConceptsByType(
+    String type,
+  ) async {
     try {
       final response = await _client
           .from('payroll_concepts')
@@ -160,14 +176,18 @@ class SettingsDataSource {
           .eq('type', type)
           .eq('is_active', true)
           .order('name');
-      return response.map<PayrollConcept>((json) => PayrollConcept.fromJson(json)).toList();
+      return response
+          .map<PayrollConcept>((json) => PayrollConcept.fromJson(json))
+          .toList();
     } catch (e) {
       return [];
     }
   }
 
   /// Crear concepto de nómina
-  static Future<PayrollConcept> createPayrollConcept(PayrollConcept concept) async {
+  static Future<PayrollConcept> createPayrollConcept(
+    PayrollConcept concept,
+  ) async {
     final data = concept.toJson();
     final response = await _client
         .from('payroll_concepts')
@@ -178,7 +198,9 @@ class SettingsDataSource {
   }
 
   /// Actualizar concepto de nómina
-  static Future<PayrollConcept> updatePayrollConcept(PayrollConcept concept) async {
+  static Future<PayrollConcept> updatePayrollConcept(
+    PayrollConcept concept,
+  ) async {
     final data = concept.toJson();
     final response = await _client
         .from('payroll_concepts')
@@ -191,7 +213,70 @@ class SettingsDataSource {
 
   /// Eliminar concepto (soft delete)
   static Future<void> deletePayrollConcept(String id) async {
-    await _client.from('payroll_concepts').update({'is_active': false}).eq('id', id);
+    await _client
+        .from('payroll_concepts')
+        .update({'is_active': false})
+        .eq('id', id);
+  }
+
+  // =====================================================
+  // STORAGE LOCATIONS
+  // =====================================================
+
+  /// Obtener todas las ubicaciones activas
+  static Future<List<StorageLocation>> getStorageLocations() async {
+    try {
+      final response = await _client
+          .from('storage_locations')
+          .select()
+          .eq('is_active', true)
+          .order('name');
+      return response
+          .map<StorageLocation>((json) => StorageLocation.fromJson(json))
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Crear ubicación
+  static Future<StorageLocation> createStorageLocation(
+    String name,
+    String? description,
+  ) async {
+    final response = await _client
+        .from('storage_locations')
+        .insert({'name': name, 'description': description})
+        .select()
+        .single();
+    return StorageLocation.fromJson(response);
+  }
+
+  /// Actualizar ubicación
+  static Future<StorageLocation> updateStorageLocation(
+    String id,
+    String name,
+    String? description,
+  ) async {
+    final response = await _client
+        .from('storage_locations')
+        .update({
+          'name': name,
+          'description': description,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+    return StorageLocation.fromJson(response);
+  }
+
+  /// Eliminar ubicación (soft delete)
+  static Future<void> deleteStorageLocation(String id) async {
+    await _client
+        .from('storage_locations')
+        .update({'is_active': false})
+        .eq('id', id);
   }
 
   // =====================================================
@@ -206,7 +291,7 @@ class SettingsDataSource {
           .select('synced_at')
           .order('synced_at', ascending: false)
           .limit(1);
-      
+
       if (response.isNotEmpty) {
         return DateTime.parse(response[0]['synced_at']);
       }
@@ -232,7 +317,7 @@ class SettingsDataSource {
   /// Obtener resumen de datos
   static Future<Map<String, int>> getDataSummary() async {
     final summary = <String, int>{};
-    
+
     try {
       // Contar registros de cada tabla principal
       final tables = [

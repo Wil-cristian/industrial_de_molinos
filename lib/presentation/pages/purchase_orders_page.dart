@@ -46,57 +46,107 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
           color: Theme.of(context).colorScheme.surface,
           child: Column(
             children: [
-              Row(
-                children: [
-                  Text(
-                    '${state.orders.length} órdenes de compra',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const Spacer(),
-                  _buildQuickStat(
-                    'Pendientes',
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final pendingCount = state.orders
+                      .where(
+                        (o) =>
+                            o.status == PurchaseOrderStatus.borrador ||
+                            o.status == PurchaseOrderStatus.enviada,
+                      )
+                      .length
+                      .toString();
+                  final totalDebt = Formatters.currency(
                     state.orders
                         .where(
                           (o) =>
-                              o.status == PurchaseOrderStatus.borrador ||
-                              o.status == PurchaseOrderStatus.enviada,
+                              o.paymentStatus != PaymentStatus.pagada &&
+                              o.status != PurchaseOrderStatus.cancelada,
                         )
-                        .length
-                        .toString(),
-                    AppColors.warning,
-                    Icons.pending_actions,
-                  ),
-                  const SizedBox(width: 12),
-                  _buildQuickStat(
-                    'Total Adeudado',
-                    Formatters.currency(
-                      state.orders
-                          .where(
-                            (o) =>
-                                o.paymentStatus != PaymentStatus.pagada &&
-                                o.status != PurchaseOrderStatus.cancelada,
-                          )
-                          .fold(0.0, (sum, o) => sum + o.balance),
-                    ),
-                    AppColors.danger,
-                    Icons.money_off,
-                  ),
-                  const SizedBox(width: 16),
+                        .fold(0.0, (sum, o) => sum + o.balance),
+                  );
 
-                  FilledButton.icon(
-                    onPressed: () => _showCreateOrderDialog(),
-                    icon: const Icon(Icons.add_shopping_cart, size: 18),
-                    label: const Text('Nueva Orden'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+                  if (constraints.maxWidth < 600) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${state.orders.length} órdenes de compra',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            _buildQuickStat(
+                              'Pendientes',
+                              pendingCount,
+                              AppColors.warning,
+                              Icons.pending_actions,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildQuickStat(
+                              'Total Adeudado',
+                              totalDebt,
+                              AppColors.danger,
+                              Icons.money_off,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: () => _showCreateOrderDialog(),
+                            icon: const Icon(Icons.add_shopping_cart, size: 18),
+                            label: const Text('Nueva Orden'),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Text(
+                        '${state.orders.length} órdenes de compra',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                      const Spacer(),
+                      _buildQuickStat(
+                        'Pendientes',
+                        pendingCount,
+                        AppColors.warning,
+                        Icons.pending_actions,
+                      ),
+                      const SizedBox(width: 12),
+                      _buildQuickStat(
+                        'Total Adeudado',
+                        totalDebt,
+                        AppColors.danger,
+                        Icons.money_off,
+                      ),
+                      const SizedBox(width: 16),
+                      FilledButton.icon(
+                        onPressed: () => _showCreateOrderDialog(),
+                        icon: const Icon(Icons.add_shopping_cart, size: 18),
+                        label: const Text('Nueva Orden'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 12),
               // Filtros

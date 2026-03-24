@@ -1,8 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'data/datasources/supabase_datasource.dart';
+import 'data/providers/auth_provider.dart';
+import 'data/providers/role_provider.dart';
 import 'presentation/pages/dashboard_page.dart';
 // ProductsPage ya no se usa - unificada en CompositeProductsPage
 import 'presentation/pages/customers_page.dart';
@@ -20,12 +23,18 @@ import 'presentation/pages/calendar_page.dart';
 import 'presentation/pages/assets_page.dart';
 import 'presentation/pages/employees_page.dart';
 import 'presentation/pages/production_orders_page.dart';
+import 'presentation/pages/pending_deliveries_page.dart';
 import 'presentation/pages/login_page.dart';
 import 'presentation/pages/accounting_page.dart';
 import 'presentation/pages/iva_control_page.dart';
+import 'presentation/pages/nfc_attendance_page.dart';
+import 'presentation/pages/employee_dashboard_page.dart';
+import 'presentation/pages/user_management_page.dart';
+import 'presentation/pages/diagnostics_page.dart';
+import 'presentation/pages/audit_panel_page.dart';
+import 'presentation/widgets/ai_assistant_overlay.dart';
 import 'presentation/widgets/app_sidebar.dart';
 import 'presentation/widgets/app_bottom_nav_bar.dart';
-import 'presentation/widgets/quick_actions_button.dart';
 import 'core/responsive/responsive_helper.dart';
 
 // Claves de navegación para mantener el estado
@@ -282,6 +291,36 @@ final GoRouter router = GoRouter(
             ),
           ],
         ),
+        // Branch 15: Entregas Pendientes
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/pending-deliveries',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: PendingDeliveriesPage()),
+            ),
+          ],
+        ),
+        // Branch 16: Gestión de Usuarios (solo admin)
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/user-management',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: UserManagementPage()),
+            ),
+          ],
+        ),
+        // Branch 17: Panel de Auditoría (admin, dueño, técnico)
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/audit-panel',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: AuditPanelPage()),
+            ),
+          ],
+        ),
       ],
     ),
     // Rutas fuera del shell (pantalla completa sin sidebar)
@@ -301,25 +340,92 @@ final GoRouter router = GoRouter(
       builder: (context, state) =>
           NewQuotationPage(quotationId: state.pathParameters['id']),
     ),
+    // Kiosko de asistencia NFC (pantalla completa sin sidebar)
+    GoRoute(
+      path: '/nfc-attendance',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const NfcAttendancePage(),
+    ),
+    // Dashboard del empleado (pantalla completa sin sidebar)
+    GoRoute(
+      path: '/employee-dashboard',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const EmployeeDashboardPage(),
+    ),
+    // Diagnóstico de conexiones (pantalla completa)
+    GoRoute(
+      path: '/diagnostics',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const DiagnosticsPage(),
+    ),
   ],
 );
 
 /// Shell principal adaptivo: sidebar en desktop, bottom nav en móvil
-class _MainShell extends StatelessWidget {
+/// Si el usuario es empleado, redirige a su dashboard
+class _MainShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
   final String currentPath;
 
   const _MainShell({required this.navigationShell, required this.currentPath});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final roleState = ref.watch(roleProvider);
+
+    // Si aún está cargando el perfil, mostrar loading
+    if (roleState.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // Si es empleado puro, redirigir a su dashboard
+    if (roleState.isEmployee) {
+      // Usar post-frame callback para navegar fuera del shell
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          GoRouter.of(context).go('/employee-dashboard');
+        }
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // Si hay error de cuenta inactiva, mostrar mensaje
+    if (roleState.error != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.block, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                roleState.error!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => ref.read(authProvider.notifier).signOut(),
+                child: const Text('Cerrar sesión'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final isMobile = ResponsiveHelper.isMobile(context);
 
     if (isMobile) {
       return Scaffold(
-        body: Container(
-          color: Theme.of(context).colorScheme.surfaceContainerLowest,
-          child: navigationShell,
+        body: Stack(
+          children: [
+            Container(
+              color: Theme.of(context).colorScheme.surfaceContainerLowest,
+              child: navigationShell,
+            ),
+            const AiAssistantFab(),
+          ],
         ),
         bottomNavigationBar: AppBottomNavBar(
           currentRoute: currentPath,
@@ -343,7 +449,7 @@ class _MainShell extends StatelessWidget {
               ),
             ],
           ),
-          const QuickActionsButton(),
+          const AiAssistantFab(),
         ],
       ),
     );

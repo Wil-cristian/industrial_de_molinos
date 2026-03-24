@@ -12,3 +12,4 @@ export 'recipes_provider.dart';
 export 'composite_products_provider.dart';
 export 'production_orders_provider.dart';
 export 'material_category_provider.dart';
+export 'ai_assistant_provider.dart';

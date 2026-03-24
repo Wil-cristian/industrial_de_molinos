@@ -2,6 +2,7 @@ import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/quotation.dart';
 import 'supabase_datasource.dart';
+import 'audit_log_datasource.dart';
 
 class QuotationsDataSource {
   static const String _table = 'quotations';
@@ -136,7 +137,20 @@ class QuotationsDataSource {
       AppLogger.success('? Items insertados');
 
       // Retornar cotización con items
-      return (await getById(newId))!;
+      final created = (await getById(newId))!;
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'quotations',
+        recordId: newId,
+        description:
+            'Creó cotización $number para ${quotation.customerName ?? "cliente"}',
+        details: {
+          'number': number,
+          'customer': quotation.customerName,
+          'total': quotation.total,
+        },
+      );
+      return created;
     } catch (e, stack) {
       AppLogger.error('? Error al crear cotización: $e');
       AppLogger.error('Stack: $stack');
@@ -196,6 +210,13 @@ class QuotationsDataSource {
   /// Actualizar estado
   static Future<void> updateStatus(String id, String status) async {
     await _client.from(_table).update({'status': status}).eq('id', id);
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'quotations',
+      recordId: id,
+      description: 'Cambió estado de cotización a: $status',
+      details: {'new_status': status},
+    );
   }
 
   /// Aprobar cotización y crear factura automáticamente (con descuento de materiales)

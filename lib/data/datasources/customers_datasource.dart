@@ -2,6 +2,7 @@ import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/customer.dart';
 import 'supabase_datasource.dart';
+import 'audit_log_datasource.dart';
 
 class CustomersDataSource {
   static const String _table = 'customers';
@@ -63,7 +64,15 @@ class CustomersDataSource {
           .select()
           .single();
       AppLogger.success('? Cliente creado exitosamente: ${response['id']}');
-      return _fromJson(response);
+      final created = _fromJson(response);
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'customers',
+        recordId: created.id,
+        description: 'Creó cliente: ${customer.name}',
+        details: {'name': customer.name, 'document': customer.documentNumber},
+      );
+      return created;
     } catch (e, stackTrace) {
       AppLogger.error('? Error creando cliente: $e');
       AppLogger.debug('?? Stack trace: $stackTrace');
@@ -91,6 +100,12 @@ class CustomersDataSource {
   /// Eliminar cliente (hard delete — borra permanentemente con todas sus relaciones)
   static Future<void> delete(String id) async {
     await _client.from(_table).delete().eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'customers',
+      recordId: id,
+      description: 'Eliminó cliente ID: $id',
+    );
   }
 
   /// Eliminar permanentemente
@@ -133,6 +148,46 @@ class CustomersDataSource {
     } catch (e) {
       AppLogger.error('? Error calculando deuda: $e');
       return 0.0;
+    }
+  }
+
+  /// Calcular deuda de múltiples clientes en una sola consulta (batch)
+  static Future<Map<String, double>> getCalculatedDebtBatch(
+    List<String> customerIds,
+  ) async {
+    final debtMap = <String, double>{};
+    if (customerIds.isEmpty) return debtMap;
+
+    // Inicializar todos en 0
+    for (final id in customerIds) {
+      debtMap[id] = 0.0;
+    }
+
+    try {
+      // Una sola consulta para TODAS las facturas de todos los clientes
+      final response = await _client
+          .from('invoices')
+          .select('customer_id, total, paid_amount, status')
+          .inFilter('customer_id', customerIds);
+
+      final noDebtStatuses = ['paid', 'cancelled', 'anulada'];
+
+      for (final invoice in response) {
+        final status = invoice['status']?.toString().toLowerCase() ?? '';
+        if (!noDebtStatuses.contains(status)) {
+          final customerId = invoice['customer_id'] as String;
+          final total = (invoice['total'] as num?)?.toDouble() ?? 0.0;
+          final paidAmount =
+              (invoice['paid_amount'] as num?)?.toDouble() ?? 0.0;
+          debtMap[customerId] =
+              (debtMap[customerId] ?? 0.0) + (total - paidAmount);
+        }
+      }
+
+      return debtMap;
+    } catch (e) {
+      AppLogger.error('? Error calculando deuda batch: $e');
+      return debtMap;
     }
   }
 

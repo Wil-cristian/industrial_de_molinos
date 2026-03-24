@@ -11,60 +11,60 @@ class CompositeProductsDataSource {
   /// Obtener todos los productos compuestos con sus componentes
   static Future<List<CompositeProduct>> getAll() async {
     try {
-      // 1. Obtener productos que son recetas/compuestos
+      // 1. Obtener TODOS los productos activos (compuestos y simples)
       final productsResponse = await _client
           .from('products')
           .select()
-          .eq('is_recipe', true)
+          .eq('is_active', true)
           .order('name');
 
       if (productsResponse.isEmpty) return [];
 
-      // 2. Obtener IDs de productos
-      final productIds = productsResponse
+      // 2. Obtener IDs de productos que son recetas (para cargar componentes)
+      final recipeIds = productsResponse
+          .where((p) => p['is_recipe'] == true)
           .map<String>((p) => p['id'] as String)
           .toList();
 
-      // 3. Obtener todos los componentes de estos productos con precios EN VIVO
-      // JOIN con materials para obtener price_per_kg ACTUAL
-      final componentsResponse = await _client
-          .from('product_components')
-          .select(
-            '*, materials:material_id(price_per_kg, cost_price, name, code)',
-          )
-          .inFilter('product_id', productIds)
-          .order('sort_order');
-
-      // 4. Agrupar componentes por product_id, inyectando precios VIVO del material
+      // 3. Obtener componentes solo para productos receta (con precios EN VIVO)
       final Map<String, List<Map<String, dynamic>>> componentsByProduct = {};
-      for (final comp in componentsResponse) {
-        final pid = comp['product_id'] as String;
+      if (recipeIds.isNotEmpty) {
+        final componentsResponse = await _client
+            .from('product_components')
+            .select(
+              '*, materials:material_id(price_per_kg, unit_price, cost_price, name, code)',
+            )
+            .inFilter('product_id', recipeIds)
+            .order('sort_order');
 
-        // SIEMPRE sobreescribir precios con datos ACTUALES del material
-        // Cada componente usa el precio/kg de SU material específico
-        final materialData = comp['materials'] as Map<String, dynamic>?;
-        if (materialData != null) {
-          final liveSalePerKg =
-              (materialData['price_per_kg'] as num?)?.toDouble() ?? 0;
-          final liveCostPerKg =
-              (materialData['cost_price'] as num?)?.toDouble() ?? 0;
-          final weightPerUnit =
-              (comp['calculated_weight'] as num?)?.toDouble() ?? 0;
+        // 4. Agrupar componentes por product_id, inyectando precios VIVO del material
+        for (final comp in componentsResponse) {
+          final pid = comp['product_id'] as String;
 
-          // Precio VENTA por pieza = peso_pieza × precio_venta_por_kg del material
-          // SIEMPRE sobreescribir (si el material tiene venta=$0, la pieza cuesta $0)
-          comp['unit_cost'] = weightPerUnit * liveSalePerKg;
+          final materialData = comp['materials'] as Map<String, dynamic>?;
+          if (materialData != null) {
+            final liveSalePerKg =
+                (materialData['price_per_kg'] as num?)?.toDouble() ?? 0;
+            final liveUnitPrice =
+                (materialData['unit_price'] as num?)?.toDouble() ?? 0;
+            final liveCostPerKg =
+                (materialData['cost_price'] as num?)?.toDouble() ?? 0;
+            final weightPerUnit =
+                (comp['calculated_weight'] as num?)?.toDouble() ?? 0;
 
-          // Precio COMPRA por pieza = peso_pieza × precio_compra_por_kg del material
-          comp['live_cost'] = weightPerUnit * liveCostPerKg;
+            // Precio VENTA: usar price_per_kg × peso, o unit_price si no hay precio por kg
+            comp['unit_cost'] = liveSalePerKg > 0
+                ? weightPerUnit * liveSalePerKg
+                : liveUnitPrice;
+            comp['live_cost'] = weightPerUnit * liveCostPerKg;
+            comp['material_name'] ??= materialData['name'];
+            comp['material_code'] ??= materialData['code'];
+          }
+          comp.remove('materials');
 
-          comp['material_name'] ??= materialData['name'];
-          comp['material_code'] ??= materialData['code'];
+          componentsByProduct.putIfAbsent(pid, () => []);
+          componentsByProduct[pid]!.add(comp);
         }
-        comp.remove('materials');
-
-        componentsByProduct.putIfAbsent(pid, () => []);
-        componentsByProduct[pid]!.add(comp);
       }
 
       // 5. Construir la lista de CompositeProduct
@@ -92,7 +92,7 @@ class CompositeProductsDataSource {
     final componentsResponse = await _client
         .from('product_components')
         .select(
-          '*, materials:material_id(price_per_kg, cost_price, name, code)',
+          '*, materials:material_id(price_per_kg, unit_price, cost_price, name, code)',
         )
         .eq('product_id', id)
         .order('sort_order');
@@ -103,13 +103,17 @@ class CompositeProductsDataSource {
       if (materialData != null) {
         final liveSalePerKg =
             (materialData['price_per_kg'] as num?)?.toDouble() ?? 0;
+        final liveUnitPrice =
+            (materialData['unit_price'] as num?)?.toDouble() ?? 0;
         final liveCostPerKg =
             (materialData['cost_price'] as num?)?.toDouble() ?? 0;
         final weightPerUnit =
             (comp['calculated_weight'] as num?)?.toDouble() ?? 0;
 
-        // Precio VENTA por pieza = peso × precio_venta_por_kg del material
-        comp['unit_cost'] = weightPerUnit * liveSalePerKg;
+        // Precio VENTA: usar price_per_kg × peso, o unit_price si no hay precio por kg
+        comp['unit_cost'] = liveSalePerKg > 0
+            ? weightPerUnit * liveSalePerKg
+            : liveUnitPrice;
 
         // Precio COMPRA por pieza = peso × precio_compra_por_kg del material
         comp['live_cost'] = weightPerUnit * liveCostPerKg;

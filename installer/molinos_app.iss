@@ -8,7 +8,7 @@
 ;             antes de compilar este script.
 
 #define MyAppName "Industrial de Molinos"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.3"
 #define MyAppPublisher "Industrial de Molinos"
 #define MyAppExeName "molinos_app.exe"
 #define MyAppDescription "Sistema de Gestion Contable para PYME"

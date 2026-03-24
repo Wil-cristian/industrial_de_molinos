@@ -464,40 +464,28 @@ class CompositeProduct {
   }
 }
 
-/// Categorías de productos compuestos
+/// Categorías de productos compuestos (dinámicas desde BD)
 class ProductCategories {
-  static const String molino = 'molino';
-  static const String transportador = 'transportador';
-  static const String tanque = 'tanque';
-  static const String estructura = 'estructura';
-  static const String maquinaria = 'maquinaria';
-  static const String otros = 'otros';
+  // Lista dinámica cargada desde settings provider
+  static List<String> _dynamicCategories = [];
 
-  static List<String> get all => [
-    molino,
-    transportador,
-    tanque,
-    estructura,
-    maquinaria,
-    otros,
+  /// Establece las categorías desde la base de datos
+  static void setCategories(List<String> categories) {
+    _dynamicCategories = categories;
+  }
+
+  /// Categorías por defecto (fallback si no se han cargado)
+  static const List<String> _defaults = [
+    'Molinos',
+    'Transportadores',
+    'Tanques',
+    'Estructuras',
+    'Maquinaria',
+    'Otros',
   ];
 
-  static String getDisplayName(String category) {
-    switch (category) {
-      case molino:
-        return 'Molinos';
-      case transportador:
-        return 'Transportadores';
-      case tanque:
-        return 'Tanques';
-      case estructura:
-        return 'Estructuras';
-      case maquinaria:
-        return 'Maquinaria';
-      case otros:
-        return 'Otros';
-      default:
-        return category;
-    }
-  }
+  static List<String> get all =>
+      _dynamicCategories.isNotEmpty ? _dynamicCategories : _defaults;
+
+  static String getDisplayName(String category) => category;
 }

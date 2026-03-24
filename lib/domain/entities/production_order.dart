@@ -207,6 +207,30 @@ class ProductionOrder {
 
   int get completedStages => stages.where((s) => s.isDone).length;
 
+  double get totalEstimatedHours =>
+      stages.fold(0.0, (sum, s) => sum + s.estimatedHours);
+
+  double get totalActualHours =>
+      stages.fold(0.0, (sum, s) => sum + s.actualHours);
+
+  /// null when no actual hours recorded yet
+  double? get efficiencyRatio {
+    if (totalActualHours == 0) return null;
+    return totalEstimatedHours / totalActualHours;
+  }
+
+  bool get isOverdue {
+    if (dueDate == null) return false;
+    if (status == 'completada') return false;
+    return dueDate!.isBefore(DateTime.now());
+  }
+
+  /// Positive = days remaining; negative = days overdue; null = no due date
+  int? get daysUntilDue {
+    if (dueDate == null) return null;
+    return dueDate!.difference(DateTime.now()).inDays;
+  }
+
   ProductionOrder copyWith({
     String? id,
     String? code,

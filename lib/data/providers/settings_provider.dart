@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/company_settings.dart';
 import '../../domain/entities/material_price.dart';
+import '../../domain/entities/storage_location.dart';
 import '../datasources/settings_datasource.dart';
 
 // =====================================================
@@ -13,6 +14,7 @@ class SettingsState {
   final List<ProductCategory> categories;
   final List<PayrollConcept> payrollConcepts;
   final InterestSettings interestSettings;
+  final List<StorageLocation> storageLocations;
   final DateTime? lastSyncTime;
   final Map<String, int> dataSummary;
   final bool isLoading;
@@ -24,6 +26,7 @@ class SettingsState {
     this.categories = const [],
     this.payrollConcepts = const [],
     this.interestSettings = const InterestSettings(),
+    this.storageLocations = const [],
     this.lastSyncTime,
     this.dataSummary = const {},
     this.isLoading = false,
@@ -36,6 +39,7 @@ class SettingsState {
     List<ProductCategory>? categories,
     List<PayrollConcept>? payrollConcepts,
     InterestSettings? interestSettings,
+    List<StorageLocation>? storageLocations,
     DateTime? lastSyncTime,
     Map<String, int>? dataSummary,
     bool? isLoading,
@@ -47,6 +51,7 @@ class SettingsState {
       categories: categories ?? this.categories,
       payrollConcepts: payrollConcepts ?? this.payrollConcepts,
       interestSettings: interestSettings ?? this.interestSettings,
+      storageLocations: storageLocations ?? this.storageLocations,
       lastSyncTime: lastSyncTime ?? this.lastSyncTime,
       dataSummary: dataSummary ?? this.dataSummary,
       isLoading: isLoading ?? this.isLoading,
@@ -68,7 +73,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
   /// Cargar toda la configuración
   Future<void> loadAll() async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       final results = await Future.wait([
         SettingsDataSource.getCompanySettings(),
@@ -77,6 +82,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
         SettingsDataSource.getPayrollConcepts(),
         SettingsDataSource.getLastSyncTime(),
         SettingsDataSource.getDataSummary(),
+        SettingsDataSource.getStorageLocations(),
       ]);
 
       state = state.copyWith(
@@ -86,6 +92,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
         payrollConcepts: results[3] as List<PayrollConcept>,
         lastSyncTime: results[4] as DateTime?,
         dataSummary: results[5] as Map<String, int>,
+        storageLocations: results[6] as List<StorageLocation>,
         isLoading: false,
       );
     } catch (e) {
@@ -133,9 +140,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
   Future<bool> addCategory(ProductCategory category) async {
     try {
       final created = await SettingsDataSource.createCategory(category);
-      state = state.copyWith(
-        categories: [...state.categories, created],
-      );
+      state = state.copyWith(categories: [...state.categories, created]);
       return true;
     } catch (e) {
       state = state.copyWith(error: 'Error al crear categoría: $e');
@@ -217,6 +222,63 @@ class SettingsNotifier extends Notifier<SettingsState> {
     }
   }
 
+  // =====================================================
+  // UBICACIONES DE ALMACENAMIENTO
+  // =====================================================
+
+  /// Agregar ubicación
+  Future<bool> addStorageLocation(String name, String? description) async {
+    try {
+      final created = await SettingsDataSource.createStorageLocation(
+        name,
+        description,
+      );
+      state = state.copyWith(
+        storageLocations: [...state.storageLocations, created],
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: 'Error al crear ubicación: $e');
+      return false;
+    }
+  }
+
+  /// Actualizar ubicación
+  Future<bool> updateStorageLocation(
+    String id,
+    String name,
+    String? description,
+  ) async {
+    try {
+      final updated = await SettingsDataSource.updateStorageLocation(
+        id,
+        name,
+        description,
+      );
+      final newList = state.storageLocations.map((l) {
+        return l.id == id ? updated : l;
+      }).toList();
+      state = state.copyWith(storageLocations: newList);
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: 'Error al actualizar ubicación: $e');
+      return false;
+    }
+  }
+
+  /// Eliminar ubicación
+  Future<bool> deleteStorageLocation(String id) async {
+    try {
+      await SettingsDataSource.deleteStorageLocation(id);
+      final newList = state.storageLocations.where((l) => l.id != id).toList();
+      state = state.copyWith(storageLocations: newList);
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: 'Error al eliminar ubicación: $e');
+      return false;
+    }
+  }
+
   /// Refrescar datos
   Future<void> refresh() async {
     await loadAll();
@@ -258,12 +320,14 @@ final categoriesProvider = Provider<List<ProductCategory>>((ref) {
 });
 
 /// Provider de conceptos de nómina por tipo
-final payrollConceptsByTypeProvider = Provider.family<List<PayrollConcept>, String>((ref, type) {
-  return ref.watch(settingsProvider)
-      .payrollConcepts
-      .where((c) => c.type == type && c.isActive)
-      .toList();
-});
+final payrollConceptsByTypeProvider =
+    Provider.family<List<PayrollConcept>, String>((ref, type) {
+      return ref
+          .watch(settingsProvider)
+          .payrollConcepts
+          .where((c) => c.type == type && c.isActive)
+          .toList();
+    });
 
 /// Provider de conceptos de ingreso
 final incomeConceptsProvider = Provider<List<PayrollConcept>>((ref) {

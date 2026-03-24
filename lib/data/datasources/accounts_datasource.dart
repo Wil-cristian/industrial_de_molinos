@@ -4,6 +4,7 @@ import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
 import 'storage_datasource.dart';
 import 'supabase_datasource.dart';
+import 'audit_log_datasource.dart';
 
 class AccountsDataSource {
   static const String _accountsTable = 'accounts';
@@ -199,7 +200,20 @@ class AccountsDataSource {
         .select()
         .single();
     AppLogger.success('? Movimiento insertado: $response');
-    return _movementFromJson(response);
+    final created = _movementFromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'cash',
+      recordId: created.id,
+      description:
+          'Registró movimiento de caja: ${movement.description} por \$${movement.amount.toStringAsFixed(0)}',
+      details: {
+        'type': movement.type,
+        'amount': movement.amount,
+        'description': movement.description,
+      },
+    );
+    return created;
   }
 
   /// Crear traslado entre cuentas (usa RPC atómica para evitar race conditions)

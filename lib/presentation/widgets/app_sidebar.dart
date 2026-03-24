@@ -17,6 +17,25 @@ class _AppSidebarState extends State<AppSidebar> {
   static const double _itemHeight = 48.0;
   static const double _logoHeight = 52.0;
 
+  final ScrollController _scrollController = ScrollController();
+  double _scrollOffset = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      setState(() {
+        _scrollOffset = _scrollController.offset;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   final List<NavItemData> _navItems = [
     NavItemData(
       icon: Icons.account_balance_wallet,
@@ -42,6 +61,11 @@ class _AppSidebarState extends State<AppSidebar> {
     NavItemData(icon: Icons.people, label: 'Clientes', route: '/customers'),
     NavItemData(icon: Icons.receipt_long, label: 'Ventas', route: '/invoices'),
     NavItemData(
+      icon: Icons.local_shipping,
+      label: 'Entregas',
+      route: '/pending-deliveries',
+    ),
+    NavItemData(
       icon: Icons.request_quote,
       label: 'Cotizar',
       route: '/quotations',
@@ -64,6 +88,16 @@ class _AppSidebarState extends State<AppSidebar> {
       route: '/accounting',
     ),
     NavItemData(icon: Icons.receipt_long, label: 'IVA', route: '/iva-control'),
+    NavItemData(
+      icon: Icons.manage_accounts,
+      label: 'Usuarios',
+      route: '/user-management',
+    ),
+    NavItemData(
+      icon: Icons.security,
+      label: 'Auditoría',
+      route: '/audit-panel',
+    ),
   ];
 
   int get _selectedIndex {
@@ -82,7 +116,7 @@ class _AppSidebarState extends State<AppSidebar> {
     return SizedBox(
       width: 88, // 80 del sidebar + 8 para la burbuja
       child: Stack(
-        clipBehavior: Clip.none,
+        clipBehavior: Clip.hardEdge,
         children: [
           // Sidebar
           Container(
@@ -118,6 +152,7 @@ class _AppSidebarState extends State<AppSidebar> {
                 // Nav Items
                 Expanded(
                   child: ListView(
+                    controller: _scrollController,
                     padding: EdgeInsets.zero,
                     children: List.generate(_navItems.length, (index) {
                       final item = _navItems[index];
@@ -138,11 +173,13 @@ class _AppSidebarState extends State<AppSidebar> {
           ),
 
           // Burbuja indicadora - sale del sidebar hacia la derecha
+          // Se ajusta con el scroll offset del ListView
           if (selectedIdx >= 0)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
-              top: _logoHeight + (selectedIdx * _itemHeight) + 4,
+              top:
+                  _logoHeight + (selectedIdx * _itemHeight) + 4 - _scrollOffset,
               left: 80, // justo al borde del sidebar
               child: Container(
                 width: 8,

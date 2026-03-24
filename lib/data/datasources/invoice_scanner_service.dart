@@ -41,7 +41,7 @@ class ScannedInvoiceItem {
     this.unit = 'UND',
     this.unitPrice = 0,
     this.discount = 0,
-    this.taxRate = 19.0,
+    this.taxRate = 0,
     this.taxAmount = 0,
     this.subtotal = 0,
     this.total = 0,
@@ -55,7 +55,7 @@ class ScannedInvoiceItem {
       unit: json['unit'] as String? ?? 'UND',
       unitPrice: (json['unit_price'] as num?)?.toDouble() ?? 0,
       discount: (json['discount'] as num?)?.toDouble() ?? 0,
-      taxRate: (json['tax_rate'] as num?)?.toDouble() ?? 19.0,
+      taxRate: (json['tax_rate'] as num?)?.toDouble() ?? 0,
       taxAmount: (json['tax_amount'] as num?)?.toDouble() ?? 0,
       subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
       total: (json['total'] as num?)?.toDouble() ?? 0,
@@ -168,7 +168,7 @@ class InvoiceScanResult {
     this.subtotal = 0,
     this.discount = 0,
     this.taxBase = 0,
-    this.taxRate = 19.0,
+    this.taxRate = 0,
     this.taxAmount = 0,
     this.retentionRteFte = 0,
     this.retentionIca = 0,
@@ -202,6 +202,53 @@ class InvoiceScanResult {
       }
     }
 
+    final rawSubtotal = (totals['subtotal'] as num?)?.toDouble() ?? 0;
+    final rawDiscount = (totals['discount'] as num?)?.toDouble() ?? 0;
+    var rawTaxRate = (totals['tax_rate'] as num?)?.toDouble() ?? 0;
+    var rawTaxAmount = (totals['tax_amount'] as num?)?.toDouble() ?? 0;
+    final rawTotal = (totals['total'] as num?)?.toDouble() ?? 0;
+
+    // ── Validación anti-IVA inventado ──
+    // Si el total leído ≈ subtotal (sin IVA), la IA inventó el impuesto.
+    // También si taxAmount = 0 pero taxRate > 0, resetear tasa.
+    if (rawTaxRate > 0) {
+      final subtotalMinusDiscount = rawSubtotal - rawDiscount;
+      final totalMatchesSubtotal = (rawTotal - subtotalMinusDiscount).abs() < 2;
+      final taxAmountIsZero = rawTaxAmount.abs() < 1;
+      // Si el total coincide con el subtotal, no hay IVA real
+      if (totalMatchesSubtotal || taxAmountIsZero) {
+        rawTaxRate = 0;
+        rawTaxAmount = 0;
+      }
+    }
+
+    // También limpiar IVA inventado en items individuales
+    final parsedItems =
+        (data['items'] as List?)
+            ?.map((e) => ScannedInvoiceItem.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+    // Si los totales globales no tienen IVA, limpiar items también
+    if (rawTaxRate == 0 && rawTaxAmount == 0) {
+      for (int i = 0; i < parsedItems.length; i++) {
+        final item = parsedItems[i];
+        if (item.taxRate > 0) {
+          parsedItems[i] = ScannedInvoiceItem(
+            referenceCode: item.referenceCode,
+            description: item.description,
+            quantity: item.quantity,
+            unit: item.unit,
+            unitPrice: item.unitPrice,
+            discount: item.discount,
+            taxRate: 0,
+            taxAmount: 0,
+            subtotal: item.subtotal,
+            total: item.subtotal, // total = subtotal sin IVA
+          );
+        }
+      }
+    }
+
     return InvoiceScanResult(
       confidence: (data['confidence'] as num?)?.toDouble() ?? 0,
       supplier: ScannedSupplierInfo.fromJson(
@@ -215,23 +262,17 @@ class InvoiceScanResult {
       cufe: invoiceData['cufe'] as String?,
       paymentMethod: invoiceData['payment_method'] as String?,
       creditDays: (invoiceData['credit_days'] as num?)?.toInt() ?? 0,
-      items:
-          (data['items'] as List?)
-              ?.map(
-                (e) => ScannedInvoiceItem.fromJson(e as Map<String, dynamic>),
-              )
-              .toList() ??
-          [],
-      subtotal: (totals['subtotal'] as num?)?.toDouble() ?? 0,
-      discount: (totals['discount'] as num?)?.toDouble() ?? 0,
+      items: parsedItems,
+      subtotal: rawSubtotal,
+      discount: rawDiscount,
       taxBase: (totals['tax_base'] as num?)?.toDouble() ?? 0,
-      taxRate: (totals['tax_rate'] as num?)?.toDouble() ?? 19.0,
-      taxAmount: (totals['tax_amount'] as num?)?.toDouble() ?? 0,
+      taxRate: rawTaxRate,
+      taxAmount: rawTaxAmount,
       retentionRteFte: (totals['retention_rte_fte'] as num?)?.toDouble() ?? 0,
       retentionIca: (totals['retention_ica'] as num?)?.toDouble() ?? 0,
       retentionIva: (totals['retention_iva'] as num?)?.toDouble() ?? 0,
       freight: (totals['freight'] as num?)?.toDouble() ?? 0,
-      total: (totals['total'] as num?)?.toDouble() ?? 0,
+      total: rawTaxAmount == 0 ? rawSubtotal - rawDiscount : rawTotal,
       notes: data['notes'] as String?,
       totalTokens: (usage?['total_tokens'] as num?)?.toInt() ?? 0,
       estimatedCost: usage?['estimated_cost_usd'] as String?,

@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/material_price.dart';
 import 'supabase_datasource.dart';
+import 'audit_log_datasource.dart';
 
 class MaterialsDataSource {
   static const String _table = 'material_prices';
@@ -11,11 +12,11 @@ class MaterialsDataSource {
   /// Obtener todos los materiales
   static Future<List<MaterialPrice>> getAll({bool activeOnly = true}) async {
     var query = _client.from(_table).select();
-    
+
     if (activeOnly) {
       query = query.eq('is_active', true);
     }
-    
+
     final response = await query.order('category').order('name');
     return response.map<MaterialPrice>((json) => _fromJson(json)).toList();
   }
@@ -34,7 +35,11 @@ class MaterialsDataSource {
   /// Obtener material por ID
   static Future<MaterialPrice?> getById(String id) async {
     try {
-      final response = await _client.from(_table).select().eq('id', id).single();
+      final response = await _client
+          .from(_table)
+          .select()
+          .eq('id', id)
+          .single();
       return _fromJson(response);
     } catch (e) {
       return null;
@@ -47,7 +52,7 @@ class MaterialsDataSource {
         .from(_table)
         .select('category')
         .eq('is_active', true);
-    
+
     final categories = <String>{};
     for (var item in response) {
       categories.add(item['category'] as String);
@@ -61,9 +66,21 @@ class MaterialsDataSource {
     data.remove('id');
     data.remove('updated_at');
     data.remove('created_at');
-    
+
     final response = await _client.from(_table).insert(data).select().single();
-    return _fromJson(response);
+    final created = _fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'materials',
+      recordId: created.id,
+      description: 'Creó material: ${material.name} (${material.category})',
+      details: {
+        'name': material.name,
+        'category': material.category,
+        'price_per_kg': material.pricePerKg,
+      },
+    );
+    return created;
   }
 
   /// Actualizar material
@@ -72,19 +89,32 @@ class MaterialsDataSource {
     data.remove('id');
     data.remove('updated_at');
     data.remove('created_at');
-    
+
     final response = await _client
         .from(_table)
         .update(data)
         .eq('id', material.id)
         .select()
         .single();
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'materials',
+      recordId: material.id,
+      description: 'Editó material: ${material.name}',
+      details: {'name': material.name, 'category': material.category},
+    );
     return _fromJson(response);
   }
 
   /// Eliminar material (soft delete)
   static Future<void> delete(String id) async {
     await _client.from(_table).update({'is_active': false}).eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'materials',
+      recordId: id,
+      description: 'Desactivó material ID: $id',
+    );
   }
 
   /// Actualizar precio de material
@@ -100,7 +130,8 @@ class MaterialsDataSource {
         laborRatePerHour: (response['labor_rate_per_hour'] ?? 25.0).toDouble(),
         energyRatePerKwh: (response['energy_rate_per_kwh'] ?? 0.5).toDouble(),
         gasRatePerM3: (response['gas_rate_per_m3'] ?? 2.0).toDouble(),
-        defaultProfitMargin: (response['default_profit_margin'] ?? 20.0).toDouble(),
+        defaultProfitMargin: (response['default_profit_margin'] ?? 20.0)
+            .toDouble(),
       );
     } catch (e) {
       return OperationalCosts();
@@ -115,7 +146,7 @@ class MaterialsDataSource {
       'gas_rate_per_m3': costs.gasRatePerM3,
       'default_profit_margin': costs.defaultProfitMargin,
     };
-    
+
     // Actualizar el único registro de costos operativos
     final existing = await _client.from(_costsTable).select('id').limit(1);
     if (existing.isNotEmpty) {

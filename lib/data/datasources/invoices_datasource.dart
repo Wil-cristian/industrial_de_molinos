@@ -6,6 +6,7 @@ import '../../domain/entities/cash_movement.dart';
 import 'supabase_datasource.dart';
 import 'accounts_datasource.dart';
 import 'customers_datasource.dart';
+import 'audit_log_datasource.dart';
 
 class InvoicesDataSource {
   static SupabaseClient get _client => SupabaseDataSource.client;
@@ -16,7 +17,7 @@ class InvoicesDataSource {
   static Future<List<Invoice>> getAll() async {
     final response = await _client
         .from('invoices')
-        .select()
+        .select('*, invoice_items(*)')
         .neq('series', 'CMP')
         .order('issue_date', ascending: false);
 
@@ -27,7 +28,7 @@ class InvoicesDataSource {
   static Future<List<Invoice>> getByStatus(String status) async {
     final response = await _client
         .from('invoices')
-        .select()
+        .select('*, invoice_items(*)')
         .neq('series', 'CMP')
         .eq('status', status)
         .order('issue_date', ascending: false);
@@ -39,7 +40,7 @@ class InvoicesDataSource {
   static Future<Invoice?> getById(String id) async {
     final response = await _client
         .from('invoices')
-        .select()
+        .select('*, invoice_items(*)')
         .eq('id', id)
         .maybeSingle();
 
@@ -51,7 +52,7 @@ class InvoicesDataSource {
   static Future<List<Invoice>> getByCustomerId(String customerId) async {
     final response = await _client
         .from('invoices')
-        .select()
+        .select('*, invoice_items(*)')
         .eq('customer_id', customerId)
         .order('issue_date', ascending: false);
 
@@ -63,7 +64,7 @@ class InvoicesDataSource {
     final today = DateTime.now().toIso8601String().split('T')[0];
     final response = await _client
         .from('invoices')
-        .select()
+        .select('*, invoice_items(*)')
         .neq('series', 'CMP')
         .lt('due_date', today)
         .not('status', 'in', '(paid,cancelled)')
@@ -76,7 +77,7 @@ class InvoicesDataSource {
   static Future<List<Invoice>> getPending() async {
     final response = await _client
         .from('invoices')
-        .select()
+        .select('*, invoice_items(*)')
         .neq('series', 'CMP')
         .not('status', 'in', '(paid,cancelled)')
         .order('issue_date', ascending: false);
@@ -106,6 +107,60 @@ class InvoicesDataSource {
     return response as String;
   }
 
+  // ==================== DUPLICATE DETECTION ====================
+
+  /// Verifica si ya existe una factura duplicada.
+  /// Busca por: mismo cliente + mismo total + misma fecha (±1 día) + no cancelada.
+  /// Opcionalmente busca por número de factura original en las notas.
+  /// Retorna la factura duplicada si existe, null si no hay duplicado.
+  static Future<Invoice?> findDuplicate({
+    required String customerId,
+    required double total,
+    required DateTime issueDate,
+    String? originalInvoiceNumber,
+  }) async {
+    // Tolerancia de ±1 día para la fecha
+    final dateFrom = issueDate.subtract(const Duration(days: 1));
+    final dateTo = issueDate.add(const Duration(days: 1));
+
+    final response = await _client
+        .from('invoices')
+        .select('*, invoice_items(*)')
+        .eq('customer_id', customerId)
+        .neq('status', 'cancelled')
+        .gte('issue_date', dateFrom.toIso8601String().split('T')[0])
+        .lte('issue_date', dateTo.toIso8601String().split('T')[0])
+        .order('created_at', ascending: false);
+
+    final invoices = (response as List)
+        .map((json) => Invoice.fromJson(json))
+        .toList();
+
+    // Buscar por total idéntico (con tolerancia de ±0.01)
+    for (final inv in invoices) {
+      if ((inv.total - total).abs() < 0.02) {
+        return inv;
+      }
+    }
+
+    // Si se pasó un número de factura original, buscar en notas
+    if (originalInvoiceNumber != null && originalInvoiceNumber.isNotEmpty) {
+      final notesResponse = await _client
+          .from('invoices')
+          .select('*, invoice_items(*)')
+          .neq('status', 'cancelled')
+          .ilike('notes', '%$originalInvoiceNumber%')
+          .limit(1);
+
+      final noteMatches = (notesResponse as List)
+          .map((j) => Invoice.fromJson(j))
+          .toList();
+      if (noteMatches.isNotEmpty) return noteMatches.first;
+    }
+
+    return null;
+  }
+
   // ==================== CREATE ====================
 
   /// Crea un nuevo recibo
@@ -115,6 +170,8 @@ class InvoicesDataSource {
     required Customer customer,
     required DateTime issueDate,
     DateTime? dueDate,
+    DateTime? deliveryDate,
+    String salePaymentType = 'cash',
     required double subtotal,
     double taxRate = 0.0,
     double discount = 0.0,
@@ -147,6 +204,8 @@ class InvoicesDataSource {
       'status': 'draft',
       'quotation_id': quotationId,
       'notes': notes,
+      'delivery_date': deliveryDate?.toIso8601String().split('T')[0],
+      'sale_payment_type': salePaymentType,
     };
 
     final response = await _client
@@ -165,6 +224,8 @@ class InvoicesDataSource {
     required Customer customer,
     required DateTime issueDate,
     DateTime? dueDate,
+    DateTime? deliveryDate,
+    String salePaymentType = 'cash',
     required List<InvoiceItem> items,
     double taxRate = 0.0,
     double discount = 0.0,
@@ -184,6 +245,8 @@ class InvoicesDataSource {
       customer: customer,
       issueDate: issueDate,
       dueDate: dueDate,
+      deliveryDate: deliveryDate,
+      salePaymentType: salePaymentType,
       subtotal: subtotal,
       taxRate: taxRate,
       discount: discount,
@@ -192,6 +255,20 @@ class InvoicesDataSource {
     );
 
     AppLogger.debug('?? Creada factura: ${invoice.number}');
+
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'invoices',
+      recordId: invoice.id,
+      description:
+          'Creó factura ${invoice.series}-${invoice.number} para ${customer.name} por \$${subtotal.toStringAsFixed(0)}',
+      details: {
+        'series': series,
+        'number': invoice.number,
+        'customer': customer.name,
+        'total': subtotal,
+      },
+    );
 
     // Insertar items
     for (int i = 0; i < items.length; i++) {
@@ -239,6 +316,12 @@ class InvoicesDataSource {
     return Invoice.fromJson(response);
   }
 
+  /// Cambia el estado SIN efectos colaterales (sin stock, sin recalcular).
+  /// Usar solo para facturas históricas escaneadas.
+  static Future<void> setStatusDirect(String id, String status) async {
+    await _client.from('invoices').update({'status': status}).eq('id', id);
+  }
+
   /// Actualiza el estado de un recibo
   static Future<void> updateStatus(String id, String status) async {
     // Obtener estado actual para manejar stock
@@ -265,6 +348,18 @@ class InvoicesDataSource {
     }
 
     await _client.from('invoices').update({'status': status}).eq('id', id);
+
+    AuditLogDatasource.log(
+      action: status == 'cancelled' ? 'cancel' : 'update',
+      module: 'invoices',
+      recordId: id,
+      description:
+          'Cambió estado de factura ${currentInvoice?.series ?? ""}-${currentInvoice?.number ?? ""} a $status',
+      details: {
+        'new_status': status,
+        'previous_status': currentInvoice?.status.name,
+      },
+    );
 
     // Recalcular balance del cliente después de cualquier cambio de estado
     if (currentInvoice?.customerId != null &&
@@ -603,6 +698,13 @@ class InvoicesDataSource {
     }
 
     await _client.from('invoices').delete().eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'invoices',
+      recordId: id,
+      description:
+          'Eliminó factura borrador ${invoice.series}-${invoice.number}',
+    );
     return true;
   }
 
@@ -728,6 +830,34 @@ class InvoicesDataSource {
       'pendingCount': pendingCount,
       'overdueCount': overdueCount,
     };
+  }
+
+  /// Actualiza los costos de materiales de una factura
+  static Future<void> updateMaterialCosts(
+    String invoiceId, {
+    required double materialCostTotal,
+    required double materialCostPending,
+  }) async {
+    await _client
+        .from('invoices')
+        .update({
+          'material_cost_total': materialCostTotal,
+          'material_cost_pending': materialCostPending,
+        })
+        .eq('id', invoiceId);
+  }
+
+  /// Obtiene facturas con adelanto para entregas pendientes
+  static Future<List<Invoice>> getPendingDeliveries() async {
+    final response = await _client
+        .from('invoices')
+        .select('*, invoice_items(*)')
+        .not('delivery_date', 'is', null)
+        .inFilter('status', ['partial', 'issued', 'paid'])
+        .order('delivery_date', ascending: true)
+        .order('issue_date', ascending: false);
+
+    return (response as List).map((json) => Invoice.fromJson(json)).toList();
   }
 
   /// Obtiene los últimos N recibos

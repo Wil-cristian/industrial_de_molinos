@@ -121,54 +121,87 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
       child: Column(
         children: [
           // Título + Acciones
-          Row(
-            children: [
-              Icon(
-                Icons.account_balance,
-                color: Theme.of(context).colorScheme.primary,
-                size: 22,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Contabilidad',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Total asientos badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${state.totalEntries} asientos',
-                  style: TextStyle(
-                    fontSize: 12,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final titleRow = Row(
+                children: [
+                  Icon(
+                    Icons.account_balance,
                     color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+                    size: 22,
                   ),
-                ),
-              ),
-              const Spacer(),
-              // Filtro de fechas
-              _buildDateFilter(),
-              const SizedBox(width: 8),
-              // Refresh
-              IconButton(
-                icon: const Icon(Icons.refresh, size: 20),
-                onPressed: () {
-                  ref.read(accountingProvider.notifier).loadAll();
-                },
-                tooltip: 'Actualizar',
-                visualDensity: VisualDensity.compact,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ],
+                  const SizedBox(width: 8),
+                  Text(
+                    'Contabilidad',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${state.totalEntries} asientos',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+              if (constraints.maxWidth < 500) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titleRow,
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(child: _buildDateFilter()),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.refresh, size: 20),
+                          onPressed: () {
+                            ref.read(accountingProvider.notifier).loadAll();
+                          },
+                          tooltip: 'Actualizar',
+                          visualDensity: VisualDensity.compact,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  ...titleRow.children,
+                  const Spacer(),
+                  _buildDateFilter(),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 20),
+                    onPressed: () {
+                      ref.read(accountingProvider.notifier).loadAll();
+                    },
+                    tooltip: 'Actualizar',
+                    visualDensity: VisualDensity.compact,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 4),
           // Tabs
@@ -1187,7 +1220,10 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Cabecera
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   // Número de asiento
                   Container(
@@ -1208,7 +1244,6 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   // Tipo referencia
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -1230,7 +1265,6 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                       ),
                     ),
                   ),
-                  const Spacer(),
                   // Fecha
                   Text(
                     Formatters.dateTime(e.entryDate),
@@ -1239,7 +1273,6 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(width: 8),
                   // Monto
                   Text(
                     Formatters.currency(e.totalDebit),
@@ -1248,7 +1281,6 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 4),
                   Icon(
                     _expanded ? Icons.expand_less : Icons.expand_more,
                     size: 18,

@@ -9,3 +9,4 @@ export 'quotation.dart';
 export 'account.dart';
 export 'cash_movement.dart';
 export 'analytics.dart';
+export 'chat_message.dart';

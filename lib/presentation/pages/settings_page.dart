@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/providers/auth_provider.dart';
+import '../../data/providers/settings_provider.dart';
+import '../../domain/entities/company_settings.dart';
+import '../../domain/entities/storage_location.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -49,6 +52,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     {'icon': Icons.notifications, 'label': 'Notificaciones'},
     {'icon': Icons.backup, 'label': 'Respaldo'},
     {'icon': Icons.lock, 'label': 'Seguridad'},
+    {'icon': Icons.location_on, 'label': 'Ubicaciones'},
+    {'icon': Icons.category, 'label': 'Categorías'},
   ];
 
   @override
@@ -299,6 +304,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         return _buildBackupSection();
       case 5:
         return _buildSecuritySection();
+      case 6:
+        return _buildLocationsSection();
+      case 7:
+        return _buildCategoriesSection();
       default:
         return _buildProfileSection();
     }
@@ -1488,6 +1497,542 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               );
             },
             child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SECCIÓN: UBICACIONES
+  // ============================================================
+  Widget _buildLocationsSection() {
+    final settings = ref.watch(settingsProvider);
+    final locations = settings.storageLocations;
+
+    // Load locations on first visit
+    if (locations.isEmpty && !settings.isLoading) {
+      Future.microtask(() => ref.read(settingsProvider.notifier).loadAll());
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Ubicaciones de Almacenamiento',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Gestiona las ubicaciones donde se almacenan los materiales.',
+                    style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: () => _showLocationDialog(),
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva Ubicación'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        if (settings.isLoading)
+          const Center(child: CircularProgressIndicator())
+        else if (locations.isEmpty)
+          _buildCard(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.location_off,
+                      size: 48,
+                      color: cs.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No hay ubicaciones configuradas',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Agrega ubicaciones para organizar dónde se almacenan los materiales.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          _buildCard(
+            title: 'Ubicaciones (${locations.length})',
+            child: Column(
+              children: [
+                for (int i = 0; i < locations.length; i++) ...[
+                  if (i > 0) const Divider(height: 1),
+                  _buildLocationTile(locations[i]),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildLocationTile(StorageLocation location) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: cs.primaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(Icons.location_on, color: cs.primary, size: 20),
+      ),
+      title: Text(
+        location.name,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      subtitle: location.description != null && location.description!.isNotEmpty
+          ? Text(
+              location.description!,
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            )
+          : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20),
+            onPressed: () => _showLocationDialog(location: location),
+            tooltip: 'Editar',
+          ),
+          IconButton(
+            icon: Icon(Icons.delete_outline, size: 20, color: cs.error),
+            onPressed: () => _confirmDeleteLocation(location),
+            tooltip: 'Eliminar',
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationDialog({StorageLocation? location}) {
+    final nameCtrl = TextEditingController(text: location?.name ?? '');
+    final descCtrl = TextEditingController(text: location?.description ?? '');
+    final isEdit = location != null;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isEdit ? 'Editar Ubicación' : 'Nueva Ubicación'),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre *',
+                  hintText: 'Ej: Bodega Principal, Taller, Patio...',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción (opcional)',
+                  hintText: 'Ej: Almacén principal de materiales',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.notes),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+
+              final notifier = ref.read(settingsProvider.notifier);
+              bool ok;
+              if (isEdit) {
+                ok = await notifier.updateStorageLocation(
+                  location.id,
+                  name,
+                  descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
+                );
+              } else {
+                ok = await notifier.addStorageLocation(
+                  name,
+                  descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
+                );
+              }
+
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      ok
+                          ? (isEdit
+                                ? 'Ubicación actualizada'
+                                : 'Ubicación creada')
+                          : 'Error al guardar ubicación',
+                    ),
+                    backgroundColor: ok ? AppColors.success : AppColors.danger,
+                  ),
+                );
+              }
+            },
+            child: Text(isEdit ? 'Guardar' : 'Crear'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SECCIÓN: CATEGORÍAS DE PRODUCTOS
+  // ============================================================
+
+  Widget _buildCategoriesSection() {
+    final settings = ref.watch(settingsProvider);
+    final categories = settings.categories;
+
+    if (categories.isEmpty && !settings.isLoading) {
+      Future.microtask(() => ref.read(settingsProvider.notifier).loadAll());
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Categorías de Productos',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Gestiona las categorías para clasificar productos compuestos.',
+                    style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: () => _showCategoryDialog(),
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva Categoría'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        if (settings.isLoading)
+          const Center(child: CircularProgressIndicator())
+        else if (categories.isEmpty)
+          _buildCard(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.category_outlined,
+                      size: 48,
+                      color: cs.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No hay categorías configuradas',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Agrega categorías para clasificar tus productos compuestos.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          _buildCard(
+            title: 'Categorías (${categories.length})',
+            child: Column(
+              children: [
+                for (int i = 0; i < categories.length; i++) ...[
+                  if (i > 0) const Divider(height: 1),
+                  _buildCategoryTile(categories[i]),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryTile(ProductCategory category) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: cs.primaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(Icons.category, color: cs.primary, size: 20),
+      ),
+      title: Text(
+        category.name,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      subtitle: category.description != null && category.description!.isNotEmpty
+          ? Text(
+              category.description!,
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            )
+          : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!category.isActive)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: cs.errorContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Inactiva',
+                style: TextStyle(fontSize: 11, color: cs.error),
+              ),
+            ),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20),
+            onPressed: () => _showCategoryDialog(category: category),
+            tooltip: 'Editar',
+          ),
+          IconButton(
+            icon: Icon(Icons.delete_outline, size: 20, color: cs.error),
+            onPressed: () => _confirmDeleteCategory(category),
+            tooltip: 'Eliminar',
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCategoryDialog({ProductCategory? category}) {
+    final nameCtrl = TextEditingController(text: category?.name ?? '');
+    final descCtrl = TextEditingController(text: category?.description ?? '');
+    final isEdit = category != null;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isEdit ? 'Editar Categoría' : 'Nueva Categoría'),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre *',
+                  hintText: 'Ej: Molinos, Transportadores, Tanques...',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.category),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción (opcional)',
+                  hintText: 'Ej: Molinos de bolas y equipos de molienda',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.notes),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+
+              final notifier = ref.read(settingsProvider.notifier);
+              bool ok;
+              if (isEdit) {
+                ok = await notifier.updateCategory(
+                  ProductCategory(
+                    id: category.id,
+                    name: name,
+                    description: descCtrl.text.trim().isEmpty
+                        ? null
+                        : descCtrl.text.trim(),
+                    isActive: category.isActive,
+                    createdAt: category.createdAt,
+                  ),
+                );
+              } else {
+                ok = await notifier.addCategory(
+                  ProductCategory(
+                    id: '',
+                    name: name,
+                    description: descCtrl.text.trim().isEmpty
+                        ? null
+                        : descCtrl.text.trim(),
+                  ),
+                );
+              }
+
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      ok
+                          ? (isEdit
+                                ? 'Categoría actualizada'
+                                : 'Categoría creada')
+                          : 'Error al guardar categoría',
+                    ),
+                    backgroundColor: ok ? AppColors.success : AppColors.danger,
+                  ),
+                );
+              }
+            },
+            child: Text(isEdit ? 'Guardar' : 'Crear'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteCategory(ProductCategory category) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar Categoría'),
+        content: Text(
+          '¿Eliminar "${category.name}"? Los productos que la usan conservarán la categoría hasta que se editen.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final ok = await ref
+                  .read(settingsProvider.notifier)
+                  .deleteCategory(category.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      ok ? 'Categoría eliminada' : 'Error al eliminar',
+                    ),
+                    backgroundColor: ok ? AppColors.success : AppColors.danger,
+                  ),
+                );
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteLocation(StorageLocation location) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar Ubicación'),
+        content: Text(
+          '¿Eliminar "${location.name}"? Los materiales que la usan conservarán el nombre.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final ok = await ref
+                  .read(settingsProvider.notifier)
+                  .deleteStorageLocation(location.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      ok ? 'Ubicación eliminada' : 'Error al eliminar',
+                    ),
+                    backgroundColor: ok ? AppColors.success : AppColors.danger,
+                  ),
+                );
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            child: const Text('Eliminar'),
           ),
         ],
       ),

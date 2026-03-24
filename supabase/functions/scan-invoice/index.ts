@@ -32,6 +32,17 @@ REGLAS CRÍTICAS:
 7. Para cada ítem, extrae código de referencia, descripción, cantidad, unidad, precio unitario, IVA y total.
 8. Detecta retenciones: RteFte, ReteICA, ReteIVA.
 
+REGLAS DE IVA (OBLIGATORIO — LEER CON MÁXIMA ATENCIÓN):
+- POR DEFECTO tax_rate=0 y tax_amount=0. Solo cambiar si se cumplen TODAS estas condiciones:
+  1. Hay una línea que dice "IVA" (o "Impuesto" o "Tax") con un MONTO EN PESOS escrito al lado.
+  2. El total del documento = subtotal + ese monto de IVA.
+- NO asumas 19% de IVA NUNCA. No calcules IVA tú mismo.
+- Si el documento tiene una casilla "IVA" pero está VACÍA, sin valor, o con $0: tax_rate=0, tax_amount=0.
+- Si ves "IVA 19%" como texto pero NO hay un monto de dinero escrito junto a él: tax_rate=0, tax_amount=0.
+- Si el total = subtotal (o total = subtotal - descuento): tax_rate=0, tax_amount=0.
+- Recibos de venta, cuentas de cobro, facturas simplificadas: casi NUNCA tienen IVA.
+- PROHIBIDO inventar o calcular montos de IVA. Solo TRANSCRIBIR lo que ESTÁ ESCRITO con un valor en pesos.
+
 REGLAS ESPECIALES PARA CANTIDAD Y UNIDAD (MUY IMPORTANTE):
 - "quantity" es la CANTIDAD DE PIEZAS O UNIDADES COMERCIALES del renglón (columna "Cant.", "Cantidad", "Qty"). Generalmente es un número entero pequeño (1, 2, 5, 10...).
 - NUNCA uses el peso ni las dimensiones como quantity. Si ves columnas separadas como "Cant. | Kg | Precio/Kg": quantity=Cant., unit=UND, unit_price=precio total del item.
@@ -81,8 +92,8 @@ const EXTRACTION_PROMPT = `Analiza esta imagen de factura y extrae toda la infor
       "unit": "UND, KG, MT, etc.",
       "unit_price": 0.00,
       "discount": 0.00,
-      "tax_rate": 19.00,
-      "tax_amount": 0.00,
+      "tax_rate": 0,
+      "tax_amount": 0,
       "subtotal": 0.00,
       "total": 0.00
     }
@@ -91,8 +102,8 @@ const EXTRACTION_PROMPT = `Analiza esta imagen de factura y extrae toda la infor
     "subtotal": 0.00,
     "discount": 0.00,
     "tax_base": 0.00,
-    "tax_rate": 19.00,
-    "tax_amount": 0.00,
+    "tax_rate": 0,
+    "tax_amount": 0,
     "retention_rte_fte": 0.00,
     "retention_ica": 0.00,
     "retention_iva": 0.00,

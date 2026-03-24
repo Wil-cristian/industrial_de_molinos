@@ -493,6 +493,20 @@ class PayrollDatasource {
     required DateTime endDate,
     DateTime? paymentDate,
   }) async {
+    // Primero buscar si ya existe un periodo con estos datos (limit 1 para manejar duplicados)
+    final existingList = await _client
+        .from('payroll_periods')
+        .select()
+        .eq('period_type', periodType)
+        .eq('period_number', periodNumber)
+        .eq('year', year)
+        .order('created_at', ascending: true)
+        .limit(1);
+
+    if (existingList.isNotEmpty) {
+      return PayrollPeriod.fromJson(existingList.first);
+    }
+
     final response = await _client
         .from('payroll_periods')
         .insert({
@@ -521,17 +535,18 @@ class PayrollDatasource {
     final isQ1 = now.day <= 15;
     final periodNumber = isQ1 ? (month * 2 - 1) : (month * 2);
 
-    // Buscar periodo quincenal actual
-    final existing = await _client
+    // Buscar periodo quincenal actual (usar limit(1) para manejar duplicados)
+    final existingList = await _client
         .from('payroll_periods')
         .select()
         .eq('period_type', 'quincenal')
         .eq('period_number', periodNumber)
         .eq('year', year)
-        .maybeSingle();
+        .order('created_at', ascending: true)
+        .limit(1);
 
-    if (existing != null) {
-      return PayrollPeriod.fromJson(existing);
+    if (existingList.isNotEmpty) {
+      return PayrollPeriod.fromJson(existingList.first);
     }
 
     // Crear nuevo periodo quincenal
@@ -693,10 +708,11 @@ class PayrollDatasource {
   }
 
   static Future<void> deletePayroll(String payrollId) async {
-    // Primero eliminar detalles
-    await _client.from('payroll_details').delete().eq('payroll_id', payrollId);
-    // Luego eliminar la nómina
-    await _client.from('payroll').delete().eq('id', payrollId);
+    // Usar función servidor que elimina con CASCADE correcto
+    await _client.rpc(
+      'delete_payroll_cascade',
+      params: {'p_payroll_id': payrollId},
+    );
   }
 
   // ==========================================
@@ -751,6 +767,85 @@ class PayrollDatasource {
     String payrollId,
   ) async {
     await _client.from('payroll_details').delete().eq('id', detailId);
+
+    // Recalcular totales
+    await _client.rpc(
+      'calculate_payroll_totals',
+      params: {'p_payroll_id': payrollId},
+    );
+  }
+
+  /// Insertar detalle buscando concepto por código directamente en BD (fallback)
+  static Future<void> addPayrollDetailDirect({
+    required String payrollId,
+    required String conceptCode,
+    required String conceptName,
+    required String type,
+    required double amount,
+    double quantity = 1,
+    double unitValue = 0,
+    String? notes,
+  }) async {
+    // Buscar el concepto en la BD por código
+    final conceptResult = await _client
+        .from('payroll_concepts')
+        .select('id')
+        .eq('code', conceptCode)
+        .limit(1);
+
+    String? conceptId;
+    if ((conceptResult as List).isNotEmpty) {
+      conceptId = conceptResult[0]['id'] as String;
+    } else {
+      // Si no existe, buscar cualquier concepto del mismo tipo
+      final fallback = await _client
+          .from('payroll_concepts')
+          .select('id')
+          .eq('type', type)
+          .eq('is_active', true)
+          .limit(1);
+      if ((fallback as List).isNotEmpty) {
+        conceptId = fallback[0]['id'] as String;
+      }
+    }
+
+    // Si no se encontró ningún concepto, crear uno automáticamente
+    if (conceptId == null) {
+      print('⚠️ Concepto $conceptCode no existe, creándolo automáticamente...');
+      try {
+        final category = type == 'ingreso' ? 'bonificaciones' : 'deducciones';
+        final newConcept = await _client
+            .from('payroll_concepts')
+            .insert({
+              'code': conceptCode,
+              'name': conceptName,
+              'type': type,
+              'category': category,
+              'is_active': true,
+            })
+            .select('id')
+            .single();
+        conceptId = newConcept['id'] as String;
+        print('✅ Concepto $conceptCode creado con id: $conceptId');
+      } catch (e) {
+        print('❌ Error creando concepto $conceptCode: $e');
+        return;
+      }
+    }
+
+    await _client.from('payroll_details').insert({
+      'payroll_id': payrollId,
+      'concept_id': conceptId,
+      'concept_code': conceptCode,
+      'concept_name': conceptName,
+      'type': type,
+      'quantity': quantity,
+      'unit_value': unitValue,
+      'amount': amount,
+      'notes': notes,
+    });
+
+    print('✅ Detalle agregado: $conceptCode ($conceptName) = $amount');
 
     // Recalcular totales
     await _client.rpc(

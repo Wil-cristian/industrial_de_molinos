@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/logger.dart';
 import '../../domain/entities/purchase_order.dart';
 import 'supabase_datasource.dart';
+import 'audit_log_datasource.dart';
 
 class PurchaseOrdersDataSource {
   static const String _table = 'purchase_orders';
@@ -75,7 +76,16 @@ class PurchaseOrdersDataSource {
           '*, proveedores(name), purchase_order_items(*, materials(name, code))',
         )
         .single();
-    return PurchaseOrder.fromJson(response);
+    final created = PurchaseOrder.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'expenses',
+      recordId: created.id,
+      description:
+          'Creó orden de compra por \$${order.total.toStringAsFixed(0)}',
+      details: {'total': order.total, 'supplier_id': order.supplierId},
+    );
+    return created;
   }
 
   /// Actualizar orden
@@ -148,6 +158,12 @@ class PurchaseOrdersDataSource {
     await _client.from(_itemsTable).delete().eq('order_id', id);
     // Luego la orden
     await _client.from(_table).delete().eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'expenses',
+      recordId: id,
+      description: 'Eliminó orden de compra ID: $id',
+    );
   }
 
   // =====================

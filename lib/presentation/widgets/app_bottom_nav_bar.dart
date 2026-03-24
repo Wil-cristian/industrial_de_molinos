@@ -66,6 +66,12 @@ class AppBottomNavBar extends StatelessWidget {
       branchIndex: 14,
     ),
     _BottomNavItem(
+      icon: Icons.local_shipping,
+      label: 'Entregas',
+      route: '/pending-deliveries',
+      branchIndex: 15,
+    ),
+    _BottomNavItem(
       icon: Icons.request_quote,
       label: 'Cotizaciones',
       route: '/quotations',
@@ -106,6 +112,18 @@ class AppBottomNavBar extends StatelessWidget {
       label: 'Control IVA',
       route: '/iva-control',
       branchIndex: 13,
+    ),
+    _BottomNavItem(
+      icon: Icons.manage_accounts,
+      label: 'Usuarios',
+      route: '/user-management',
+      branchIndex: 16,
+    ),
+    _BottomNavItem(
+      icon: Icons.security,
+      label: 'Auditoría',
+      route: '/audit-panel',
+      branchIndex: 17,
     ),
   ];
 

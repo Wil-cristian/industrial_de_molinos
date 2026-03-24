@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../datasources/supabase_datasource.dart';
+import '../datasources/audit_log_datasource.dart';
 import '../../core/utils/logger.dart';
 
 /// Estado de autenticación
@@ -67,6 +68,11 @@ class AuthNotifier extends Notifier<AuthState> {
         clearError: true,
       );
       AppLogger.success('Login exitoso: ${response.user?.email}');
+      AuditLogDatasource.log(
+        action: 'login',
+        module: 'auth',
+        description: 'Inició sesión: ${response.user?.email}',
+      );
       return true;
     } on AuthException catch (e) {
       String message;
@@ -130,6 +136,11 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> signOut() async {
     state = state.copyWith(isLoading: true);
     try {
+      AuditLogDatasource.log(
+        action: 'logout',
+        module: 'auth',
+        description: 'Cerró sesión',
+      );
       await SupabaseDataSource.signOut();
       state = const AuthState();
       AppLogger.success('Sesión cerrada');

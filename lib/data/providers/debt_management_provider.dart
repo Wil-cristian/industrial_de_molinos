@@ -170,7 +170,7 @@ class DebtManagementNotifier extends Notifier<DebtManagementState> {
           DebtWithInterest(
             customerId: invoice['customer_id'] ?? '',
             customerName: customerName,
-            invoiceId: invoice['id'],
+            invoiceId: invoice['id'] ?? '',
             invoiceNumber: invoice['full_number'] ?? '',
             originalAmount: total,
             pendingAmount: pending,

@@ -91,13 +91,41 @@ class PayrollNotifier extends Notifier<PayrollState> {
     try {
       final concepts = await PayrollDatasource.getConcepts();
       final periods = await PayrollDatasource.getPeriods();
-      final currentPeriod = await PayrollDatasource.getOrCreateCurrentPeriod();
 
-      // Asegurar que el periodo actual esté en la lista
+      // NO crear periodo automáticamente — solo buscar el más reciente que ya exista.
+      // El periodo solo se crea cuando el usuario genera una nómina explícitamente.
+      // EXCEPCIÓN: si no hay ningún periodo en la BD (primera vez), crear el actual.
+      final now = DateTime.now();
+      final isQ1 = now.day <= 15;
+      final currentPeriodNumber = isQ1 ? (now.month * 2 - 1) : (now.month * 2);
+
+      final quincenalPeriods =
+          periods.where((p) => p.periodType == 'quincenal').toList()
+            ..sort((a, b) {
+              final yearCmp = a.year.compareTo(b.year);
+              if (yearCmp != 0) return yearCmp;
+              return a.periodNumber.compareTo(b.periodNumber);
+            });
+
+      // Preferir el periodo de la quincena actual si ya existe, si no → el más reciente
+      PayrollPeriod? currentPeriod = quincenalPeriods
+          .where(
+            (p) => p.periodNumber == currentPeriodNumber && p.year == now.year,
+          )
+          .firstOrNull;
+      currentPeriod ??= quincenalPeriods.isNotEmpty
+          ? quincenalPeriods.last
+          : null;
+
       final allPeriods = [...periods];
-      if (currentPeriod != null &&
-          !allPeriods.any((p) => p.id == currentPeriod.id)) {
-        allPeriods.add(currentPeriod);
+
+      // Solo crear periodo si no hay NINGUNO (primera vez usando la app)
+      if (currentPeriod == null) {
+        final created = await PayrollDatasource.getOrCreateCurrentPeriod();
+        if (created != null) {
+          currentPeriod = created;
+          allPeriods.add(created);
+        }
       }
 
       print('📋 Periodos cargados: ${allPeriods.length}');
@@ -109,10 +137,48 @@ class PayrollNotifier extends Notifier<PayrollState> {
 
       List<EmployeePayroll> payrolls = [];
       if (currentPeriod != null) {
-        payrolls = await PayrollDatasource.getPayrolls(
-          periodId: currentPeriod.id,
-        );
+        // Buscar TODOS los periodos duplicados con la misma quincena
+        final duplicatePeriods = allPeriods
+            .where(
+              (p) =>
+                  p.periodType == 'quincenal' &&
+                  p.periodNumber == currentPeriod!.periodNumber &&
+                  p.year == currentPeriod.year,
+            )
+            .toList();
+
+        for (final dp in duplicatePeriods) {
+          final dpPayrolls = await PayrollDatasource.getPayrolls(
+            periodId: dp.id,
+          );
+          payrolls.addAll(dpPayrolls);
+        }
+
+        if (payrolls.isEmpty) {
+          payrolls = await PayrollDatasource.getPayrolls(
+            periodId: currentPeriod.id,
+          );
+        }
       }
+
+      // Si el periodo actual (matemático) está vacío, preferir el periodo más
+      // reciente que sí tenga nóminas. Ej: hoy día 16 → Q2 vacío → mostrar Q1.
+      if (payrolls.isEmpty && quincenalPeriods.length > 1) {
+        for (final p in quincenalPeriods.reversed) {
+          if (p.id == currentPeriod?.id) continue;
+          final pPayrolls = await PayrollDatasource.getPayrolls(periodId: p.id);
+          if (pPayrolls.isNotEmpty) {
+            currentPeriod = p;
+            payrolls = pPayrolls;
+            print(
+              '📋 Sin nóminas en quincena actual → usando ${p.displayName} (${pPayrolls.length} nóminas)',
+            );
+            break;
+          }
+        }
+      }
+
+      print('📋 Conceptos cargados: ${concepts.length}');
       print('📋 Nóminas en periodo actual: ${payrolls.length}');
 
       final incapacities = await PayrollDatasource.getIncapacities();
@@ -137,28 +203,49 @@ class PayrollNotifier extends Notifier<PayrollState> {
   Future<void> loadPayrollsForPeriod(String periodId) async {
     state = state.copyWith(isLoading: true);
     try {
-      final payrolls = await PayrollDatasource.getPayrolls(periodId: periodId);
       // Buscar periodo en state, o cargarlo desde DB si es nuevo
       PayrollPeriod? period = state.periods
           .where((p) => p.id == periodId)
           .firstOrNull;
+
+      List<PayrollPeriod> allPeriods = state.periods;
       if (period == null) {
         // Periodo nuevo, recargar lista de periodos
-        final allPeriods = await PayrollDatasource.getPeriods();
+        allPeriods = await PayrollDatasource.getPeriods();
         period = allPeriods.where((p) => p.id == periodId).firstOrNull;
-        state = state.copyWith(
-          payrolls: payrolls,
-          currentPeriod: period ?? state.currentPeriod,
-          periods: allPeriods,
-          isLoading: false,
-        );
-      } else {
-        state = state.copyWith(
-          payrolls: payrolls,
-          currentPeriod: period,
-          isLoading: false,
-        );
       }
+
+      // Buscar TODOS los periodos duplicados con la misma quincena
+      List<EmployeePayroll> payrolls = [];
+      if (period != null) {
+        final duplicatePeriods = allPeriods
+            .where(
+              (p) =>
+                  p.periodType == period!.periodType &&
+                  p.periodNumber == period.periodNumber &&
+                  p.year == period.year,
+            )
+            .toList();
+
+        for (final dp in duplicatePeriods) {
+          final dpPayrolls = await PayrollDatasource.getPayrolls(
+            periodId: dp.id,
+          );
+          payrolls.addAll(dpPayrolls);
+        }
+      }
+
+      // Fallback: si no encontró nada, intentar directamente con el periodId dado
+      if (payrolls.isEmpty) {
+        payrolls = await PayrollDatasource.getPayrolls(periodId: periodId);
+      }
+
+      state = state.copyWith(
+        payrolls: payrolls,
+        currentPeriod: period ?? state.currentPeriod,
+        periods: allPeriods,
+        isLoading: false,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -226,6 +313,15 @@ class PayrollNotifier extends Notifier<PayrollState> {
     bool skipReload = false,
   }) async {
     try {
+      // Si conceptos vacíos, intentar recargar
+      if (state.concepts.isEmpty) {
+        print('⚠️ Conceptos vacíos en addConceptToPayroll, recargando...');
+        final concepts = await PayrollDatasource.getConcepts();
+        if (concepts.isNotEmpty) {
+          state = state.copyWith(concepts: concepts);
+        }
+      }
+
       final concept = state.concepts.firstWhere((c) => c.id == conceptId);
 
       await PayrollDatasource.addPayrollDetail(
@@ -459,6 +555,17 @@ class PayrollNotifier extends Notifier<PayrollState> {
     }
   }
 
+  /// Cargar solo conceptos sin afectar el resto del estado
+  Future<void> loadConcepts() async {
+    try {
+      final concepts = await PayrollDatasource.getConcepts();
+      print('📋 loadConcepts: ${concepts.length} conceptos');
+      state = state.copyWith(concepts: concepts);
+    } catch (e) {
+      print('❌ Error cargando conceptos: $e');
+    }
+  }
+
   Future<bool> createLoan({
     required String employeeId,
     required double amount,
@@ -529,33 +636,27 @@ class PayrollNotifier extends Notifier<PayrollState> {
     required double hourlyRate,
     bool skipReload = false,
   }) async {
-    final conceptCode = type == 'normal' ? 'HORA_EXTRA' : 'HORA_EXTRA_$type';
-    final concept = state.concepts.firstWhere(
-      (c) => c.code == conceptCode,
-      orElse: () => state.incomeConcepts.first,
-    );
-
     double multiplier = 1.0;
     String typeLabel = '';
     switch (type) {
       case 'normal':
-        multiplier = 1.0; // Sin recargo
+        multiplier = 1.0;
         typeLabel = 'Normal';
         break;
       case '25':
-        multiplier = 1.25; // Diurna (6am-9pm)
+        multiplier = 1.25;
         typeLabel = 'Diurna';
         break;
       case '75':
-        multiplier = 1.75; // Nocturna (9pm-6am)
+        multiplier = 1.75;
         typeLabel = 'Nocturna';
         break;
       case '100':
-        multiplier = 2.0; // Dominical/Festivo diurna
+        multiplier = 2.0;
         typeLabel = 'Dom/Fest Diurna';
         break;
       case '150':
-        multiplier = 2.5; // Dominical/Festivo nocturna
+        multiplier = 2.5;
         typeLabel = 'Dom/Fest Nocturna';
         break;
       default:
@@ -567,16 +668,53 @@ class PayrollNotifier extends Notifier<PayrollState> {
     final recargoText = multiplier > 1.0
         ? ' (+${((multiplier - 1) * 100).toInt()}%)'
         : ' (sin recargo)';
+    final notesText = '${hours.toStringAsFixed(1)} hrs $typeLabel$recargoText';
 
-    return addConceptToPayroll(
-      payrollId: payrollId,
-      conceptId: concept.id,
-      amount: amount,
-      quantity: hours,
-      unitValue: hourlyRate * multiplier,
-      notes: '${hours.toStringAsFixed(1)} hrs $typeLabel$recargoText',
-      skipReload: skipReload,
-    );
+    // Si no hay conceptos, recargar
+    if (state.concepts.isEmpty) {
+      final concepts = await PayrollDatasource.getConcepts();
+      if (concepts.isNotEmpty) state = state.copyWith(concepts: concepts);
+    }
+
+    final conceptCode = type == 'normal' ? 'HORA_EXTRA' : 'HORA_EXTRA_$type';
+    final concept = state.concepts.isEmpty
+        ? null
+        : state.concepts.firstWhere(
+            (c) => c.code == conceptCode,
+            orElse: () => state.incomeConcepts.isNotEmpty
+                ? state.incomeConcepts.first
+                : state.concepts.first,
+          );
+
+    if (concept != null) {
+      return addConceptToPayroll(
+        payrollId: payrollId,
+        conceptId: concept.id,
+        amount: amount,
+        quantity: hours,
+        unitValue: hourlyRate * multiplier,
+        notes: notesText,
+        skipReload: skipReload,
+      );
+    } else {
+      // Fallback: insertar directamente
+      try {
+        await PayrollDatasource.addPayrollDetailDirect(
+          payrollId: payrollId,
+          conceptCode: conceptCode,
+          conceptName: 'Hora Extra $typeLabel',
+          type: 'ingreso',
+          amount: amount,
+          quantity: hours,
+          unitValue: hourlyRate * multiplier,
+          notes: notesText,
+        );
+        return true;
+      } catch (e) {
+        print('❌ Error agregando horas extras directamente: $e');
+        return false;
+      }
+    }
   }
 
   // ==========================================
@@ -591,20 +729,48 @@ class PayrollNotifier extends Notifier<PayrollState> {
     String? notes,
     bool skipReload = false,
   }) async {
-    final concept = state.deductionConcepts.firstWhere(
-      (c) => c.code == 'DESC_FALTAS',
-      orElse: () => state.deductionConcepts.first,
-    );
+    final notesText = notes ?? '${hours.toStringAsFixed(1)} horas faltantes';
+    final amount = hours * hourlyRate;
 
-    return addConceptToPayroll(
-      payrollId: payrollId,
-      conceptId: concept.id,
-      amount: hours * hourlyRate,
-      quantity: hours,
-      unitValue: hourlyRate,
-      notes: notes ?? '${hours.toStringAsFixed(1)} horas faltantes',
-      skipReload: skipReload,
-    );
+    // Si no hay conceptos, recargar
+    if (state.concepts.isEmpty) {
+      final concepts = await PayrollDatasource.getConcepts();
+      if (concepts.isNotEmpty) state = state.copyWith(concepts: concepts);
+    }
+
+    if (state.deductionConcepts.isNotEmpty) {
+      final concept = state.deductionConcepts.firstWhere(
+        (c) => c.code == 'DESC_FALTAS',
+        orElse: () => state.deductionConcepts.first,
+      );
+      return addConceptToPayroll(
+        payrollId: payrollId,
+        conceptId: concept.id,
+        amount: amount,
+        quantity: hours,
+        unitValue: hourlyRate,
+        notes: notesText,
+        skipReload: skipReload,
+      );
+    } else {
+      // Fallback: insertar directamente
+      try {
+        await PayrollDatasource.addPayrollDetailDirect(
+          payrollId: payrollId,
+          conceptCode: 'DESC_FALTAS',
+          conceptName: 'Descuento por Faltas',
+          type: 'descuento',
+          amount: amount,
+          quantity: hours,
+          unitValue: hourlyRate,
+          notes: notesText,
+        );
+        return true;
+      } catch (e) {
+        print('❌ Error agregando descuento horas directamente: $e');
+        return false;
+      }
+    }
   }
 
   Future<bool> addAbsenceDiscount({
@@ -668,11 +834,30 @@ class PayrollNotifier extends Notifier<PayrollState> {
   Future<bool> addLoanInstallmentDiscount({
     required String payrollId,
     required EmployeeLoan loan,
+    bool skipReload = false,
   }) async {
     try {
+      // Si no hay conceptos cargados, intentar recargarlos
       if (state.deductionConcepts.isEmpty) {
-        print('❌ No hay conceptos de descuento cargados');
-        // Aún así, registrar el pago del préstamo
+        print('⚠️ Conceptos de descuento vacíos, recargando...');
+        final concepts = await PayrollDatasource.getConcepts();
+        if (concepts.isNotEmpty) {
+          state = state.copyWith(concepts: concepts);
+        }
+      }
+
+      if (state.deductionConcepts.isEmpty) {
+        print('❌ No hay conceptos de descuento después de recargar');
+        // Insertar detalle directamente sin pasar por conceptos
+        await PayrollDatasource.addPayrollDetailDirect(
+          payrollId: payrollId,
+          conceptCode: 'DESC_PRESTAMO',
+          conceptName: 'Cuota Préstamo',
+          type: 'descuento',
+          amount: loan.installmentAmount,
+          notes:
+              'Cuota ${loan.paidInstallments + 1}/${loan.installments} - Préstamo',
+        );
         await _registerLoanPaymentDirect(loan: loan, payrollId: payrollId);
         return true;
       }
@@ -689,13 +874,14 @@ class PayrollNotifier extends Notifier<PayrollState> {
         '💰 Monto cuota: ${loan.installmentAmount}, Cuota ${loan.paidInstallments + 1}/${loan.installments}',
       );
 
-      // Intentar agregar como detalle de nómina (opcional, no bloquea el pago)
+      // Agregar como detalle de nómina (skipReload para evitar reload intermedio)
       await addConceptToPayroll(
         payrollId: payrollId,
         conceptId: concept.id,
         amount: loan.installmentAmount,
         notes:
             'Cuota ${loan.paidInstallments + 1}/${loan.installments} - Préstamo',
+        skipReload: skipReload,
       );
 
       // SIEMPRE registrar el pago del préstamo (esto salda la deuda)

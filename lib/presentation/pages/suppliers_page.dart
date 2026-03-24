@@ -71,41 +71,95 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    '${state.suppliers.length} proveedores registrados',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const Spacer(),
-                  _buildQuickStat(
-                    'Total Deuda',
-                    '\$${Helpers.formatNumber(state.suppliers.fold(0.0, (sum, s) => sum + s.currentDebt))}',
-                    AppColors.warning,
-                    Icons.account_balance_wallet,
-                  ),
-                  const SizedBox(width: 12),
-                  _buildQuickStat(
-                    'Activos',
-                    state.suppliers.where((s) => s.isActive).length.toString(),
-                    AppColors.success,
-                    Icons.local_shipping,
-                  ),
-                  const SizedBox(width: 16),
-                  FilledButton.icon(
-                    onPressed: _showAddSupplierDialog,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Nuevo Proveedor'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 600) {
+                    // Mobile: stack vertically
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${state.suppliers.length} proveedores registrados',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            _buildQuickStat(
+                              'Total Deuda',
+                              '\$${Helpers.formatNumber(state.suppliers.fold(0.0, (sum, s) => sum + s.currentDebt))}',
+                              AppColors.warning,
+                              Icons.account_balance_wallet,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildQuickStat(
+                              'Activos',
+                              state.suppliers
+                                  .where((s) => s.isActive)
+                                  .length
+                                  .toString(),
+                              AppColors.success,
+                              Icons.local_shipping,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: _showAddSupplierDialog,
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Nuevo Proveedor'),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Text(
+                        '${state.suppliers.length} proveedores registrados',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                      const Spacer(),
+                      _buildQuickStat(
+                        'Total Deuda',
+                        '\$${Helpers.formatNumber(state.suppliers.fold(0.0, (sum, s) => sum + s.currentDebt))}',
+                        AppColors.warning,
+                        Icons.account_balance_wallet,
+                      ),
+                      const SizedBox(width: 12),
+                      _buildQuickStat(
+                        'Activos',
+                        state.suppliers
+                            .where((s) => s.isActive)
+                            .length
+                            .toString(),
+                        AppColors.success,
+                        Icons.local_shipping,
+                      ),
+                      const SizedBox(width: 16),
+                      FilledButton.icon(
+                        onPressed: _showAddSupplierDialog,
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Nuevo Proveedor'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 12),
               // Búsqueda y filtros
@@ -389,53 +443,67 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 4),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
             children: [
-              Icon(
-                Icons.badge,
-                size: 14,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '${supplier.documentType}: ${supplier.documentNumber}',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                ),
-              ),
-              if (supplier.phone != null && supplier.phone!.isNotEmpty) ...[
-                const SizedBox(width: 16),
-                Icon(
-                  Icons.phone,
-                  size: 14,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  supplier.phone!,
-                  style: TextStyle(
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.badge,
+                    size: 14,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 12,
                   ),
-                ),
-              ],
-              if (supplier.email != null && supplier.email!.isNotEmpty) ...[
-                const SizedBox(width: 16),
-                Icon(
-                  Icons.email,
-                  size: 14,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  supplier.email!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 12,
+                  const SizedBox(width: 4),
+                  Text(
+                    '${supplier.documentType}: ${supplier.documentNumber}',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
                   ),
+                ],
+              ),
+              if (supplier.phone != null && supplier.phone!.isNotEmpty)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.phone,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      supplier.phone!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              if (supplier.email != null && supplier.email!.isNotEmpty)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.email,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      supplier.email!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
             ],
           ),
           if (debt > 0) ...[

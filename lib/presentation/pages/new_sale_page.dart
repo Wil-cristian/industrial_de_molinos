@@ -46,12 +46,14 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
   final _notesController = TextEditingController();
 
   // Forma de pago
-  String _paymentType = 'cash'; // 'cash' o 'credit'
+  String _paymentType = 'cash'; // 'cash', 'credit', 'advance'
   String _paymentMethod = 'cash'; // cash, transfer, card
   Account? _selectedAccount;
   List<Account> _accounts = [];
   int _creditDays = 30;
   int _installments = 1;
+  final _advanceAmountController = TextEditingController();
+  int _advanceCreditDays = 30;
 
   // Estado
   bool _isSaving = false;
@@ -116,6 +118,14 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
 
   double get _total => _subtotal + _profitAmount - _discountAmount;
 
+  double get _advanceAmount {
+    final v = double.tryParse(_advanceAmountController.text) ?? 0;
+    return v.clamp(0, _total);
+  }
+
+  // Indica si los datos iniciales ya cargaron (evita render issues con Stepper en Windows)
+  bool _dataReady = false;
+
   // Stock consolidado
   List<Map<String, dynamic>> _getStockIssues() {
     if (_consolidatedStock == null) return [];
@@ -131,12 +141,24 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).clearSnackBars();
     });
-    Future.microtask(() {
-      ref.read(customersProvider.notifier).loadCustomers();
-      ref.read(productsProvider.notifier).loadProducts();
-      ref.read(inventoryProvider.notifier).loadMaterials();
-    });
-    _loadAccounts();
+    _initData();
+  }
+
+  Future<void> _initData() async {
+    // Cargar datos base en paralelo antes de mostrar el Stepper
+    await Future.wait([
+      Future.microtask(
+        () => ref.read(customersProvider.notifier).loadCustomers(),
+      ),
+      Future.microtask(
+        () => ref.read(productsProvider.notifier).loadProducts(),
+      ),
+      Future.microtask(
+        () => ref.read(inventoryProvider.notifier).loadMaterials(),
+      ),
+      _loadAccounts(),
+    ]);
+    if (mounted) setState(() => _dataReady = true);
   }
 
   Future<void> _loadAccounts() async {
@@ -155,12 +177,24 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    // Hide the Stepper during hot-reload warm-up frame to avoid
+    // Windows mouse_tracker zero-size hit-test assertions.
+    setState(() => _dataReady = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _dataReady = true);
+    });
+  }
+
+  @override
   void dispose() {
     _laborPercentController.dispose();
     _indirectCostsController.dispose();
     _profitMarginController.dispose();
     _discountController.dispose();
     _notesController.dispose();
+    _advanceAmountController.dispose();
     super.dispose();
   }
 
@@ -282,120 +316,133 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
     final mainContent = Column(
       children: [
         _buildHeader(),
-        Expanded(
-          child: Form(
-            key: _formKey,
-            child: Stepper(
-              currentStep: _currentStep,
-              onStepContinue: _onStepContinue,
-              onStepCancel: _onStepCancel,
-              onStepTapped: (step) => setState(() => _currentStep = step),
-              controlsBuilder: (context, details) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Row(
-                    children: [
-                      if (_currentStep < 3)
-                        ElevatedButton(
-                          onPressed: details.onStepContinue,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _saleThemeColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
+        if (!_dataReady)
+          const Expanded(child: Center(child: CircularProgressIndicator()))
+        else
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: Stepper(
+                currentStep: _currentStep,
+                onStepContinue: _onStepContinue,
+                onStepCancel: _onStepCancel,
+                onStepTapped: (step) => setState(() => _currentStep = step),
+                controlsBuilder: (context, details) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Row(
+                      children: [
+                        if (_currentStep < 3)
+                          ElevatedButton(
+                            onPressed: details.onStepContinue,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _saleThemeColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 10,
+                              ),
+                            ),
+                            child: const Text('Continuar'),
+                          ),
+                        if (_currentStep == 3) ...[
+                          ElevatedButton.icon(
+                            onPressed: _isSaving ? null : _showSalePreview,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _saleThemeColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                            ),
+                            icon: _isSaving
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.receipt_long),
+                            label: Text(
+                              _isSaving
+                                  ? 'Procesando...'
+                                  : 'Previsualizar Venta',
                             ),
                           ),
-                          child: const Text('Continuar'),
-                        ),
-                      if (_currentStep == 3) ...[
-                        ElevatedButton.icon(
-                          onPressed: _isSaving ? null : _showSalePreview,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _saleThemeColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
+                        ],
+                        const SizedBox(width: 12),
+                        if (_currentStep > 0)
+                          TextButton(
+                            onPressed: details.onStepCancel,
+                            child: const Text('Atrás'),
                           ),
-                          icon: _isSaving
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.receipt_long),
-                          label: Text(
-                            _isSaving ? 'Procesando...' : 'Previsualizar Venta',
-                          ),
-                        ),
                       ],
-                      const SizedBox(width: 12),
-                      if (_currentStep > 0)
-                        TextButton(
-                          onPressed: details.onStepCancel,
-                          child: const Text('Atrás'),
-                        ),
-                    ],
+                    ),
+                  );
+                },
+                steps: [
+                  Step(
+                    title: const Text('Cliente'),
+                    subtitle: Text(
+                      _selectedCustomerId != null
+                          ? _customers.firstWhere(
+                              (c) => c['id'] == _selectedCustomerId,
+                              orElse: () => <String, dynamic>{'name': '...'},
+                            )['name']
+                          : 'Selecciona un cliente',
+                    ),
+                    isActive: _currentStep >= 0,
+                    state: _currentStep > 0
+                        ? StepState.complete
+                        : StepState.indexed,
+                    content: _currentStep == 0
+                        ? _buildCustomerStep()
+                        : const SizedBox(width: double.infinity),
                   ),
-                );
-              },
-              steps: [
-                Step(
-                  title: const Text('Cliente'),
-                  subtitle: Text(
-                    _selectedCustomerId != null
-                        ? _customers.firstWhere(
-                            (c) => c['id'] == _selectedCustomerId,
-                            orElse: () => <String, dynamic>{'name': '...'},
-                          )['name']
-                        : 'Selecciona un cliente',
+                  Step(
+                    title: const Text('Productos'),
+                    subtitle: Text(
+                      '${_items.length} items - ${Helpers.formatNumber(_totalWeight)} kg',
+                    ),
+                    isActive: _currentStep >= 1,
+                    state: _currentStep > 1
+                        ? StepState.complete
+                        : StepState.indexed,
+                    content: _currentStep == 1
+                        ? _buildComponentsStep()
+                        : const SizedBox(width: double.infinity),
                   ),
-                  isActive: _currentStep >= 0,
-                  state: _currentStep > 0
-                      ? StepState.complete
-                      : StepState.indexed,
-                  content: _buildCustomerStep(),
-                ),
-                Step(
-                  title: const Text('Productos'),
-                  subtitle: Text(
-                    '${_items.length} items - ${Helpers.formatNumber(_totalWeight)} kg',
+                  Step(
+                    title: const Text('Costos y Precios'),
+                    subtitle: Text(
+                      'M.O. + Indirectos: ${Helpers.formatCurrency(_laborCost + _indirectCosts)}',
+                    ),
+                    isActive: _currentStep >= 2,
+                    state: _currentStep > 2
+                        ? StepState.complete
+                        : StepState.indexed,
+                    content: _currentStep == 2
+                        ? _buildCostsStep()
+                        : const SizedBox(width: double.infinity),
                   ),
-                  isActive: _currentStep >= 1,
-                  state: _currentStep > 1
-                      ? StepState.complete
-                      : StepState.indexed,
-                  content: _buildComponentsStep(),
-                ),
-                Step(
-                  title: const Text('Costos y Precios'),
-                  subtitle: Text(
-                    'M.O. + Indirectos: ${Helpers.formatCurrency(_laborCost + _indirectCosts)}',
+                  Step(
+                    title: const Text('Pago y Confirmación'),
+                    subtitle: Text('Total: ${Helpers.formatCurrency(_total)}'),
+                    isActive: _currentStep >= 3,
+                    state: _currentStep == 3
+                        ? StepState.indexed
+                        : StepState.indexed,
+                    content: _currentStep == 3
+                        ? _buildPaymentStep()
+                        : const SizedBox(width: double.infinity),
                   ),
-                  isActive: _currentStep >= 2,
-                  state: _currentStep > 2
-                      ? StepState.complete
-                      : StepState.indexed,
-                  content: _buildCostsStep(),
-                ),
-                Step(
-                  title: const Text('Pago y Confirmación'),
-                  subtitle: Text('Total: ${Helpers.formatCurrency(_total)}'),
-                  isActive: _currentStep >= 3,
-                  state: _currentStep == 3
-                      ? StepState.indexed
-                      : StepState.indexed,
-                  content: _buildPaymentStep(),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
       ],
     );
 
@@ -515,7 +562,11 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  _paymentType == 'cash' ? 'Contado' : 'Crédito',
+                  _paymentType == 'cash'
+                      ? 'Contado'
+                      : _paymentType == 'advance'
+                      ? 'Adelanto'
+                      : 'Crédito',
                   style: const TextStyle(color: Colors.white, fontSize: 11),
                 ),
               ),
@@ -654,6 +705,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   border: Border.all(
                     color: _paymentType == 'cash'
                         ? const Color(0xFF81C784)
+                        : _paymentType == 'advance'
+                        ? const Color(0xFFCE93D8)
                         : const Color(0xFFFFB74D),
                   ),
                 ),
@@ -665,23 +718,33 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                         Icon(
                           _paymentType == 'cash'
                               ? Icons.payments
+                              : _paymentType == 'advance'
+                              ? Icons.savings
                               : Icons.calendar_month,
                           color: _paymentType == 'cash'
                               ? const Color(0xFF388E3C)
+                              : _paymentType == 'advance'
+                              ? const Color(0xFF7B1FA2)
                               : const Color(0xFFF57C00),
                           size: 16,
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          _paymentType == 'cash'
-                              ? 'Pago de Contado'
-                              : 'Crédito ($_creditDays días)',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: _paymentType == 'cash'
-                                ? const Color(0xFF2E7D32)
-                                : const Color(0xFFEF6C00),
+                        Expanded(
+                          child: Text(
+                            _paymentType == 'cash'
+                                ? 'Pago de Contado'
+                                : _paymentType == 'advance'
+                                ? 'Adelanto + Crédito'
+                                : 'Crédito ($_creditDays días)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: _paymentType == 'cash'
+                                  ? const Color(0xFF2E7D32)
+                                  : _paymentType == 'advance'
+                                  ? const Color(0xFF7B1FA2)
+                                  : const Color(0xFFEF6C00),
+                            ),
                           ),
                         ),
                       ],
@@ -708,6 +771,25 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                           ),
                         ),
                       ),
+                    if (_paymentType == 'advance') ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          'Adelanto: ${Helpers.formatCurrency(_advanceAmount)}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: const Color(0xFF7B1FA2),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'Restante: ${Helpers.formatCurrency(_total - _advanceAmount)} ($_advanceCreditDays días)',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: const Color(0xFF9E9E9E),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1041,424 +1123,455 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
               border: Border.all(color: const Color(0xFFE0E0E0)),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(5),
-                    ),
-                  ),
-                  child: const Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          'Producto',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: IntrinsicWidth(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(5),
                         ),
                       ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          'Material',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                      child: const Row(
+                        children: [
+                          SizedBox(
+                            width: 180,
+                            child: Text(
+                              'Producto',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Cant.',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                          SizedBox(
+                            width: 120,
+                            child: Text(
+                              'Material',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Peso',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                          SizedBox(
+                            width: 70,
+                            child: Text(
+                              'Cant.',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'P/kg',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                          SizedBox(
+                            width: 100,
+                            child: Text(
+                              'Peso',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
                           ),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Total',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                          SizedBox(
+                            width: 100,
+                            child: Text(
+                              'P/kg',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
                           ),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                      SizedBox(width: 36),
-                    ],
-                  ),
-                ),
-                ..._items.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  final isRecipe = item['isRecipe'] == true;
-                  final List<dynamic> components = item['components'] ?? [];
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(color: const Color(0xFFE0E0E0)),
+                          SizedBox(
+                            width: 120,
+                            child: Text(
+                              'Total',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                          SizedBox(width: 36),
+                        ],
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                    ..._items.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      final isRecipe = item['isRecipe'] == true;
+                      final List<dynamic> components = item['components'] ?? [];
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: const Color(0xFFE0E0E0)),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              flex: 3,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      if (isRecipe) ...[
-                                        Icon(
-                                          Icons.receipt_long,
-                                          size: 14,
-                                          color: const Color(0xFF8E24AA),
-                                        ),
-                                        const SizedBox(width: 4),
-                                      ],
-                                      Expanded(
-                                        child: Text(
-                                          item['name'],
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        item['dimensions'] ?? '',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: const Color(0xFF757575),
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      if (isRecipe &&
-                                          item['livePricingUsed'] == true) ...[
-                                        const SizedBox(width: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 4,
-                                            vertical: 1,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFE8F5E9),
-                                            borderRadius: BorderRadius.circular(
-                                              3,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.sync,
-                                                size: 8,
-                                                color: const Color(0xFF43A047),
-                                              ),
-                                              const SizedBox(width: 2),
-                                              Text(
-                                                'EN VIVO',
-                                                style: TextStyle(
-                                                  fontSize: 7,
-                                                  color: const Color(
-                                                    0xFF388E3C,
-                                                  ),
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                item['material'] ?? '-',
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                '${item['quantity']}',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                '${Helpers.formatNumber(item['totalWeight'] as double? ?? 0)} kg',
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                Helpers.formatCurrency(
-                                  item['pricePerKg'] as double? ??
-                                      item['unitSalePrice'] as double? ??
-                                      0,
-                                ),
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                Helpers.formatCurrency(
-                                  item['totalPrice'] as double? ?? 0,
-                                ),
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 36,
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: Color(0xFFC62828),
-                                  size: 18,
-                                ),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: () {
-                                  setState(() => _items.removeAt(index));
-                                  _refreshConsolidatedStock();
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        // Sub-items: componentes de la receta
-                        if (isRecipe && components.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Container(
-                            margin: const EdgeInsets.only(left: 18, right: 36),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE3F2FD),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: const Color(0xFF90CAF9),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
                               children: [
-                                Text(
-                                  'Componentes (${components.length})',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 10,
-                                    color: const Color(0xFF0D47A1),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                ...components.take(5).map((c) {
-                                  final compName =
-                                      c['name'] ??
-                                      c['material_name'] ??
-                                      'Material';
-                                  final compQty =
-                                      (c['quantity'] ?? c['required_qty'] ?? 0)
-                                          as num;
-                                  final weightTotal =
-                                      (c['weight_total'] as num?)?.toDouble() ??
-                                      0;
-                                  final hasStock = c['has_stock'] ?? true;
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 2),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          flex: 3,
-                                          child: Text(
-                                            '$compQty× $compName',
-                                            style: const TextStyle(
-                                              fontSize: 10,
+                                SizedBox(
+                                  width: 180,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          if (isRecipe) ...[
+                                            Icon(
+                                              Icons.receipt_long,
+                                              size: 14,
+                                              color: const Color(0xFF8E24AA),
                                             ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        if (weightTotal > 0)
+                                            const SizedBox(width: 4),
+                                          ],
                                           Expanded(
                                             child: Text(
-                                              '${Helpers.formatNumber(weightTotal)} kg',
-                                              style: TextStyle(
-                                                fontSize: 9,
-                                                color: const Color(0xFF757575),
+                                              item['name'],
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 12,
                                               ),
-                                              textAlign: TextAlign.right,
                                             ),
                                           ),
-                                        const SizedBox(width: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 4,
-                                            vertical: 1,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: hasStock == true
-                                                ? const Color(0xFFC8E6C9)
-                                                : const Color(0xFFFFCDD2),
-                                            borderRadius: BorderRadius.circular(
-                                              3,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            hasStock == true
-                                                ? 'OK'
-                                                : 'Sin stock',
-                                            style: TextStyle(
-                                              fontSize: 8,
-                                              fontWeight: FontWeight.w600,
-                                              color: hasStock == true
-                                                  ? const Color(0xFF388E3C)
-                                                  : const Color(0xFFD32F2F),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }),
-                                if (components.length > 5)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 2),
-                                    child: Text(
-                                      '+${components.length - 5} componentes más',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: const Color(0xFF1976D2),
-                                        fontStyle: FontStyle.italic,
+                                        ],
                                       ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            item['dimensions'] ?? '',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: const Color(0xFF757575),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          if (isRecipe &&
+                                              item['livePricingUsed'] ==
+                                                  true) ...[
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 4,
+                                                    vertical: 1,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFE8F5E9),
+                                                borderRadius:
+                                                    BorderRadius.circular(3),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.sync,
+                                                    size: 8,
+                                                    color: const Color(
+                                                      0xFF43A047,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 2),
+                                                  Text(
+                                                    'EN VIVO',
+                                                    style: TextStyle(
+                                                      fontSize: 7,
+                                                      color: const Color(
+                                                        0xFF388E3C,
+                                                      ),
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 120,
+                                  child: Text(
+                                    item['material'] ?? '-',
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 70,
+                                  child: Text(
+                                    '${item['quantity']}',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 100,
+                                  child: Text(
+                                    '${Helpers.formatNumber(item['totalWeight'] as double? ?? 0)} kg',
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 100,
+                                  child: Text(
+                                    Helpers.formatCurrency(
+                                      item['pricePerKg'] as double? ??
+                                          item['unitSalePrice'] as double? ??
+                                          0,
+                                    ),
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 120,
+                                  child: Text(
+                                    Helpers.formatCurrency(
+                                      item['totalPrice'] as double? ?? 0,
+                                    ),
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
                                     ),
                                   ),
+                                ),
+                                SizedBox(
+                                  width: 70,
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      color: Color(0xFFC62828),
+                                      size: 18,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () {
+                                      setState(() => _items.removeAt(index));
+                                      _refreshConsolidatedStock();
+                                    },
+                                  ),
+                                ),
                               ],
                             ),
+                            // Sub-items: componentes de la receta
+                            if (isRecipe && components.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Container(
+                                margin: const EdgeInsets.only(
+                                  left: 18,
+                                  right: 36,
+                                ),
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE3F2FD),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: const Color(0xFF90CAF9),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Componentes (${components.length})',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 10,
+                                        color: const Color(0xFF0D47A1),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    ...components.take(5).map((c) {
+                                      final compName =
+                                          c['name'] ??
+                                          c['material_name'] ??
+                                          'Material';
+                                      final compQty =
+                                          (c['quantity'] ??
+                                                  c['required_qty'] ??
+                                                  0)
+                                              as num;
+                                      final weightTotal =
+                                          (c['weight_total'] as num?)
+                                              ?.toDouble() ??
+                                          0;
+                                      final hasStock = c['has_stock'] ?? true;
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 2,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              flex: 3,
+                                              child: Text(
+                                                '$compQty× $compName',
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (weightTotal > 0)
+                                              Expanded(
+                                                child: Text(
+                                                  '${Helpers.formatNumber(weightTotal)} kg',
+                                                  style: TextStyle(
+                                                    fontSize: 9,
+                                                    color: const Color(
+                                                      0xFF757575,
+                                                    ),
+                                                  ),
+                                                  textAlign: TextAlign.right,
+                                                ),
+                                              ),
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 4,
+                                                    vertical: 1,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: hasStock == true
+                                                    ? const Color(0xFFC8E6C9)
+                                                    : const Color(0xFFFFCDD2),
+                                                borderRadius:
+                                                    BorderRadius.circular(3),
+                                              ),
+                                              child: Text(
+                                                hasStock == true
+                                                    ? 'OK'
+                                                    : 'Sin stock',
+                                                style: TextStyle(
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: hasStock == true
+                                                      ? const Color(0xFF388E3C)
+                                                      : const Color(0xFFD32F2F),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }),
+                                    if (components.length > 5)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          '+${components.length - 5} componentes más',
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            color: const Color(0xFF1976D2),
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }),
+                    // Total
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _saleThemeColor.withValues(alpha: 0.05),
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(5),
+                        ),
+                        border: Border(
+                          top: BorderSide(color: const Color(0xFFE0E0E0)),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(
+                            width: 300,
+                            child: Text(
+                              'TOTAL',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
+                          SizedBox(
+                            width: 70,
+                            child: Text(
+                              '${_items.length}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 100,
+                            child: Text(
+                              '${Helpers.formatNumber(_totalWeight)} kg',
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 100),
+                          SizedBox(
+                            width: 120,
+                            child: Text(
+                              Helpers.formatCurrency(_materialsCost),
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: _saleThemeColor,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 36),
                         ],
-                      ],
+                      ),
                     ),
-                  );
-                }),
-                // Total
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _saleThemeColor.withValues(alpha: 0.05),
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(5),
-                    ),
-                    border: Border(
-                      top: BorderSide(color: const Color(0xFFE0E0E0)),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        flex: 3,
-                        child: Text(
-                          'TOTAL',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      const Expanded(flex: 2, child: SizedBox()),
-                      Expanded(
-                        child: Text(
-                          '${_items.length}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          '${Helpers.formatNumber(_totalWeight)} kg',
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      const Expanded(child: SizedBox()),
-                      Expanded(
-                        child: Text(
-                          Helpers.formatCurrency(_materialsCost),
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: _saleThemeColor,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 36),
-                    ],
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
       ],
@@ -1798,10 +1911,20 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              // Tercera opción: Adelanto
+              _buildPaymentTypeCard(
+                'advance',
+                'Adelanto',
+                'Pago parcial ahora, resto a crédito',
+                Icons.savings,
+                const Color(0xFF7B1FA2),
+              ),
               const SizedBox(height: 20),
               // Opciones según tipo de pago
               if (_paymentType == 'cash') _buildCashOptions(),
               if (_paymentType == 'credit') _buildCreditOptions(),
+              if (_paymentType == 'advance') _buildAdvanceOptions(),
             ],
           ),
         ),
@@ -1885,6 +2008,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 'Pago',
                 _paymentType == 'cash'
                     ? '${_getPaymentMethodLabel()} (contado)'
+                    : _paymentType == 'advance'
+                    ? 'Adelanto ${Helpers.formatCurrency(_advanceAmount)} + crédito $_advanceCreditDays días'
                     : 'Crédito $_creditDays días${_installments > 1 ? ' ($_installments cuotas)' : ''}',
               ),
               const Divider(height: 24),
@@ -2352,6 +2477,208 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
     );
   }
 
+  Widget _buildAdvanceOptions() {
+    final remaining = _total - _advanceAmount;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Monto del adelanto',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF424242),
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: _advanceAmountController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.attach_money),
+                  hintText: '0.00',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  labelText: 'Adelanto',
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Quick buttons: 30%, 50%
+            Column(
+              children: [
+                OutlinedButton(
+                  onPressed: () {
+                    _advanceAmountController.text = (_total * 0.3)
+                        .toStringAsFixed(0);
+                    setState(() {});
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    foregroundColor: const Color(0xFF7B1FA2),
+                  ),
+                  child: const Text('30%'),
+                ),
+                const SizedBox(height: 4),
+                OutlinedButton(
+                  onPressed: () {
+                    _advanceAmountController.text = (_total * 0.5)
+                        .toStringAsFixed(0);
+                    setState(() {});
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    foregroundColor: const Color(0xFF7B1FA2),
+                  ),
+                  child: const Text('50%'),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'M\u00e9todo de pago del adelanto',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF424242),
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _buildMethodChip('cash', 'Efectivo', Icons.money),
+            const SizedBox(width: 8),
+            _buildMethodChip('transfer', 'Transferencia', Icons.swap_horiz),
+            const SizedBox(width: 8),
+            _buildMethodChip('card', 'Tarjeta', Icons.credit_card),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Cuenta destino',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF424242),
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: _selectedAccount?.id,
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.account_balance_wallet),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          items: _accounts
+              .map(
+                (a) => DropdownMenuItem(
+                  value: a.id,
+                  child: Text(
+                    '${a.name} (${Helpers.formatCurrency(a.balance)})',
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedAccount = _accounts.firstWhere((a) => a.id == value);
+            });
+          },
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Plazo para el restante',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF424242),
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _buildAdvanceDaysChip(15),
+            const SizedBox(width: 8),
+            _buildAdvanceDaysChip(30),
+            const SizedBox(width: 8),
+            _buildAdvanceDaysChip(60),
+            const SizedBox(width: 8),
+            _buildAdvanceDaysChip(90),
+          ],
+        ),
+        if (_advanceAmount > 0) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3E5F5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFCE93D8)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Adelanto ahora:',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      Helpers.formatCurrency(_advanceAmount),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: const Color(0xFF7B1FA2),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Restante a cr\u00e9dito:',
+                      style: TextStyle(color: const Color(0xFF757575)),
+                    ),
+                    Text(
+                      '${Helpers.formatCurrency(remaining)} ($_advanceCreditDays d\u00edas)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFEF6C00),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAdvanceDaysChip(int days) {
+    final isSelected = _advanceCreditDays == days;
+    return ChoiceChip(
+      selected: isSelected,
+      label: Text('$days d\u00edas'),
+      onSelected: (_) => setState(() => _advanceCreditDays = days),
+      selectedColor: const Color(0xFF7B1FA2),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : const Color(0xFF424242),
+      ),
+    );
+  }
+
   Widget _buildFinalSummaryRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -2406,11 +2733,21 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       return;
     }
 
-    if (_paymentType == 'cash' &&
+    if ((_paymentType == 'cash' || _paymentType == 'advance') &&
         (_selectedAccount == null || _selectedAccount!.id.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Seleccione una cuenta destino para el pago'),
+          backgroundColor: Color(0xFFF9A825),
+        ),
+      );
+      return;
+    }
+
+    if (_paymentType == 'advance' && _advanceAmount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ingrese el monto del adelanto'),
           backgroundColor: Color(0xFFF9A825),
         ),
       );
@@ -2441,8 +2778,11 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         paymentType: _paymentType,
         paymentMethodLabel: _getPaymentMethodLabel(),
         accountName: _selectedAccount?.name ?? '',
-        creditDays: _creditDays,
+        creditDays: _paymentType == 'advance'
+            ? _advanceCreditDays
+            : _creditDays,
         installments: _installments,
+        advanceAmount: _advanceAmount,
         stockMaterials: _allConsolidatedMaterials,
         stockIssues: _getStockIssues(),
         onConfirm: () {
@@ -2465,7 +2805,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       return;
     }
 
-    if (_paymentType == 'cash' &&
+    if ((_paymentType == 'cash' || _paymentType == 'advance') &&
         (_selectedAccount == null || _selectedAccount!.id.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2603,6 +2943,40 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                     ),
                   ],
                 ),
+              ] else if (_paymentType == 'advance') ...[
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.savings,
+                      color: Color(0xFF7B1FA2),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Adelanto: ${Helpers.formatCurrency(_advanceAmount)} (${_getPaymentMethodLabel()} → ${_selectedAccount?.name ?? ''})',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_month,
+                      color: Color(0xFFF9A825),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Restante: ${Helpers.formatCurrency(_total - _advanceAmount)} a crédito ($_advanceCreditDays días)',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
               ] else ...[
                 Row(
                   children: [
@@ -2680,6 +3054,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       // Fecha de vencimiento según tipo de pago
       final dueDate = _paymentType == 'credit'
           ? DateTime.now().add(Duration(days: _creditDays))
+          : _paymentType == 'advance'
+          ? DateTime.now().add(Duration(days: _advanceCreditDays))
           : DateTime.now();
 
       // 1. Crear factura con items
@@ -2693,6 +3069,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         customer: customer,
         issueDate: DateTime.now(),
         dueDate: dueDate,
+        salePaymentType: _paymentType,
         taxRate: 0,
         items: _items.map((item) {
           final qty = (item['quantity'] as num?)?.toDouble() ?? 1;
@@ -2725,7 +3102,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       await InvoicesDataSource.updateStatus(invoice.id, 'issued');
       AppLogger.info('📦 Inventario descontado para ${invoice.fullNumber}');
 
-      // 3. Si es pago de contado, registrar pago
+      // 3. Registrar pago según tipo
       if (_paymentType == 'cash' && _selectedAccount != null) {
         await InvoicesDataSource.registerPayment(
           invoiceId: invoice.id,
@@ -2736,6 +3113,20 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         );
         AppLogger.info(
           '💰 Pago registrado: ${invoice.total} en ${_selectedAccount!.name}',
+        );
+      } else if (_paymentType == 'advance' &&
+          _selectedAccount != null &&
+          _advanceAmount > 0) {
+        await InvoicesDataSource.registerPayment(
+          invoiceId: invoice.id,
+          amount: _advanceAmount,
+          method: _paymentMethod,
+          accountId: _selectedAccount!.id,
+          reference:
+              'Adelanto - ${invoice.fullNumber} (restante: ${Helpers.formatCurrency(_total - _advanceAmount)} a $_advanceCreditDays días)',
+        );
+        AppLogger.info(
+          '💰 Adelanto registrado: $_advanceAmount en ${_selectedAccount!.name}',
         );
       }
 
@@ -2757,6 +3148,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 Text(
                   _paymentType == 'cash'
                       ? 'Venta ${invoice.fullNumber} completada y pagada'
+                      : _paymentType == 'advance'
+                      ? 'Venta ${invoice.fullNumber} con adelanto de ${Helpers.formatCurrency(_advanceAmount)}'
                       : 'Venta ${invoice.fullNumber} creada a crédito',
                 ),
               ],
@@ -4259,6 +4652,7 @@ class _SalePreviewDialog extends StatefulWidget {
   final int installments;
   final List<Map<String, dynamic>> stockMaterials;
   final List<Map<String, dynamic>> stockIssues;
+  final double advanceAmount;
   final VoidCallback onConfirm;
 
   const _SalePreviewDialog({
@@ -4282,6 +4676,7 @@ class _SalePreviewDialog extends StatefulWidget {
     required this.installments,
     required this.stockMaterials,
     required this.stockIssues,
+    this.advanceAmount = 0,
     required this.onConfirm,
   });
 
@@ -4464,9 +4859,13 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   Icon(
                     widget.paymentType == 'cash'
                         ? Icons.payments
+                        : widget.paymentType == 'advance'
+                        ? Icons.savings
                         : Icons.calendar_month,
                     color: widget.paymentType == 'cash'
                         ? const Color(0xFF2E7D32)
+                        : widget.paymentType == 'advance'
+                        ? const Color(0xFF7B1FA2)
                         : const Color(0xFFF9A825),
                     size: 18,
                   ),
@@ -4475,6 +4874,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                     child: Text(
                       widget.paymentType == 'cash'
                           ? 'Pago de contado: ${widget.paymentMethodLabel} → ${widget.accountName}'
+                          : widget.paymentType == 'advance'
+                          ? 'Adelanto: ${Helpers.formatCurrency(widget.advanceAmount)} → ${widget.accountName} | Restante: ${Helpers.formatCurrency(widget.total - widget.advanceAmount)} a ${widget.creditDays} días'
                           : 'Crédito: ${widget.creditDays} días${widget.installments > 1 ? ', ${widget.installments} cuotas de \$${Helpers.formatNumber(widget.total / widget.installments)}' : ''}',
                       style: TextStyle(
                         fontSize: 12,
@@ -4821,7 +5222,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                   _formatDate(DateTime.now()),
                                 ),
                                 const SizedBox(height: 6),
-                                if (widget.paymentType == 'credit')
+                                if (widget.paymentType == 'credit' ||
+                                    widget.paymentType == 'advance')
                                   _buildDateRow(
                                     'Vencimiento:',
                                     _formatDate(
@@ -4839,18 +5241,24 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                   decoration: BoxDecoration(
                                     color: widget.paymentType == 'cash'
                                         ? const Color(0xFFC8E6C9)
+                                        : widget.paymentType == 'advance'
+                                        ? const Color(0xFFE1BEE7)
                                         : const Color(0xFFFFE0B2),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
                                     widget.paymentType == 'cash'
                                         ? 'CONTADO - ${widget.paymentMethodLabel}'
+                                        : widget.paymentType == 'advance'
+                                        ? 'ADELANTO ${Helpers.formatCurrency(widget.advanceAmount)}'
                                         : 'CRÉDITO ${widget.creditDays} días${widget.installments > 1 ? ' (${widget.installments} cuotas)' : ''}',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
                                       color: widget.paymentType == 'cash'
                                           ? const Color(0xFF2E7D32)
+                                          : widget.paymentType == 'advance'
+                                          ? const Color(0xFF7B1FA2)
                                           : const Color(0xFFEF6C00),
                                     ),
                                   ),
@@ -5878,11 +6286,15 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                     decoration: BoxDecoration(
                       color: widget.paymentType == 'cash'
                           ? const Color(0xFFE8F5E9)
+                          : widget.paymentType == 'advance'
+                          ? const Color(0xFFF3E5F5)
                           : const Color(0xFFFFF3E0),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: widget.paymentType == 'cash'
                             ? const Color(0xFFA5D6A7)
+                            : widget.paymentType == 'advance'
+                            ? const Color(0xFFCE93D8)
                             : const Color(0xFFFFCC80),
                       ),
                     ),
@@ -5891,9 +6303,13 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                         Icon(
                           widget.paymentType == 'cash'
                               ? Icons.payments
+                              : widget.paymentType == 'advance'
+                              ? Icons.savings
                               : Icons.calendar_month,
                           color: widget.paymentType == 'cash'
                               ? const Color(0xFF388E3C)
+                              : widget.paymentType == 'advance'
+                              ? const Color(0xFF7B1FA2)
                               : const Color(0xFFF57C00),
                         ),
                         const SizedBox(width: 10),
@@ -5904,17 +6320,23 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                               Text(
                                 widget.paymentType == 'cash'
                                     ? 'Pago de Contado'
+                                    : widget.paymentType == 'advance'
+                                    ? 'Adelanto + Crédito'
                                     : 'Pago a Crédito',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: widget.paymentType == 'cash'
                                       ? const Color(0xFF2E7D32)
+                                      : widget.paymentType == 'advance'
+                                      ? const Color(0xFF7B1FA2)
                                       : const Color(0xFFEF6C00),
                                 ),
                               ),
                               Text(
                                 widget.paymentType == 'cash'
                                     ? '${widget.paymentMethodLabel} → ${widget.accountName}'
+                                    : widget.paymentType == 'advance'
+                                    ? 'Adelanto: ${Helpers.formatCurrency(widget.advanceAmount)} → ${widget.accountName} | Restante: ${Helpers.formatCurrency(widget.total - widget.advanceAmount)} a ${widget.creditDays} días'
                                     : '${widget.creditDays} días${widget.installments > 1 ? ' | ${widget.installments} cuotas de \$${Helpers.formatNumber(widget.total / widget.installments)}' : ''}',
                                 style: TextStyle(
                                   fontSize: 12,

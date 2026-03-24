@@ -103,8 +103,14 @@ class ActivitiesDatasource {
             'due_date': activity.dueDate?.toIso8601String().split('T')[0],
             'status': _statusToString(activity.status),
             'priority': _priorityToString(activity.priority),
-            'customer_id': activity.customerId,
-            'invoice_id': activity.invoiceId,
+            'customer_id':
+                activity.customerId != null && activity.customerId!.isNotEmpty
+                ? activity.customerId
+                : null,
+            'invoice_id':
+                activity.invoiceId != null && activity.invoiceId!.isNotEmpty
+                ? activity.invoiceId
+                : null,
             'amount': activity.amount,
             'color': activity.color,
             'icon': activity.icon,

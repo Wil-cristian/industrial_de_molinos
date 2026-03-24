@@ -13,6 +13,7 @@ import '../../data/providers/invoices_provider.dart';
 import '../../data/providers/quotations_provider.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/invoice.dart';
+import '../widgets/customer_form_dialog.dart';
 import 'suppliers_page.dart';
 import 'purchase_orders_page.dart';
 
@@ -688,7 +689,21 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
     );
   }
 
-  void _showAddCustomerDialog(BuildContext context, {Customer? customer}) {
+  void _showAddCustomerDialog(
+    BuildContext context, {
+    Customer? customer,
+  }) async {
+    final result = await CustomerFormDialog.show(context, initial: customer);
+    if (result != null) {
+      ref.read(customersProvider.notifier).loadCustomers();
+    }
+  }
+
+  // ignore: unused_element - Legacy inline form replaced by CustomerFormDialog
+  void _showAddCustomerDialogLegacy(
+    BuildContext context, {
+    Customer? customer,
+  }) {
     final isEditMode = customer != null;
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(

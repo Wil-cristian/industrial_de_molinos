@@ -10,6 +10,7 @@ import '../../data/datasources/invoices_datasource.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/providers/composite_products_provider.dart';
 import '../../core/utils/print_service.dart';
+import '../widgets/sale_invoice_scan_dialog.dart';
 
 class InvoicesPage extends ConsumerStatefulWidget {
   const InvoicesPage({super.key});
@@ -23,6 +24,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
   late TabController _tabController;
   String _searchQuery = '';
   String _selectedStatus = 'Todos';
+  String _selectedPaymentType = 'Todos';
   DateTimeRange? _dateRange;
 
   // Los datos vienen del provider
@@ -32,12 +34,14 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
         .map(
           (inv) => {
             'id': inv.id,
+            'series': inv.series,
             'number': '${inv.series}-${inv.number}',
             'customer': inv.customerName,
             'customerId': inv.customerId,
             'customerRuc': inv.customerDocument,
             'date': inv.issueDate,
             'dueDate': inv.dueDate,
+            'deliveryDate': inv.deliveryDate,
             'items': inv.items.length,
             'subtotal': inv.subtotal,
             'tax': inv.taxAmount,
@@ -45,6 +49,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             'paid': inv.paidAmount,
             'status': _mapStatus(inv.status),
             'paymentMethod': inv.paymentMethod?.name,
+            'salePaymentType': inv.salePaymentType,
             'notes': inv.notes,
             'products': inv.items
                 .map(
@@ -139,6 +144,11 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
         matchesStatus = invoice['status'] == _selectedStatus;
       }
 
+      bool matchesPaymentType = true;
+      if (_selectedPaymentType != 'Todos') {
+        matchesPaymentType = invoice['salePaymentType'] == _selectedPaymentType;
+      }
+
       bool matchesDate = true;
       if (_dateRange != null) {
         final invoiceDate = invoice['date'] as DateTime;
@@ -149,7 +159,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             invoiceDate.isBefore(_dateRange!.end.add(const Duration(days: 1)));
       }
 
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch &&
+          matchesStatus &&
+          matchesPaymentType &&
+          matchesDate;
     }).toList();
   }
 
@@ -302,6 +315,95 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                         ),
                         SizedBox(
                           height: 36,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerLowest,
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedPaymentType,
+                                isDense: true,
+                                items: [
+                                  DropdownMenuItem(
+                                    value: 'Todos',
+                                    child: Text(
+                                      'Tipo: Todos',
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'cash',
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.payments,
+                                          size: 14,
+                                          color: const Color(0xFF2E7D32),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Contado',
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'credit',
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.calendar_month,
+                                          size: 14,
+                                          color: const Color(0xFFF9A825),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Crédito',
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'advance',
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.savings,
+                                          size: 14,
+                                          color: const Color(0xFF7B1FA2),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Adelanto',
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                onChanged: (value) => setState(
+                                  () => _selectedPaymentType = value!,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 36,
                           child: OutlinedButton.icon(
                             onPressed: () async {
                               final range = await showDateRangePicker(
@@ -342,6 +444,30 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                               padding: EdgeInsets.zero,
                             ),
                           ),
+                        SizedBox(
+                          height: 36,
+                          child: FilledButton.icon(
+                            onPressed: () async {
+                              final created = await SaleInvoiceScanDialog.show(
+                                context,
+                              );
+                              if (created == true) {
+                                ref.read(invoicesProvider.notifier).refresh();
+                              }
+                            },
+                            icon: const Icon(Icons.receipt_long, size: 16),
+                            label: const Text(
+                              'Reconciliar Deudas',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFFE65100),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                            ),
+                          ),
+                        ),
                         SizedBox(
                           height: 36,
                           child: FilledButton.icon(
@@ -542,6 +668,39 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
     );
   }
 
+  String _paymentTypeLabel(String? type) {
+    switch (type) {
+      case 'advance':
+        return 'Adelanto';
+      case 'credit':
+        return 'Crédito';
+      default:
+        return 'Contado';
+    }
+  }
+
+  Color _paymentTypeColor(String? type) {
+    switch (type) {
+      case 'advance':
+        return const Color(0xFF7B1FA2);
+      case 'credit':
+        return const Color(0xFFF9A825);
+      default:
+        return const Color(0xFF2E7D32);
+    }
+  }
+
+  IconData _paymentTypeIcon(String? type) {
+    switch (type) {
+      case 'advance':
+        return Icons.savings;
+      case 'credit':
+        return Icons.calendar_month;
+      default:
+        return Icons.payments;
+    }
+  }
+
   DataRow _buildInvoiceRow(Map<String, dynamic> invoice) {
     Color statusColor;
     IconData statusIcon;
@@ -574,6 +733,8 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
     final total = invoice['total'] as double;
     final paid = invoice['paid'] as double;
     final pending = total - paid;
+    final saleType = invoice['salePaymentType'] as String?;
+    final typeColor = _paymentTypeColor(saleType);
 
     return DataRow(
       cells: [
@@ -586,12 +747,47 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                 invoice['number'],
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              Text(
-                '${invoice['items']} items',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${invoice['items']} items',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _paymentTypeIcon(saleType),
+                          size: 10,
+                          color: typeColor,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          _paymentTypeLabel(saleType),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: typeColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1979,6 +2175,61 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                           ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      // Tipo de pago badge
+                      Builder(
+                        builder: (context) {
+                          final saleType =
+                              inv['salePaymentType'] as String? ?? 'cash';
+                          String label;
+                          Color color;
+                          IconData icon;
+                          switch (saleType) {
+                            case 'advance':
+                              label = 'Adelanto';
+                              color = const Color(0xFF7B1FA2);
+                              icon = Icons.savings;
+                              break;
+                            case 'credit':
+                              label = 'Crédito';
+                              color = const Color(0xFFF9A825);
+                              icon = Icons.calendar_month;
+                              break;
+                            default:
+                              label = 'Contado';
+                              color = const Color(0xFF2E7D32);
+                              icon = Icons.payments;
+                          }
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: color.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(icon, size: 12, color: color),
+                                const SizedBox(width: 4),
+                                Text(
+                                  label,
+                                  style: TextStyle(
+                                    color: color,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                       const SizedBox(width: 16),
                       // Tabs inline
                       _buildHeaderTab('Detalle', Icons.info_outline, 0),
@@ -2098,7 +2349,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Emitida: ${Helpers.formatDate(inv['date'])}  •  Vence: ${Helpers.formatDate(inv['dueDate'])}',
+                    'Emitida: ${Helpers.formatDate(inv['date'])}  •  Vence: ${Helpers.formatDate(inv['dueDate'])}${inv['deliveryDate'] != null ? '  •  Entrega: ${Helpers.formatDate(inv['deliveryDate'])}' : ''}',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
@@ -2907,6 +3158,8 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                             ),
                           ),
                         ],
+                        // Tipo de venta
+                        ..._buildSalePaymentTypeInfo(inv['salePaymentType']),
                         // Botón registrar pago
                         if (inv['status'] != 'Pagada' &&
                             inv['status'] != 'Anulada') ...[
@@ -3285,6 +3538,54 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
     );
   }
 
+  List<Widget> _buildSalePaymentTypeInfo(String? saleType) {
+    String label;
+    Color color;
+    IconData icon;
+    switch (saleType) {
+      case 'advance':
+        label = 'Adelanto';
+        color = const Color(0xFF7B1FA2);
+        icon = Icons.savings;
+        break;
+      case 'credit':
+        label = 'Crédito';
+        color = const Color(0xFFF9A825);
+        icon = Icons.calendar_month;
+        break;
+      default:
+        label = 'Contado';
+        color = const Color(0xFF2E7D32);
+        icon = Icons.payments;
+    }
+
+    return [
+      const SizedBox(height: 12),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              'Tipo: $label',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
   Widget _buildPaymentInfoRow(
     String label,
     double amount,
@@ -3545,6 +3846,13 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   'Vence:',
                                   Helpers.formatDate(inv['dueDate']),
                                 ),
+                                if (inv['deliveryDate'] != null) ...[
+                                  const SizedBox(height: 6),
+                                  _buildDateInfo(
+                                    'Entrega:',
+                                    Helpers.formatDate(inv['deliveryDate']),
+                                  ),
+                                ],
                               ],
                             ),
                           ],
@@ -4783,7 +5091,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Fecha: ${Helpers.formatDate(inv['date'])}  •  Vence: ${Helpers.formatDate(inv['dueDate'])}',
+                        'Fecha: ${Helpers.formatDate(inv['date'])}  •  Vence: ${Helpers.formatDate(inv['dueDate'])}${inv['deliveryDate'] != null ? '  •  Entrega: ${Helpers.formatDate(inv['deliveryDate'])}' : ''}',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 13,
@@ -5104,6 +5412,13 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                                   'Vence:',
                                   Helpers.formatDate(inv['dueDate']),
                                 ),
+                                if (inv['deliveryDate'] != null) ...[
+                                  const SizedBox(height: 8),
+                                  _buildDateRow(
+                                    'Entrega:',
+                                    Helpers.formatDate(inv['deliveryDate']),
+                                  ),
+                                ],
                               ],
                             ),
                           ],

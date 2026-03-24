@@ -7,12 +7,15 @@ import '../../data/providers/providers.dart';
 import '../../data/providers/suppliers_provider.dart';
 import '../../data/datasources/inventory_datasource.dart';
 import '../../data/datasources/purchase_orders_datasource.dart';
+import '../../data/providers/settings_provider.dart';
 import '../../data/providers/employees_provider.dart';
 import '../../data/providers/purchase_orders_provider.dart';
 import '../../domain/entities/employee.dart';
 import '../../domain/entities/material.dart' as mat;
 import '../../domain/entities/material_category.dart';
+import '../../domain/entities/material_subcategory.dart';
 import '../../domain/entities/supplier.dart';
+import '../widgets/material_form_dialog.dart';
 
 class MaterialsPage extends ConsumerStatefulWidget {
   final bool openNewDialog;
@@ -26,6 +29,7 @@ class MaterialsPage extends ConsumerStatefulWidget {
 class _MaterialsPageState extends ConsumerState<MaterialsPage> {
   String _searchQuery = '';
   String _selectedCategory = 'todos';
+  String? _selectedSubcategoryId;
   bool _dialogOpened = false;
 
   // Estado para creación de órdenes de compra por stock bajo
@@ -59,7 +63,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
       final matchesCategory =
           _selectedCategory == 'todos' ||
           m.category.toLowerCase() == _selectedCategory.toLowerCase();
-      return matchesSearch && matchesCategory;
+      final matchesSubcategory =
+          _selectedSubcategoryId == null ||
+          m.subcategoryId == _selectedSubcategoryId;
+      return matchesSearch && matchesCategory && matchesSubcategory;
     }).toList();
   }
 
@@ -363,9 +370,67 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                 ),
                               ),
                             ],
-                            onChanged: (value) =>
-                                setState(() => _selectedCategory = value!),
+                            onChanged: (value) => setState(() {
+                              _selectedCategory = value!;
+                              _selectedSubcategoryId = null;
+                            }),
                           ),
+                        ),
+                        // Filtro de subcategoría (solo si hay subcategorías)
+                        Builder(
+                          builder: (context) {
+                            if (_selectedCategory == 'todos') {
+                              return const SizedBox();
+                            }
+                            final catState = ref.watch(
+                              materialCategoryProvider,
+                            );
+                            final subcats = catState.subcategoriesForSlug(
+                              _selectedCategory,
+                            );
+                            if (subcats.isEmpty) return const SizedBox();
+                            return Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: SizedBox(
+                                width: isNarrow
+                                    ? constraints.maxWidth - 52
+                                    : constraints.maxWidth * 0.24,
+                                child: DropdownButtonFormField<String?>(
+                                  value: _selectedSubcategoryId,
+                                  isExpanded: true,
+                                  decoration: InputDecoration(
+                                    labelText: 'Subcategoría',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    isDense: true,
+                                  ),
+                                  items: [
+                                    const DropdownMenuItem<String?>(
+                                      value: null,
+                                      child: Text('Todas'),
+                                    ),
+                                    ...subcats.map(
+                                      (s) => DropdownMenuItem<String?>(
+                                        value: s.id,
+                                        child: Text(
+                                          s.name,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (value) => setState(
+                                    () => _selectedSubcategoryId = value,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         IconButton(
                           onPressed: _showManageCategoriesDialog,
@@ -445,7 +510,14 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   )
                 : Padding(
                     padding: const EdgeInsets.all(3),
-                    child: _buildMaterialsTable(),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth < 700) {
+                          return _buildMaterialsCards();
+                        }
+                        return _buildMaterialsTable();
+                      },
+                    ),
                   ),
           ),
         ],
@@ -561,6 +633,207 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMaterialsCards() {
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemCount: _filteredMaterials.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 6),
+      itemBuilder: (context, index) {
+        final material = _filteredMaterials[index];
+        return _buildMaterialCard(material);
+      },
+    );
+  }
+
+  Widget _buildMaterialCard(mat.Material material) {
+    final isLowStock = material.isLowStock;
+    final costPrice = material.costPrice;
+    final salePrice = material.effectivePrice;
+    final margin = costPrice > 0
+        ? ((salePrice - costPrice) / costPrice * 100)
+        : 0.0;
+    final marginColor = margin > 30
+        ? AppColors.success
+        : margin > 15
+        ? AppColors.warning
+        : AppColors.danger;
+
+    return InkWell(
+      onTap: () => _showMaterialDetail(material),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: isLowStock
+              ? Border.all(color: AppColors.warning.withOpacity(0.5))
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).colorScheme.shadow.withOpacity(0.04),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top row: name + menu
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        material.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${material.code}  •  ${material.unit}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getCategoryColor(
+                      material.category,
+                    ).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _getCategoryName(material.category),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: _getCategoryColor(material.category),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, size: 18),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                    const PopupMenuItem(
+                      value: 'stock',
+                      child: Text('Ajustar Stock'),
+                    ),
+                    if (material.category == 'consumible')
+                      const PopupMenuItem(
+                        value: 'employee_exit',
+                        child: Text('Salida por Empleado'),
+                      ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Eliminar'),
+                    ),
+                  ],
+                  onSelected: (value) => _handleMenuAction(value, material),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Bottom row: prices + stock
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      _cardPriceChip(
+                        'Compra',
+                        '\$${Helpers.formatNumber(costPrice)}',
+                      ),
+                      const SizedBox(width: 8),
+                      _cardPriceChip(
+                        'Venta',
+                        '\$${Helpers.formatNumber(salePrice)}',
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: marginColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${margin.toStringAsFixed(0)}%',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: marginColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isLowStock
+                        ? AppColors.warning.withOpacity(0.1)
+                        : AppColors.success.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${material.stock.toStringAsFixed(material.stock % 1 == 0 ? 0 : 1)} ${material.unit}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: isLowStock ? AppColors.warning : AppColors.success,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cardPriceChip(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 
@@ -700,21 +973,58 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             ),
             SizedBox(
               width: 80,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _getCategoryColor(material.category).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  _getCategoryName(material.category),
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: _getCategoryColor(material.category),
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+              child: Builder(
+                builder: (context) {
+                  final catName = _getCategoryName(material.category);
+                  String? subcatName;
+                  if (material.subcategoryId != null) {
+                    final catState = ref.watch(materialCategoryProvider);
+                    final subcat = catState.subcategories.where(
+                      (s) => s.id == material.subcategoryId,
+                    );
+                    if (subcat.isNotEmpty) {
+                      subcatName = subcat.first.name;
+                    }
+                  }
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getCategoryColor(
+                        material.category,
+                      ).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          catName,
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: _getCategoryColor(material.category),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        if (subcatName != null)
+                          Text(
+                            subcatName,
+                            style: TextStyle(
+                              fontSize: 8,
+                              color: _getCategoryColor(
+                                material.category,
+                              ).withOpacity(0.7),
+                            ),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
             SizedBox(
@@ -1115,6 +1425,19 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
               children: [
                 _detailRow('Código', material.code),
                 _detailRow('Categoría', material.categoryDisplay),
+                Builder(
+                  builder: (context) {
+                    if (material.subcategoryId == null) {
+                      return const SizedBox();
+                    }
+                    final catState = ref.watch(materialCategoryProvider);
+                    final subcat = catState.subcategories.where(
+                      (s) => s.id == material.subcategoryId,
+                    );
+                    if (subcat.isEmpty) return const SizedBox();
+                    return _detailRow('Subcategoría', subcat.first.name);
+                  },
+                ),
                 _detailRow('Unidad', material.unit),
                 if (material.unit == 'KG')
                   _detailRow(
@@ -1231,6 +1554,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
     WidgetRef ref, {
     required void Function(String supplierName) onCreated,
   }) {
+    final suppliersNotifier = ref.read(suppliersProvider.notifier);
     final nameCtrl = TextEditingController();
     final docNumberCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
@@ -1476,12 +1800,12 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   createdAt: now,
                   updatedAt: now,
                 );
-                final created = await ref
-                    .read(suppliersProvider.notifier)
-                    .createSupplier(newSupplier);
+                final created = await suppliersNotifier.createSupplier(
+                  newSupplier,
+                );
                 if (created != null && ctx.mounted) {
                   Navigator.pop(ctx);
-                  await ref.read(suppliersProvider.notifier).loadSuppliers();
+                  await suppliersNotifier.loadSuppliers();
                   onCreated(created.name);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -1507,7 +1831,16 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
     _showMaterialFormDialog(material);
   }
 
-  void _showMaterialFormDialog(mat.Material? material) {
+  void _showMaterialFormDialog(mat.Material? material) async {
+    final result = await MaterialFormDialog.show(context, initial: material);
+    if (result != null) {
+      // Refresh list
+      ref.read(inventoryProvider.notifier).loadMaterials();
+    }
+  }
+
+  // ignore: unused_element - Legacy inline form replaced by MaterialFormDialog
+  void _showMaterialFormDialogLegacy(mat.Material? material) {
     final isEditing = material != null;
     final codeCtrl = TextEditingController(text: material?.code ?? '');
     final nameCtrl = TextEditingController(text: material?.name ?? '');
@@ -1579,8 +1912,13 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   : ''));
     final initialCat = catState.categories.where((c) => c.slug == category);
     String unit =
-        material?.unit ??
+        (material?.unit.toUpperCase()) ??
         (initialCat.isNotEmpty ? initialCat.first.defaultUnit : 'KG');
+    // Asegurar que la unidad existe en las opciones disponibles
+    if (!MaterialCategory.availableUnits.containsKey(unit)) {
+      unit = 'KG';
+    }
+    String? subcategoryId = material?.subcategoryId;
 
     showDialog(
       context: context,
@@ -1608,8 +1946,8 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: Builder(
-                                builder: (context) {
+                              child: Consumer(
+                                builder: (context, ref, _) {
                                   final catState = ref.watch(
                                     materialCategoryProvider,
                                   );
@@ -1659,11 +1997,13 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                         .toList(),
                                     onChanged: (v) => setDialogState(() {
                                       category = v!;
+                                      subcategoryId = null;
                                       // Auto-asignar unidad por defecto de la categoría
                                       final selectedCat = cats.firstWhere(
                                         (c) => c.slug == v,
                                       );
-                                      unit = selectedCat.defaultUnit;
+                                      unit = selectedCat.defaultUnit
+                                          .toUpperCase();
                                     }),
                                   );
                                 },
@@ -1678,7 +2018,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                 if (newCat != null) {
                                   setDialogState(() {
                                     category = newCat.slug;
-                                    unit = newCat.defaultUnit;
+                                    unit = newCat.defaultUnit.toUpperCase();
                                   });
                                 }
                               },
@@ -1697,6 +2037,97 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                         ),
                       ),
                     ],
+                  ),
+                  // Subcategoría (solo si la categoría seleccionada tiene subcategorías)
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final catState = ref.watch(materialCategoryProvider);
+                      final subcats = catState.subcategoriesForSlug(category);
+                      // Validar que subcategoryId existe en la lista
+                      final validSubcatId =
+                          subcats.any((s) => s.id == subcategoryId)
+                          ? subcategoryId
+                          : null;
+                      if (validSubcatId != subcategoryId) {
+                        Future.microtask(
+                          () => setDialogState(
+                            () => subcategoryId = validSubcatId,
+                          ),
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Row(
+                          children: [
+                            if (subcats.isNotEmpty)
+                              Expanded(
+                                child: DropdownButtonFormField<String?>(
+                                  value: validSubcatId,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Subcategoría',
+                                  ),
+                                  items: [
+                                    const DropdownMenuItem<String?>(
+                                      value: null,
+                                      child: Text(
+                                        'Sin subcategoría',
+                                        style: TextStyle(
+                                          color: Color(0xFF9E9E9E),
+                                        ),
+                                      ),
+                                    ),
+                                    ...subcats.map(
+                                      (s) => DropdownMenuItem<String?>(
+                                        value: s.id,
+                                        child: Text(s.name),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (v) =>
+                                      setDialogState(() => subcategoryId = v),
+                                ),
+                              )
+                            else
+                              Expanded(
+                                child: Text(
+                                  'Sin subcategorías',
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              onPressed: () async {
+                                final newSubcat =
+                                    await _showNewSubcategoryDialog(
+                                      context,
+                                      category,
+                                    );
+                                if (newSubcat != null) {
+                                  setDialogState(
+                                    () => subcategoryId = newSubcat.id,
+                                  );
+                                }
+                              },
+                              icon: const Icon(
+                                Icons.add_circle_outline,
+                                size: 22,
+                              ),
+                              tooltip: 'Nueva subcategoría',
+                              style: IconButton.styleFrom(
+                                foregroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -2285,8 +2716,8 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: Builder(
-                          builder: (context) {
+                        child: Consumer(
+                          builder: (context, ref, _) {
                             final suppState = ref.watch(suppliersProvider);
                             final suppliers = suppState.suppliers;
                             // Cargar proveedores si aún no se han cargado
@@ -2358,11 +2789,52 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: TextField(
-                          controller: locationCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Ubicación',
-                          ),
+                        child: Consumer(
+                          builder: (context, ref, _) {
+                            final settingsState = ref.watch(settingsProvider);
+                            final locations = settingsState.storageLocations;
+                            if (locations.isEmpty && !settingsState.isLoading) {
+                              Future.microtask(
+                                () => ref
+                                    .read(settingsProvider.notifier)
+                                    .loadAll(),
+                              );
+                            }
+                            return DropdownButtonFormField<String>(
+                              value:
+                                  locationCtrl.text.isNotEmpty &&
+                                      locations.any(
+                                        (l) => l.name == locationCtrl.text,
+                                      )
+                                  ? locationCtrl.text
+                                  : null,
+                              decoration: const InputDecoration(
+                                labelText: 'Ubicación',
+                              ),
+                              isExpanded: true,
+                              items: [
+                                const DropdownMenuItem(
+                                  value: null,
+                                  child: Text(
+                                    'Sin ubicación',
+                                    style: TextStyle(color: Color(0xFF9E9E9E)),
+                                  ),
+                                ),
+                                ...locations.map(
+                                  (l) => DropdownMenuItem(
+                                    value: l.name,
+                                    child: Text(
+                                      l.name,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              onChanged: (v) {
+                                locationCtrl.text = v ?? '';
+                              },
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -2393,6 +2865,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   name: nameCtrl.text,
                   description: descCtrl.text.isEmpty ? null : descCtrl.text,
                   category: category,
+                  subcategoryId: subcategoryId,
                   unit: unit,
                   costPrice: double.tryParse(costPriceCtrl.text) ?? 0,
                   pricePerKg: double.tryParse(priceKgCtrl.text) ?? 0,
@@ -2707,8 +3180,8 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
               ],
             ),
             content: SizedBox(
-              width: 500,
-              height: 400,
+              width: 600,
+              height: 500,
               child: catState.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : catState.categories.isEmpty
@@ -2718,7 +3191,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final cat = catState.categories[index];
-                        return ListTile(
+                        final subcats = catState.subcategoriesForCategory(
+                          cat.id,
+                        );
+                        return ExpansionTile(
                           leading: CircleAvatar(
                             backgroundColor: cat.displayColor.withOpacity(0.15),
                             child: Icon(
@@ -2727,9 +3203,35 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                               size: 20,
                             ),
                           ),
-                          title: Text(
-                            cat.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  cat.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              if (subcats.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: cat.displayColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '${subcats.length} sub',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: cat.displayColor,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           subtitle: Text(
                             '${cat.defaultUnit} · ${cat.description ?? "Sin descripción"}',
@@ -2742,8 +3244,96 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                               ).colorScheme.onSurfaceVariant,
                             ),
                           ),
-                          trailing: cat.isSystem
-                              ? Chip(
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  Icons.add,
+                                  size: 18,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                onPressed: () async {
+                                  await _showNewSubcategoryDialog(
+                                    context,
+                                    cat.slug,
+                                  );
+                                },
+                                tooltip: 'Nueva subcategoría',
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              if (!cat.isSystem) ...[
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.edit,
+                                    size: 18,
+                                    color: AppColors.info,
+                                  ),
+                                  onPressed: () async {
+                                    await _showEditCategoryDialog(context, cat);
+                                  },
+                                  tooltip: 'Editar',
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    size: 18,
+                                    color: AppColors.danger,
+                                  ),
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('Eliminar categoría'),
+                                        content: Text(
+                                          '¿Eliminar "${cat.name}"? Los materiales que la usen quedarán sin categoría válida.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(ctx, false),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () =>
+                                                Navigator.pop(ctx, true),
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: AppColors.danger,
+                                            ),
+                                            child: const Text('Eliminar'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      final ok = await ref
+                                          .read(
+                                            materialCategoryProvider.notifier,
+                                          )
+                                          .deleteCategory(cat.id);
+                                      if (!ok && context.mounted) {
+                                        final error = ref
+                                            .read(materialCategoryProvider)
+                                            .error;
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              error ?? 'No se pudo eliminar',
+                                            ),
+                                            backgroundColor: AppColors.danger,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  tooltip: 'Eliminar',
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ] else
+                                Chip(
                                   label: const Text(
                                     'Sistema',
                                     style: TextStyle(fontSize: 10),
@@ -2753,20 +3343,63 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   ).colorScheme.outlineVariant,
                                   padding: EdgeInsets.zero,
                                   visualDensity: VisualDensity.compact,
-                                )
-                              : Row(
+                                ),
+                            ],
+                          ),
+                          children: [
+                            if (subcats.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  'Sin subcategorías',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            ...subcats.map(
+                              (subcat) => ListTile(
+                                contentPadding: const EdgeInsets.only(
+                                  left: 56,
+                                  right: 16,
+                                ),
+                                dense: true,
+                                leading: Icon(
+                                  Icons.subdirectory_arrow_right,
+                                  size: 16,
+                                  color: cat.displayColor,
+                                ),
+                                title: Text(
+                                  subcat.name,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                subtitle: subcat.description != null
+                                    ? Text(
+                                        subcat.description!,
+                                        style: const TextStyle(fontSize: 11),
+                                      )
+                                    : null,
+                                trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
                                       icon: Icon(
                                         Icons.edit,
-                                        size: 18,
+                                        size: 16,
                                         color: AppColors.info,
                                       ),
                                       onPressed: () async {
-                                        await _showEditCategoryDialog(
+                                        await _showEditSubcategoryDialog(
                                           context,
-                                          cat,
+                                          subcat,
+                                          cat.name,
                                         );
                                       },
                                       tooltip: 'Editar',
@@ -2775,7 +3408,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     IconButton(
                                       icon: Icon(
                                         Icons.delete_outline,
-                                        size: 18,
+                                        size: 16,
                                         color: AppColors.danger,
                                       ),
                                       onPressed: () async {
@@ -2783,10 +3416,10 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                           context: context,
                                           builder: (ctx) => AlertDialog(
                                             title: const Text(
-                                              'Eliminar categoría',
+                                              'Eliminar subcategoría',
                                             ),
                                             content: Text(
-                                              '¿Eliminar "${cat.name}"? Los materiales que la usen quedarán sin categoría válida.',
+                                              '¿Eliminar "${subcat.name}"?',
                                             ),
                                             actions: [
                                               TextButton(
@@ -2812,7 +3445,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                                 materialCategoryProvider
                                                     .notifier,
                                               )
-                                              .deleteCategory(cat.id);
+                                              .deleteSubcategory(subcat.id);
                                           if (!ok && context.mounted) {
                                             final error = ref
                                                 .read(materialCategoryProvider)
@@ -2837,6 +3470,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     ),
                                   ],
                                 ),
+                              ),
+                            ),
+                          ],
                         );
                       },
                     ),
@@ -2849,6 +3485,237 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Diálogo para crear nueva subcategoría
+  Future<MaterialSubcategory?> _showNewSubcategoryDialog(
+    BuildContext parentContext,
+    String categorySlug,
+  ) async {
+    final catState = ref.read(materialCategoryProvider);
+    final parentCat = catState.categories.where((c) => c.slug == categorySlug);
+    if (parentCat.isEmpty) return null;
+    final categoryId = parentCat.first.id;
+    final categoryName = parentCat.first.name;
+
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+
+    return showDialog<MaterialSubcategory>(
+      context: parentContext,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.subdirectory_arrow_right,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Nueva Subcategoría de $categoryName',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre *',
+                  hintText: 'Ej: 6313, 1/2", Tipo A',
+                ),
+                textCapitalization: TextCapitalization.words,
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción (opcional)',
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (nameCtrl.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('El nombre es requerido'),
+                    backgroundColor: AppColors.warning,
+                  ),
+                );
+                return;
+              }
+              final slug = nameCtrl.text
+                  .trim()
+                  .toLowerCase()
+                  .replaceAll(RegExp(r'[áà]'), 'a')
+                  .replaceAll(RegExp(r'[éè]'), 'e')
+                  .replaceAll(RegExp(r'[íì]'), 'i')
+                  .replaceAll(RegExp(r'[óò]'), 'o')
+                  .replaceAll(RegExp(r'[úù]'), 'u')
+                  .replaceAll(RegExp(r'ñ'), 'n')
+                  .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+                  .replaceAll(RegExp(r'^_|_$'), '');
+
+              final now = DateTime.now();
+              final newSubcat = MaterialSubcategory(
+                id: '',
+                categoryId: categoryId,
+                name: nameCtrl.text.trim(),
+                slug: slug,
+                description: descCtrl.text.trim().isNotEmpty
+                    ? descCtrl.text.trim()
+                    : null,
+                createdAt: now,
+                updatedAt: now,
+              );
+
+              final created = await ref
+                  .read(materialCategoryProvider.notifier)
+                  .createSubcategory(newSubcat);
+              if (created != null && context.mounted) {
+                Navigator.pop(context, created);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Subcategoría "${created.name}" creada'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } else if (context.mounted) {
+                final error = ref.read(materialCategoryProvider).error;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(error ?? 'Error al crear subcategoría'),
+                    backgroundColor: AppColors.danger,
+                  ),
+                );
+              }
+            },
+            child: const Text('Crear'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Diálogo para editar subcategoría
+  Future<void> _showEditSubcategoryDialog(
+    BuildContext parentContext,
+    MaterialSubcategory subcat,
+    String categoryName,
+  ) async {
+    final nameCtrl = TextEditingController(text: subcat.name);
+    final descCtrl = TextEditingController(text: subcat.description ?? '');
+
+    await showDialog(
+      context: parentContext,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.edit, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Editar: ${subcat.name}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Nombre *',
+                  helperText: 'Subcategoría de $categoryName',
+                ),
+                textCapitalization: TextCapitalization.words,
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción (opcional)',
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (nameCtrl.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('El nombre es requerido'),
+                    backgroundColor: AppColors.warning,
+                  ),
+                );
+                return;
+              }
+              final slug = nameCtrl.text
+                  .trim()
+                  .toLowerCase()
+                  .replaceAll(RegExp(r'[áà]'), 'a')
+                  .replaceAll(RegExp(r'[éè]'), 'e')
+                  .replaceAll(RegExp(r'[íì]'), 'i')
+                  .replaceAll(RegExp(r'[óò]'), 'o')
+                  .replaceAll(RegExp(r'[úù]'), 'u')
+                  .replaceAll(RegExp(r'ñ'), 'n')
+                  .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+                  .replaceAll(RegExp(r'^_|_$'), '');
+
+              final updated = subcat.copyWith(
+                name: nameCtrl.text.trim(),
+                slug: slug,
+                description: descCtrl.text.trim().isNotEmpty
+                    ? descCtrl.text.trim()
+                    : null,
+              );
+
+              final ok = await ref
+                  .read(materialCategoryProvider.notifier)
+                  .updateSubcategory(updated);
+              if (ok && context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Subcategoría "${updated.name}" actualizada'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
       ),
     );
   }

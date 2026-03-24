@@ -19,7 +19,7 @@ class DashboardPage extends ConsumerStatefulWidget {
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
   DateTime _selectedDate = DateTime.now();
-  
+
   @override
   void initState() {
     super.initState();
@@ -42,11 +42,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final invoicesState = ref.watch(invoicesProvider);
     final recentInvoices = ref.watch(recentInvoicesProvider);
     final inventoryState = ref.watch(inventoryProvider);
-    
+
     final lowStockMaterials = inventoryState.materials
         .where((m) => m.stock <= m.minStock && m.isActive)
         .toList();
-    
+
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async {
@@ -65,14 +65,27 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             children: [
               _buildHeader(context, cs, tt),
               const SizedBox(height: AppSpacing.base),
-              _buildSummaryCards(context, cs, tt, invoicesState, productsState, customersState),
+              _buildSummaryCards(
+                context,
+                cs,
+                tt,
+                invoicesState,
+                productsState,
+                customersState,
+              ),
               const SizedBox(height: AppSpacing.base),
               LayoutBuilder(
                 builder: (context, constraints) {
                   if (constraints.maxWidth < 980) {
                     return Column(
                       children: [
-                        _buildNotificationsPanel(context, cs, tt, lowStockMaterials, invoicesState),
+                        _buildNotificationsPanel(
+                          context,
+                          cs,
+                          tt,
+                          lowStockMaterials,
+                          invoicesState,
+                        ),
                         const SizedBox(height: AppSpacing.md),
                         _buildMiniCalendar(context, cs, tt),
                       ],
@@ -81,15 +94,33 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 2, child: _buildNotificationsPanel(context, cs, tt, lowStockMaterials, invoicesState)),
+                      Expanded(
+                        flex: 2,
+                        child: _buildNotificationsPanel(
+                          context,
+                          cs,
+                          tt,
+                          lowStockMaterials,
+                          invoicesState,
+                        ),
+                      ),
                       const SizedBox(width: AppSpacing.base),
-                      Expanded(flex: 1, child: _buildMiniCalendar(context, cs, tt)),
+                      Expanded(
+                        flex: 1,
+                        child: _buildMiniCalendar(context, cs, tt),
+                      ),
                     ],
                   );
                 },
               ),
               const SizedBox(height: AppSpacing.xl),
-              _buildRecentSalesCard(context, cs, tt, invoicesState, recentInvoices),
+              _buildRecentSalesCard(
+                context,
+                cs,
+                tt,
+                invoicesState,
+                recentInvoices,
+              ),
               const SizedBox(height: AppSpacing.xl),
             ],
           ),
@@ -125,7 +156,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ],
               ),
             ),
-            _buildStatusChip(icon: Icons.cloud_done, label: 'Conectado', color: AppColors.success),
+            _buildStatusChip(
+              icon: Icons.cloud_done,
+              label: 'Conectado',
+              color: AppColors.success,
+            ),
             const SizedBox(width: AppSpacing.sm),
             CircleAvatar(
               radius: 18,
@@ -142,15 +177,41 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     BuildContext context,
     ColorScheme cs,
     TextTheme tt,
-    dynamic invoicesState, 
+    dynamic invoicesState,
     dynamic productsState,
     dynamic customersState,
   ) {
     final cards = [
-      _KpiData('Ventas', Formatters.currency(invoicesState.totalVentas), Icons.trending_up, AppColors.success, '${invoicesState.invoices.length} registros'),
-      _KpiData('Pendiente', Formatters.currency(invoicesState.totalPendiente), Icons.schedule, AppColors.warning, '${invoicesState.countPendientes} por cobrar'),
-      _KpiData('Productos', productsState.products.length.toString(), Icons.inventory_2_outlined, productsState.lowStockProducts.isNotEmpty ? AppColors.danger : AppColors.success, '${productsState.lowStockProducts.length} stock bajo'),
-      _KpiData('Clientes', customersState.customers.length.toString(), Icons.people_outline, cs.primary, 'Activos'),
+      _KpiData(
+        'Ventas',
+        Formatters.currency(invoicesState.totalVentas),
+        Icons.trending_up,
+        AppColors.success,
+        '${invoicesState.invoices.length} registros',
+      ),
+      _KpiData(
+        'Pendiente',
+        Formatters.currency(invoicesState.totalPendiente),
+        Icons.schedule,
+        AppColors.warning,
+        '${invoicesState.countPendientes} por cobrar',
+      ),
+      _KpiData(
+        'Productos',
+        productsState.products.length.toString(),
+        Icons.inventory_2_outlined,
+        productsState.lowStockProducts.isNotEmpty
+            ? AppColors.danger
+            : AppColors.success,
+        '${productsState.lowStockProducts.length} stock bajo',
+      ),
+      _KpiData(
+        'Clientes',
+        customersState.customers.length.toString(),
+        Icons.people_outline,
+        cs.primary,
+        'Activos',
+      ),
     ];
 
     return LayoutBuilder(
@@ -212,7 +273,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           const SizedBox(height: AppSpacing.xs),
           Text(
             data.subtitle,
-            style: tt.bodySmall?.copyWith(color: data.color, fontWeight: FontWeight.w500),
+            style: tt.bodySmall?.copyWith(
+              color: data.color,
+              fontWeight: FontWeight.w500,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -230,21 +294,24 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   ) {
     // Obtener actividades
     final activitiesState = ref.watch(activitiesProvider);
-    
+
     // Crear lista de notificaciones basadas en datos reales
     final notifications = <_NotificationItem>[];
-    
+
     // Actividades pendientes para hoy y próximos días
     final today = DateTime.now();
-    final todayActivities = activitiesState.activities.where((a) {
-      final activityDate = a.dueDate ?? a.startDate;
-      return activityDate.year == today.year &&
-             activityDate.month == today.month &&
-             activityDate.day == today.day &&
-             a.status != ActivityStatus.completed &&
-             a.status != ActivityStatus.cancelled;
-    }).take(3).toList();
-    
+    final todayActivities = activitiesState.activities
+        .where((a) {
+          final activityDate = a.dueDate ?? a.startDate;
+          return activityDate.year == today.year &&
+              activityDate.month == today.month &&
+              activityDate.day == today.day &&
+              a.status != ActivityStatus.completed &&
+              a.status != ActivityStatus.cancelled;
+        })
+        .take(3)
+        .toList();
+
     for (var activity in todayActivities) {
       String severity;
       switch (activity.priority) {
@@ -257,78 +324,98 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         default:
           severity = 'info';
       }
-      
-      notifications.add(_NotificationItem(
-        icon: activity.iconData,
-        title: activity.title,
-        message: activity.description ?? activity.typeLabel,
-        severity: severity,
-        time: 'Hoy',
-        route: '/calendar',
-      ));
+
+      notifications.add(
+        _NotificationItem(
+          icon: activity.iconData,
+          title: activity.title,
+          message: activity.description ?? activity.typeLabel,
+          severity: severity,
+          time: 'Hoy',
+          route: '/calendar',
+        ),
+      );
     }
-    
+
     // Actividades vencidas
-    final overdueActivities = activitiesState.activities.where((a) {
-      final dueDate = a.dueDate ?? a.startDate;
-      return dueDate.isBefore(DateTime(today.year, today.month, today.day)) &&
-             a.status != ActivityStatus.completed &&
-             a.status != ActivityStatus.cancelled;
-    }).take(2).toList();
-    
+    final overdueActivities = activitiesState.activities
+        .where((a) {
+          final dueDate = a.dueDate ?? a.startDate;
+          return dueDate.isBefore(
+                DateTime(today.year, today.month, today.day),
+              ) &&
+              a.status != ActivityStatus.completed &&
+              a.status != ActivityStatus.cancelled;
+        })
+        .take(2)
+        .toList();
+
     for (var activity in overdueActivities) {
-      notifications.add(_NotificationItem(
-        icon: Icons.warning_amber,
-        title: 'Actividad Vencida: ${activity.title}',
-        message: activity.typeLabel,
-        severity: 'error',
-        time: 'Vencida',
-        route: '/calendar',
-      ));
+      notifications.add(
+        _NotificationItem(
+          icon: Icons.warning_amber,
+          title: 'Actividad Vencida: ${activity.title}',
+          message: activity.typeLabel,
+          severity: 'error',
+          time: 'Vencida',
+          route: '/calendar',
+        ),
+      );
     }
-    
+
     // Alertas de stock bajo
     for (var material in lowStockMaterials.take(3)) {
-      notifications.add(_NotificationItem(
-        icon: Icons.inventory_2,
-        title: 'Stock Bajo: ${material.name}',
-        message: 'Actual: ${material.stock.toStringAsFixed(1)} ${material.unit}, Mínimo: ${material.minStock.toStringAsFixed(1)}',
-        severity: material.stock == 0 ? 'error' : 'warning',
-        time: 'Ahora',
-        route: '/materials',
-      ));
+      notifications.add(
+        _NotificationItem(
+          icon: Icons.inventory_2,
+          title: 'Stock Bajo: ${material.name}',
+          message:
+              'Actual: ${material.stock.toStringAsFixed(1)} ${material.unit}, Mínimo: ${material.minStock.toStringAsFixed(1)}',
+          severity: material.stock == 0 ? 'error' : 'warning',
+          time: 'Ahora',
+          route: '/materials',
+        ),
+      );
     }
-    
+
     // Facturas vencidas
     final overdueInvoices = invoicesState.invoices
-        .where((i) => i.status == InvoiceStatus.overdue || 
-                      (i.status != InvoiceStatus.paid && 
-                       i.status != InvoiceStatus.cancelled &&
-                       i.dueDate != null && 
-                       i.dueDate!.isBefore(DateTime.now())))
+        .where(
+          (i) =>
+              i.status == InvoiceStatus.overdue ||
+              (i.status != InvoiceStatus.paid &&
+                  i.status != InvoiceStatus.cancelled &&
+                  i.dueDate != null &&
+                  i.dueDate!.isBefore(DateTime.now())),
+        )
         .take(3)
         .toList();
-    
+
     for (var invoice in overdueInvoices) {
-      notifications.add(_NotificationItem(
-        icon: Icons.receipt_long,
-        title: 'Recibo Vencido: ${invoice.fullNumber}',
-        message: 'Cliente: ${invoice.customerName}, Pendiente: ${Formatters.currency(invoice.pendingAmount)}',
-        severity: 'error',
-        time: 'Vencida',
-        route: '/invoices',
-      ));
+      notifications.add(
+        _NotificationItem(
+          icon: Icons.receipt_long,
+          title: 'Recibo Vencido: ${invoice.fullNumber}',
+          message:
+              'Cliente: ${invoice.customerName}, Pendiente: ${Formatters.currency(invoice.pendingAmount)}',
+          severity: 'error',
+          time: 'Vencida',
+          route: '/invoices',
+        ),
+      );
     }
-    
+
     // Si no hay notificaciones, mostrar mensaje
     if (notifications.isEmpty) {
-      notifications.add(_NotificationItem(
-        icon: Icons.check_circle,
-        title: '¡Todo en orden!',
-        message: 'No hay alertas pendientes',
-        severity: 'success',
-        time: 'Ahora',
-      ));
+      notifications.add(
+        _NotificationItem(
+          icon: Icons.check_circle,
+          title: '¡Todo en orden!',
+          message: 'No hay alertas pendientes',
+          severity: 'success',
+          time: 'Ahora',
+        ),
+      );
     }
 
     return Container(
@@ -351,18 +438,27 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       color: AppColors.warning.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.notifications_active, color: AppColors.warning, size: 22),
+                    child: Icon(
+                      Icons.notifications_active,
+                      color: AppColors.warning,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Text(
                     'Notificaciones',
-                    style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                    style: tt.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
               if (notifications.length > 1)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.danger.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
@@ -380,13 +476,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           const SizedBox(height: AppSpacing.base),
           Divider(height: 1, color: cs.outlineVariant),
           const SizedBox(height: AppSpacing.md),
-          ...notifications.map((n) => _buildNotificationTile(context, cs, tt, n)),
+          ...notifications.map(
+            (n) => _buildNotificationTile(context, cs, tt, n),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationTile(BuildContext context, ColorScheme cs, TextTheme tt, _NotificationItem notification) {
+  Widget _buildNotificationTile(
+    BuildContext context,
+    ColorScheme cs,
+    TextTheme tt,
+    _NotificationItem notification,
+  ) {
     Color severityColor;
     switch (notification.severity) {
       case 'error':
@@ -405,12 +508,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: notification.route != null 
-            ? () => context.go(notification.route!) 
+        onTap: notification.route != null
+            ? () => context.go(notification.route!)
             : null,
         borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.sm),
+          padding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.md,
+            horizontal: AppSpacing.sm,
+          ),
           child: Row(
             children: [
               Container(
@@ -428,7 +534,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   children: [
                     Text(
                       notification.title,
-                      style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      style: tt.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -456,26 +564,32 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildMiniCalendar(BuildContext context, ColorScheme cs, TextTheme tt) {
+  Widget _buildMiniCalendar(
+    BuildContext context,
+    ColorScheme cs,
+    TextTheme tt,
+  ) {
     final now = DateTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final firstWeekday = firstDayOfMonth.weekday;
-    
+
     final activitiesState = ref.watch(activitiesProvider);
-    
+
     bool hasActivitiesOnDay(int day) {
       final date = DateTime(now.year, now.month, day);
       return activitiesState.activities.any((a) {
         final activityDate = a.dueDate ?? a.startDate;
         return activityDate.year == date.year &&
-               activityDate.month == date.month &&
-               activityDate.day == date.day;
+            activityDate.month == date.month &&
+            activityDate.day == date.day;
       });
     }
-    
-    final selectedDayActivities = activitiesState.getActivitiesForDay(_selectedDate);
-    
+
+    final selectedDayActivities = activitiesState.getActivitiesForDay(
+      _selectedDate,
+    );
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
@@ -496,7 +610,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         color: cs.primaryContainer,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(Icons.calendar_month, color: cs.onPrimaryContainer, size: 20),
+                      child: Icon(
+                        Icons.calendar_month,
+                        color: cs.onPrimaryContainer,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
@@ -504,7 +622,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         DateFormat('MMMM yyyy', 'es').format(now),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                        style: tt.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -520,25 +640,27 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-                .map((d) => SizedBox(
-                      width: 28,
-                      child: Text(
-                        d,
-                        textAlign: TextAlign.center,
-                        style: tt.labelSmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+                .map(
+                  (d) => SizedBox(
+                    width: 28,
+                    child: Text(
+                      d,
+                      textAlign: TextAlign.center,
+                      style: tt.labelSmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ))
+                    ),
+                  ),
+                )
                 .toList(),
           ),
           const SizedBox(height: AppSpacing.md),
-          
+
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -554,12 +676,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               if (dayOffset < 1 || dayOffset > daysInMonth) {
                 return const SizedBox();
               }
-              
+
               final isToday = dayOffset == now.day;
-              final isSelected = dayOffset == _selectedDate.day && 
-                                 now.month == _selectedDate.month;
+              final isSelected =
+                  dayOffset == _selectedDate.day &&
+                  now.month == _selectedDate.month;
               final hasActivities = hasActivitiesOnDay(dayOffset);
-              
+
               return GestureDetector(
                 onTap: () {
                   setState(() {
@@ -568,11 +691,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isToday 
-                        ? cs.primary 
-                        : isSelected 
-                            ? cs.primary.withOpacity(0.12)
-                            : null,
+                    color: isToday
+                        ? cs.primary
+                        : isSelected
+                        ? cs.primary.withOpacity(0.12)
+                        : null,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -581,13 +704,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       Text(
                         '$dayOffset',
                         style: tt.bodySmall?.copyWith(
-                          color: isToday 
-                              ? cs.onPrimary 
-                              : isSelected 
-                                  ? cs.primary 
-                                  : cs.onSurface,
-                          fontWeight: isToday || isSelected 
-                              ? FontWeight.bold 
+                          color: isToday
+                              ? cs.onPrimary
+                              : isSelected
+                              ? cs.primary
+                              : cs.onSurface,
+                          fontWeight: isToday || isSelected
+                              ? FontWeight.bold
                               : FontWeight.normal,
                         ),
                       ),
@@ -607,11 +730,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               );
             },
           ),
-          
+
           const SizedBox(height: AppSpacing.md),
           Divider(height: 1, color: cs.outlineVariant),
           const SizedBox(height: AppSpacing.md),
-          
+
           Text(
             'Actividades del ${_selectedDate.day}/${_selectedDate.month}',
             style: tt.labelLarge?.copyWith(
@@ -620,7 +743,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          
+
           if (selectedDayActivities.isEmpty)
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
@@ -630,7 +753,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.event_available, color: cs.onSurfaceVariant, size: 18),
+                  Icon(
+                    Icons.event_available,
+                    color: cs.onSurfaceVariant,
+                    size: 18,
+                  ),
                   const SizedBox(width: AppSpacing.md),
                   Text(
                     'Sin actividades programadas',
@@ -640,54 +767,66 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
             )
           else
-            ...selectedDayActivities.take(2).map((activity) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: GestureDetector(
-                onTap: () => context.go('/calendar'),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: activity.colorValue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: activity.colorValue.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 3,
-                        height: 24,
+            ...selectedDayActivities
+                .take(2)
+                .map(
+                  (activity) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: GestureDetector(
+                      onTap: () => context.go('/calendar'),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: activity.colorValue,
-                          borderRadius: BorderRadius.circular(2),
+                          color: activity.colorValue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: activity.colorValue.withOpacity(0.3),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Text(
-                              activity.title,
-                              style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            Container(
+                              width: 3,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: activity.colorValue,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
                             ),
-                            Text(
-                              activity.typeLabel,
-                              style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    activity.title,
+                                    style: tt.bodySmall?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    activity.typeLabel,
+                                    style: tt.labelSmall?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right,
+                              size: 14,
+                              color: cs.onSurfaceVariant,
                             ),
                           ],
                         ),
                       ),
-                      Icon(Icons.chevron_right, size: 14, color: cs.onSurfaceVariant),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            )),
-          
+
           if (selectedDayActivities.length > 2)
             Padding(
               padding: const EdgeInsets.only(top: 4),
@@ -734,12 +873,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       color: AppColors.success.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.receipt_long, color: AppColors.success, size: 22),
+                    child: Icon(
+                      Icons.receipt_long,
+                      color: AppColors.success,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Text(
                     'Últimas Ventas',
-                    style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                    style: tt.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -764,15 +909,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
             )
           else
-            ...recentInvoices.take(5).map((invoice) => 
-              _buildInvoiceRow(
-                cs, tt,
-                '${invoice.series}-${invoice.number}',
-                invoice.customerName,
-                invoice.total,
-                _getStatusLabel(invoice.status),
-              ),
-            ),
+            ...recentInvoices
+                .take(5)
+                .map(
+                  (invoice) => _buildInvoiceRow(
+                    cs,
+                    tt,
+                    '${invoice.series}-${invoice.number}',
+                    invoice.customerName,
+                    invoice.total,
+                    _getStatusLabel(invoice.status),
+                  ),
+                ),
         ],
       ),
     );
@@ -797,7 +945,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(color: color, fontWeight: FontWeight.w500, fontSize: 12),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
@@ -821,7 +973,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     }
   }
 
-  Widget _buildInvoiceRow(ColorScheme cs, TextTheme tt, String number, String customer, double amount, String status) {
+  Widget _buildInvoiceRow(
+    ColorScheme cs,
+    TextTheme tt,
+    String number,
+    String customer,
+    double amount,
+    String status,
+  ) {
     Color statusColor;
     switch (status) {
       case 'Pagado':
@@ -845,13 +1004,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       child: Row(
         children: [
           SizedBox(
-            width: 130,
+            width: 90,
             child: Text(
               number,
               style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: AppSpacing.base),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               customer,
@@ -859,31 +1019,25 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
             ),
           ),
-          const SizedBox(width: AppSpacing.base),
-          SizedBox(
-            width: 120,
-            child: Text(
-              Formatters.currency(amount),
-              textAlign: TextAlign.right,
-              style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            Formatters.currency(amount),
+            textAlign: TextAlign.right,
+            style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-          const SizedBox(width: AppSpacing.base),
-          SizedBox(
-            width: 90,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                status,
-                textAlign: TextAlign.center,
-                style: tt.labelSmall?.copyWith(
-                  color: statusColor,
-                  fontWeight: FontWeight.w500,
-                ),
+          const SizedBox(width: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              status,
+              textAlign: TextAlign.center,
+              style: tt.labelSmall?.copyWith(
+                color: statusColor,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
