@@ -282,6 +282,7 @@ class EmployeesDatasource {
   static Future<List<EmployeeTimeAdjustment>> getTimeAdjustments({
     required String employeeId,
     DateTime? startDate,
+    DateTime? endDate,
   }) async {
     try {
       var query = _client
@@ -293,6 +294,13 @@ class EmployeesDatasource {
         query = query.gte(
           'adjustment_date',
           startDate.toIso8601String().split('T')[0],
+        );
+      }
+
+      if (endDate != null) {
+        query = query.lte(
+          'adjustment_date',
+          endDate.toIso8601String().split('T')[0],
         );
       }
 

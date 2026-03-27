@@ -501,7 +501,6 @@ class _AccountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final isAdmin = account.isAdmin;
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'es_CO');
 
     // Color y label por rol
@@ -595,67 +594,64 @@ class _AccountCard extends StatelessWidget {
               ),
           ],
         ),
-        trailing: !isAdmin
-            ? PopupMenuButton<String>(
-                onSelected: (action) {
-                  switch (action) {
-                    case 'credentials':
-                      onViewCredentials();
-                    case 'reset':
-                      onResetPassword();
-                    case 'toggle':
-                      onToggle();
-                    case 'change_role':
-                      onChangeRole();
-                  }
-                },
-                itemBuilder: (ctx) => [
-                  if (account.isTecnico || account.isDueno)
-                    const PopupMenuItem(
-                      value: 'change_role',
-                      child: ListTile(
-                        leading: Icon(Icons.swap_horiz, color: Colors.purple),
-                        title: Text('Cambiar rol'),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  if (account.hasStoredCredential)
-                    const PopupMenuItem(
-                      value: 'credentials',
-                      child: ListTile(
-                        leading: Icon(Icons.key),
-                        title: Text('Ver credenciales'),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  const PopupMenuItem(
-                    value: 'reset',
-                    child: ListTile(
-                      leading: Icon(Icons.lock_reset),
-                      title: Text('Resetear contraseña'),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'toggle',
-                    child: ListTile(
-                      leading: Icon(
-                        account.isActive ? Icons.block : Icons.check_circle,
-                        color: account.isActive
-                            ? AppColors.danger
-                            : AppColors.success,
-                      ),
-                      title: Text(account.isActive ? 'Desactivar' : 'Activar'),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
-              )
-            : null,
+        trailing: PopupMenuButton<String>(
+          onSelected: (action) {
+            switch (action) {
+              case 'credentials':
+                onViewCredentials();
+              case 'reset':
+                onResetPassword();
+              case 'toggle':
+                onToggle();
+              case 'change_role':
+                onChangeRole();
+            }
+          },
+          itemBuilder: (ctx) => [
+            const PopupMenuItem(
+              value: 'change_role',
+              child: ListTile(
+                leading: Icon(Icons.swap_horiz, color: Colors.purple),
+                title: Text('Cambiar rol'),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            if (account.hasStoredCredential)
+              const PopupMenuItem(
+                value: 'credentials',
+                child: ListTile(
+                  leading: Icon(Icons.key),
+                  title: Text('Ver credenciales'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            const PopupMenuItem(
+              value: 'reset',
+              child: ListTile(
+                leading: Icon(Icons.lock_reset),
+                title: Text('Resetear contraseña'),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            PopupMenuItem(
+              value: 'toggle',
+              child: ListTile(
+                leading: Icon(
+                  account.isActive ? Icons.block : Icons.check_circle,
+                  color: account.isActive
+                      ? AppColors.danger
+                      : AppColors.success,
+                ),
+                title: Text(account.isActive ? 'Desactivar' : 'Activar'),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        ),
         isThreeLine: true,
       ),
     );

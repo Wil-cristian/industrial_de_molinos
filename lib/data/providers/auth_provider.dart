@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../datasources/supabase_datasource.dart';
 import '../datasources/audit_log_datasource.dart';
 import '../../core/utils/logger.dart';
+import 'role_provider.dart';
 
 /// Estado de autenticación
 class AuthState {
@@ -142,6 +143,8 @@ class AuthNotifier extends Notifier<AuthState> {
         description: 'Cerró sesión',
       );
       await SupabaseDataSource.signOut();
+      // Limpiar perfil/rol del usuario anterior
+      ref.invalidate(roleProvider);
       state = const AuthState();
       AppLogger.success('Sesión cerrada');
     } catch (e) {

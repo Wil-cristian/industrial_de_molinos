@@ -60,7 +60,7 @@ class AuditLogDatasource {
           .toList();
     } catch (e) {
       AppLogger.error('Error cargando audit logs: $e');
-      return [];
+      rethrow;
     }
   }
 

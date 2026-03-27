@@ -4,8 +4,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// Las credenciales sensibles se leen del archivo .env
 class AppConstants {
   static const String appName = 'Industrial de Molinos';
-  static const String appVersion = '1.0.3';
-  static const int appBuildNumber = 4;
+  static const String appVersion = '1.0.4';
+  static const int appBuildNumber = 5;
   static const String appFullVersion = '$appVersion+$appBuildNumber';
 
   // Supabase — leídas de .env en tiempo de ejecución

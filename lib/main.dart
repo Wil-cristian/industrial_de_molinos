@@ -15,6 +15,31 @@ import 'router.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Suprimir errores del framework Flutter en Windows desktop que causan cascada.
+  // 1. _debugDuringDeviceUpdate: assertion de mouse_tracker cuando widgets con
+  //    MouseRegion se reconstruyen durante procesamiento del mouse.
+  // 2. Cascada: "RenderBox was not laid out" y "Cannot hit test" que siguen.
+  // Solo ocurre en debug, no afecta release builds.
+  if (kDebugMode) {
+    final defaultOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      final msg = details.exception.toString();
+      // Suprimir assertion de mouse_tracker
+      if (details.exception is AssertionError &&
+          msg.contains('_debugDuringDeviceUpdate')) {
+        return;
+      }
+      // Suprimir errores cascada de layout que se disparan por el mouse tracker bug
+      if (msg.contains('RenderBox was not laid out') ||
+          msg.contains('Cannot hit test a render box with no size') ||
+          (details.exception is AssertionError &&
+              msg.contains('child!.hasSize'))) {
+        return;
+      }
+      defaultOnError?.call(details);
+    };
+  }
+
   // Cargar variables de entorno
   await dotenv.load(fileName: '.env');
 

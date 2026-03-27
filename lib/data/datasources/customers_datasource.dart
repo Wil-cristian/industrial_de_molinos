@@ -94,6 +94,25 @@ class CustomersDataSource {
         .eq('id', customer.id)
         .select()
         .single();
+
+    // Actualizar nombre y documento en facturas existentes
+    await _client
+        .from('invoices')
+        .update({
+          'customer_name': customer.name,
+          'customer_document': customer.documentNumber,
+        })
+        .eq('customer_id', customer.id);
+
+    // Actualizar nombre y documento en cotizaciones existentes
+    await _client
+        .from('quotations')
+        .update({
+          'customer_name': customer.name,
+          'customer_document': customer.documentNumber,
+        })
+        .eq('customer_id', customer.id);
+
     return _fromJson(response);
   }
 

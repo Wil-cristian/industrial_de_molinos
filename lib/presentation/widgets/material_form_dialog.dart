@@ -253,59 +253,58 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: Consumer(
-                  builder: (context, ref, _) {
-                    final catState = ref.watch(materialCategoryProvider);
-                    final cats = catState.categories;
-                    final fallback = cats.isNotEmpty ? cats.first.slug : '';
-                    final validCategory = cats.any((c) => c.slug == category)
-                        ? category
-                        : fallback;
-                    if (validCategory != category) {
-                      Future.microtask(
-                        () => setState(() => category = validCategory),
-                      );
-                    }
-                    if (cats.isEmpty) return const SizedBox();
-                    return DropdownButtonFormField<String>(
-                      value: validCategory,
-                      decoration: const InputDecoration(labelText: 'Categoría'),
-                      items: cats
-                          .map(
-                            (c) => DropdownMenuItem(
-                              value: c.slug,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                      color: c.displayColor,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(c.name),
-                                ],
+          child: Builder(
+            builder: (context) {
+              final catState = ref.read(materialCategoryProvider);
+              final cats = catState.categories;
+              final fallback = cats.isNotEmpty ? cats.first.slug : '';
+              final validCategory = cats.any((c) => c.slug == category)
+                  ? category
+                  : fallback;
+              if (validCategory != category) {
+                Future.microtask(
+                  () => setState(() => category = validCategory),
+                );
+              }
+              if (cats.isEmpty) return const SizedBox();
+              return DropdownButtonFormField<String>(
+                value: validCategory,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Categoría'),
+                items: cats
+                    .map(
+                      (c) => DropdownMenuItem(
+                        value: c.slug,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: c.displayColor,
+                                shape: BoxShape.circle,
                               ),
                             ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() {
-                        category = v!;
-                        subcategoryId = null;
-                        final selectedCat = cats.firstWhere((c) => c.slug == v);
-                        unit = selectedCat.defaultUnit.toUpperCase();
-                      }),
-                    );
-                  },
-                ),
-              ),
-            ],
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                c.name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() {
+                  category = v!;
+                  subcategoryId = null;
+                  final selectedCat = cats.firstWhere((c) => c.slug == v);
+                  unit = selectedCat.defaultUnit.toUpperCase();
+                }),
+              );
+            },
           ),
         ),
       ],
@@ -314,9 +313,9 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
 
   // ─── Subcategory ───────────────────────────────────────────────
   Widget _buildSubcategoryRow() {
-    return Consumer(
-      builder: (context, ref, _) {
-        final catState = ref.watch(materialCategoryProvider);
+    return Builder(
+      builder: (context) {
+        final catState = ref.read(materialCategoryProvider);
         final subcats = catState.subcategoriesForSlug(category);
         final validSubcatId = subcats.any((s) => s.id == subcategoryId)
             ? subcategoryId
@@ -871,9 +870,9 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
     return Row(
       children: [
         Expanded(
-          child: Consumer(
-            builder: (context, ref, _) {
-              final suppState = ref.watch(suppliersProvider);
+          child: Builder(
+            builder: (context) {
+              final suppState = ref.read(suppliersProvider);
               final suppliers = suppState.suppliers;
               if (suppliers.isEmpty && !suppState.isLoading) {
                 Future.microtask(
@@ -914,9 +913,9 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: Consumer(
-            builder: (context, ref, _) {
-              final settingsState = ref.watch(settingsProvider);
+          child: Builder(
+            builder: (context) {
+              final settingsState = ref.read(settingsProvider);
               final locations = settingsState.storageLocations;
               if (locations.isEmpty && !settingsState.isLoading) {
                 Future.microtask(

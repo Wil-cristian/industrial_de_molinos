@@ -42,6 +42,8 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage> {
             Expanded(
               child: state.isLoading
                   ? const Center(child: CircularProgressIndicator())
+                  : state.error != null
+                  ? _buildErrorState(context, state.error!)
                   : state.logs.isEmpty
                   ? _buildEmptyState(context)
                   : _buildLogList(context, state),
@@ -289,6 +291,43 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage> {
             result.end.add(const Duration(hours: 23, minutes: 59, seconds: 59)),
           );
     }
+  }
+
+  Widget _buildErrorState(BuildContext context, String error) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: colorScheme.error),
+          const SizedBox(height: 16),
+          Text(
+            'Error al cargar auditoría',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: colorScheme.error,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              error,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => ref.read(auditLogProvider.notifier).loadLogs(),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildEmptyState(BuildContext context) {

@@ -1,4 +1,9 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../core/theme/app_colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -45,6 +50,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             'items': inv.items.length,
             'subtotal': inv.subtotal,
             'tax': inv.taxAmount,
+            'discount': inv.discount,
             'total': inv.total,
             'paid': inv.paidAmount,
             'status': _mapStatus(inv.status),
@@ -2045,6 +2051,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
   late TabController _tabController;
   List<Map<String, dynamic>> _paymentHistory = [];
   bool _loadingHistory = true;
+  final GlobalKey _receiptKey = GlobalKey();
 
   @override
   void initState() {
@@ -2358,7 +2365,11 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                   const Spacer(),
                   OutlinedButton.icon(
                     onPressed: () {
-                      PrintService.printInvoice(inv);
+                      if (_tabController.index == 1) {
+                        _printReceiptScreenshot();
+                      } else {
+                        PrintService.printInvoice(inv);
+                      }
                     },
                     icon: Icon(Icons.print, size: 16, color: AppColors.info),
                     label: Text(
@@ -2495,6 +2506,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
     final pending = total - paid;
     final subtotal = (inv['subtotal'] as num?)?.toDouble() ?? 0;
     final tax = (inv['tax'] as num?)?.toDouble() ?? 0;
+    final discount = (inv['discount'] as num?)?.toDouble() ?? 0;
     final products = inv['products'] as List<dynamic>? ?? [];
     final paymentProgress = total > 0 ? (paid / total).clamp(0.0, 1.0) : 0.0;
 
@@ -2925,6 +2937,14 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                           child: Column(
                             children: [
                               _buildSummaryRow('Subtotal', subtotal),
+                              if (discount > 0) ...[
+                                const SizedBox(height: 4),
+                                _buildSummaryRow(
+                                  'Descuento',
+                                  -discount,
+                                  isDiscount: true,
+                                ),
+                              ],
                               const SizedBox(height: 4),
                               _buildSummaryRow('IVA (19%)', tax),
                               const Padding(
@@ -3617,7 +3637,11 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
     );
   }
 
-  Widget _buildSummaryRow(String label, double value) {
+  Widget _buildSummaryRow(
+    String label,
+    double value, {
+    bool isDiscount = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -3625,12 +3649,18 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
           label,
           style: TextStyle(
             fontSize: 13,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color: isDiscount
+                ? Colors.red.shade700
+                : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         Text(
           Helpers.formatCurrency(value),
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: isDiscount ? Colors.red.shade700 : null,
+          ),
         ),
       ],
     );
@@ -3639,6 +3669,46 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
   // ──────────────────────────────────────
   // TAB 2: RECIBO CLIENTE
   // ──────────────────────────────────────
+  Future<void> _printReceiptScreenshot() async {
+    try {
+      final boundary =
+          _receiptKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+      final pngBytes = byteData.buffer.asUint8List();
+
+      await Printing.layoutPdf(
+        onLayout: (_) async {
+          final pdf = pw.Document();
+          final pdfImage = pw.MemoryImage(pngBytes);
+          pdf.addPage(
+            pw.Page(
+              pageFormat: PdfPageFormat.letter,
+              margin: const pw.EdgeInsets.all(20),
+              build: (context) =>
+                  pw.Center(child: pw.Image(pdfImage, fit: pw.BoxFit.contain)),
+            ),
+          );
+          return pdf.save();
+        },
+        name: 'Recibo_${widget.invoice['number'] ?? 'SN'}',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al imprimir: $e'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildClientReceiptTab(Map<String, dynamic> inv) {
     final products = inv['products'] as List<dynamic>? ?? [];
     const headerColor = Color(0xFF1e293b);
@@ -3646,189 +3716,85 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
     final paid = (inv['paid'] as num?)?.toDouble() ?? 0;
     final subtotal = (inv['subtotal'] as num?)?.toDouble() ?? 0;
     final tax = (inv['tax'] as num?)?.toDouble() ?? 0;
+    final discount = (inv['discount'] as num?)?.toDouble() ?? 0;
 
-    return Container(
-      color: const Color(0xFFF8FAFC),
-      child: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 900),
-          margin: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(context).colorScheme.shadow.withOpacity(0.08),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Barra de acento
-              Container(
-                width: double.infinity,
-                height: 6,
-                decoration: const BoxDecoration(
-                  color: headerColor,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    return RepaintBoundary(
+      key: _receiptKey,
+      child: Container(
+        color: const Color(0xFFF8FAFC),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 900),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.shadow.withOpacity(0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
                 ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(40),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.verified,
-                                      color: headerColor,
-                                      size: 36,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    const Text(
-                                      'RECIBO DE CAJA',
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w900,
-                                        color: Color(0xFF111418),
-                                        letterSpacing: -0.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '#${inv['number']}',
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.shadow.withOpacity(0.1),
-                                      blurRadius: 10,
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Image.asset(
-                                    'lib/photo/logo_empresa.png',
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            headerColor,
-                                            headerColor.withOpacity(0.8),
-                                          ],
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.precision_manufacturing,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.surface,
-                                        size: 30,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Industrial de Molinos',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const Text(
-                                'NIT: 901946675-1',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF9E9E9E),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                      // Cliente
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainer,
-                          ),
-                        ),
-                        child: Row(
+              ],
+            ),
+            child: Column(
+              children: [
+                // Barra de acento
+                Container(
+                  width: double.infinity,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: headerColor,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 20,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.verified,
+                                        color: headerColor,
+                                        size: 26,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'RECIBO DE CAJA',
+                                        style: TextStyle(
+                                          fontSize: 19,
+                                          fontWeight: FontWeight.w900,
+                                          color: Color(0xFF111418),
+                                          letterSpacing: -0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
                                   Text(
-                                    'CLIENTE',
+                                    '#${inv['number']}',
                                     style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
                                       color: Theme.of(
                                         context,
                                       ).colorScheme.onSurfaceVariant,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    inv['customer'] ?? '',
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF111418),
-                                    ),
-                                  ),
-                                  Text(
-                                    'NIT/CC: ${inv['customerRuc'] ?? 'N/A'}',
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                      fontSize: 13,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ],
@@ -3837,176 +3803,214 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                _buildDateInfo(
-                                  'Fecha:',
-                                  Helpers.formatDate(inv['date']),
-                                ),
-                                const SizedBox(height: 6),
-                                _buildDateInfo(
-                                  'Vence:',
-                                  Helpers.formatDate(inv['dueDate']),
-                                ),
-                                if (inv['deliveryDate'] != null) ...[
-                                  const SizedBox(height: 6),
-                                  _buildDateInfo(
-                                    'Entrega:',
-                                    Helpers.formatDate(inv['deliveryDate']),
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.shadow.withOpacity(0.1),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.asset(
+                                      'lib/photo/logo_empresa.png',
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              headerColor,
+                                              headerColor.withOpacity(0.8),
+                                            ],
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.precision_manufacturing,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.surface,
+                                          size: 22,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Industrial de Molinos',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                                const Text(
+                                  'NIT: 901946675-1',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: Color(0xFF9E9E9E),
+                                  ),
+                                ),
                               ],
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 32),
-                      // Tabla
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainer,
+                        const SizedBox(height: 16),
+                        // Cliente
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainer,
+                            ),
                           ),
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'CLIENTE',
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      inv['customer'] ?? '',
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF111418),
+                                      ),
+                                    ),
+                                    Text(
+                                      'NIT/CC: ${inv['customerRuc'] ?? 'N/A'}',
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Row(
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  const Expanded(
-                                    flex: 3,
-                                    child: Text(
-                                      'Descripción',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF9E9E9E),
-                                      ),
-                                    ),
+                                  _buildDateInfo(
+                                    'Fecha:',
+                                    Helpers.formatDate(inv['date']),
                                   ),
-                                  SizedBox(
-                                    width: 70,
-                                    child: Text(
-                                      'Cant.',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
+                                  const SizedBox(height: 6),
+                                  _buildDateInfo(
+                                    'Vence:',
+                                    Helpers.formatDate(inv['dueDate']),
                                   ),
-                                  SizedBox(
-                                    width: 100,
-                                    child: Text(
-                                      'P. Unit.',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                      ),
-                                      textAlign: TextAlign.right,
+                                  if (inv['deliveryDate'] != null) ...[
+                                    const SizedBox(height: 6),
+                                    _buildDateInfo(
+                                      'Entrega:',
+                                      Helpers.formatDate(inv['deliveryDate']),
                                     ),
-                                  ),
-                                  SizedBox(
-                                    width: 110,
-                                    child: Text(
-                                      'Total',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                      ),
-                                      textAlign: TextAlign.right,
-                                    ),
-                                  ),
+                                  ],
                                 ],
                               ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Tabla
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainer,
                             ),
-                            ...products.map(
-                              (prod) => Container(
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 14,
+                                  horizontal: 14,
+                                  vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
-                                  border: Border(
-                                    top: BorderSide(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.surfaceContainerLow,
-                                    ),
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(10),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
-                                    Expanded(
+                                    const Expanded(
                                       flex: 3,
                                       child: Text(
-                                        prod['name'] ?? '',
-                                        style: const TextStyle(
+                                        'Descripción',
+                                        style: TextStyle(
+                                          fontSize: 11,
                                           fontWeight: FontWeight.w600,
-                                          fontSize: 14,
+                                          color: Color(0xFF9E9E9E),
                                         ),
                                       ),
                                     ),
                                     SizedBox(
-                                      width: 70,
+                                      width: 60,
                                       child: Text(
-                                        '${prod['quantity']}',
+                                        'Cant.',
                                         style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
                                           color: Theme.of(
                                             context,
-                                          ).colorScheme.onSurface,
-                                          fontSize: 14,
+                                          ).colorScheme.onSurfaceVariant,
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
                                     ),
                                     SizedBox(
-                                      width: 100,
+                                      width: 90,
                                       child: Text(
-                                        Helpers.formatCurrency(
-                                          (prod['unitPrice'] as num?)
-                                                  ?.toDouble() ??
-                                              0,
-                                        ),
+                                        'P. Unit.',
                                         style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
                                           color: Theme.of(
                                             context,
-                                          ).colorScheme.onSurface,
-                                          fontSize: 13,
+                                          ).colorScheme.onSurfaceVariant,
                                         ),
                                         textAlign: TextAlign.right,
                                       ),
                                     ),
                                     SizedBox(
-                                      width: 110,
+                                      width: 100,
                                       child: Text(
-                                        Helpers.formatCurrency(
-                                          (prod['total'] as num?)?.toDouble() ??
-                                              0,
-                                        ),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
+                                        'Total',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
                                         ),
                                         textAlign: TextAlign.right,
                                       ),
@@ -4014,106 +4018,197 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   ],
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      // Totales
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          SizedBox(
-                            width: 300,
-                            child: Column(
-                              children: [
-                                _buildSummaryRow('Subtotal', subtotal),
-                                const SizedBox(height: 4),
-                                _buildSummaryRow('IVA (19%)', tax),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 10),
-                                  child: Divider(thickness: 1),
-                                ),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      'TOTAL',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
+                              ...products.map(
+                                (prod) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      top: BorderSide(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerLow,
                                       ),
                                     ),
-                                    Text(
-                                      Helpers.formatCurrency(total),
-                                      style: TextStyle(
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w900,
-                                        color: headerColor,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 3,
+                                        child: Text(
+                                          prod['name'] ?? '',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
                                       ),
+                                      SizedBox(
+                                        width: 60,
+                                        child: Text(
+                                          '${prod['quantity']}',
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                            fontSize: 12,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 90,
+                                        child: Text(
+                                          Helpers.formatCurrency(
+                                            (prod['unitPrice'] as num?)
+                                                    ?.toDouble() ??
+                                                0,
+                                          ),
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                            fontSize: 11,
+                                          ),
+                                          textAlign: TextAlign.right,
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: Text(
+                                          Helpers.formatCurrency(
+                                            (prod['total'] as num?)
+                                                    ?.toDouble() ??
+                                                0,
+                                          ),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                          textAlign: TextAlign.right,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Totales
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            SizedBox(
+                              width: 280,
+                              child: Column(
+                                children: [
+                                  _buildSummaryRow('Subtotal', subtotal),
+                                  if (discount > 0) ...[
+                                    const SizedBox(height: 4),
+                                    _buildSummaryRow(
+                                      'Descuento',
+                                      -discount,
+                                      isDiscount: true,
                                     ),
                                   ],
-                                ),
-                                if (paid > 0) ...[
-                                  const SizedBox(height: 12),
-                                  _buildPaymentSummaryRow(
-                                    'Pagado',
-                                    paid,
-                                    AppColors.success,
-                                  ),
-                                ],
-                                if (total - paid > 0) ...[
                                   const SizedBox(height: 4),
-                                  _buildPaymentSummaryRow(
-                                    'Pendiente',
-                                    total - paid,
-                                    AppColors.warning,
+                                  _buildSummaryRow('IVA (19%)', tax),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 10),
+                                    child: Divider(thickness: 1),
                                   ),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'TOTAL',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        Helpers.formatCurrency(total),
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                          color: headerColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (paid > 0) ...[
+                                    const SizedBox(height: 12),
+                                    _buildPaymentSummaryRow(
+                                      'Pagado',
+                                      paid,
+                                      AppColors.success,
+                                    ),
+                                  ],
+                                  if (total - paid > 0) ...[
+                                    const SizedBox(height: 4),
+                                    _buildPaymentSummaryRow(
+                                      'Pendiente',
+                                      total - paid,
+                                      AppColors.warning,
+                                    ),
+                                  ],
                                 ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                      // Footer
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFBFDBFE)),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.email, size: 18, color: AppColors.info),
-                            const SizedBox(width: 10),
-                            Text(
-                              'industriasdemolinosasfact@gmail.com',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.info,
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              '¡GRACIAS POR SU COMPRA!',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.info,
-                                fontSize: 12,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        // Footer
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFBFDBFE)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.email,
+                                size: 14,
+                                color: AppColors.info,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'industriasdemolinosasfact@gmail.com',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.info,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '¡GRACIAS POR SU COMPRA!',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.info,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -4172,6 +4267,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
     final tax = (inv['tax'] as num?)?.toDouble() ?? 0;
     final total = (inv['total'] as num?)?.toDouble() ?? 0;
     final paid = (inv['paid'] as num?)?.toDouble() ?? 0;
+    final discount = (inv['discount'] as num?)?.toDouble() ?? 0;
 
     double totalCost = 0;
     for (var prod in products) {
@@ -4510,6 +4606,12 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                       subtotal,
                       const Color(0xFF2E7D32),
                     ),
+                    if (discount > 0)
+                      _buildFinanceLine(
+                        'Descuento',
+                        -discount,
+                        AppColors.danger,
+                      ),
                     _buildFinanceLine(
                       'IVA (19%)',
                       tax,
@@ -5208,6 +5310,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
   // ==========================================
   Widget _buildClientView(Map<String, dynamic> inv) {
     final products = inv['products'] as List<dynamic>? ?? [];
+    final discount = (inv['discount'] as num?)?.toDouble() ?? 0;
     const headerColor = Color(0xFF1e293b);
 
     return Container(
@@ -5563,6 +5666,12 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                             child: Column(
                               children: [
                                 _buildTotalRow('Subtotal', inv['subtotal']),
+                                if (discount > 0)
+                                  _buildTotalRow(
+                                    'Descuento',
+                                    -discount,
+                                    color: AppColors.danger,
+                                  ),
                                 _buildTotalRow('IVA (19%)', inv['tax']),
                                 const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 12),
@@ -5718,6 +5827,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
     final tax = (inv['tax'] as num?)?.toDouble() ?? 0;
     final total = (inv['total'] as num?)?.toDouble() ?? 0;
     final paid = (inv['paid'] as num?)?.toDouble() ?? 0;
+    final discount = (inv['discount'] as num?)?.toDouble() ?? 0;
 
     // Calcular costo total de productos
     double totalCost = 0;
@@ -6133,6 +6243,12 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
                           subtotal,
                           const Color(0xFF2E7D32),
                         ),
+                        if (discount > 0)
+                          _buildCostLine(
+                            'Descuento',
+                            -discount,
+                            AppColors.danger,
+                          ),
                         _buildCostLine(
                           'IVA (19%)',
                           tax,

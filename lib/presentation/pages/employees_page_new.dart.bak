@@ -33,8 +33,6 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
   final _mainTabKey = GlobalKey<EmployeesMainTabState>();
   final _tasksTabKey = GlobalKey<EmployeesTasksTabState>();
   final _payrollTabKey = GlobalKey<EmployeesPayrollTabState>();
-  final _loansTabKey = GlobalKey<EmployeesLoansTabState>();
-  final _incapacitiesTabKey = GlobalKey<EmployeesIncapacitiesTabState>();
 
   @override
   void initState() {
@@ -169,8 +167,8 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                 EmployeesMainTab(key: _mainTabKey),
                 EmployeesTasksTab(key: _tasksTabKey),
                 EmployeesPayrollTab(key: _payrollTabKey),
-                EmployeesLoansTab(key: _loansTabKey),
-                EmployeesIncapacitiesTab(key: _incapacitiesTabKey),
+                EmployeesLoansTab(),
+                const EmployeesIncapacitiesTab(),
               ],
             ),
           ),
@@ -238,10 +236,10 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
             _payrollTabKey.currentState?.showCreatePayrollDialog();
             break;
           case 3:
-            _loansTabKey.currentState?.showLoanDialog();
+            _mainTabKey.currentState?.showLoanDialog();
             break;
           case 4:
-            _incapacitiesTabKey.currentState?.showNewIncapacityDialog();
+            // Incapacities tab doesn't have a creation dialog from shell
             break;
         }
       },

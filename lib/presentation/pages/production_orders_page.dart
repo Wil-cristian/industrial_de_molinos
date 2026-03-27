@@ -822,7 +822,7 @@ class _CreateProductionOrderDialogState
 
   @override
   Widget build(BuildContext context) {
-    final productsState = ref.watch(compositeProductsProvider);
+    final productsState = ref.read(compositeProductsProvider);
     final width = MediaQuery.sizeOf(context).width;
     final dialogWidth = width < 700 ? width * 0.92 : 650.0;
 
@@ -1125,7 +1125,7 @@ class _EditStageDialogState extends ConsumerState<_EditStageDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final employees = ref.watch(employeesProvider).activeEmployees;
+    final employees = ref.read(employeesProvider).activeEmployees;
     final width = MediaQuery.sizeOf(context).width;
     final dialogWidth = width < 700 ? width * 0.92 : 620.0;
 

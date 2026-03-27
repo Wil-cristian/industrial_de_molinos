@@ -5,6 +5,24 @@ Todos los cambios notables en esta aplicacion seran documentados en este archivo
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.0.4] - 2026-03-25
+
+### Corregido
+- Fix panel de auditoría: error silenciado impedía cargar logs para admin (Monica)
+- Fix navegación móvil: índice incorrecto para IVA Control en bottom nav bar
+- Fix overflow en móvil: diálogo de categorías de materiales (RenderFlex 90px)
+- Fix bug auth: campo email_change NULL causaba error al consultar schema
+
+### Mejorado
+- Pestaña Nómina (empleados): tarjetas resumen responsivas con LayoutBuilder (3 filas en móvil)
+- Pestaña Nómina: header responsivo, tabla oculta columna SALARIO QUINC. en móvil
+- Pestaña Nómina: 5 diálogos convertidos a ConstrainedBox para móvil
+- Pestaña Principal (empleados): filtros responsivos con LayoutBuilder
+- Pestaña Principal: 8 diálogos convertidos a ConstrainedBox para móvil
+- Pestaña Incapacidades: tarjetas resumen 2x2 en móvil, diálogo responsivo
+- Pestaña Préstamos: 3 diálogos convertidos a ConstrainedBox para móvil
+- Diálogo de categorías de materiales: título con Expanded y botón compacto
+
 ## [1.0.3] - 2026-03-20
 
 ### Corregido

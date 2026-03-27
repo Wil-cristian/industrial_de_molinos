@@ -220,7 +220,11 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: columns,
-                                childAspectRatio: columns <= 2 ? 2.2 : 1.6,
+                                childAspectRatio: columns == 1
+                                    ? 1.8
+                                    : columns == 2
+                                    ? 2.0
+                                    : 1.6,
                                 crossAxisSpacing: 10,
                                 mainAxisSpacing: 10,
                               ),
@@ -448,86 +452,102 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
               ),
               const SizedBox(height: 8),
 
-              // Descripción
-              if (product.description != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    product.description!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 11,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+              // Descripción + componentes (se adapta al espacio disponible)
+              Expanded(
+                child: ClipRect(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Descripción
+                      if (product.description != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            product.description!,
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
 
-              // Lista de componentes dentro de la tarjeta
-              if (product.components.isNotEmpty)
-                ...product.components
-                    .take(3)
-                    .map(
-                      (comp) => Padding(
-                        padding: const EdgeInsets.only(bottom: 3),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '${comp.quantity}×',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
+                      // Lista de componentes dentro de la tarjeta
+                      if (product.components.isNotEmpty)
+                        ...product.components
+                            .take(3)
+                            .map(
+                              (comp) => Padding(
+                                padding: const EdgeInsets.only(bottom: 3),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '${comp.quantity}×',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        comp.materialName ?? 'Componente',
+                                        style: const TextStyle(fontSize: 11),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${Helpers.formatNumber(comp.totalWeight)} kg',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                comp.materialName ?? 'Componente',
-                                style: const TextStyle(fontSize: 11),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                      if (product.components.length > 3)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Text(
+                            '+${product.components.length - 3} más...',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                              fontStyle: FontStyle.italic,
                             ),
-                            Text(
-                              '${Helpers.formatNumber(comp.totalWeight)} kg',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-              if (product.components.length > 3)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Text(
-                    '+${product.components.length - 3} más...',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
-                    ),
+                    ],
                   ),
                 ),
+              ),
 
-              const Spacer(),
+              const SizedBox(height: 4),
 
               // Stats
               Container(
@@ -1236,8 +1256,12 @@ class _CompositeProductFormDialogState
 
   @override
   Widget build(BuildContext context) {
+    // Validate _selectedCategory against current list to prevent dropdown crash
+    if (!ProductCategories.all.contains(_selectedCategory)) {
+      _selectedCategory = ProductCategories.all.first;
+    }
     final preview = _buildProduct();
-    final inventoryState = ref.watch(inventoryProvider);
+    final inventoryState = ref.read(inventoryProvider);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -3078,7 +3102,7 @@ class _ManageCategoriesDialogState
     extends ConsumerState<_ManageCategoriesDialog> {
   @override
   Widget build(BuildContext context) {
-    final settingsState = ref.watch(settingsProvider);
+    final settingsState = ref.read(settingsProvider);
     final categories = settingsState.categories;
     final theme = Theme.of(context);
 
@@ -3087,8 +3111,7 @@ class _ManageCategoriesDialogState
         children: [
           Icon(Icons.category, color: theme.colorScheme.primary),
           const SizedBox(width: 8),
-          const Text('Administrar Categorías'),
-          const Spacer(),
+          const Expanded(child: Text('Administrar Categorías')),
           IconButton(
             onPressed: () => _showAddCategoryDialog(context),
             icon: const Icon(Icons.add_circle),

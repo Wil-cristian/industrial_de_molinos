@@ -3059,9 +3059,12 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           : DateTime.now();
 
       // 1. Crear factura con items
-      // Factor para distribuir mano de obra, costos indirectos,
-      // margen de ganancia y descuento proporcionalmente en cada item
-      final scaleFactor = _materialsCost > 0 ? _total / _materialsCost : 1.0;
+      // Factor para distribuir mano de obra, costos indirectos
+      // y margen de ganancia proporcionalmente en cada item (SIN descuento)
+      final preDiscountTotal = _subtotal + _profitAmount;
+      final scaleFactor = _materialsCost > 0
+          ? preDiscountTotal / _materialsCost
+          : 1.0;
 
       final invoice = await InvoicesDataSource.createWithItems(
         type: 'invoice',
@@ -3071,6 +3074,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         dueDate: dueDate,
         salePaymentType: _paymentType,
         taxRate: 0,
+        discount: _discountAmount,
         items: _items.map((item) {
           final qty = (item['quantity'] as num?)?.toDouble() ?? 1;
           final itemSaleTotal =

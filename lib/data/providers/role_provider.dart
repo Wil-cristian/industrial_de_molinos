@@ -38,6 +38,8 @@ class RoleState {
 
 /// Notifier que carga el perfil/rol al autenticarse
 class RoleNotifier extends Notifier<RoleState> {
+  int _profileRequestId = 0;
+
   @override
   RoleState build() {
     // Escuchar cambios en auth para cargar/limpiar perfil
@@ -47,12 +49,17 @@ class RoleNotifier extends Notifier<RoleState> {
       _loadProfile();
       return const RoleState(isLoading: true);
     }
+    // Invalidar requests pendientes al cerrar sesión
+    _profileRequestId++;
     return const RoleState();
   }
 
   Future<void> _loadProfile() async {
+    final requestId = ++_profileRequestId;
     try {
       final profile = await UserProfileDatasource.getMyProfile();
+      // Ignorar si hubo un cambio de usuario mientras cargaba
+      if (requestId != _profileRequestId) return;
       if (profile != null) {
         // Verificar que la cuenta esté activa
         if (!profile.isActive) {
@@ -78,6 +85,8 @@ class RoleNotifier extends Notifier<RoleState> {
         AppLogger.warning('Sin perfil en DB, asumiendo admin');
       }
     } catch (e) {
+      // Ignorar si hubo un cambio de usuario mientras cargaba
+      if (requestId != _profileRequestId) return;
       AppLogger.error('Error cargando perfil de usuario', e);
       // En caso de error, permitir acceso como admin para no bloquear
       state = RoleState(

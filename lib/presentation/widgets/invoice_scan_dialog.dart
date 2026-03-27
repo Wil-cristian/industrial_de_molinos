@@ -1,9 +1,12 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/utils/helpers.dart';
+import '../../core/utils/scan_helpers.dart' as scan_helpers;
 import '../../data/datasources/invoice_scanner_service.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/iva_datasource.dart';
@@ -11,11 +14,21 @@ import '../../data/datasources/suppliers_datasource.dart';
 import '../../data/datasources/inventory_datasource.dart';
 import '../../data/datasources/invoices_datasource.dart';
 import '../../data/datasources/supabase_datasource.dart';
+import '../../data/datasources/scan_corrections_datasource.dart';
 import '../../data/providers/suppliers_provider.dart';
 import '../../domain/entities/supplier.dart';
 import '../../domain/entities/cash_movement.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/material.dart' as mat;
+import 'material_form_dialog.dart';
+
+/// Normaliza unidades de medida escaneadas a formato estándar del inventario
+String _normalizeUnitGlobal(String unit) =>
+    scan_helpers.normalizeScannedUnit(unit);
+
+/// Infiere la categoría para un ítem escaneado basándose en su descripción
+String _inferCategoryGlobal(String description) =>
+    scan_helpers.inferCategoryFromDescription(description);
 
 class _ItemInventoryMatch {
   final ScannedInvoiceItem item;
@@ -23,14 +36,50 @@ class _ItemInventoryMatch {
   mat.Material? matchedMaterial;
   bool createNew;
   bool selected;
+  bool isEditing;
+
+  // Override controllers — user can edit AI-detected values
+  final TextEditingController descriptionCtrl;
+  final TextEditingController quantityCtrl;
+  final TextEditingController unitPriceCtrl;
+  String unitOverride;
+
   _ItemInventoryMatch({
     required this.item,
     this.aiRecommendation,
     this.matchedMaterial,
     this.createNew = false,
     required this.selected,
-  });
+    this.isEditing = false,
+    String? initialUnit,
+    String? initialDescription,
+    double? initialQuantity,
+    double? initialUnitPrice,
+  }) : descriptionCtrl = TextEditingController(
+         text: initialDescription ?? item.description,
+       ),
+       quantityCtrl = TextEditingController(
+         text: (initialQuantity ?? item.quantity).toString(),
+       ),
+       unitPriceCtrl = TextEditingController(
+         text: (initialUnitPrice ?? item.unitPrice).toString(),
+       ),
+       unitOverride =
+           initialUnit ?? (item.unit.isEmpty ? 'UND' : item.unit.toUpperCase());
+
   bool get isNew => createNew || matchedMaterial == null;
+
+  // Effective values — use overrides if user edited, otherwise original
+  String get effectiveDescription =>
+      descriptionCtrl.text.isNotEmpty ? descriptionCtrl.text : item.description;
+  double get effectiveQuantity =>
+      double.tryParse(quantityCtrl.text) ?? item.quantity;
+  double get effectiveUnitPrice =>
+      double.tryParse(unitPriceCtrl.text) ?? item.unitPrice;
+  String get effectiveUnit => unitOverride.isNotEmpty
+      ? unitOverride
+      : (item.unit.isEmpty ? 'UND' : item.unit.toUpperCase());
+  double get effectiveSubtotal => effectiveQuantity * effectiveUnitPrice;
 }
 
 enum _BatchScanStatus { pending, scanning, done, error }
@@ -40,6 +89,7 @@ class _BatchInvoiceItem {
   final PlatformFile file;
   _BatchScanStatus status;
   InvoiceScanResult? result;
+  List<_ItemInventoryMatch> itemMatches = [];
   String? scanError;
   bool isExpanded;
   bool selected;
@@ -103,9 +153,107 @@ class _BatchInvoiceItem {
       saved = false,
       saveError = null;
 
-  void populateFromResult(InvoiceScanResult r, DateFormat dateFormat) {
+  void populateFromResult(
+    InvoiceScanResult r,
+    DateFormat dateFormat,
+    List<mat.Material> allMaterials,
+  ) {
     result = r;
     status = _BatchScanStatus.done;
+    // Auto-match items con materiales — algoritmo mejorado
+    itemMatches = r.items.map((si) {
+      mat.Material? bestMatch;
+      int bestScore = 0;
+      final descLower = si.description.toLowerCase();
+      final descWords = descLower
+          .split(RegExp(r'[\s,.\-/]+'))
+          .where((w) => w.length > 2)
+          .toList();
+      final numericRegex = RegExp(r'\d+[.,/]?\d*\s*(?:mm|cm|m|kg|lb|")?');
+      final descNums = numericRegex
+          .allMatches(descLower)
+          .map((m) => m.group(0)!.replaceAll(',', '.').trim())
+          .toSet();
+
+      // Palabras clave de categoría para bonificación
+      final categoryKeywords = <String, List<String>>{
+        'bola': ['bola', 'esfera', 'bolas'],
+        'tubo': ['tubo', 'tubería', 'tuberia', 'caño'],
+        'lamina': ['lámina', 'lamina', 'lamin', 'chapa', 'placa'],
+        'eje': ['eje', 'barra', 'varilla', 'redondo'],
+        'tornillo': ['tornillo', 'perno', 'tuerca', 'arandela', 'tornillería'],
+        'soldadura': ['soldadura', 'electrodo', 'soldad', 'mig', 'tig'],
+        'pintura': [
+          'pintura',
+          'anticorrosivo',
+          'anticorr',
+          'esmalte',
+          'primer',
+        ],
+        'rodamiento': ['rodamiento', 'balero', 'chumacera', 'bearing'],
+        'consumible': [
+          'disco',
+          'lija',
+          'thinner',
+          'grasa',
+          'aceite',
+          'lubricante',
+        ],
+      };
+
+      // Normalizar la unidad del ítem escaneado
+      final normalizedUnit = _normalizeUnitGlobal(si.unit);
+
+      for (final m in allMaterials) {
+        final nameLower = m.name.toLowerCase();
+        final matDesc = (m.description ?? '').toLowerCase();
+        final matNums = numericRegex
+            .allMatches(nameLower)
+            .map((m) => m.group(0)!.replaceAll(',', '.').trim())
+            .toSet();
+        if (descNums.isNotEmpty && matNums.isNotEmpty) {
+          if (!descNums.any((n) => matNums.contains(n))) continue;
+        }
+        int score = 0;
+        if (nameLower == descLower) {
+          score += 10;
+        } else {
+          if (nameLower.contains(descLower)) score += 5;
+          if (descLower.contains(nameLower)) score += 4;
+        }
+        for (final word in descWords) {
+          if (nameLower.contains(word)) score += 1;
+          if (matDesc.contains(word)) score += 1;
+        }
+        // Bonus: misma unidad de medida
+        if (normalizedUnit == _normalizeUnitGlobal(m.unit) && score > 0) {
+          score += 2;
+        }
+        // Bonus: categoría coincide con palabras clave
+        final matCategory = m.category.toLowerCase();
+        for (final entry in categoryKeywords.entries) {
+          final catWords = entry.value;
+          final descHasCat = catWords.any((k) => descLower.contains(k));
+          final matHasCat = catWords.any(
+            (k) => matCategory.contains(k) || nameLower.contains(k),
+          );
+          if (descHasCat && matHasCat && score > 0) {
+            score += 3;
+          }
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = m;
+        }
+      }
+      return _ItemInventoryMatch(
+        item: si,
+        aiRecommendation: bestScore >= 2 ? bestMatch : null,
+        matchedMaterial: bestScore >= 2 ? bestMatch : null,
+        createNew: bestScore < 2,
+        selected: true,
+      );
+    }).toList();
     invoiceNumberCtrl.text = r.invoiceNumber ?? '';
     invoiceDateCtrl.text = r.invoiceDate != null
         ? dateFormat.format(r.invoiceDate!)
@@ -181,8 +329,21 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
   int _savingCurrentIndex = 0;
   String? _globalError;
   List<Account> _allAccounts = [];
+  List<mat.Material> _allMaterials = [];
   bool _accountsLoaded = false;
   final _dateFormat = DateFormat('dd/MM/yyyy');
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMaterials();
+  }
+
+  Future<void> _loadMaterials() async {
+    try {
+      _allMaterials = await InventoryDataSource.getAllMaterials();
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -201,12 +362,20 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final dialogWidth = screenWidth > 1200 ? 960.0 : screenWidth * 0.9;
+    final isMobile = screenWidth < 600;
+    final dialogWidth = screenWidth > 1200
+        ? 960.0
+        : (isMobile ? screenWidth : screenWidth * 0.9);
     return Dialog(
+      insetPadding: isMobile
+          ? const EdgeInsets.symmetric(horizontal: 4, vertical: 8)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: dialogWidth,
-        constraints: const BoxConstraints(maxHeight: 840),
+        constraints: BoxConstraints(
+          maxHeight: isMobile ? MediaQuery.of(context).size.height * 0.92 : 840,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -219,8 +388,11 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     );
   }
 
+  bool get _isMobile => MediaQuery.of(context).size.width < 600;
+
   Widget _buildHeader() {
     final theme = Theme.of(context);
+    final compact = _isMobile;
     const titles = {
       _ScanStep.selectImage: 'Escanear Facturas con IA',
       _ScanStep.scanning: 'Analizando facturas...',
@@ -248,25 +420,32 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
       subtitle = '$_savingCurrentIndex / $toSave guardadas';
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 14 : 20,
+        vertical: compact ? 10 : 16,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.primary,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Row(
         children: [
-          Icon(icons[_step], color: Colors.white, size: 28),
-          const SizedBox(width: 12),
+          Icon(icons[_step], color: Colors.white, size: compact ? 22 : 28),
+          SizedBox(width: compact ? 8 : 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   titles[_step]!,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style:
+                      (compact
+                              ? theme.textTheme.titleMedium
+                              : theme.textTheme.titleLarge)
+                          ?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                 ),
                 if (subtitle != null)
                   Text(
@@ -279,11 +458,14 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
             ),
           ),
           _buildStepIndicator(),
-          const SizedBox(width: 8),
+          SizedBox(width: compact ? 4 : 8),
           if (_step != _ScanStep.saving && _step != _ScanStep.scanning)
             IconButton(
               onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.close, color: Colors.white),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              iconSize: compact ? 20 : 24,
             ),
         ],
       ),
@@ -328,6 +510,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
   Widget _buildSelectImageStep() {
     final theme = Theme.of(context);
     final hasFiles = _batchItems.isNotEmpty;
+    final showCamera = !kIsWeb;
     return Padding(
       padding: const EdgeInsets.all(24),
       child: SingleChildScrollView(
@@ -357,58 +540,160 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               ),
               const SizedBox(height: 16),
             ],
-            InkWell(
-              onTap: _pickImages,
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 36),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: hasFiles
-                        ? theme.colorScheme.primary
-                        : const Color(0xFFE0E0E0),
-                    width: 2,
+            if (showCamera) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: _pickImages,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 28),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: hasFiles
+                                ? theme.colorScheme.primary
+                                : const Color(0xFFE0E0E0),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          color: hasFiles
+                              ? theme.colorScheme.primaryContainer.withOpacity(
+                                  0.25,
+                                )
+                              : const Color(0xFFFAFAFA),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.photo_library,
+                              size: 40,
+                              color: hasFiles
+                                  ? theme.colorScheme.primary
+                                  : const Color(0xFFBDBDBD),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              hasFiles ? 'Agregar más' : 'Galería / Archivos',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: hasFiles
+                                    ? theme.colorScheme.primary
+                                    : const Color(0xFF757575),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'JPG, PNG, PDF',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: const Color(0xFFBDBDBD),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  color: hasFiles
-                      ? theme.colorScheme.primaryContainer.withOpacity(0.25)
-                      : const Color(0xFFFAFAFA),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      hasFiles
-                          ? Icons.add_photo_alternate
-                          : Icons.cloud_upload_outlined,
-                      size: 56,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: InkWell(
+                      onTap: _takePhoto,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 28),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: const Color(0xFFE65100),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          color: const Color(0xFFFBE9E7),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.camera_alt,
+                              size: 40,
+                              color: Color(0xFFE65100),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tomar Foto',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFE65100),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Cámara del celular',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: const Color(0xFFBF360C),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              InkWell(
+                onTap: _pickImages,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 36),
+                  decoration: BoxDecoration(
+                    border: Border.all(
                       color: hasFiles
                           ? theme.colorScheme.primary
-                          : const Color(0xFFBDBDBD),
+                          : const Color(0xFFE0E0E0),
+                      width: 2,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      hasFiles
-                          ? 'Agregar más facturas'
-                          : 'Seleccionar facturas',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                    borderRadius: BorderRadius.circular(16),
+                    color: hasFiles
+                        ? theme.colorScheme.primaryContainer.withOpacity(0.25)
+                        : const Color(0xFFFAFAFA),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        hasFiles
+                            ? Icons.add_photo_alternate
+                            : Icons.cloud_upload_outlined,
+                        size: 56,
                         color: hasFiles
                             ? theme.colorScheme.primary
-                            : const Color(0xFF757575),
+                            : const Color(0xFFBDBDBD),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'JPG, PNG o PDF · Máx. 10 MB · Puede seleccionar varias a la vez',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFFBDBDBD),
+                      const SizedBox(height: 12),
+                      Text(
+                        hasFiles
+                            ? 'Agregar más facturas'
+                            : 'Seleccionar facturas',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: hasFiles
+                              ? theme.colorScheme.primary
+                              : const Color(0xFF757575),
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'JPG, PNG o PDF · Máx. 10 MB · Puede seleccionar varias a la vez',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFFBDBDBD),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
             if (hasFiles) ...[
               const SizedBox(height: 16),
               Row(
@@ -729,7 +1014,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
   // ─── Step 3: Revisión en lote ────────────────────────────────────
   Widget _buildReviewStep() {
     final theme = Theme.of(context);
-    final suppliers = ref.watch(suppliersProvider).suppliers;
+    final suppliers = ref.read(suppliersProvider).suppliers;
     final successItems = _batchItems
         .where((i) => i.status == _BatchScanStatus.done)
         .toList();
@@ -746,7 +1031,10 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: _isMobile ? 12 : 20,
+            vertical: _isMobile ? 6 : 10,
+          ),
           color: const Color(0xFFF5F5F5),
           child: Row(
             children: [
@@ -759,7 +1047,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                 const SizedBox(width: 8),
                 _summaryChip(
                   Icons.error,
-                  '${errorItems.length} con error',
+                  '${errorItems.length} error',
                   const Color(0xFFD32F2F),
                 ),
               ],
@@ -775,7 +1063,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         ),
         Flexible(
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(_isMobile ? 8 : 16),
             itemCount: _batchItems.length,
             itemBuilder: (ctx, index) =>
                 _buildBatchItemCard(_batchItems[index], suppliers),
@@ -855,7 +1143,10 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               bottomRight: Radius.circular(item.isExpanded ? 0 : 12),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: _isMobile ? 10 : 16,
+                vertical: _isMobile ? 8 : 12,
+              ),
               child: Row(
                 children: [
                   if (isDone)
@@ -878,13 +1169,15 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                           ? const Color(0xFFD32F2F)
                           : const Color(0xFFBDBDBD),
                     ),
-                  const SizedBox(width: 10),
-                  Icon(
-                    _fileIcon(item.file.extension),
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: _isMobile ? 6 : 10),
+                  if (!_isMobile) ...[
+                    Icon(
+                      _fileIcon(item.file.extension),
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -958,32 +1251,38 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                       ),
                     ),
                   if (isDone) ...[
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          Helpers.formatCurrency(
-                            double.tryParse(item.totalCtrl.text) ?? 0,
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            Helpers.formatCurrency(
+                              double.tryParse(item.totalCtrl.text) ?? 0,
+                            ),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: _isMobile ? 12 : 14,
+                              color: theme.colorScheme.primary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                        Text(
-                          'IVA: ${Helpers.formatCurrency(double.tryParse(item.taxAmountCtrl.text) ?? 0)}',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Color(0xFF9E9E9E),
-                          ),
-                        ),
-                      ],
+                          if (!_isMobile)
+                            Text(
+                              'IVA: ${Helpers.formatCurrency(double.tryParse(item.taxAmountCtrl.text) ?? 0)}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF9E9E9E),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 4),
                     Icon(
                       item.isExpanded ? Icons.expand_less : Icons.expand_more,
                       color: const Color(0xFF9E9E9E),
+                      size: _isMobile ? 20 : 24,
                     ),
                   ],
                   if (item.saved)
@@ -1033,7 +1332,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
           if (isDone && item.isExpanded) ...[
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(_isMobile ? 10 : 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1125,35 +1424,58 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               onChanged: (v) => setState(() => item.selectedSupplierId = v),
             )
           else ...[
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: TextFormField(
-                    controller: item.supplierNameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Razón social',
-                      prefixIcon: Icon(Icons.business),
-                      border: OutlineInputBorder(),
-                      isDense: true,
+            if (_isMobile) ...[
+              // Mobile: stack fields vertically
+              TextFormField(
+                controller: item.supplierNameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Razón social',
+                  prefixIcon: Icon(Icons.business),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: item.supplierNitCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'NIT / Documento',
+                  prefixIcon: Icon(Icons.badge),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: item.supplierNameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Razón social',
+                        prefixIcon: Icon(Icons.business),
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
-                    controller: item.supplierNitCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'NIT / Documento',
-                      prefixIcon: Icon(Icons.badge),
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      controller: item.supplierNitCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'NIT / Documento',
+                        prefixIcon: Icon(Icons.badge),
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
             const SizedBox(height: 8),
             TextFormField(
               controller: item.supplierAddressCtrl,
@@ -1209,86 +1531,146 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
 
   Widget _buildItemInvoiceDataSection(_BatchInvoiceItem item) {
     final theme = Theme.of(context);
+    final compact = _isMobile;
     return _buildSection(
       theme,
       icon: Icons.receipt_long,
       title: 'Datos de Factura',
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: item.invoiceNumberCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nº Factura',
-                    prefixIcon: Icon(Icons.tag),
-                    border: OutlineInputBorder(),
-                    isDense: true,
+          if (compact) ...[
+            // Mobile: 2 rows for better readability
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: item.invoiceNumberCtrl,
+                    decoration: const InputDecoration(
+                      labelText: '# Nº',
+                      prefixText: 'F  ',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextFormField(
-                  controller: item.invoiceDateCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Fecha',
-                    prefixIcon: Icon(Icons.calendar_today),
-                    border: OutlineInputBorder(),
-                    isDense: true,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: item.invoiceDateCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Fecha',
+                      suffixIcon: Icon(Icons.calendar_today, size: 16),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    readOnly: true,
+                    onTap: () => _pickDateForCtrl(item.invoiceDateCtrl),
                   ),
-                  readOnly: true,
-                  onTap: () => _pickDateForCtrl(item.invoiceDateCtrl),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextFormField(
-                  controller: item.dueDateCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Vencimiento',
-                    prefixIcon: Icon(Icons.event),
-                    border: OutlineInputBorder(),
-                    isDense: true,
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 44,
+                  child: TextFormField(
+                    controller: item.creditDaysCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Días',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
                   ),
-                  readOnly: true,
-                  onTap: () => _pickDateForCtrl(item.dueDateCtrl),
                 ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: item.cufeCtrl,
+              decoration: const InputDecoration(
+                labelText: 'CUFE',
+                prefixIcon: Icon(Icons.qr_code, size: 18),
+                border: OutlineInputBorder(),
+                isDense: true,
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: TextFormField(
-                  controller: item.cufeCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'CUFE',
-                    prefixIcon: Icon(Icons.qr_code),
-                    border: OutlineInputBorder(),
-                    isDense: true,
+              style: const TextStyle(fontSize: 11),
+            ),
+          ] else ...[
+            // Desktop: original 3-column layout
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: item.invoiceNumberCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Nº Factura',
+                      prefixIcon: Icon(Icons.tag),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
                   ),
-                  style: const TextStyle(fontSize: 11),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextFormField(
-                  controller: item.creditDaysCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Días crédito',
-                    prefixIcon: Icon(Icons.schedule),
-                    border: OutlineInputBorder(),
-                    isDense: true,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: item.invoiceDateCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Fecha',
+                      prefixIcon: Icon(Icons.calendar_today),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    readOnly: true,
+                    onTap: () => _pickDateForCtrl(item.invoiceDateCtrl),
                   ),
-                  keyboardType: TextInputType.number,
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: item.dueDateCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Vencimiento',
+                      prefixIcon: Icon(Icons.event),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    readOnly: true,
+                    onTap: () => _pickDateForCtrl(item.dueDateCtrl),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: TextFormField(
+                    controller: item.cufeCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'CUFE',
+                      prefixIcon: Icon(Icons.qr_code),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: item.creditDaysCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Días crédito',
+                      prefixIcon: Icon(Icons.schedule),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -1296,133 +1678,373 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
 
   Widget _buildItemsListSection(_BatchInvoiceItem item) {
     final theme = Theme.of(context);
-    final items = item.result?.items ?? [];
-    if (items.isEmpty) return const SizedBox.shrink();
+    final matches = item.itemMatches;
+    if (matches.isEmpty) return const SizedBox.shrink();
+
+    final unmatchedCount = matches
+        .where((m) => m.matchedMaterial == null)
+        .length;
+
     return _buildSection(
       theme,
       icon: Icons.list_alt,
-      title: 'Ítems Detectados (${items.length})',
+      title: _isMobile
+          ? 'Ítems (${matches.length})'
+          : 'Ítems Detectados (${matches.length})',
+      trailing: unmatchedCount > 0
+          ? TextButton.icon(
+              icon: const Icon(Icons.auto_fix_high, size: 14),
+              label: Text(
+                _isMobile
+                    ? 'Crear $unmatchedCount'
+                    : 'Auto-crear $unmatchedCount sin asociar',
+                style: const TextStyle(fontSize: 11),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: () => _showAutoCreateMaterialDialog(item),
+            )
+          : const Icon(Icons.check_circle, color: Colors.green, size: 20),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Row(
-              children: [
-                SizedBox(
-                  width: 68,
+          for (int i = 0; i < matches.length; i++)
+            _buildItemMatchRow(item, i, theme),
+        ],
+      ),
+    );
+  }
+
+  static const _unitOptions = [
+    'UND',
+    'KG',
+    'LB',
+    'LT',
+    'GAL',
+    'MT',
+    'CM',
+    'ROLLO',
+    'CAJA',
+    'PAQUETE',
+    'BOLSA',
+    'PAR',
+  ];
+
+  Widget _buildItemMatchRow(
+    _BatchInvoiceItem batchItem,
+    int matchIndex,
+    ThemeData theme,
+  ) {
+    final im = batchItem.itemMatches[matchIndex];
+    final hasMatch = im.matchedMaterial != null;
+    final compact = _isMobile;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 6 : 8,
+        vertical: compact ? 8 : 6,
+      ),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Row 1: description + action buttons
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (im.item.referenceCode != null &&
+                  im.item.referenceCode!.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(right: 6, top: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                   child: Text(
-                    'Código',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                    im.item.referenceCode!,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontFamily: 'monospace',
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                 ),
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'Descripción',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+              Expanded(
+                child: Text(
+                  im.effectiveDescription,
+                  style: TextStyle(fontSize: compact ? 12 : 11),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // Edit button
+              InkWell(
+                onTap: () => setState(() => im.isEditing = !im.isEditing),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    im.isEditing ? Icons.keyboard_arrow_up : Icons.edit_note,
+                    size: 18,
+                    color: im.isEditing
+                        ? theme.colorScheme.primary
+                        : Colors.grey[500],
                   ),
                 ),
-                SizedBox(
-                  width: 44,
-                  child: Text(
-                    'Cant',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-                    textAlign: TextAlign.right,
+              ),
+              // Split button
+              InkWell(
+                onTap: () => _splitItem(batchItem, matchIndex),
+                borderRadius: BorderRadius.circular(12),
+                child: Tooltip(
+                  message: 'Dividir en 2 ítems',
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.call_split,
+                      size: 16,
+                      color: Colors.grey[500],
+                    ),
                   ),
                 ),
-                SizedBox(
-                  width: 74,
-                  child: Text(
-                    'Precio',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-                    textAlign: TextAlign.right,
+              ),
+              // Delete button
+              if (batchItem.itemMatches.length > 1)
+                InkWell(
+                  onTap: () => setState(
+                    () => batchItem.itemMatches.removeAt(matchIndex),
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(Icons.close, size: 15, color: Colors.red[300]),
                   ),
                 ),
-                SizedBox(
-                  width: 44,
-                  child: Text(
-                    'IVA%',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-                SizedBox(
-                  width: 78,
-                  child: Text(
-                    'Subtotal',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
-          ...items.map(
-            (inv) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+          const SizedBox(height: 3),
+          // Row 2: quantity × price = subtotal (display)
+          Row(
+            children: [
+              Text(
+                '${im.effectiveQuantity % 1 == 0 ? im.effectiveQuantity.toInt() : im.effectiveQuantity} ${im.effectiveUnit}',
+                style: TextStyle(
+                  fontSize: compact ? 11 : 10,
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                ' × ${Helpers.formatNumber(im.effectiveUnitPrice)}',
+                style: TextStyle(
+                  fontSize: compact ? 11 : 10,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const Spacer(),
+              Text(
+                Helpers.formatNumber(im.effectiveSubtotal),
+                style: TextStyle(
+                  fontSize: compact ? 12 : 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+
+          // Editable fields (collapsed by default)
+          if (im.isEditing) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withOpacity(0.12),
+                ),
+              ),
+              child: Column(
+                children: [
+                  // Description
+                  TextField(
+                    controller: im.descriptionCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Descripción',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      prefixIcon: Icon(Icons.description, size: 18),
+                    ),
+                    style: const TextStyle(fontSize: 13),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const SizedBox(height: 10),
+                  // Row 1: Quantity + Unit
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: TextField(
+                          controller: im.quantityCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Cantidad',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            prefixIcon: Icon(Icons.numbers, size: 18),
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          style: const TextStyle(fontSize: 13),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 4,
+                        child: DropdownButtonFormField<String>(
+                          value:
+                              _unitOptions.contains(
+                                im.unitOverride.toUpperCase(),
+                              )
+                              ? im.unitOverride.toUpperCase()
+                              : 'UND',
+                          decoration: const InputDecoration(
+                            labelText: 'Unidad',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          isExpanded: true,
+                          items: _unitOptions
+                              .map(
+                                (u) => DropdownMenuItem(
+                                  value: u,
+                                  child: Text(
+                                    u,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => im.unitOverride = val);
+                            }
+                          },
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  // Row 2: Unit price (full width)
+                  TextField(
+                    controller: im.unitPriceCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Precio unitario',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      prefixIcon: Icon(Icons.attach_money, size: 18),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(fontSize: 13),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const SizedBox(height: 8),
+                  // Calculated subtotal
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Subtotal:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        Text(
+                          '\$ ${Helpers.formatNumber(im.effectiveSubtotal)}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 5),
+          // Row 3: material match chip
+          InkWell(
+            onTap: () => _showMaterialMatchPicker(batchItem, matchIndex),
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: hasMatch
+                    ? Colors.green.withValues(alpha: 0.08)
+                    : Colors.orange.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: hasMatch
+                      ? Colors.green.withValues(alpha: 0.3)
+                      : Colors.orange.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
-                  SizedBox(
-                    width: 68,
-                    child: Text(
-                      inv.referenceCode ?? '-',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
+                  Icon(
+                    hasMatch ? Icons.check_circle : Icons.warning_amber,
+                    size: 14,
+                    color: hasMatch ? Colors.green : Colors.orange,
                   ),
+                  const SizedBox(width: 6),
                   Expanded(
-                    flex: 3,
                     child: Text(
-                      inv.description,
-                      style: const TextStyle(fontSize: 11),
-                      maxLines: 2,
+                      hasMatch
+                          ? im.matchedMaterial!.name
+                          : 'Toca para asociar material',
+                      style: TextStyle(
+                        fontSize: compact ? 11 : 11,
+                        color: hasMatch
+                            ? Colors.green[800]
+                            : Colors.orange[800],
+                        fontWeight: hasMatch
+                            ? FontWeight.w500
+                            : FontWeight.normal,
+                      ),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  SizedBox(
-                    width: 44,
-                    child: Text(
-                      '${inv.quantity}',
-                      style: const TextStyle(fontSize: 11),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 74,
-                    child: Text(
-                      Helpers.formatNumber(inv.unitPrice),
-                      style: const TextStyle(fontSize: 11),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 44,
-                    child: Text(
-                      '${inv.taxRate.toStringAsFixed(0)}%',
-                      style: const TextStyle(fontSize: 11),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 78,
-                    child: Text(
-                      Helpers.formatNumber(inv.subtotal),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
+                  Icon(Icons.edit, size: 14, color: Colors.grey[400]),
                 ],
               ),
             ),
@@ -1432,8 +2054,239 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     );
   }
 
+  void _splitItem(_BatchInvoiceItem batchItem, int matchIndex) {
+    // Insert a new blank item after the current one — user fills in the details
+    final newItem = _ItemInventoryMatch(
+      item: ScannedInvoiceItem(
+        description: '',
+        quantity: 0,
+        unit: 'UND',
+        unitPrice: 0,
+      ),
+      selected: true,
+      isEditing: true,
+      initialDescription: '',
+      initialQuantity: 0,
+      initialUnitPrice: 0,
+      initialUnit: 'UND',
+    );
+
+    setState(() {
+      batchItem.itemMatches.insert(matchIndex + 1, newItem);
+    });
+  }
+
+  Future<void> _showMaterialMatchPicker(
+    _BatchInvoiceItem batchItem,
+    int matchIndex,
+  ) async {
+    final im = batchItem.itemMatches[matchIndex];
+    final searchCtrl = TextEditingController(text: im.effectiveDescription);
+
+    final result = await showDialog<mat.Material?>(
+      context: context,
+      builder: (ctx) {
+        List<mat.Material> filtered = List.from(_allMaterials);
+        return StatefulBuilder(
+          builder: (ctx, setDlgState) {
+            void filter() {
+              final q = searchCtrl.text.toLowerCase().trim();
+              filtered = q.isEmpty
+                  ? List.from(_allMaterials)
+                  : _allMaterials
+                        .where((m) => m.name.toLowerCase().contains(q))
+                        .toList();
+              setDlgState(() {});
+            }
+
+            return AlertDialog(
+              title: const Text('Asociar material'),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 400,
+                child: Column(
+                  children: [
+                    Text(
+                      'Ítem: ${im.effectiveDescription}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: searchCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'Buscar material...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            searchCtrl.clear();
+                            filter();
+                          },
+                        ),
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      onChanged: (_) => filter(),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? const Center(
+                              child: Text('No se encontraron materiales'),
+                            )
+                          : ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (_, i) {
+                                final m = filtered[i];
+                                final isCurrent =
+                                    im.matchedMaterial?.id == m.id;
+                                return ListTile(
+                                  dense: true,
+                                  selected: isCurrent,
+                                  leading: Icon(
+                                    isCurrent
+                                        ? Icons.check_circle
+                                        : Icons.inventory_2,
+                                    size: 20,
+                                    color: isCurrent
+                                        ? Colors.green
+                                        : Colors.grey,
+                                  ),
+                                  title: Text(
+                                    m.name,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                  subtitle: Text(
+                                    '${m.category} · ${m.unit}',
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                  onTap: () => Navigator.pop(ctx, m),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    final created = await _createMaterialFromItem(im.item);
+                    if (created != null && ctx.mounted) {
+                      Navigator.pop(ctx, created);
+                    }
+                  },
+                  child: const Text('+ Crear material'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancelar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        final old = batchItem.itemMatches[matchIndex];
+        batchItem.itemMatches[matchIndex] = _ItemInventoryMatch(
+          item: old.item,
+          aiRecommendation: old.aiRecommendation,
+          matchedMaterial: result,
+          createNew: false,
+          selected: true,
+          isEditing: old.isEditing,
+          initialDescription: old.effectiveDescription,
+          initialQuantity: old.effectiveQuantity,
+          initialUnitPrice: old.effectiveUnitPrice,
+          initialUnit: old.effectiveUnit,
+        );
+      });
+    }
+  }
+
+  Future<mat.Material?> _createMaterialFromItem(ScannedInvoiceItem item) async {
+    final suggestedCategory = _inferCategory(item.description);
+    final normalizedUnit = _normalizeUnit(item.unit);
+
+    final created = await MaterialFormDialog.show(
+      context,
+      suggestedName: item.description,
+      suggestedCostPrice: item.unitPrice,
+      suggestedUnit: normalizedUnit,
+      suggestedCategory: suggestedCategory,
+    );
+
+    if (created != null) {
+      _allMaterials.add(created);
+    }
+    return created;
+  }
+
+  Future<void> _showAutoCreateMaterialDialog(
+    _BatchInvoiceItem batchItem,
+  ) async {
+    final unmatched = <int>[];
+    for (int i = 0; i < batchItem.itemMatches.length; i++) {
+      if (batchItem.itemMatches[i].matchedMaterial == null) {
+        unmatched.add(i);
+      }
+    }
+    if (unmatched.isEmpty) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Crear materiales'),
+        content: Text(
+          '¿Crear ${unmatched.length} materiales nuevos para los ítems '
+          'sin asociar? Se usará la descripción escaneada como nombre.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Crear todos'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    for (final idx in unmatched) {
+      final im = batchItem.itemMatches[idx];
+      final created = await _createMaterialFromItem(im.item);
+      if (created != null && mounted) {
+        setState(() {
+          batchItem.itemMatches[idx] = _ItemInventoryMatch(
+            item: im.item,
+            aiRecommendation: im.aiRecommendation,
+            matchedMaterial: created,
+            createNew: false,
+            selected: true,
+            isEditing: im.isEditing,
+            initialDescription: im.effectiveDescription,
+            initialQuantity: im.effectiveQuantity,
+            initialUnitPrice: im.effectiveUnitPrice,
+            initialUnit: im.effectiveUnit,
+          );
+        });
+      }
+    }
+  }
+
   Widget _buildItemTotalsSection(_BatchInvoiceItem item) {
     final theme = Theme.of(context);
+    final compact = _isMobile;
     return _buildSection(
       theme,
       icon: Icons.calculate,
@@ -1454,7 +2307,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: compact ? 6 : 12),
           Expanded(
             child: Column(
               children: [
@@ -1675,71 +2528,77 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
 
   // ─── Actions Bar ─────────────────────────────────────────────────
   Widget _buildActions() {
+    final compact = _isMobile;
+    final buttons = <Widget>[
+      if (_step != _ScanStep.scanning && _step != _ScanStep.saving)
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+      if (_step == _ScanStep.selectImage)
+        FilledButton.icon(
+          onPressed: _batchItems.isNotEmpty ? _startBatchScan : null,
+          icon: const Icon(Icons.auto_awesome, size: 18),
+          label: Text(
+            _batchItems.length == 1
+                ? 'Escanear con IA'
+                : 'Escanear ${_batchItems.length} facturas',
+          ),
+        ),
+      if (_step == _ScanStep.review) ...[
+        OutlinedButton.icon(
+          onPressed: () => setState(() {
+            _step = _ScanStep.selectImage;
+            for (final item in _batchItems) {
+              item.status = _BatchScanStatus.pending;
+              item.result = null;
+              item.scanError = null;
+              item.saved = false;
+              item.saveError = null;
+            }
+            _globalError = null;
+          }),
+          icon: const Icon(Icons.refresh, size: 18),
+          label: const Text('Re-escanear'),
+        ),
+        FilledButton.icon(
+          onPressed: _selectedForSave == 0 ? null : _saveAllInvoices,
+          icon: const Icon(Icons.save, size: 18),
+          label: Text(
+            compact
+                ? 'Registrar'
+                : _selectedForSave == 1
+                ? 'Registrar Factura'
+                : 'Registrar $_selectedForSave Facturas',
+          ),
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF388E3C),
+          ),
+        ),
+      ],
+      if (_step == _ScanStep.saving)
+        const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+    ];
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 16,
+        vertical: compact ? 8 : 12,
+      ),
       decoration: const BoxDecoration(
         color: Color(0xFFFAFAFA),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          if (_step != _ScanStep.scanning && _step != _ScanStep.saving)
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-          const SizedBox(width: 12),
-          if (_step == _ScanStep.selectImage)
-            FilledButton.icon(
-              onPressed: _batchItems.isNotEmpty ? _startBatchScan : null,
-              icon: const Icon(Icons.auto_awesome, size: 18),
-              label: Text(
-                _batchItems.length == 1
-                    ? 'Escanear con IA'
-                    : 'Escanear ${_batchItems.length} facturas',
-              ),
-            ),
-          if (_step == _ScanStep.review) ...[
-            OutlinedButton.icon(
-              onPressed: () => setState(() {
-                _step = _ScanStep.selectImage;
-                for (final item in _batchItems) {
-                  item.status = _BatchScanStatus.pending;
-                  item.result = null;
-                  item.scanError = null;
-                  item.saved = false;
-                  item.saveError = null;
-                }
-                _globalError = null;
-              }),
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Re-escanear'),
-            ),
-            const SizedBox(width: 12),
-            FilledButton.icon(
-              onPressed: _selectedForSave == 0 ? null : _saveAllInvoices,
-              icon: const Icon(Icons.save, size: 18),
-              label: Text(
-                _selectedForSave == 1
-                    ? 'Registrar Factura'
-                    : 'Registrar $_selectedForSave Facturas',
-              ),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF388E3C),
-              ),
-            ),
-          ],
-          if (_step == _ScanStep.saving)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-        ],
+        children: buttons
+            .expand((b) => [const SizedBox(width: 8), b])
+            .skip(1)
+            .toList(),
       ),
     );
   }
@@ -1750,8 +2609,10 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     required IconData icon,
     required String title,
     String? subtitle,
+    Widget? trailing,
     required Widget child,
   }) {
+    final compact = _isMobile;
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -1759,7 +2620,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         side: const BorderSide(color: Color(0xFFEEEEEE)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(compact ? 10 : 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1771,12 +2632,15 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
+                if (trailing != null) trailing,
               ],
             ),
             if (subtitle != null) ...[
@@ -1789,7 +2653,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                 ),
               ),
             ],
-            const SizedBox(height: 10),
+            SizedBox(height: compact ? 8 : 10),
             child,
           ],
         ),
@@ -1854,13 +2718,17 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                   : const Color(0xFFBDBDBD),
             ),
             const SizedBox(width: 5),
-            Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                color: selected
-                    ? Theme.of(context).colorScheme.primary
-                    : const Color(0xFF757575),
+            Flexible(
+              child: Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  color: selected
+                      ? Theme.of(context).colorScheme.primary
+                      : const Color(0xFF757575),
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ],
@@ -1890,6 +2758,72 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     }
   }
 
+  // ─── Tomar foto con cámara (móvil) ────────────────────────────────
+  Future<void> _takePhoto() async {
+    final picker = ImagePicker();
+    final photo = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+      maxWidth: 2000,
+      maxHeight: 2000,
+    );
+    if (photo == null) return;
+
+    final bytes = await photo.readAsBytes();
+    final fileName = 'compra_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    final platformFile = PlatformFile(
+      name: fileName,
+      size: bytes.length,
+      bytes: Uint8List.fromList(bytes),
+    );
+
+    final batchItem = _BatchInvoiceItem(
+      index: _batchItems.length,
+      file: platformFile,
+    );
+    setState(() => _batchItems.add(batchItem));
+
+    // Escanear inmediatamente esta foto
+    await _scanSingleCameraItem(batchItem);
+  }
+
+  /// Escanear un item tomado con cámara e ir a review
+  Future<void> _scanSingleCameraItem(_BatchInvoiceItem item) async {
+    setState(() {
+      _step = _ScanStep.scanning;
+      item.status = _BatchScanStatus.scanning;
+    });
+
+    final response = await InvoiceScannerService.scanFromFile(item.file);
+    if (!mounted) return;
+
+    if (response.success && response.data != null) {
+      item.populateFromResult(response.data!, _dateFormat, _allMaterials);
+      _autoMatchSupplierForItem(item);
+      if (item.selectedSupplierId == null) item.createNewSupplier = true;
+    } else {
+      item.status = _BatchScanStatus.error;
+      item.scanError = response.error ?? 'Error desconocido';
+      item.selected = false;
+    }
+
+    if (!_accountsLoaded) {
+      try {
+        _allAccounts = await AccountsDataSource.getAllAccounts();
+        _accountsLoaded = true;
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _step = _ScanStep.review;
+      if (item.status == _BatchScanStatus.done) {
+        item.isExpanded = true;
+      }
+    });
+  }
+
   Future<void> _rescanItem(_BatchInvoiceItem item) async {
     if (item.status == _BatchScanStatus.scanning) return;
     setState(() {
@@ -1900,7 +2834,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     final response = await InvoiceScannerService.scanFromFile(item.file);
     if (!mounted) return;
     if (response.success && response.data != null) {
-      item.populateFromResult(response.data!, _dateFormat);
+      item.populateFromResult(response.data!, _dateFormat, _allMaterials);
       _autoMatchSupplierForItem(item);
       if (item.selectedSupplierId == null) item.createNewSupplier = true;
     } else {
@@ -1930,7 +2864,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
       final response = await InvoiceScannerService.scanFromFile(item.file);
       if (!mounted) return;
       if (response.success && response.data != null) {
-        item.populateFromResult(response.data!, _dateFormat);
+        item.populateFromResult(response.data!, _dateFormat, _allMaterials);
         _autoMatchSupplierForItem(item);
         if (item.selectedSupplierId == null) item.createNewSupplier = true;
       } else {
@@ -2012,16 +2946,62 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         .where((i) => i.selected && i.status == _BatchScanStatus.done)
         .toList();
     if (toSave.isEmpty) return;
+
+    // Validar que todos los ítems tengan material asociado
+    for (final item in toSave) {
+      final unmatched = item.itemMatches
+          .where((m) => m.matchedMaterial == null)
+          .length;
+      if (unmatched > 0) {
+        final doCreate = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Ítems sin asociar'),
+            content: Text(
+              'La factura "${item.invoiceNumberCtrl.text.isNotEmpty ? item.invoiceNumberCtrl.text : item.file.name}" '
+              'tiene $unmatched ítem(s) sin material asociado.\n\n'
+              '¿Deseas crear los materiales automáticamente?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Crear materiales'),
+              ),
+            ],
+          ),
+        );
+        if (doCreate == true && mounted) {
+          await _showAutoCreateMaterialDialog(item);
+        }
+        // Re-check after auto-create
+        final stillUnmatched = item.itemMatches
+            .where((m) => m.matchedMaterial == null)
+            .length;
+        if (stillUnmatched > 0) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  '⚠ Asocia todos los ítems con materiales antes de guardar',
+                ),
+                backgroundColor: Color(0xFFE65100),
+              ),
+            );
+          }
+          return;
+        }
+      }
+    }
+
     setState(() {
       _step = _ScanStep.saving;
       _savingCurrentIndex = 0;
     });
     String? lastPeriod;
-    final allMatches = <_ItemInventoryMatch>[];
-    List<mat.Material> allMaterials = [];
-    try {
-      allMaterials = await InventoryDataSource.getAllMaterials();
-    } catch (_) {}
     for (int i = 0; i < toSave.length; i++) {
       final item = toSave[i];
       item.saved = false;
@@ -2046,20 +3026,6 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
 
         lastPeriod = await _saveOneInvoice(item);
         item.saved = true;
-        if (item.result != null) {
-          for (final inv in item.result!.items) {
-            final recommended = _findBestMatch(inv.description, allMaterials);
-            allMatches.add(
-              _ItemInventoryMatch(
-                item: inv,
-                aiRecommendation: recommended,
-                matchedMaterial: recommended,
-                createNew: recommended == null,
-                selected: true,
-              ),
-            );
-          }
-        }
       } catch (e) {
         item.saveError = e.toString();
       }
@@ -2074,24 +3040,36 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         content: Text(
           savedCount > 0
               ? '✅ $savedCount factura(s) registrada(s)${errorCount > 0 ? ' · ⚠ $errorCount con error' : ''}'
-              : '❌ No se pudo registrar ninguna factura',
+              : '❌ No se pudo registrar ninguna factura${toSave.first.saveError != null ? ': ${toSave.first.saveError}' : ''}',
         ),
         backgroundColor: savedCount > 0
             ? const Color(0xFF388E3C)
             : const Color(0xFFD32F2F),
-        duration: const Duration(seconds: 5),
+        duration: const Duration(seconds: 8),
       ),
     );
-    if (allMatches.isNotEmpty && mounted) {
-      final invoiceRefs = toSave
-          .where((i) => i.saved)
-          .map(
-            (i) => i.invoiceNumberCtrl.text.isNotEmpty
-                ? i.invoiceNumberCtrl.text
-                : i.file.name,
-          )
-          .join(', ');
-      await _offerBatchInventoryUpdate(allMatches, allMaterials, invoiceRefs);
+
+    // Ofrecer actualización de inventario con los materiales ya asociados
+    if (savedCount > 0 && mounted) {
+      final allMatches = <_ItemInventoryMatch>[];
+      for (final item in toSave.where((i) => i.saved)) {
+        allMatches.addAll(item.itemMatches);
+      }
+      if (allMatches.isNotEmpty) {
+        final invoiceRefs = toSave
+            .where((i) => i.saved)
+            .map(
+              (i) => i.invoiceNumberCtrl.text.isNotEmpty
+                  ? i.invoiceNumberCtrl.text
+                  : i.file.name,
+            )
+            .join(', ');
+        await _offerBatchInventoryUpdate(
+          allMatches,
+          _allMaterials,
+          invoiceRefs,
+        );
+      }
     }
     if (!mounted) return;
     Navigator.of(context).pop(lastPeriod);
@@ -2157,14 +3135,31 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
           item.result!.supplier.documentNumber ??
           '';
     }
-    final subtotal =
+    // Recalculate subtotal from edited items so split/edits are reflected
+    final activeItems = item.itemMatches
+        .where(
+          (im) =>
+              im.selected &&
+              (im.effectiveQuantity > 0 || im.effectiveDescription.isNotEmpty),
+        )
+        .toList();
+    final itemsSubtotal = activeItems.fold<double>(
+      0.0,
+      (sum, im) => sum + im.effectiveSubtotal,
+    );
+    final headerSubtotal =
         double.tryParse(item.subtotalCtrl.text) ?? item.result!.subtotal;
+    final subtotal = itemsSubtotal > 0 ? itemsSubtotal : headerSubtotal;
     final taxAmount =
         double.tryParse(item.taxAmountCtrl.text) ?? item.result!.taxAmount;
     final reteFte = double.tryParse(item.reteFteCtrl.text) ?? 0;
     final reteIca = double.tryParse(item.reteIcaCtrl.text) ?? 0;
     final reteIva = double.tryParse(item.reteIvaCtrl.text) ?? 0;
-    final total = double.tryParse(item.totalCtrl.text) ?? item.result!.total;
+    // Use user-entered total if available, otherwise recalculate
+    final userTotal = double.tryParse(item.totalCtrl.text);
+    final total = (userTotal != null && userTotal > 0)
+        ? userTotal
+        : (subtotal + taxAmount - reteFte - reteIca - reteIva);
     final taxRate =
         double.tryParse(item.taxRateCtrl.text) ?? item.result!.taxRate;
     final creditDays =
@@ -2188,138 +3183,182 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     final scannedInvoiceNumber = item.invoiceNumberCtrl.text.isNotEmpty
         ? item.invoiceNumberCtrl.text
         : 'SIN-NUM';
-    final generatedNumber = await InvoicesDataSource.generateNumber('CMP');
-    final invoiceNotes = [
-      'Factura compra escaneada: $scannedInvoiceNumber',
-      if (item.cufeCtrl.text.isNotEmpty) 'CUFE: ${item.cufeCtrl.text}',
-      if (item.notesCtrl.text.isNotEmpty) item.notesCtrl.text,
-    ].join('\n');
+    String step = 'Generando número';
+    try {
+      final generatedNumber = await InvoicesDataSource.generateNumber('CMP');
+      final invoiceNotes = [
+        'Factura compra escaneada: $scannedInvoiceNumber',
+        if (item.cufeCtrl.text.isNotEmpty) 'CUFE: ${item.cufeCtrl.text}',
+        if (item.notesCtrl.text.isNotEmpty) item.notesCtrl.text,
+      ].join('\n');
 
-    final invoiceResponse = await SupabaseDataSource.client
-        .from('invoices')
-        .insert({
-          'type': 'invoice',
-          'series': 'CMP',
-          'number': generatedNumber,
-          'customer_id': null,
-          'customer_name': supplierName,
-          'customer_document': supplierNit,
-          'customer_address': item.supplierAddressCtrl.text.trim().isNotEmpty
-              ? item.supplierAddressCtrl.text.trim()
-              : null,
-          'issue_date': invoiceDate.toIso8601String().split('T')[0],
-          'due_date': dueDate?.toIso8601String().split('T')[0],
-          'subtotal': subtotal,
-          'tax_rate': taxRate,
-          'tax_amount': taxAmount,
-          'discount': 0,
-          'total': total,
-          'paid_amount': item.createExpenseRecord ? total : 0,
-          'status': item.createExpenseRecord ? 'paid' : 'issued',
-          'payment_method': item.createExpenseRecord ? 'transfer' : null,
-          'notes': invoiceNotes,
-        })
-        .select('id, series, number')
-        .single();
+      step = 'Insertando factura';
+      final invoiceResponse = await SupabaseDataSource.client
+          .from('invoices')
+          .insert({
+            'type': 'invoice',
+            'series': 'CMP',
+            'number': generatedNumber,
+            'customer_id': null,
+            'customer_name': supplierName,
+            'customer_document': supplierNit,
+            'customer_address': item.supplierAddressCtrl.text.trim().isNotEmpty
+                ? item.supplierAddressCtrl.text.trim()
+                : null,
+            'issue_date': invoiceDate.toIso8601String().split('T')[0],
+            'due_date': dueDate?.toIso8601String().split('T')[0],
+            'subtotal': subtotal,
+            'tax_rate': taxRate,
+            'tax_amount': taxAmount,
+            'discount': 0,
+            'total': total,
+            'paid_amount': item.createExpenseRecord ? total : 0,
+            'status': item.createExpenseRecord ? 'paid' : 'issued',
+            'payment_method': item.createExpenseRecord ? 'transfer' : null,
+            'notes': invoiceNotes,
+          })
+          .select('id, series, number')
+          .single();
 
-    final invoiceId = (invoiceResponse['id'] as String?) ?? '';
-    if (invoiceId.isEmpty) {
-      throw Exception('No se pudo crear la factura en tablas core');
-    }
+      final invoiceId = (invoiceResponse['id'] as String?) ?? '';
+      if (invoiceId.isEmpty) {
+        throw Exception('No se pudo crear la factura en tablas core');
+      }
 
-    final invoiceItems = item.result!.items;
-    if (invoiceItems.isNotEmpty) {
-      await SupabaseDataSource.client
-          .from('invoice_items')
-          .insert(
-            invoiceItems.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final invItem = entry.value;
-              return {
-                'invoice_id': invoiceId,
-                'product_id': null,
-                'material_id': null,
-                'product_code': invItem.referenceCode,
-                'product_name': invItem.description,
-                'description': invItem.description,
-                'quantity': invItem.quantity,
-                'unit': invItem.unit.isEmpty
-                    ? 'UND'
-                    : invItem.unit.toUpperCase(),
-                'unit_price': invItem.unitPrice,
-                'discount': 0,
-                'tax_rate': invItem.taxRate,
-                'subtotal': invItem.subtotal,
-                'tax_amount': invItem.taxAmount,
-                'total': invItem.total,
-                'sort_order': idx,
-              };
-            }).toList(),
-          );
-    }
+      step = 'Insertando ítems';
+      if (activeItems.isNotEmpty) {
+        await SupabaseDataSource.client
+            .from('invoice_items')
+            .insert(
+              activeItems.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final im = entry.value;
+                return {
+                  'invoice_id': invoiceId,
+                  'product_id': null,
+                  'material_id': im.matchedMaterial?.id,
+                  'product_code': im.item.referenceCode,
+                  'product_name': im.effectiveDescription.isNotEmpty
+                      ? im.effectiveDescription
+                      : 'Ítem ${idx + 1}',
+                  'description': im.effectiveDescription.isNotEmpty
+                      ? im.effectiveDescription
+                      : 'Ítem ${idx + 1}',
+                  'quantity': im.effectiveQuantity > 0
+                      ? im.effectiveQuantity
+                      : 1,
+                  'unit': im.effectiveUnit,
+                  'unit_price': im.effectiveUnitPrice,
+                  'discount': 0,
+                  'tax_rate': im.item.taxRate,
+                  'subtotal': im.effectiveSubtotal,
+                  'tax_amount': im.item.taxAmount,
+                  'total': im.effectiveSubtotal + im.item.taxAmount,
+                  'sort_order': idx,
+                };
+              }).toList(),
+            );
+      }
 
-    if (item.createExpenseRecord) {
-      await SupabaseDataSource.client.from('payments').insert({
-        'invoice_id': invoiceId,
-        'amount': total,
-        'method': 'transfer',
-        'payment_date': DateTime.now().toIso8601String().split('T')[0],
-        'reference':
-            'COMPRA-${invoiceResponse['series']}-${invoiceResponse['number']}',
-      });
-    }
+      step = 'Registrando pago';
+      if (item.createExpenseRecord) {
+        await SupabaseDataSource.client.from('payments').insert({
+          'invoice_id': invoiceId,
+          'amount': total,
+          'method': 'transfer',
+          'payment_date': DateTime.now().toIso8601String().split('T')[0],
+          'reference':
+              'COMPRA-${invoiceResponse['series']}-${invoiceResponse['number']}',
+        });
+      }
 
-    final period = getBimonthlyPeriod(invoiceDate);
-    if (item.createIvaRecord) {
-      final itemsDetail = item.result!.items
-          .map(
-            (i) =>
-                '${i.description} x${i.quantity} = \$${i.total.toStringAsFixed(0)}',
-          )
-          .join(' | ');
-      await IvaDataSource.createInvoice(
-        IvaInvoice(
-          invoiceNumber: item.invoiceNumberCtrl.text.isNotEmpty
-              ? item.invoiceNumberCtrl.text
+      step = 'Registrando IVA';
+      final period = getBimonthlyPeriod(invoiceDate);
+      if (item.createIvaRecord) {
+        final itemsDetail = item.result!.items
+            .map(
+              (i) =>
+                  '${i.description} x${i.quantity} = \$${i.total.toStringAsFixed(0)}',
+            )
+            .join(' | ');
+        await IvaDataSource.createInvoice(
+          IvaInvoice(
+            invoiceNumber: item.invoiceNumberCtrl.text.isNotEmpty
+                ? item.invoiceNumberCtrl.text
+                : 'SIN-NUM',
+            invoiceDate: invoiceDate,
+            company: supplierName,
+            invoiceType: 'COMPRA',
+            baseAmount: subtotal,
+            ivaAmount: taxAmount,
+            totalAmount: total,
+            hasReteiva: reteIva > 0,
+            reteivaAmount: reteIva,
+            bimonthlyPeriod: period,
+            notes: item.notesCtrl.text.isNotEmpty
+                ? '${item.notesCtrl.text}\n$itemsDetail'
+                : itemsDetail,
+            companyDocument: supplierNit,
+            cufe: item.cufeCtrl.text.isNotEmpty ? item.cufeCtrl.text : null,
+            rteFteAmount: reteFte,
+            reteIcaAmount: reteIca,
+          ),
+        );
+      }
+      step = 'Registrando movimiento de caja';
+      if (item.createExpenseRecord && item.selectedAccountId != null) {
+        final refNumber = await AccountsDataSource.getNextReferenceNumber();
+        await AccountsDataSource.createMovementWithBalanceUpdate(
+          CashMovement(
+            id: '',
+            accountId: item.selectedAccountId!,
+            type: MovementType.expense,
+            category: MovementCategory.consumibles,
+            amount: total,
+            description:
+                'Factura ${item.invoiceNumberCtrl.text} - $supplierName',
+            reference: refNumber.toString().padLeft(6, '0'),
+            personName: supplierName,
+            date: invoiceDate,
+          ),
+        );
+      }
+      step = 'Actualizando deuda proveedor';
+      await SuppliersDataSource.updateDebt(supplierId, total);
+
+      // Guardar correcciones para aprendizaje IA
+      try {
+        await ScanCorrectionsDataSource.saveCorrection(
+          correctionType: 'purchase',
+          originalResult: item.result!,
+          correctedTotal: total,
+          correctedSubtotal: subtotal,
+          correctedTaxRate: taxRate,
+          correctedTaxAmount: taxAmount,
+          correctedInvoiceNumber: invoiceNumber.isNotEmpty
+              ? invoiceNumber
               : 'SIN-NUM',
-          invoiceDate: invoiceDate,
-          company: supplierName,
-          invoiceType: 'COMPRA',
-          baseAmount: subtotal,
-          ivaAmount: taxAmount,
-          totalAmount: total,
-          hasReteiva: reteIva > 0,
-          reteivaAmount: reteIva,
-          bimonthlyPeriod: period,
-          notes: item.notesCtrl.text.isNotEmpty
-              ? '${item.notesCtrl.text}\n$itemsDetail'
-              : itemsDetail,
-          companyDocument: supplierNit,
-          cufe: item.cufeCtrl.text.isNotEmpty ? item.cufeCtrl.text : null,
-          rteFteAmount: reteFte,
-          reteIcaAmount: reteIca,
-        ),
-      );
+          supplierName: supplierName,
+          imageRef: item.result!.imagePath,
+        );
+      } catch (_) {
+        // No fallar la factura por error guardando corrección
+      }
+
+      return period;
+    } catch (e) {
+      throw Exception('[$step] $e');
     }
-    if (item.createExpenseRecord && item.selectedAccountId != null) {
-      final refNumber = await AccountsDataSource.getNextReferenceNumber();
-      await AccountsDataSource.createMovementWithBalanceUpdate(
-        CashMovement(
-          id: '',
-          accountId: item.selectedAccountId!,
-          type: MovementType.expense,
-          category: MovementCategory.consumibles,
-          amount: total,
-          description: 'Factura ${item.invoiceNumberCtrl.text} - $supplierName',
-          reference: refNumber.toString().padLeft(6, '0'),
-          personName: supplierName,
-          date: invoiceDate,
-        ),
-      );
-    }
-    await SuppliersDataSource.updateDebt(supplierId, total);
-    return period;
   }
+
+  /// Normaliza unidades de medida escaneadas a formato estándar del inventario
+  // Delegated to top-level function
+  static String _normalizeUnit(String unit) => _normalizeUnitGlobal(unit);
+
+  /// Infiere la categoría para un ítem escaneado basándose en su descripción
+  // Delegated to top-level function
+  static String _inferCategory(String description) =>
+      _inferCategoryGlobal(description);
 
   String _normalizeInvoiceNumber(String value) {
     return value.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
@@ -2362,23 +3401,25 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     if (confirmed != true || !mounted) return;
     try {
       for (final match in matches.where((m) => m.selected)) {
-        final inv = match.item;
-        final qty = inv.quantity;
+        final qty = match.effectiveQuantity;
+        final normalizedUnit = match.effectiveUnit;
+        final description = match.effectiveDescription;
+        final unitPrice = match.effectiveUnitPrice;
         if (match.isNew) {
           final now = DateTime.now();
-          // Generar código único basado en timestamp para evitar constraint violation
           final uniqueCode = 'FAC-${now.millisecondsSinceEpoch % 1000000}';
+          final inferredCategory = _inferCategory(description);
           final created = await InventoryDataSource.createMaterial(
             mat.Material(
               id: '',
               code: uniqueCode,
-              name: inv.description,
+              name: description,
               description: 'Creado automáticamente desde factura $invoiceRefs',
-              category: 'consumible',
-              costPrice: inv.unitPrice,
-              unitPrice: inv.unitPrice,
+              category: inferredCategory.toLowerCase(),
+              costPrice: unitPrice,
+              unitPrice: unitPrice,
               stock: qty,
-              unit: inv.unit.isEmpty ? 'UND' : inv.unit.toUpperCase(),
+              unit: normalizedUnit,
               createdAt: now,
               updatedAt: now,
             ),
@@ -2398,6 +3439,18 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
           final material = match.matchedMaterial!;
           final newStock = material.stock + qty;
           await InventoryDataSource.updateStock(material.id, newStock);
+          // Actualizar costo de compra si cambió
+          if (unitPrice > 0) {
+            try {
+              await InventoryDataSource.client
+                  .from('materials')
+                  .update({
+                    'cost_price': unitPrice,
+                    'updated_at': DateTime.now().toIso8601String(),
+                  })
+                  .eq('id', material.id);
+            } catch (_) {}
+          }
           try {
             await InventoryDataSource.client.from('material_movements').insert({
               'material_id': material.id,
@@ -2432,56 +3485,6 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         );
       }
     }
-  }
-
-  mat.Material? _findBestMatch(
-    String description,
-    List<mat.Material> materials,
-  ) {
-    final descLower = description.toLowerCase();
-    final descWords = descLower
-        .split(RegExp(r'[\s,.\-/]+'))
-        .where((w) => w.length > 2)
-        .toList();
-
-    // Extrae tokens numéricos y dimensionales (ej. "1.5", "2", "3/4", "1018", "630mm").
-    // Estos son discriminadores estrictos: si difieren, no es el mismo producto.
-    final numericRegex = RegExp(r'\d+[.,/]?\d*\s*(?:mm|cm|m|kg|lb|")?');
-    Set<String> extractNumericTokens(String s) {
-      return numericRegex
-          .allMatches(s.toLowerCase())
-          .map((m) => m.group(0)!.replaceAll(',', '.').trim())
-          .toSet();
-    }
-
-    final descNums = extractNumericTokens(descLower);
-
-    mat.Material? best;
-    int bestScore = 0;
-    for (final m in materials) {
-      final nameLower = m.name.toLowerCase();
-
-      // Si ambos tienen tokens numéricos y no comparten NINGUNO → rechazo estricto.
-      // Evita que "BOLA 2"" coincida con "BOLA 1.5"".
-      final matNums = extractNumericTokens(nameLower);
-      if (descNums.isNotEmpty && matNums.isNotEmpty) {
-        final hasCommonNum = descNums.any((n) => matNums.contains(n));
-        if (!hasCommonNum) continue;
-      }
-
-      int score = 0;
-      if (nameLower == descLower) score += 10;
-      if (nameLower.contains(descLower)) score += 5;
-      if (descLower.contains(nameLower)) score += 4;
-      for (final word in descWords) {
-        if (nameLower.contains(word)) score += 1;
-      }
-      if (score > bestScore) {
-        bestScore = score;
-        best = m;
-      }
-    }
-    return bestScore >= 2 ? best : null;
   }
 }
 
@@ -2630,14 +3633,14 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
   }
 
   Widget _buildMatchItem(_ItemInventoryMatch match) {
-    final item = match.item;
     final isNew = match.isNew;
     final statusColor = isNew
         ? const Color(0xFFF57C00)
         : const Color(0xFF00796B);
     final statusBg = isNew ? const Color(0xFFFFF3E0) : const Color(0xFFE0F2F1);
-    final qtyLabel =
-        '+${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} ${item.unit.isEmpty ? 'UND' : item.unit}';
+    final qty = match.effectiveQuantity;
+    final unit = match.effectiveUnit;
+    final qtyLabel = '+${qty % 1 == 0 ? qty.toInt() : qty} $unit';
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
@@ -2669,7 +3672,7 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    item.description,
+                    match.effectiveDescription,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
@@ -2835,8 +3838,8 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
                     Expanded(
                       child: Text(
                         isNew
-                            ? 'Se crear\u00E1 "${item.description}" con stock inicial de $qtyLabel'
-                            : 'Se sumar\u00E1 $qtyLabel a "${match.matchedMaterial!.name}" (${match.matchedMaterial!.stock.toStringAsFixed(match.matchedMaterial!.stock % 1 == 0 ? 0 : 2)} \u2192 ${(match.matchedMaterial!.stock + item.quantity).toStringAsFixed((match.matchedMaterial!.stock + item.quantity) % 1 == 0 ? 0 : 2)} ${match.matchedMaterial!.unit})',
+                            ? 'Se crear\u00E1 "${match.effectiveDescription}" con stock inicial de $qtyLabel'
+                            : 'Se sumar\u00E1 $qtyLabel a "${match.matchedMaterial!.name}" (${match.matchedMaterial!.stock.toStringAsFixed(match.matchedMaterial!.stock % 1 == 0 ? 0 : 2)} \u2192 ${(match.matchedMaterial!.stock + qty).toStringAsFixed((match.matchedMaterial!.stock + qty) % 1 == 0 ? 0 : 2)} ${match.matchedMaterial!.unit})',
                         style: TextStyle(fontSize: 11, color: statusColor),
                       ),
                     ),

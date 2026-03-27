@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/invoice.dart';
+
 // Fixed colors for print-ready receipt (not theme-dependent)
 const _kPrimary = Color(0xFF1B4F72);
 const _kPrimaryContainer = Color(0xFFD4E3F3);
@@ -98,20 +99,13 @@ class ReceiptPreviewClient extends StatelessWidget {
       child: Stack(
         children: [
           // Patrón decorativo
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _GridPatternPainter(),
-            ),
-          ),
+          Positioned.fill(child: CustomPaint(painter: _GridPatternPainter())),
           // Línea azul inferior
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              height: 4,
-              color: _kPrimary,
-            ),
+            child: Container(height: 4, color: _kPrimary),
           ),
         ],
       ),
@@ -153,11 +147,16 @@ class ReceiptPreviewClient extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: _getStatusColor(invoice.status).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: _getStatusColor(invoice.status).withOpacity(0.3)),
+                  border: Border.all(
+                    color: _getStatusColor(invoice.status).withOpacity(0.3),
+                  ),
                 ),
                 child: Text(
                   _getStatusLabel(invoice.status).toUpperCase(),
@@ -201,7 +200,11 @@ class ReceiptPreviewClient extends StatelessWidget {
                             colors: [_kPrimary, _kPrimaryContainer],
                           ),
                         ),
-                        child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 28),
+                        child: const Icon(
+                          Icons.precision_manufacturing,
+                          color: Colors.white,
+                          size: 28,
+                        ),
                       ),
                     ),
                   ),
@@ -286,7 +289,10 @@ class ReceiptPreviewClient extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(4),
@@ -307,9 +313,15 @@ class ReceiptPreviewClient extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _buildDateRow('Fecha de Emisión:', _formatDate(invoice.issueDate)),
+              _buildDateRow(
+                'Fecha de Emisión:',
+                _formatDate(invoice.issueDate),
+              ),
               const SizedBox(height: 8),
-              _buildDateRow('Fecha de Vencimiento:', invoice.dueDate != null ? _formatDate(invoice.dueDate!) : 'N/A'),
+              _buildDateRow(
+                'Fecha de Vencimiento:',
+                invoice.dueDate != null ? _formatDate(invoice.dueDate!) : 'N/A',
+              ),
               const SizedBox(height: 8),
               _buildDateRow('Periodo:', _getPeriod(invoice.issueDate)),
             ],
@@ -325,8 +337,14 @@ class ReceiptPreviewClient extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: _kOnSurfaceVariant, fontSize: 13)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+          Text(
+            label,
+            style: TextStyle(color: _kOnSurfaceVariant, fontSize: 13),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+          ),
         ],
       ),
     );
@@ -345,7 +363,9 @@ class ReceiptPreviewClient extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
               color: const Color(0xFFFAFAFA),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
               border: Border(bottom: BorderSide(color: _kOutlineVariant)),
             ),
             child: Row(
@@ -456,7 +476,9 @@ class ReceiptPreviewClient extends StatelessWidget {
   }
 
   Widget _buildTotals() {
-    final taxRate = invoice.subtotal > 0 ? ((invoice.taxAmount / invoice.subtotal) * 100) : 0;
+    final taxRate = invoice.subtotal > 0
+        ? ((invoice.taxAmount / invoice.subtotal) * 100)
+        : 0;
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -465,8 +487,15 @@ class ReceiptPreviewClient extends StatelessWidget {
           child: Column(
             children: [
               _buildTotalLine('Subtotal', invoice.subtotal),
+              if (invoice.discount > 0) ...[
+                const SizedBox(height: 8),
+                _buildTotalLine('Descuento', -invoice.discount),
+              ],
               const SizedBox(height: 8),
-              _buildTotalLine('IVA (${taxRate.toStringAsFixed(0)}%)', invoice.taxAmount),
+              _buildTotalLine(
+                'IVA (${taxRate.toStringAsFixed(0)}%)',
+                invoice.taxAmount,
+              ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: Divider(),
@@ -530,7 +559,9 @@ class ReceiptPreviewClient extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.only(top: 24),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: _kOutlineVariant, style: BorderStyle.solid)),
+        border: Border(
+          top: BorderSide(color: _kOutlineVariant, style: BorderStyle.solid),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,9 +579,18 @@ class ReceiptPreviewClient extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text('Banco: BBVA Bancomer', style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant)),
-                Text('Cuenta: 36800017429 ahorros', style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant)),
-                Text('Celulares: $companyPhone', style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant)),
+                Text(
+                  'Banco: BBVA Bancomer',
+                  style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant),
+                ),
+                Text(
+                  'Cuenta: 36800017429 ahorros',
+                  style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant),
+                ),
+                Text(
+                  'Celulares: $companyPhone',
+                  style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant),
+                ),
               ],
             ),
           ),
@@ -617,12 +657,38 @@ class ReceiptPreviewClient extends StatelessWidget {
   }
 
   String _formatDate(DateTime date) {
-    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const months = [
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
     return '${date.day} ${months[date.month - 1]}, ${date.year}';
   }
 
   String _getPeriod(DateTime date) {
-    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const months = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
     return '${months[date.month - 1]} ${date.year}';
   }
 
@@ -690,15 +756,29 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Calcular totales
-    final totalMaterials = items.fold<double>(0, (sum, item) => sum + item.total);
-    final totalLabor = laborDetails?.fold<double>(0, (sum, labor) => sum + (labor['total'] as double? ?? 0)) ?? 0;
+    final totalMaterials = items.fold<double>(
+      0,
+      (sum, item) => sum + item.total,
+    );
+    final totalLabor =
+        laborDetails?.fold<double>(
+          0,
+          (sum, labor) => sum + (labor['total'] as double? ?? 0),
+        ) ??
+        0;
     final energyTotal = energyCosts?['total'] as double? ?? 0;
     final logisticsTotal = logisticsCosts?['total'] as double? ?? 0;
     final overheadTotal = totalMaterials * (overheadPercentage ?? 15) / 100;
-    final totalCosts = totalMaterials + totalLabor + energyTotal + logisticsTotal + overheadTotal;
+    final totalCosts =
+        totalMaterials +
+        totalLabor +
+        energyTotal +
+        logisticsTotal +
+        overheadTotal;
     final profit = invoice.total - totalCosts;
     final margin = invoice.total > 0 ? (profit / invoice.total * 100) : 0.0;
-    final operationalTotal = totalLabor + energyTotal + logisticsTotal + overheadTotal;
+    final operationalTotal =
+        totalLabor + energyTotal + logisticsTotal + overheadTotal;
 
     return Container(
       color: const Color(0xFFF6F7F8),
@@ -717,7 +797,12 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                   _buildPageHeader(),
                   const SizedBox(height: 24),
                   // Stats cards
-                  _buildStatsCards(totalMaterials, operationalTotal, profit, margin),
+                  _buildStatsCards(
+                    totalMaterials,
+                    operationalTotal,
+                    profit,
+                    margin,
+                  ),
                   const SizedBox(height: 24),
                   // BOM Table
                   _buildBOMSection(),
@@ -728,7 +813,14 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                     children: [
                       Expanded(child: _buildLaborSection()),
                       const SizedBox(width: 24),
-                      Expanded(child: _buildOverheadSection(energyTotal, logisticsTotal, overheadTotal, totalMaterials)),
+                      Expanded(
+                        child: _buildOverheadSection(
+                          energyTotal,
+                          logisticsTotal,
+                          overheadTotal,
+                          totalMaterials,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -760,7 +852,11 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               color: _kPrimary,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.precision_manufacturing,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Text(
@@ -833,7 +929,9 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    items.isNotEmpty ? items.first.productName : 'Orden de Producción',
+                    items.isNotEmpty
+                        ? items.first.productName
+                        : 'Orden de Producción',
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w900,
@@ -872,12 +970,22 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: primary ? null : Border.all(color: _kOutlineVariant),
         boxShadow: primary
-            ? [BoxShadow(color: _kPrimaryContainer, blurRadius: 8, offset: const Offset(0, 2))]
+            ? [
+                BoxShadow(
+                  color: _kPrimaryContainer,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
             : null,
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: primary ? Colors.white : const Color(0xFF616161)),
+          Icon(
+            icon,
+            size: 18,
+            color: primary ? Colors.white : const Color(0xFF616161),
+          ),
           const SizedBox(width: 8),
           Text(
             label,
@@ -892,27 +1000,82 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsCards(double materials, double operational, double profit, double margin) {
+  Widget _buildStatsCards(
+    double materials,
+    double operational,
+    double profit,
+    double margin,
+  ) {
     return Row(
       children: [
-        Expanded(child: _buildStatCard('INGRESOS TOTALES', invoice.total, Icons.payments, null, 'Precio Fijo Pactado', const Color(0xFF009688), false)),
+        Expanded(
+          child: _buildStatCard(
+            'INGRESOS TOTALES',
+            invoice.total,
+            Icons.payments,
+            null,
+            'Precio Fijo Pactado',
+            const Color(0xFF009688),
+            false,
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('COSTO MATERIALES (BOM)', materials, Icons.inventory_2, '+2.3% sobre presupuesto', null, const Color(0xFFC62828), false)),
+        Expanded(
+          child: _buildStatCard(
+            'COSTO MATERIALES (BOM)',
+            materials,
+            Icons.inventory_2,
+            '+2.3% sobre presupuesto',
+            null,
+            const Color(0xFFC62828),
+            false,
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('COSTOS OPERATIVOS', operational, Icons.engineering, '-5% optimización', null, const Color(0xFF009688), false)),
+        Expanded(
+          child: _buildStatCard(
+            'COSTOS OPERATIVOS',
+            operational,
+            Icons.engineering,
+            '-5% optimización',
+            null,
+            const Color(0xFF009688),
+            false,
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('GANANCIA NETA', profit, Icons.account_balance_wallet, 'Margen: ${margin.toStringAsFixed(1)}%', null, _kPrimary, true)),
+        Expanded(
+          child: _buildStatCard(
+            'GANANCIA NETA',
+            profit,
+            Icons.account_balance_wallet,
+            'Margen: ${margin.toStringAsFixed(1)}%',
+            null,
+            _kPrimary,
+            true,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String label, double value, IconData icon, String? trend, String? subtitle, Color trendColor, bool highlight) {
+  Widget _buildStatCard(
+    String label,
+    double value,
+    IconData icon,
+    String? trend,
+    String? subtitle,
+    Color trendColor,
+    bool highlight,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: highlight ? const Color(0xFFE3F2FD) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: highlight ? Colors.blue[100]! : const Color(0xFFEEEEEE)),
+        border: Border.all(
+          color: highlight ? Colors.blue[100]! : const Color(0xFFEEEEEE),
+        ),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF000000).withOpacity(0.03),
@@ -926,7 +1089,11 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: highlight ? _kPrimary : const Color(0xFF9E9E9E)),
+              Icon(
+                icon,
+                size: 18,
+                color: highlight ? _kPrimary : const Color(0xFF9E9E9E),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -956,18 +1123,33 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  trend.contains('+') ? Icons.arrow_upward : (trend.contains('-') ? Icons.arrow_downward : Icons.trending_flat),
+                  trend.contains('+')
+                      ? Icons.arrow_upward
+                      : (trend.contains('-')
+                            ? Icons.arrow_downward
+                            : Icons.trending_flat),
                   size: 14,
                   color: trendColor,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
-                  child: Text(trend, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: trendColor), overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    trend,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: trendColor,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
           if (subtitle != null)
-            Text(subtitle, style: TextStyle(fontSize: 12, color: const Color(0xFF00897B))),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 12, color: const Color(0xFF00897B)),
+            ),
         ],
       ),
     );
@@ -987,7 +1169,14 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             TextButton.icon(
               onPressed: () {},
               icon: Icon(Icons.add, size: 16, color: _kPrimary),
-              label: Text('Agregar Componente', style: TextStyle(color: _kPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+              label: Text(
+                'Agregar Componente',
+                style: TextStyle(
+                  color: _kPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ],
         ),
@@ -1009,10 +1198,15 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAFAFA),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
                   border: Border(bottom: BorderSide(color: _kOutlineVariant)),
                 ),
                 child: Row(
@@ -1031,15 +1225,27 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               ...items.asMap().entries.map((entry) {
                 final index = entry.key;
                 final item = entry.value;
-                final details = productDetails != null && index < productDetails!.length ? productDetails![index] : null;
-                return _buildBOMRow(item, details, 'CMP-${(index + 1).toString().padLeft(3, '0')}');
+                final details =
+                    productDetails != null && index < productDetails!.length
+                    ? productDetails![index]
+                    : null;
+                return _buildBOMRow(
+                  item,
+                  details,
+                  'CMP-${(index + 1).toString().padLeft(3, '0')}',
+                );
               }),
               // Footer con total
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAFAFA),
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(12),
+                  ),
                   border: Border(top: BorderSide(color: _kOutlineVariant)),
                 ),
                 child: Row(
@@ -1073,7 +1279,13 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
     );
   }
 
-  Widget _buildTableHeader(String label, double? width, {bool center = false, bool right = false, int? flex}) {
+  Widget _buildTableHeader(
+    String label,
+    double? width, {
+    bool center = false,
+    bool right = false,
+    int? flex,
+  }) {
     final widget = Text(
       label,
       style: TextStyle(
@@ -1082,7 +1294,9 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
         color: _kOnSurfaceVariant,
         letterSpacing: 0.5,
       ),
-      textAlign: right ? TextAlign.right : (center ? TextAlign.center : TextAlign.left),
+      textAlign: right
+          ? TextAlign.right
+          : (center ? TextAlign.center : TextAlign.left),
     );
 
     if (flex != null) {
@@ -1091,9 +1305,13 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
     return SizedBox(width: width, child: widget);
   }
 
-  Widget _buildBOMRow(InvoiceItem item, Map<String, dynamic>? details, String id) {
+  Widget _buildBOMRow(
+    InvoiceItem item,
+    Map<String, dynamic>? details,
+    String id,
+  ) {
     final category = details?['category'] as String? ?? 'Material';
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
@@ -1118,7 +1336,10 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               children: [
                 Text(
                   item.productName,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 if (details?['supplier'] != null)
                   Text(
@@ -1202,12 +1423,30 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
   Widget _buildLaborSection() {
     final defaultLabor = [
       {'role': 'Soldador Senior', 'hours': 45.0, 'rate': 35.0, 'total': 1575.0},
-      {'role': 'Ingeniero de Ensamble', 'hours': 20.0, 'rate': 50.0, 'total': 1000.0},
-      {'role': 'Técnico Eléctrico', 'hours': 15.0, 'rate': 40.0, 'total': 600.0},
-      {'role': 'Ayudante General', 'hours': 60.0, 'rate': 18.0, 'total': 1080.0},
+      {
+        'role': 'Ingeniero de Ensamble',
+        'hours': 20.0,
+        'rate': 50.0,
+        'total': 1000.0,
+      },
+      {
+        'role': 'Técnico Eléctrico',
+        'hours': 15.0,
+        'rate': 40.0,
+        'total': 600.0,
+      },
+      {
+        'role': 'Ayudante General',
+        'hours': 60.0,
+        'rate': 18.0,
+        'total': 1080.0,
+      },
     ];
     final labor = laborDetails ?? defaultLabor;
-    final totalLabor = labor.fold<double>(0, (sum, l) => sum + (l['total'] as double? ?? 0));
+    final totalLabor = labor.fold<double>(
+      0,
+      (sum, l) => sum + (l['total'] as double? ?? 0),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1221,7 +1460,10 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {},
-              child: Text('Ver detalle horas', style: TextStyle(color: _kPrimary, fontSize: 12)),
+              child: Text(
+                'Ver detalle horas',
+                style: TextStyle(color: _kPrimary, fontSize: 12),
+              ),
             ),
           ],
         ),
@@ -1236,46 +1478,159 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAFAFA),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Expanded(child: Text('ROL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kOnSurfaceVariant))),
-                    SizedBox(width: 60, child: Text('HORAS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kOnSurfaceVariant), textAlign: TextAlign.right)),
-                    SizedBox(width: 70, child: Text('TARIFA/HR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kOnSurfaceVariant), textAlign: TextAlign.right)),
-                    SizedBox(width: 80, child: Text('TOTAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kOnSurfaceVariant), textAlign: TextAlign.right)),
+                    Expanded(
+                      child: Text(
+                        'ROL',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: _kOnSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 60,
+                      child: Text(
+                        'HORAS',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: _kOnSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 70,
+                      child: Text(
+                        'TARIFA/HR',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: _kOnSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 80,
+                      child: Text(
+                        'TOTAL',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: _kOnSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
                   ],
                 ),
               ),
               // Rows
-              ...labor.map((l) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: const Color(0xFFF5F5F5)))),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(l['role'] as String, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-                        SizedBox(width: 60, child: Text('${l['hours']}', style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant), textAlign: TextAlign.right)),
-                        SizedBox(width: 70, child: Text('\$${(l['rate'] as double).toStringAsFixed(2)}', style: TextStyle(fontSize: 13, color: _kOnSurfaceVariant), textAlign: TextAlign.right)),
-                        SizedBox(width: 80, child: Text('\$${_formatNumber(l['total'] as double)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
-                      ],
+              ...labor.map(
+                (l) => Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: const Color(0xFFF5F5F5)),
                     ),
-                  )),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l['role'] as String,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 60,
+                        child: Text(
+                          '${l['hours']}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _kOnSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 70,
+                        child: Text(
+                          '\$${(l['rate'] as double).toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _kOnSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 80,
+                        child: Text(
+                          '\$${_formatNumber(l['total'] as double)}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               // Footer
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: _kPrimaryContainer,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(12),
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text('TOTAL MANO DE OBRA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _kPrimary)),
+                    Text(
+                      'TOTAL MANO DE OBRA',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _kPrimary,
+                      ),
+                    ),
                     const SizedBox(width: 16),
-                    Text('\$${_formatNumber(totalLabor)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: _kPrimary)),
+                    Text(
+                      '\$${_formatNumber(totalLabor)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: _kPrimary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1286,7 +1641,12 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
     );
   }
 
-  Widget _buildOverheadSection(double energyTotal, double logisticsTotal, double overheadTotal, double materialsTotal) {
+  Widget _buildOverheadSection(
+    double energyTotal,
+    double logisticsTotal,
+    double overheadTotal,
+    double materialsTotal,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1297,15 +1657,33 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildOverheadCard(Icons.bolt, 'Energía Eléctrica', const Color(0xFFF9A825), [
-              {'label': 'Consumo (kWh)', 'value': '1,250 kWh'},
-              {'label': 'Costo por kWh', 'value': '\$0.22'},
-            ], energyTotal > 0 ? energyTotal : 275.0, 'Editar Tarifa')),
+            Expanded(
+              child: _buildOverheadCard(
+                Icons.bolt,
+                'Energía Eléctrica',
+                const Color(0xFFF9A825),
+                [
+                  {'label': 'Consumo (kWh)', 'value': '1,250 kWh'},
+                  {'label': 'Costo por kWh', 'value': '\$0.22'},
+                ],
+                energyTotal > 0 ? energyTotal : 275.0,
+                'Editar Tarifa',
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildOverheadCard(Icons.local_shipping, 'Logística', const Color(0xFF3F51B5), [
-              {'label': 'Flete de Entrada', 'value': '\$450.00'},
-              {'label': 'Envío al Cliente', 'value': '\$1,200.00'},
-            ], logisticsTotal > 0 ? logisticsTotal : 1650.0, 'Detalles Envío')),
+            Expanded(
+              child: _buildOverheadCard(
+                Icons.local_shipping,
+                'Logística',
+                const Color(0xFF3F51B5),
+                [
+                  {'label': 'Flete de Entrada', 'value': '\$450.00'},
+                  {'label': 'Envío al Cliente', 'value': '\$1,200.00'},
+                ],
+                logisticsTotal > 0 ? logisticsTotal : 1650.0,
+                'Detalles Envío',
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -1332,14 +1710,26 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Gastos Indirectos de Fábrica (15%)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    Text('Calculado sobre costo de materiales', style: TextStyle(fontSize: 11, color: _kOnSurfaceVariant)),
+                    const Text(
+                      'Gastos Indirectos de Fábrica (15%)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    Text(
+                      'Calculado sobre costo de materiales',
+                      style: TextStyle(fontSize: 11, color: _kOnSurfaceVariant),
+                    ),
                   ],
                 ),
               ),
               Text(
                 '\$${_formatNumber(overheadTotal > 0 ? overheadTotal : materialsTotal * 0.15)}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ],
           ),
@@ -1348,7 +1738,14 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
     );
   }
 
-  Widget _buildOverheadCard(IconData icon, String title, Color color, List<Map<String, String>> details, double total, String buttonLabel) {
+  Widget _buildOverheadCard(
+    IconData icon,
+    String title,
+    Color color,
+    List<Map<String, String>> details,
+    double total,
+    String buttonLabel,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1370,26 +1767,57 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                 child: Icon(icon, color: color, size: 20),
               ),
               const SizedBox(width: 12),
-              Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          ...details.map((d) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(d['label']!, style: TextStyle(fontSize: 12, color: _kOnSurfaceVariant)),
-                    Text(d['value']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              )),
+          ...details.map(
+            (d) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    d['label']!,
+                    style: TextStyle(fontSize: 12, color: _kOnSurfaceVariant),
+                  ),
+                  Text(
+                    d['value']!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const Divider(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total ${title.split(' ').first}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              Text('\$${_formatNumber(total)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(
+                'Total ${title.split(' ').first}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              Text(
+                '\$${_formatNumber(total)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -1401,7 +1829,14 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
                 backgroundColor: _kSurfaceContainerLow,
                 padding: const EdgeInsets.symmetric(vertical: 10),
               ),
-              child: Text(buttonLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _kOnSurfaceVariant)),
+              child: Text(
+                buttonLabel,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: _kOnSurfaceVariant,
+                ),
+              ),
             ),
           ),
         ],
@@ -1427,9 +1862,22 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('NOTAS:', style: TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFFFF8F00), fontSize: 12)),
+                Text(
+                  'NOTAS:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFFFF8F00),
+                    fontSize: 12,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(notes!, style: TextStyle(fontSize: 13, color: const Color(0xFF616161))),
+                Text(
+                  notes!,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: const Color(0xFF616161),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1450,7 +1898,13 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
         children: [
           TextButton(
             onPressed: () {},
-            child: Text('Cancelar', style: TextStyle(color: _kOnSurfaceVariant, fontWeight: FontWeight.bold)),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(
+                color: _kOnSurfaceVariant,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           const SizedBox(width: 16),
           ElevatedButton(
@@ -1459,9 +1913,14 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
               backgroundColor: const Color(0xFF111418),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text('Finalizar Recibo', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Finalizar Recibo',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

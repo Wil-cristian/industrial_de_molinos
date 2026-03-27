@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 /// Registro de auditoría — quién hizo qué y cuándo
 class AuditLog {
   final String id;
@@ -37,7 +39,9 @@ class AuditLog {
       module: json['module'] as String,
       recordId: json['record_id'] as String?,
       description: json['description'] as String? ?? '',
-      details: json['details'] as Map<String, dynamic>?,
+      details: json['details'] is String
+          ? jsonDecode(json['details'] as String) as Map<String, dynamic>?
+          : json['details'] as Map<String, dynamic>?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : DateTime.now(),

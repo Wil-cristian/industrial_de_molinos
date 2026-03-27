@@ -1359,11 +1359,12 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               maxWidth: ResponsiveHelper.isMobile(context)
                   ? double.infinity
                   : 600,
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
             ),
             child: SingleChildScrollView(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final compact = constraints.maxWidth < 520;
+              child: Builder(
+                builder: (context) {
+                  final compact = MediaQuery.of(context).size.width < 600;
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -1840,11 +1841,12 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               maxWidth: ResponsiveHelper.isMobile(context)
                   ? double.infinity
                   : 500,
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
             ),
             child: SingleChildScrollView(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final compact = constraints.maxWidth < 480;
+              child: Builder(
+                builder: (context) {
+                  final compact = MediaQuery.of(context).size.width < 560;
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [

@@ -440,12 +440,11 @@ class PayrollNotifier extends Notifier<PayrollState> {
       final existingAdj = await EmployeesDatasource.getTimeAdjustments(
         employeeId: employeeId,
         startDate: incapacity.startDate,
+        endDate: incapacity.endDate,
       );
       final existingDates = <String>{};
       for (final adj in existingAdj) {
-        if (!adj.adjustmentDate.isAfter(incapacity.endDate)) {
-          existingDates.add(adj.adjustmentDate.toIso8601String().split('T')[0]);
-        }
+        existingDates.add(adj.adjustmentDate.toIso8601String().split('T')[0]);
       }
 
       // Iterar cada día del rango

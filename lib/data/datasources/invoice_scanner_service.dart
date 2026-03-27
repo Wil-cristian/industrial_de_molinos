@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/utils/logger.dart';
 import '../../domain/entities/purchase_order.dart';
+import 'scan_corrections_datasource.dart';
 import 'supabase_datasource.dart';
 
 // =====================================================
@@ -532,9 +533,24 @@ class InvoiceScannerService {
     String imageData, {
     bool isBase64 = false,
   }) async {
-    final body = isBase64
-        ? {'image_base64': imageData}
-        : {'image_url': imageData};
+    final body = <String, dynamic>{};
+    if (isBase64) {
+      body['image_base64'] = imageData;
+    } else {
+      body['image_url'] = imageData;
+    }
+
+    // Incluir correcciones recientes como few-shot examples
+    try {
+      final corrections = await ScanCorrectionsDataSource.getRecentCorrections(
+        limit: 10,
+      );
+      if (corrections.isNotEmpty) {
+        body['recent_corrections'] = corrections;
+      }
+    } catch (_) {
+      // No bloquear el escaneo si falla la consulta de correcciones
+    }
 
     final response = await _client.functions.invoke(_functionName, body: body);
 

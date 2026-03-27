@@ -65,14 +65,15 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextField(
+                  if (isMobile) ...[
+                    // Mobile: search full width, filters below
+                    TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
                         hintText: 'Buscar empleado...',
@@ -89,81 +90,195 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                         ref.read(employeesProvider.notifier).search(value);
                       },
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  _buildFilterDropdown(
-                    value: _filterStatus,
-                    items: const [
-                      DropdownMenuItem(value: 'todos', child: Text('Todos')),
-                      DropdownMenuItem(value: 'activo', child: Text('Activos')),
-                      DropdownMenuItem(
-                        value: 'vacaciones',
-                        child: Text('Vacaciones'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'licencia',
-                        child: Text('Licencia'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'inactivo',
-                        child: Text('Inactivos'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() => _filterStatus = value ?? 'todos');
-                    },
-                    hint: 'Estado',
-                  ),
-                  const SizedBox(width: 16),
-                  _buildFilterDropdown(
-                    value: _filterDepartment,
-                    items: const [
-                      DropdownMenuItem(value: 'todos', child: Text('Todos')),
-                      DropdownMenuItem(
-                        value: 'produccion',
-                        child: Text('Producción'),
-                      ),
-                      DropdownMenuItem(value: 'ventas', child: Text('Ventas')),
-                      DropdownMenuItem(
-                        value: 'administracion',
-                        child: Text('Administración'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'mantenimiento',
-                        child: Text('Mantenimiento'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() => _filterDepartment = value ?? 'todos');
-                    },
-                    hint: 'Departamento',
-                  ),
-                ],
-              ),
-              if (selectedEmployee != null) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    Chip(
-                      avatar: const Icon(Icons.badge, size: 16),
-                      label: Text('Seleccionado: ${selectedEmployee.fullName}'),
-                      onDeleted: () => ref
-                          .read(employeesProvider.notifier)
-                          .selectEmployee(null),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildFilterDropdown(
+                            value: _filterStatus,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'todos',
+                                child: Text('Todos'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'activo',
+                                child: Text('Activos'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'vacaciones',
+                                child: Text('Vacaciones'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'licencia',
+                                child: Text('Licencia'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'inactivo',
+                                child: Text('Inactivos'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() => _filterStatus = value ?? 'todos');
+                            },
+                            hint: 'Estado',
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildFilterDropdown(
+                            value: _filterDepartment,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'todos',
+                                child: Text('Todos'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'produccion',
+                                child: Text('Producción'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'ventas',
+                                child: Text('Ventas'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'administracion',
+                                child: Text('Administración'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'mantenimiento',
+                                child: Text('Mantenimiento'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(
+                                () => _filterDepartment = value ?? 'todos',
+                              );
+                            },
+                            hint: 'Departamento',
+                          ),
+                        ),
+                      ],
                     ),
-                    ActionChip(
-                      avatar: const Icon(Icons.refresh, size: 16),
-                      label: const Text('Actualizar horas'),
-                      onPressed: () => ref
-                          .read(employeesProvider.notifier)
-                          .loadTimeOverview(selectedEmployee.id),
+                  ] else ...[
+                    // Desktop: all in one row
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Buscar empleado...',
+                              prefixIcon: const Icon(Icons.search),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              filled: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                            ),
+                            onChanged: (value) {
+                              ref
+                                  .read(employeesProvider.notifier)
+                                  .search(value);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        _buildFilterDropdown(
+                          value: _filterStatus,
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'todos',
+                              child: Text('Todos'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'activo',
+                              child: Text('Activos'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'vacaciones',
+                              child: Text('Vacaciones'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'licencia',
+                              child: Text('Licencia'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'inactivo',
+                              child: Text('Inactivos'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            setState(() => _filterStatus = value ?? 'todos');
+                          },
+                          hint: 'Estado',
+                        ),
+                        const SizedBox(width: 16),
+                        _buildFilterDropdown(
+                          value: _filterDepartment,
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'todos',
+                              child: Text('Todos'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'produccion',
+                              child: Text('Producción'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'ventas',
+                              child: Text('Ventas'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'administracion',
+                              child: Text('Administración'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'mantenimiento',
+                              child: Text('Mantenimiento'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            setState(
+                              () => _filterDepartment = value ?? 'todos',
+                            );
+                          },
+                          hint: 'Departamento',
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ],
-            ],
+                  if (selectedEmployee != null) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        Chip(
+                          avatar: const Icon(Icons.badge, size: 16),
+                          label: Text(
+                            'Seleccionado: ${selectedEmployee.fullName}',
+                          ),
+                          onDeleted: () => ref
+                              .read(employeesProvider.notifier)
+                              .selectEmployee(null),
+                        ),
+                        ActionChip(
+                          avatar: const Icon(Icons.refresh, size: 16),
+                          label: const Text('Actualizar horas'),
+                          onPressed: () => ref
+                              .read(employeesProvider.notifier)
+                              .loadTimeOverview(selectedEmployee.id),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ),
         Expanded(
@@ -1576,17 +1691,12 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     final adjustments = await EmployeesDatasource.getTimeAdjustments(
       employeeId: employeeId,
       startDate: quinStart,
+      endDate: quinEnd,
     );
 
     final Map<String, Map<String, int>> dayData = {};
 
     for (final adj in adjustments) {
-      // Filtrar solo los de la quincena
-      if (adj.adjustmentDate.isBefore(quinStart) ||
-          adj.adjustmentDate.isAfter(quinEnd)) {
-        continue;
-      }
-
       final dateKey = adj.adjustmentDate.toIso8601String().split('T')[0];
       dayData.putIfAbsent(
         dateKey,
@@ -1783,8 +1893,8 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
               ],
             ),
             contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            content: SizedBox(
-              width: 360,
+            content: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 360, minWidth: 200),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -3524,8 +3634,8 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
               Text(isEditing ? 'Editar Empleado' : 'Nuevo Empleado'),
             ],
           ),
-          content: SizedBox(
-            width: 520,
+          content: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 520, minWidth: 200),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -3989,8 +4099,8 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                 ),
               ],
             ),
-            content: SizedBox(
-              width: 500,
+            content: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 500, minWidth: 200),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -4156,655 +4266,641 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => Consumer(
-          builder: (context, ref, child) {
-            final state = ref.watch(employeesProvider);
-            final payrollState = ref.watch(payrollProvider);
-            final allTasks = state.selectedEmployeeTasks;
-            final theme = Theme.of(context);
-            final isDark = theme.brightness == Brightness.dark;
-            final borderColor = isDark
-                ? const Color(0xFF334155)
-                : const Color(0xFFE2E8F0);
+        builder: (context, setDialogState) {
+          final state = ref.read(employeesProvider);
+          final payrollState = ref.read(payrollProvider);
+          final allTasks = state.selectedEmployeeTasks;
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
+          final borderColor = isDark
+              ? const Color(0xFF334155)
+              : const Color(0xFFE2E8F0);
 
-            // Préstamos activos del empleado
-            final employeeLoans = payrollState.loans
+          // Préstamos activos del empleado
+          final employeeLoans = payrollState.loans
+              .where((l) => l.employeeId == employee.id && l.status == 'activo')
+              .toList();
+
+          final now = DateTime.now();
+          final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+
+          // Días de la semana (sin domingo)
+          final dayNames = ['L', 'M', 'X', 'J', 'V', 'S'];
+          final dayFullNames = [
+            'Lunes',
+            'Martes',
+            'Miércoles',
+            'Jueves',
+            'Viernes',
+            'Sábado',
+          ];
+
+          // Horario: L-V 7:30-12:00 y 1:00-4:30, Sáb 7:30-1:00 = 44h semanales
+          const double weekdayBase = 7.7; // (44 - 5.5) / 5
+          const double saturdayBase = 5.5; // Sábado
+          Map<int, double> hoursByDay = {};
+          Map<int, DateTime> datesByDay = {};
+
+          for (int i = 0; i < 6; i++) {
+            final dayDate = startOfWeek.add(Duration(days: i));
+            datesByDay[i] = dayDate;
+
+            final dayAdjustments = state.timeAdjustments
+                .where((a) => a.employeeId == employee.id)
                 .where(
-                  (l) => l.employeeId == employee.id && l.status == 'activo',
+                  (a) =>
+                      a.adjustmentDate.year == dayDate.year &&
+                      a.adjustmentDate.month == dayDate.month &&
+                      a.adjustmentDate.day == dayDate.day,
                 )
                 .toList();
 
-            final now = DateTime.now();
-            final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-
-            // Días de la semana (sin domingo)
-            final dayNames = ['L', 'M', 'X', 'J', 'V', 'S'];
-            final dayFullNames = [
-              'Lunes',
-              'Martes',
-              'Miércoles',
-              'Jueves',
-              'Viernes',
-              'Sábado',
-            ];
-
-            // Horario: L-V 7:30-12:00 y 1:00-4:30, Sáb 7:30-1:00 = 44h semanales
-            const double weekdayBase = 7.7; // (44 - 5.5) / 5
-            const double saturdayBase = 5.5; // Sábado
-            Map<int, double> hoursByDay = {};
-            Map<int, DateTime> datesByDay = {};
-
-            for (int i = 0; i < 6; i++) {
-              final dayDate = startOfWeek.add(Duration(days: i));
-              datesByDay[i] = dayDate;
-
-              final dayAdjustments = state.timeAdjustments
-                  .where((a) => a.employeeId == employee.id)
-                  .where(
-                    (a) =>
-                        a.adjustmentDate.year == dayDate.year &&
-                        a.adjustmentDate.month == dayDate.month &&
-                        a.adjustmentDate.day == dayDate.day,
-                  )
-                  .toList();
-
-              // i=5 es sábado, usar saturdayBase, sino weekdayBase
-              double dayHours = (i == 5) ? saturdayBase : weekdayBase;
-              for (var adj in dayAdjustments) {
-                if (adj.type == 'overtime') {
-                  dayHours += adj.minutes / 60.0;
-                } else {
-                  dayHours -= adj.minutes / 60.0;
-                }
+            // i=5 es sábado, usar saturdayBase, sino weekdayBase
+            double dayHours = (i == 5) ? saturdayBase : weekdayBase;
+            for (var adj in dayAdjustments) {
+              if (adj.type == 'overtime') {
+                dayHours += adj.minutes / 60.0;
+              } else {
+                dayHours -= adj.minutes / 60.0;
               }
-              hoursByDay[i] = dayHours.clamp(0.0, 24.0);
             }
+            hoursByDay[i] = dayHours.clamp(0.0, 24.0);
+          }
 
-            // Total semanal
-            final totalWeekHours = hoursByDay.values.fold(0.0, (a, b) => a + b);
-            const weeklyBase = 44.0; // 44h semanales
-            final progress = (totalWeekHours / weeklyBase).clamp(0.0, 1.0);
-            final isOvertime = totalWeekHours > weeklyBase;
-            final isUndertime = totalWeekHours < weeklyBase;
+          // Total semanal
+          final totalWeekHours = hoursByDay.values.fold(0.0, (a, b) => a + b);
+          const weeklyBase = 44.0; // 44h semanales
+          final progress = (totalWeekHours / weeklyBase).clamp(0.0, 1.0);
+          final isOvertime = totalWeekHours > weeklyBase;
+          final isUndertime = totalWeekHours < weeklyBase;
 
-            // Día seleccionado
-            final selectedDate = datesByDay[selectedDayIndex] ?? now;
-            final selectedDayHours =
-                hoursByDay[selectedDayIndex] ??
-                ((selectedDayIndex == 5) ? saturdayBase : weekdayBase);
-            final isSelectedToday =
-                selectedDayIndex == (now.weekday - 1) && now.weekday <= 6;
-            final isSelectedFuture = selectedDate.isAfter(
-              DateTime(now.year, now.month, now.day),
-            );
+          // Día seleccionado
+          final selectedDate = datesByDay[selectedDayIndex] ?? now;
+          final selectedDayHours =
+              hoursByDay[selectedDayIndex] ??
+              ((selectedDayIndex == 5) ? saturdayBase : weekdayBase);
+          final isSelectedToday =
+              selectedDayIndex == (now.weekday - 1) && now.weekday <= 6;
+          final isSelectedFuture = selectedDate.isAfter(
+            DateTime(now.year, now.month, now.day),
+          );
 
-            // Filtrar tareas del día seleccionado
-            final dayTasks = allTasks.where((t) {
-              if (t.dueDate == null) return false;
-              return t.dueDate!.year == selectedDate.year &&
-                  t.dueDate!.month == selectedDate.month &&
-                  t.dueDate!.day == selectedDate.day;
-            }).toList();
+          // Filtrar tareas del día seleccionado
+          final dayTasks = allTasks.where((t) {
+            if (t.dueDate == null) return false;
+            return t.dueDate!.year == selectedDate.year &&
+                t.dueDate!.month == selectedDate.month &&
+                t.dueDate!.day == selectedDate.day;
+          }).toList();
 
-            return AlertDialog(
-              title: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: theme.colorScheme.primary.withValues(
-                      alpha: 0.1,
-                    ),
-                    child: Text(
-                      employee.initials,
-                      style: TextStyle(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+          return AlertDialog(
+            title: Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: theme.colorScheme.primary.withValues(
+                    alpha: 0.1,
+                  ),
+                  child: Text(
+                    employee.initials,
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(employee.fullName),
-                        Text(
-                          employee.position,
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              content: SizedBox(
-                width: 600,
-                child: SingleChildScrollView(
-                  child: Row(
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Columna izquierda - Info personal y tareas del día
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Información Personal',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF757575),
-                                fontSize: 12,
-                              ),
+                      Text(employee.fullName),
+                      Text(employee.position, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 600, minWidth: 200),
+              child: SingleChildScrollView(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Columna izquierda - Info personal y tareas del día
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Información Personal',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF757575),
+                              fontSize: 12,
                             ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF1E293B)
-                                    : const Color(0xFFFAFAFA),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: borderColor),
-                              ),
-                              child: Column(
-                                children: [
-                                  _buildInfoRow(
-                                    Icons.business,
-                                    'Depto',
-                                    employee.department ?? 'N/A',
-                                  ),
-                                  _buildInfoRow(
-                                    Icons.phone,
-                                    'Tel',
-                                    employee.phone ?? 'N/A',
-                                  ),
-                                  _buildInfoRow(
-                                    Icons.email,
-                                    'Email',
-                                    employee.email ?? 'N/A',
-                                  ),
-                                  _buildInfoRow(
-                                    Icons.calendar_today,
-                                    'Ingreso',
-                                    _formatDate(employee.hireDate),
-                                  ),
-                                  _buildInfoRow(
-                                    Icons.nfc,
-                                    'NFC',
-                                    employee.nfcCardId ?? 'Sin asignar',
-                                  ),
-                                ],
-                              ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : const Color(0xFFFAFAFA),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: borderColor),
                             ),
-                            const SizedBox(height: 12),
-                            // Tareas del día seleccionado
-                            Text(
-                              '${dayFullNames[selectedDayIndex]} ${selectedDate.day}/${selectedDate.month} - Tareas (${dayTasks.length})',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF757575),
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              height: 140,
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF1E293B)
-                                    : const Color(0xFFFAFAFA),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: borderColor),
-                              ),
-                              child: dayTasks.isEmpty
-                                  ? Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            isSelectedFuture
-                                                ? Icons.event_note
-                                                : Icons.check_circle_outline,
-                                            size: 24,
-                                            color: const Color(0xFFBDBDBD),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            isSelectedFuture
-                                                ? 'Sin tareas programadas'
-                                                : isSelectedToday
-                                                ? 'Sin tareas hoy'
-                                                : 'Sin tareas registradas',
-                                            style: TextStyle(
-                                              color: const Color(0xFF9E9E9E),
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : ListView.builder(
-                                      padding: const EdgeInsets.all(8),
-                                      itemCount: dayTasks.length,
-                                      itemBuilder: (context, index) {
-                                        final task = dayTasks[index];
-                                        return Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 2,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                task.status ==
-                                                        TaskStatus.completada
-                                                    ? Icons.check_circle
-                                                    : task.status ==
-                                                          TaskStatus.enProgreso
-                                                    ? Icons.play_circle
-                                                    : Icons.pending,
-                                                color: task.statusColor,
-                                                size: 16,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(
-                                                  task.title,
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                  ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    ),
-                            ),
-                            // Sección de préstamos activos
-                            if (employeeLoans.isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                'Préstamos Activos (${employeeLoans.length})',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFFF57C00),
-                                  fontSize: 12,
+                            child: Column(
+                              children: [
+                                _buildInfoRow(
+                                  Icons.business,
+                                  'Depto',
+                                  employee.department ?? 'N/A',
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFFF9A825,
-                                  ).withValues(alpha: 0.05),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFFF9A825,
-                                    ).withValues(alpha: 0.3),
-                                  ),
+                                _buildInfoRow(
+                                  Icons.phone,
+                                  'Tel',
+                                  employee.phone ?? 'N/A',
                                 ),
-                                child: Column(
-                                  children: employeeLoans
-                                      .map(
-                                        (loan) => Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 8,
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    Helpers.formatCurrency(
-                                                      loan.totalAmount,
-                                                    ),
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 13,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    'Cuota ${loan.paidInstallments + 1}/${loan.installments} • ${Helpers.formatCurrency(loan.installmentAmount)}/mes',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      color: const Color(
-                                                        0xFF757575,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.end,
-                                                children: [
-                                                  Text(
-                                                    'Pendiente',
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      color: const Color(
-                                                        0xFF9E9E9E,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    Helpers.formatCurrency(
-                                                      loan.remainingAmount,
-                                                    ),
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: const Color(
-                                                        0xFFF57C00,
-                                                      ),
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
+                                _buildInfoRow(
+                                  Icons.email,
+                                  'Email',
+                                  employee.email ?? 'N/A',
                                 ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Columna derecha - Horas trabajadas
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Horas Semana',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF757575),
-                                fontSize: 12,
-                              ),
+                                _buildInfoRow(
+                                  Icons.calendar_today,
+                                  'Ingreso',
+                                  _formatDate(employee.hireDate),
+                                ),
+                                _buildInfoRow(
+                                  Icons.nfc,
+                                  'NFC',
+                                  employee.nfcCardId ?? 'Sin asignar',
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF1E293B)
-                                    : const Color(0xFFFAFAFA),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: borderColor),
-                              ),
-                              child: Column(
-                                children: [
-                                  // Total y progreso
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            '${totalWeekHours.toStringAsFixed(1)}h',
-                                            style: TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.w800,
-                                              color: isOvertime
-                                                  ? const Color(0xFF2E7D32)
-                                                  : isUndertime
-                                                  ? const Color(0xFFF9A825)
-                                                  : theme.colorScheme.primary,
-                                            ),
-                                          ),
-                                          Text(
-                                            'de 44h',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: const Color(0xFF9E9E9E),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          SizedBox(
-                                            width: 50,
-                                            height: 50,
-                                            child: CircularProgressIndicator(
-                                              value: progress,
-                                              strokeWidth: 5,
-                                              backgroundColor: const Color(
-                                                0xFFE0E0E0,
-                                              ),
-                                              color: isOvertime
-                                                  ? const Color(0xFF2E7D32)
-                                                  : isUndertime
-                                                  ? const Color(0xFFF9A825)
-                                                  : theme.colorScheme.primary,
-                                            ),
-                                          ),
-                                          Text(
-                                            '${(progress * 100).toInt()}%',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Divider(height: 1),
-                                  const SizedBox(height: 12),
-                                  // Botones +/- 0.5 hora para el día seleccionado
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: OutlinedButton.icon(
-                                          onPressed: () => _addHoursForDay(
-                                            employee,
-                                            -0.5,
-                                            selectedDate,
-                                          ),
-                                          icon: const Icon(
-                                            Icons.remove,
-                                            size: 18,
-                                          ),
-                                          label: const Text('0.5h'),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: const Color(
-                                              0xFFC62828,
-                                            ),
-                                            side: const BorderSide(
-                                              color: Color(0xFFC62828),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 8,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: FilledButton.icon(
-                                          onPressed: () => _addHoursForDay(
-                                            employee,
-                                            0.5,
-                                            selectedDate,
-                                          ),
-                                          icon: const Icon(Icons.add, size: 18),
-                                          label: const Text('0.5h'),
-                                          style: FilledButton.styleFrom(
-                                            backgroundColor: const Color(
-                                              0xFF2E7D32,
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 8,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Tareas del día seleccionado
+                          Text(
+                            '${dayFullNames[selectedDayIndex]} ${selectedDate.day}/${selectedDate.month} - Tareas (${dayTasks.length})',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF757575),
+                              fontSize: 12,
                             ),
-                            const SizedBox(height: 12),
-                            // Días clickeables (sin domingo)
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF1E293B)
-                                    : const Color(0xFFFAFAFA),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: borderColor),
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: dayNames.asMap().entries.map((e) {
-                                  final dayIndex = e.key;
-                                  final baseForDay = (dayIndex == 5)
-                                      ? saturdayBase
-                                      : weekdayBase;
-                                  final hours =
-                                      hoursByDay[dayIndex] ?? baseForDay;
-                                  final isToday =
-                                      dayIndex == (now.weekday - 1) &&
-                                      now.weekday <= 6;
-                                  final isSelected =
-                                      dayIndex == selectedDayIndex;
-                                  final hasExtra = hours > baseForDay;
-                                  final hasDeduction = hours < baseForDay;
-
-                                  return GestureDetector(
-                                    onTap: () => setDialogState(
-                                      () => selectedDayIndex = dayIndex,
-                                    ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            height: 140,
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : const Color(0xFFFAFAFA),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: dayTasks.isEmpty
+                                ? Center(
                                     child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        Text(
-                                          e.value,
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: isSelected
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                            color: isSelected
-                                                ? theme.colorScheme.primary
-                                                : const Color(0xFF9E9E9E),
-                                          ),
+                                        Icon(
+                                          isSelectedFuture
+                                              ? Icons.event_note
+                                              : Icons.check_circle_outline,
+                                          size: 24,
+                                          color: const Color(0xFFBDBDBD),
                                         ),
                                         const SizedBox(height: 4),
-                                        AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 150,
-                                          ),
-                                          width: isSelected ? 36 : 28,
-                                          height: isSelected ? 36 : 28,
-                                          decoration: BoxDecoration(
-                                            color: isSelected
-                                                ? theme.colorScheme.primary
-                                                      .withValues(alpha: 0.15)
-                                                : hasExtra
-                                                ? const Color(
-                                                    0xFF2E7D32,
-                                                  ).withValues(alpha: 0.1)
-                                                : hasDeduction
-                                                ? const Color(
-                                                    0xFFF9A825,
-                                                  ).withValues(alpha: 0.1)
-                                                : const Color(0xFFEEEEEE),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                            border: Border.all(
-                                              color: isSelected
-                                                  ? theme.colorScheme.primary
-                                                  : isToday
-                                                  ? theme.colorScheme.primary
-                                                        .withValues(alpha: 0.5)
-                                                  : Colors.transparent,
-                                              width: isSelected ? 2 : 1,
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              hours.toStringAsFixed(0),
-                                              style: TextStyle(
-                                                fontSize: isSelected ? 12 : 11,
-                                                fontWeight: FontWeight.w600,
-                                                color: isSelected
-                                                    ? theme.colorScheme.primary
-                                                    : hasExtra
-                                                    ? const Color(0xFF388E3C)
-                                                    : hasDeduction
-                                                    ? const Color(0xFFF57C00)
-                                                    : const Color(0xFF757575),
-                                              ),
-                                            ),
+                                        Text(
+                                          isSelectedFuture
+                                              ? 'Sin tareas programadas'
+                                              : isSelectedToday
+                                              ? 'Sin tareas hoy'
+                                              : 'Sin tareas registradas',
+                                          style: TextStyle(
+                                            color: const Color(0xFF9E9E9E),
+                                            fontSize: 11,
                                           ),
                                         ),
                                       ],
                                     ),
-                                  );
-                                }).toList(),
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.all(8),
+                                    itemCount: dayTasks.length,
+                                    itemBuilder: (context, index) {
+                                      final task = dayTasks[index];
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 2,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              task.status ==
+                                                      TaskStatus.completada
+                                                  ? Icons.check_circle
+                                                  : task.status ==
+                                                        TaskStatus.enProgreso
+                                                  ? Icons.play_circle
+                                                  : Icons.pending,
+                                              color: task.statusColor,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                task.title,
+                                                style: TextStyle(fontSize: 12),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                          ),
+                          // Sección de préstamos activos
+                          if (employeeLoans.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              'Préstamos Activos (${employeeLoans.length})',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFF57C00),
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFFF9A825,
+                                ).withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: const Color(
+                                    0xFFF9A825,
+                                  ).withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Column(
+                                children: employeeLoans
+                                    .map(
+                                      (loan) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 8,
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  Helpers.formatCurrency(
+                                                    loan.totalAmount,
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Cuota ${loan.paidInstallments + 1}/${loan.installments} • ${Helpers.formatCurrency(loan.installmentAmount)}/mes',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: const Color(
+                                                      0xFF757575,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.end,
+                                              children: [
+                                                Text(
+                                                  'Pendiente',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: const Color(
+                                                      0xFF9E9E9E,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  Helpers.formatCurrency(
+                                                    loan.remainingAmount,
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    color: const Color(
+                                                      0xFFF57C00,
+                                                    ),
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
                               ),
                             ),
                           ],
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Columna derecha - Horas trabajadas
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Horas Semana',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF757575),
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : const Color(0xFFFAFAFA),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Column(
+                              children: [
+                                // Total y progreso
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${totalWeekHours.toStringAsFixed(1)}h',
+                                          style: TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.w800,
+                                            color: isOvertime
+                                                ? const Color(0xFF2E7D32)
+                                                : isUndertime
+                                                ? const Color(0xFFF9A825)
+                                                : theme.colorScheme.primary,
+                                          ),
+                                        ),
+                                        Text(
+                                          'de 44h',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: const Color(0xFF9E9E9E),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 50,
+                                          height: 50,
+                                          child: CircularProgressIndicator(
+                                            value: progress,
+                                            strokeWidth: 5,
+                                            backgroundColor: const Color(
+                                              0xFFE0E0E0,
+                                            ),
+                                            color: isOvertime
+                                                ? const Color(0xFF2E7D32)
+                                                : isUndertime
+                                                ? const Color(0xFFF9A825)
+                                                : theme.colorScheme.primary,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${(progress * 100).toInt()}%',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                const Divider(height: 1),
+                                const SizedBox(height: 12),
+                                // Botones +/- 0.5 hora para el día seleccionado
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => _addHoursForDay(
+                                          employee,
+                                          -0.5,
+                                          selectedDate,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.remove,
+                                          size: 18,
+                                        ),
+                                        label: const Text('0.5h'),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: const Color(
+                                            0xFFC62828,
+                                          ),
+                                          side: const BorderSide(
+                                            color: Color(0xFFC62828),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 8,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: FilledButton.icon(
+                                        onPressed: () => _addHoursForDay(
+                                          employee,
+                                          0.5,
+                                          selectedDate,
+                                        ),
+                                        icon: const Icon(Icons.add, size: 18),
+                                        label: const Text('0.5h'),
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: const Color(
+                                            0xFF2E7D32,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 8,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Días clickeables (sin domingo)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : const Color(0xFFFAFAFA),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: dayNames.asMap().entries.map((e) {
+                                final dayIndex = e.key;
+                                final baseForDay = (dayIndex == 5)
+                                    ? saturdayBase
+                                    : weekdayBase;
+                                final hours =
+                                    hoursByDay[dayIndex] ?? baseForDay;
+                                final isToday =
+                                    dayIndex == (now.weekday - 1) &&
+                                    now.weekday <= 6;
+                                final isSelected = dayIndex == selectedDayIndex;
+                                final hasExtra = hours > baseForDay;
+                                final hasDeduction = hours < baseForDay;
+
+                                return GestureDetector(
+                                  onTap: () => setDialogState(
+                                    () => selectedDayIndex = dayIndex,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        e.value,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                          color: isSelected
+                                              ? theme.colorScheme.primary
+                                              : const Color(0xFF9E9E9E),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 150,
+                                        ),
+                                        width: isSelected ? 36 : 28,
+                                        height: isSelected ? 36 : 28,
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? theme.colorScheme.primary
+                                                    .withValues(alpha: 0.15)
+                                              : hasExtra
+                                              ? const Color(
+                                                  0xFF2E7D32,
+                                                ).withValues(alpha: 0.1)
+                                              : hasDeduction
+                                              ? const Color(
+                                                  0xFFF9A825,
+                                                ).withValues(alpha: 0.1)
+                                              : const Color(0xFFEEEEEE),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? theme.colorScheme.primary
+                                                : isToday
+                                                ? theme.colorScheme.primary
+                                                      .withValues(alpha: 0.5)
+                                                : Colors.transparent,
+                                            width: isSelected ? 2 : 1,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            hours.toStringAsFixed(0),
+                                            style: TextStyle(
+                                              fontSize: isSelected ? 12 : 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: isSelected
+                                                  ? theme.colorScheme.primary
+                                                  : hasExtra
+                                                  ? const Color(0xFF388E3C)
+                                                  : hasDeduction
+                                                  ? const Color(0xFFF57C00)
+                                                  : const Color(0xFF757575),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cerrar'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showAdelantoDialog(employee);
+                },
+                icon: const Icon(Icons.money, size: 18),
+                label: const Text('Adelanto'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF7B1FA2),
                 ),
-                FilledButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showAdelantoDialog(employee);
-                  },
-                  icon: const Icon(Icons.money, size: 18),
-                  label: const Text('Adelanto'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF7B1FA2),
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showAssignTaskDialog(employee);
-                  },
-                  icon: const Icon(Icons.add_task, size: 18),
-                  label: const Text('Asignar tarea'),
-                ),
-              ],
-            );
-          },
-        ),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showAssignTaskDialog(employee);
+                },
+                icon: const Icon(Icons.add_task, size: 18),
+                label: const Text('Asignar tarea'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -5781,8 +5877,8 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                 ),
               ],
             ),
-            content: SizedBox(
-              width: 400,
+            content: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 400, minWidth: 200),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -6593,16 +6689,13 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
       final adjustments = await EmployeesDatasource.getTimeAdjustments(
         employeeId: employeeId,
         startDate: quinStart,
+        endDate: quinEnd,
       );
 
-      // Filtrar solo los que son "Descuento dominical" dentro del rango
+      // Filtrar solo los que son "Descuento dominical"
       return adjustments.where((a) {
         if (a.reason == null) return false;
-        final inRange =
-            !a.adjustmentDate.isBefore(quinStart) &&
-            !a.adjustmentDate.isAfter(quinEnd);
-        return inRange &&
-            a.reason!.toLowerCase().contains('descuento dominical');
+        return a.reason!.toLowerCase().contains('descuento dominical');
       }).length;
     } catch (e) {
       return 0;
@@ -7553,8 +7646,8 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
               Expanded(child: Text('Tarjeta NFC - ${employee.fullName}')),
             ],
           ),
-          content: SizedBox(
-            width: 420,
+          content: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 420, minWidth: 200),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -7812,8 +7905,8 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                 const Text('Adelanto de Sueldo'),
               ],
             ),
-            content: SizedBox(
-              width: 420,
+            content: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 420, minWidth: 200),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -8155,8 +8248,8 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                 const Text('Nuevo Préstamo a Empleado'),
               ],
             ),
-            content: SizedBox(
-              width: 480,
+            content: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 480, minWidth: 200),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -8567,10 +8660,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                 child: const Text('Cancelar'),
               ),
               FilledButton.icon(
-                onPressed:
-                    (selectedEmployeeId == null ||
-                        amount <= 0 ||
-                        !hasEnoughBalance)
+                onPressed: (selectedEmployeeId == null || amount <= 0)
                     ? null
                     : () async {
                         final messenger = ScaffoldMessenger.of(context);

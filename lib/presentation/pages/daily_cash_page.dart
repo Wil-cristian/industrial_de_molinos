@@ -2084,7 +2084,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(dailyCashProvider);
+    final state = ref.read(dailyCashProvider);
     final builtInCategories = _isIncome
         ? _incomeCategories
         : _expenseCategories;
@@ -2290,10 +2290,10 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                 const SizedBox(height: 16),
 
                 // Persona (opcional) - Clientes para ingresos, Proveedores para gastos
-                Consumer(
-                  builder: (context, ref, _) {
-                    final customersState = ref.watch(customersProvider);
-                    final suppliersState = ref.watch(suppliersProvider);
+                Builder(
+                  builder: (context) {
+                    final customersState = ref.read(customersProvider);
+                    final suppliersState = ref.read(suppliersProvider);
 
                     // Mostrar clientes para ingresos, proveedores para gastos
                     final allNames = <String>[];
@@ -2709,16 +2709,34 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
     final notifier = ref.read(dailyCashProvider.notifier);
     final amount = double.parse(_amountController.text);
 
-    // Validar saldo suficiente para gastos
+    // Mostrar advertencia si el saldo quedará negativo, pero permitir continuar
     if (!_isIncome && _selectedAccountId != null) {
       final state = ref.read(dailyCashProvider);
       final account = state.getAccountById(_selectedAccountId!);
       if (account != null && account.balance < amount) {
-        setState(
-          () => _errorMessage =
-              'Saldo insuficiente. Disponible: \$${account.balance.toStringAsFixed(0)} en ${account.name}',
+        final newBalance = account.balance - amount;
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Saldo insuficiente'),
+            content: Text(
+              'La cuenta "${account.name}" tiene \$${account.balance.toStringAsFixed(0)} disponible.\n\n'
+              'Al registrar este gasto el saldo quedará en \$${newBalance.toStringAsFixed(0)}.\n\n'
+              '¿Desea continuar?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Continuar'),
+              ),
+            ],
+          ),
         );
-        return;
+        if (confirmed != true) return;
       }
     }
 
@@ -2848,7 +2866,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(dailyCashProvider);
+    final state = ref.read(dailyCashProvider);
 
     return AlertDialog(
       title: const Row(

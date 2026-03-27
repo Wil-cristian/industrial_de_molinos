@@ -508,6 +508,44 @@ const tools = [
     },
     strict: true,
   },
+  {
+    type: "function",
+    name: "analizar_facturas_historicas",
+    description:
+      "Análisis profundo de facturas de venta históricas con IA. Genera insights sobre tendencias de ventas, patrones de clientes, comportamiento de pago, estacionalidad y productos más rentables. Ideal para '¿Cómo han sido las ventas?', 'Analiza las facturas viejas', 'Tendencias de venta', 'Patrones de compra de clientes', '¿Qué meses vendemos más?'.",
+    parameters: {
+      type: "object",
+      properties: {
+        tipo_analisis: {
+          type: "string",
+          enum: [
+            "resumen_completo",
+            "tendencia_ventas",
+            "patrones_clientes",
+            "comportamiento_pago",
+            "productos_historico",
+            "estacionalidad",
+            "comparativa_periodos",
+          ],
+          description:
+            "Tipo de análisis: resumen_completo=panorama general con todos los insights, tendencia_ventas=evolución mensual de ingresos, patrones_clientes=frecuencia y hábitos de compra, comportamiento_pago=días promedio de pago y morosidad, productos_historico=rendimiento de productos en el tiempo, estacionalidad=meses fuertes vs débiles, comparativa_periodos=periodo actual vs anterior.",
+        },
+        meses_atras: {
+          type: ["number", "null"],
+          description:
+            "Cuántos meses hacia atrás analizar. Default 12. Máximo 36.",
+        },
+        cliente: {
+          type: ["string", "null"],
+          description:
+            "Filtrar análisis por un cliente específico. null = todos.",
+        },
+      },
+      required: ["tipo_analisis", "meses_atras", "cliente"],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
 ];
 
 // ─── Function Implementations ──────────────────────────
@@ -551,6 +589,8 @@ async function executeFunction(
         return await consultarDeudores(supabase, args);
       case "consultar_eficiencia_materiales":
         return await consultarEficienciaMateriales(supabase, args);
+      case "analizar_facturas_historicas":
+        return await analizarFacturasHistoricas(supabase, args);
       default:
         return JSON.stringify({ error: `Función desconocida: ${name}` });
     }
@@ -1415,6 +1455,515 @@ async function consultarEficienciaMateriales(
     total_materiales: data.length,
     seccion_app: "Reportes y Analytics → pestaña Analytics → Eficiencia Materiales. También en Materiales para gestión directa.",
   });
+}
+
+// ─── Análisis Histórico de Facturas ────────────────────
+
+async function analizarFacturasHistoricas(
+  sb: ReturnType<typeof createClient>,
+  args: Record<string, unknown>
+): Promise<string> {
+  const tipoAnalisis = args.tipo_analisis as string;
+  const mesesAtras = Math.min((args.meses_atras as number) || 12, 36);
+  const clienteFiltro = args.cliente as string | null;
+
+  const now = new Date();
+  const desde = new Date(now.getFullYear(), now.getMonth() - mesesAtras, 1);
+  const desdeStr = desde.toISOString().split("T")[0];
+  const hastaStr = now.toISOString().split("T")[0];
+
+  // --- Base query: facturas de venta (no compras, no canceladas) ---
+  let baseQuery = sb
+    .from("invoices")
+    .select(
+      "id, full_number, series, customer_id, customer_name, subtotal, tax_amount, total, paid_amount, status, issue_date, due_date, sale_payment_type, payment_method, created_at"
+    )
+    .neq("series", "CMP")
+    .neq("status", "cancelled")
+    .gte("issue_date", desdeStr)
+    .lte("issue_date", hastaStr)
+    .order("issue_date", { ascending: true });
+
+  if (clienteFiltro) {
+    baseQuery = baseQuery.ilike("customer_name", `%${clienteFiltro}%`);
+  }
+
+  const { data: facturas, error } = await baseQuery;
+  if (error) return JSON.stringify({ error: error.message });
+  if (!facturas || facturas.length === 0) {
+    return JSON.stringify({
+      mensaje: `No se encontraron facturas de venta en los últimos ${mesesAtras} meses${clienteFiltro ? ` para "${clienteFiltro}"` : ""}.`,
+    });
+  }
+
+  // --- Helper: agrupar por mes ---
+  function agruparPorMes(facts: typeof facturas) {
+    const meses: Record<string, { ventas: number; cobrado: number; count: number; facturas: typeof facturas }> = {};
+    for (const f of facts) {
+      const mes = (f.issue_date as string).substring(0, 7); // YYYY-MM
+      if (!meses[mes]) meses[mes] = { ventas: 0, cobrado: 0, count: 0, facturas: [] };
+      meses[mes].ventas += (f.total as number) || 0;
+      meses[mes].cobrado += (f.paid_amount as number) || 0;
+      meses[mes].count += 1;
+      meses[mes].facturas.push(f);
+    }
+    return meses;
+  }
+
+  // --- Helper: días entre 2 fechas ---
+  function diasEntre(fecha1: string, fecha2: string): number {
+    const d1 = new Date(fecha1);
+    const d2 = new Date(fecha2);
+    return Math.round(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  switch (tipoAnalisis) {
+    case "tendencia_ventas": {
+      const porMes = agruparPorMes(facturas);
+      const mesesOrdenados = Object.keys(porMes).sort();
+
+      const tendencia = mesesOrdenados.map((mes) => ({
+        mes,
+        ventas: Math.round(porMes[mes].ventas),
+        cobrado: Math.round(porMes[mes].cobrado),
+        facturas: porMes[mes].count,
+        ticket_promedio: porMes[mes].count > 0 ? Math.round(porMes[mes].ventas / porMes[mes].count) : 0,
+      }));
+
+      // Calcular crecimiento mes a mes
+      const crecimiento = tendencia.map((m, i) => ({
+        ...m,
+        crecimiento_pct: i > 0 && tendencia[i - 1].ventas > 0
+          ? (((m.ventas - tendencia[i - 1].ventas) / tendencia[i - 1].ventas) * 100).toFixed(1) + "%"
+          : "N/A",
+      }));
+
+      const totalVentas = facturas.reduce((s, f) => s + ((f.total as number) || 0), 0);
+      const promedioMensual = mesesOrdenados.length > 0 ? totalVentas / mesesOrdenados.length : 0;
+
+      // Tendencia general (comparar primera mitad vs segunda mitad)
+      const mitad = Math.floor(mesesOrdenados.length / 2);
+      const primeraHalf = mesesOrdenados.slice(0, mitad).reduce((s, m) => s + porMes[m].ventas, 0);
+      const segundaHalf = mesesOrdenados.slice(mitad).reduce((s, m) => s + porMes[m].ventas, 0);
+      const tendenciaGeneral = segundaHalf > primeraHalf ? "CRECIENTE 📈" : segundaHalf < primeraHalf * 0.9 ? "DECRECIENTE 📉" : "ESTABLE ➡️";
+
+      return JSON.stringify({
+        analisis: "Tendencia de Ventas",
+        periodo: `${desdeStr} a ${hastaStr}`,
+        tendencia_mensual: crecimiento,
+        resumen: {
+          total_ventas: Math.round(totalVentas),
+          total_facturas: facturas.length,
+          promedio_mensual: Math.round(promedioMensual),
+          mejor_mes: mesesOrdenados.reduce((best, m) => porMes[m].ventas > porMes[best].ventas ? m : best, mesesOrdenados[0]),
+          peor_mes: mesesOrdenados.reduce((worst, m) => porMes[m].ventas < porMes[worst].ventas ? m : worst, mesesOrdenados[0]),
+          tendencia_general: tendenciaGeneral,
+        },
+      });
+    }
+
+    case "patrones_clientes": {
+      // Agrupar por cliente
+      const porCliente: Record<string, { nombre: string; ventas: number; count: number; primera: string; ultima: string; productos: Set<string> }> = {};
+      for (const f of facturas) {
+        const cid = (f.customer_id as string) || "sin_id";
+        if (!porCliente[cid]) {
+          porCliente[cid] = {
+            nombre: f.customer_name as string,
+            ventas: 0,
+            count: 0,
+            primera: f.issue_date as string,
+            ultima: f.issue_date as string,
+            productos: new Set(),
+          };
+        }
+        porCliente[cid].ventas += (f.total as number) || 0;
+        porCliente[cid].count += 1;
+        if ((f.issue_date as string) < porCliente[cid].primera) porCliente[cid].primera = f.issue_date as string;
+        if ((f.issue_date as string) > porCliente[cid].ultima) porCliente[cid].ultima = f.issue_date as string;
+      }
+
+      const clientes = Object.entries(porCliente)
+        .map(([id, c]) => ({
+          cliente: c.nombre,
+          total_comprado: Math.round(c.ventas),
+          num_facturas: c.count,
+          ticket_promedio: Math.round(c.ventas / c.count),
+          primera_compra: c.primera,
+          ultima_compra: c.ultima,
+          dias_como_cliente: diasEntre(c.primera, c.ultima),
+          frecuencia_dias: c.count > 1 ? Math.round(diasEntre(c.primera, c.ultima) / (c.count - 1)) : 0,
+          dias_sin_comprar: diasEntre(c.ultima, hastaStr),
+        }))
+        .sort((a, b) => b.total_comprado - a.total_comprado);
+
+      // Clasificación: activos, en riesgo, inactivos
+      const activos = clientes.filter((c) => c.dias_sin_comprar <= 60);
+      const enRiesgo = clientes.filter((c) => c.dias_sin_comprar > 60 && c.dias_sin_comprar <= 120);
+      const inactivos = clientes.filter((c) => c.dias_sin_comprar > 120);
+
+      // Concentración: % de ventas del top 3
+      const totalVentas = clientes.reduce((s, c) => s + c.total_comprado, 0);
+      const top3Pct = totalVentas > 0 ? ((clientes.slice(0, 3).reduce((s, c) => s + c.total_comprado, 0) / totalVentas) * 100).toFixed(1) : "0";
+
+      return JSON.stringify({
+        analisis: "Patrones de Clientes",
+        periodo: `${desdeStr} a ${hastaStr}`,
+        top_clientes: clientes.slice(0, 15),
+        clasificacion: {
+          activos: { cantidad: activos.length, porcentaje: ((activos.length / clientes.length) * 100).toFixed(0) + "%" },
+          en_riesgo: { cantidad: enRiesgo.length, porcentaje: ((enRiesgo.length / clientes.length) * 100).toFixed(0) + "%", clientes: enRiesgo.slice(0, 5).map((c) => c.cliente) },
+          inactivos: { cantidad: inactivos.length, porcentaje: ((inactivos.length / clientes.length) * 100).toFixed(0) + "%", clientes: inactivos.slice(0, 5).map((c) => c.cliente) },
+        },
+        concentracion: {
+          top_3_representan: top3Pct + "% de ventas totales",
+          total_clientes: clientes.length,
+        },
+      });
+    }
+
+    case "comportamiento_pago": {
+      const pagos: { cliente: string; total: number; pagado: number; dias_pago: number | null; status: string; numero: string }[] = [];
+
+      for (const f of facturas) {
+        const dueDate = f.due_date as string | null;
+        const status = f.status as string;
+        let diasPago: number | null = null;
+
+        if (status === "paid" && dueDate) {
+          // Si pagada, ver cuántos días pasaron desde emisión
+          diasPago = diasEntre(f.issue_date as string, f.due_date as string);
+        }
+
+        pagos.push({
+          cliente: f.customer_name as string,
+          total: (f.total as number) || 0,
+          pagado: (f.paid_amount as number) || 0,
+          dias_pago: diasPago,
+          status,
+          numero: f.full_number as string,
+        });
+      }
+
+      // Métricas globales
+      const pagadas = pagos.filter((p) => p.status === "paid");
+      const pendientes = pagos.filter((p) => p.status === "issued" || p.status === "partial");
+      const vencidas = pagos.filter((p) => p.status === "overdue");
+      const totalFacturado = pagos.reduce((s, p) => s + p.total, 0);
+      const totalCobrado = pagos.reduce((s, p) => s + p.pagado, 0);
+
+      // Tasa de cobro
+      const tasaCobro = totalFacturado > 0 ? ((totalCobrado / totalFacturado) * 100).toFixed(1) : "0";
+
+      // Morosidad por cliente
+      const morosPorCliente: Record<string, { vencidas: number; monto_vencido: number }> = {};
+      for (const v of vencidas) {
+        if (!morosPorCliente[v.cliente]) morosPorCliente[v.cliente] = { vencidas: 0, monto_vencido: 0 };
+        morosPorCliente[v.cliente].vencidas += 1;
+        morosPorCliente[v.cliente].monto_vencido += v.total - v.pagado;
+      }
+      const topMorosos = Object.entries(morosPorCliente)
+        .map(([c, d]) => ({ cliente: c, facturas_vencidas: d.vencidas, monto_vencido: Math.round(d.monto_vencido) }))
+        .sort((a, b) => b.monto_vencido - a.monto_vencido)
+        .slice(0, 10);
+
+      // Tipo de pago preferido
+      const tipoPago: Record<string, number> = {};
+      for (const f of facturas) {
+        const tp = (f.sale_payment_type as string) || "cash";
+        tipoPago[tp] = (tipoPago[tp] || 0) + 1;
+      }
+
+      return JSON.stringify({
+        analisis: "Comportamiento de Pago",
+        periodo: `${desdeStr} a ${hastaStr}`,
+        metricas_globales: {
+          total_facturado: Math.round(totalFacturado),
+          total_cobrado: Math.round(totalCobrado),
+          pendiente_cobro: Math.round(totalFacturado - totalCobrado),
+          tasa_cobro: tasaCobro + "%",
+          facturas_pagadas: pagadas.length,
+          facturas_pendientes: pendientes.length,
+          facturas_vencidas: vencidas.length,
+        },
+        tipo_pago_preferido: tipoPago,
+        top_morosos: topMorosos,
+        alerta: vencidas.length > 5
+          ? `⚠️ Hay ${vencidas.length} facturas vencidas. Se recomienda gestión activa de cobranza.`
+          : "✅ Nivel de morosidad manejable.",
+      });
+    }
+
+    case "productos_historico": {
+      // Obtener items de las facturas del periodo
+      const facturaIds = facturas.map((f) => f.id as string);
+
+      // Consultar items en lotes de 50 IDs para evitar queries demasiado largos
+      const allItems: Record<string, unknown>[] = [];
+      for (let i = 0; i < facturaIds.length; i += 50) {
+        const batch = facturaIds.slice(i, i + 50);
+        const { data: items } = await sb
+          .from("invoice_items")
+          .select("product_name, product_code, quantity, unit_price, subtotal, total, invoice_id")
+          .in("invoice_id", batch);
+        if (items) allItems.push(...items);
+      }
+
+      // Agrupar items por producto
+      const porProducto: Record<string, { nombre: string; codigo: string; cantidad: number; ingresos: number; veces_vendido: number; precios: number[] }> = {};
+      for (const item of allItems) {
+        const key = (item.product_name as string) || "Sin nombre";
+        if (!porProducto[key]) {
+          porProducto[key] = {
+            nombre: key,
+            codigo: (item.product_code as string) || "",
+            cantidad: 0,
+            ingresos: 0,
+            veces_vendido: 0,
+            precios: [],
+          };
+        }
+        porProducto[key].cantidad += (item.quantity as number) || 0;
+        porProducto[key].ingresos += (item.total as number) || 0;
+        porProducto[key].veces_vendido += 1;
+        porProducto[key].precios.push((item.unit_price as number) || 0);
+      }
+
+      const productos = Object.values(porProducto)
+        .map((p) => ({
+          producto: p.nombre,
+          codigo: p.codigo,
+          cantidad_total: Math.round(p.cantidad * 100) / 100,
+          ingresos_totales: Math.round(p.ingresos),
+          veces_en_facturas: p.veces_vendido,
+          precio_promedio: Math.round(p.precios.reduce((s, x) => s + x, 0) / p.precios.length),
+          precio_min: Math.round(Math.min(...p.precios)),
+          precio_max: Math.round(Math.max(...p.precios)),
+        }))
+        .sort((a, b) => b.ingresos_totales - a.ingresos_totales);
+
+      const totalIngresos = productos.reduce((s, p) => s + p.ingresos_totales, 0);
+
+      // Clasificación ABC (Pareto)
+      let acumulado = 0;
+      const conABC = productos.map((p) => {
+        acumulado += p.ingresos_totales;
+        const pctAcum = totalIngresos > 0 ? (acumulado / totalIngresos) * 100 : 0;
+        return {
+          ...p,
+          porcentaje_ingresos: totalIngresos > 0 ? ((p.ingresos_totales / totalIngresos) * 100).toFixed(1) + "%" : "0%",
+          clasificacion_abc: pctAcum <= 80 ? "A" : pctAcum <= 95 ? "B" : "C",
+        };
+      });
+
+      return JSON.stringify({
+        analisis: "Rendimiento Histórico de Productos",
+        periodo: `${desdeStr} a ${hastaStr}`,
+        productos: conABC.slice(0, 20),
+        resumen: {
+          total_productos_diferentes: productos.length,
+          ingresos_totales: Math.round(totalIngresos),
+          productos_clase_A: conABC.filter((p) => p.clasificacion_abc === "A").length,
+          productos_clase_B: conABC.filter((p) => p.clasificacion_abc === "B").length,
+          productos_clase_C: conABC.filter((p) => p.clasificacion_abc === "C").length,
+        },
+      });
+    }
+
+    case "estacionalidad": {
+      const porMes = agruparPorMes(facturas);
+      const mesesOrdenados = Object.keys(porMes).sort();
+
+      // Promediar por mes del año (ene=01, feb=02, etc.)
+      const porMesDelAnio: Record<string, { total: number; count: number }> = {};
+      for (const mes of mesesOrdenados) {
+        const mesNum = mes.substring(5, 7); // "01", "02", ...
+        if (!porMesDelAnio[mesNum]) porMesDelAnio[mesNum] = { total: 0, count: 0 };
+        porMesDelAnio[mesNum].total += porMes[mes].ventas;
+        porMesDelAnio[mesNum].count += 1;
+      }
+
+      const nombresMeses: Record<string, string> = {
+        "01": "Enero", "02": "Febrero", "03": "Marzo", "04": "Abril",
+        "05": "Mayo", "06": "Junio", "07": "Julio", "08": "Agosto",
+        "09": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre",
+      };
+
+      const estacionalidad = Object.entries(porMesDelAnio)
+        .map(([mes, data]) => ({
+          mes: nombresMeses[mes] || mes,
+          mes_num: mes,
+          promedio_ventas: Math.round(data.total / data.count),
+          datos_de_anios: data.count,
+        }))
+        .sort((a, b) => a.mes_num.localeCompare(b.mes_num));
+
+      const promedioGeneral = estacionalidad.reduce((s, m) => s + m.promedio_ventas, 0) / (estacionalidad.length || 1);
+      const mesesFuertes = estacionalidad.filter((m) => m.promedio_ventas > promedioGeneral * 1.15);
+      const mesesDebiles = estacionalidad.filter((m) => m.promedio_ventas < promedioGeneral * 0.85);
+
+      // También análisis por día de la semana
+      const porDiaSemana: Record<number, { total: number; count: number }> = {};
+      const diasNombres = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+      for (const f of facturas) {
+        const dia = new Date(f.issue_date as string).getDay();
+        if (!porDiaSemana[dia]) porDiaSemana[dia] = { total: 0, count: 0 };
+        porDiaSemana[dia].total += (f.total as number) || 0;
+        porDiaSemana[dia].count += 1;
+      }
+
+      const ventasPorDia = Object.entries(porDiaSemana)
+        .map(([dia, data]) => ({
+          dia: diasNombres[parseInt(dia)],
+          facturas: data.count,
+          promedio_venta: Math.round(data.total / data.count),
+        }))
+        .sort((a, b) => b.facturas - a.facturas);
+
+      return JSON.stringify({
+        analisis: "Estacionalidad de Ventas",
+        periodo: `${desdeStr} a ${hastaStr}`,
+        por_mes: estacionalidad,
+        meses_fuertes: mesesFuertes.map((m) => m.mes),
+        meses_debiles: mesesDebiles.map((m) => m.mes),
+        promedio_mensual: Math.round(promedioGeneral),
+        por_dia_semana: ventasPorDia,
+        insight: mesesFuertes.length > 0
+          ? `Los meses más fuertes son: ${mesesFuertes.map((m) => m.mes).join(", ")}. Considera reforzar inventario y personal en esos períodos.`
+          : "No se detectó estacionalidad marcada en el período analizado.",
+      });
+    }
+
+    case "comparativa_periodos": {
+      // Dividir el período en dos mitades y comparar
+      const mitad = new Date(desde.getTime() + (now.getTime() - desde.getTime()) / 2);
+      const mitadStr = mitad.toISOString().split("T")[0];
+
+      const periodo1 = facturas.filter((f) => (f.issue_date as string) < mitadStr);
+      const periodo2 = facturas.filter((f) => (f.issue_date as string) >= mitadStr);
+
+      const stats = (facts: typeof facturas) => {
+        const total = facts.reduce((s, f) => s + ((f.total as number) || 0), 0);
+        const cobrado = facts.reduce((s, f) => s + ((f.paid_amount as number) || 0), 0);
+        const clientesUnicos = new Set(facts.map((f) => f.customer_id)).size;
+        return {
+          ventas: Math.round(total),
+          cobrado: Math.round(cobrado),
+          facturas: facts.length,
+          ticket_promedio: facts.length > 0 ? Math.round(total / facts.length) : 0,
+          clientes_unicos: clientesUnicos,
+          tasa_cobro: total > 0 ? ((cobrado / total) * 100).toFixed(1) + "%" : "0%",
+        };
+      };
+
+      const s1 = stats(periodo1);
+      const s2 = stats(periodo2);
+
+      const variacionVentas = s1.ventas > 0 ? (((s2.ventas - s1.ventas) / s1.ventas) * 100).toFixed(1) : "N/A";
+      const variacionFacturas = s1.facturas > 0 ? (((s2.facturas - s1.facturas) / s1.facturas) * 100).toFixed(1) : "N/A";
+      const variacionTicket = s1.ticket_promedio > 0 ? (((s2.ticket_promedio - s1.ticket_promedio) / s1.ticket_promedio) * 100).toFixed(1) : "N/A";
+
+      return JSON.stringify({
+        analisis: "Comparativa de Períodos",
+        periodo_1: { rango: `${desdeStr} a ${mitadStr}`, ...s1 },
+        periodo_2: { rango: `${mitadStr} a ${hastaStr}`, ...s2 },
+        variaciones: {
+          ventas: variacionVentas + (variacionVentas !== "N/A" ? "%" : ""),
+          facturas: variacionFacturas + (variacionFacturas !== "N/A" ? "%" : ""),
+          ticket_promedio: variacionTicket + (variacionTicket !== "N/A" ? "%" : ""),
+        },
+        diagnostico: parseFloat(variacionVentas as string) > 10
+          ? "📈 Las ventas muestran crecimiento significativo en el período reciente."
+          : parseFloat(variacionVentas as string) < -10
+          ? "📉 Las ventas han disminuido. Revisar estrategia comercial."
+          : "➡️ Las ventas se mantienen estables entre ambos períodos.",
+      });
+    }
+
+    case "resumen_completo":
+    default: {
+      // Panorama general con insights de todas las áreas
+      const porMes = agruparPorMes(facturas);
+      const mesesOrdenados = Object.keys(porMes).sort();
+      const totalVentas = facturas.reduce((s, f) => s + ((f.total as number) || 0), 0);
+      const totalCobrado = facturas.reduce((s, f) => s + ((f.paid_amount as number) || 0), 0);
+
+      // Top clientes
+      const porCliente: Record<string, { nombre: string; ventas: number; count: number }> = {};
+      for (const f of facturas) {
+        const cn = f.customer_name as string;
+        if (!porCliente[cn]) porCliente[cn] = { nombre: cn, ventas: 0, count: 0 };
+        porCliente[cn].ventas += (f.total as number) || 0;
+        porCliente[cn].count += 1;
+      }
+      const topClientes = Object.values(porCliente).sort((a, b) => b.ventas - a.ventas).slice(0, 5);
+
+      // Status breakdown
+      const estadoCount: Record<string, number> = {};
+      for (const f of facturas) {
+        const s = f.status as string;
+        estadoCount[s] = (estadoCount[s] || 0) + 1;
+      }
+
+      // Tendencia
+      const primeraMitad = mesesOrdenados.slice(0, Math.floor(mesesOrdenados.length / 2));
+      const segundaMitad = mesesOrdenados.slice(Math.floor(mesesOrdenados.length / 2));
+      const ventasPrimera = primeraMitad.reduce((s, m) => s + porMes[m].ventas, 0);
+      const ventasSegunda = segundaMitad.reduce((s, m) => s + porMes[m].ventas, 0);
+      const tendencia = ventasSegunda > ventasPrimera * 1.1 ? "CRECIENTE 📈" : ventasSegunda < ventasPrimera * 0.9 ? "DECRECIENTE 📉" : "ESTABLE ➡️";
+
+      // Mejor y peor mes
+      let mejorMes = mesesOrdenados[0] || "N/A";
+      let peorMes = mesesOrdenados[0] || "N/A";
+      for (const m of mesesOrdenados) {
+        if (porMes[m].ventas > porMes[mejorMes]?.ventas) mejorMes = m;
+        if (porMes[m].ventas < porMes[peorMes]?.ventas) peorMes = m;
+      }
+
+      // Tipo de pago
+      const tipoPago: Record<string, number> = {};
+      for (const f of facturas) {
+        const tp = (f.sale_payment_type as string) || "cash";
+        tipoPago[tp] = (tipoPago[tp] || 0) + 1;
+      }
+
+      return JSON.stringify({
+        analisis: "Resumen Completo de Facturas Históricas",
+        periodo: `${desdeStr} a ${hastaStr}`,
+        metricas_principales: {
+          total_ventas: Math.round(totalVentas),
+          total_cobrado: Math.round(totalCobrado),
+          pendiente: Math.round(totalVentas - totalCobrado),
+          total_facturas: facturas.length,
+          meses_analizados: mesesOrdenados.length,
+          promedio_mensual: Math.round(totalVentas / (mesesOrdenados.length || 1)),
+          ticket_promedio: Math.round(totalVentas / (facturas.length || 1)),
+          tasa_cobro: totalVentas > 0 ? ((totalCobrado / totalVentas) * 100).toFixed(1) + "%" : "0%",
+          clientes_unicos: new Set(facturas.map((f) => f.customer_id)).size,
+        },
+        tendencia: {
+          direccion: tendencia,
+          mejor_mes: mejorMes,
+          ventas_mejor_mes: mejorMes !== "N/A" ? Math.round(porMes[mejorMes].ventas) : 0,
+          peor_mes: peorMes,
+          ventas_peor_mes: peorMes !== "N/A" ? Math.round(porMes[peorMes].ventas) : 0,
+        },
+        top_5_clientes: topClientes.map((c) => ({
+          cliente: c.nombre,
+          total_comprado: Math.round(c.ventas),
+          facturas: c.count,
+        })),
+        estados: estadoCount,
+        tipo_pago: tipoPago,
+        evolucion_mensual: mesesOrdenados.map((m) => ({
+          mes: m,
+          ventas: Math.round(porMes[m].ventas),
+          facturas: porMes[m].count,
+        })),
+        sugerencia: "Para análisis más detallado, puedes preguntarme sobre: tendencias, patrones de clientes, comportamiento de pago, productos o estacionalidad.",
+      });
+    }
+  }
 }
 
 // ─── Audio Transcription ───────────────────────────────

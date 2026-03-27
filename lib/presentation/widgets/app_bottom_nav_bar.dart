@@ -57,19 +57,19 @@ class AppBottomNavBar extends StatelessWidget {
       icon: Icons.layers,
       label: 'Productos',
       route: '/composite-products',
-      branchIndex: 13,
+      branchIndex: 14,
     ),
     _BottomNavItem(
       icon: Icons.factory,
       label: 'Produccion',
       route: '/production-orders',
-      branchIndex: 14,
+      branchIndex: 15,
     ),
     _BottomNavItem(
       icon: Icons.local_shipping,
       label: 'Entregas',
       route: '/pending-deliveries',
-      branchIndex: 15,
+      branchIndex: 16,
     ),
     _BottomNavItem(
       icon: Icons.request_quote,
@@ -117,13 +117,13 @@ class AppBottomNavBar extends StatelessWidget {
       icon: Icons.manage_accounts,
       label: 'Usuarios',
       route: '/user-management',
-      branchIndex: 16,
+      branchIndex: 17,
     ),
     _BottomNavItem(
       icon: Icons.security,
       label: 'Auditoría',
       route: '/audit-panel',
-      branchIndex: 17,
+      branchIndex: 18,
     ),
   ];
 

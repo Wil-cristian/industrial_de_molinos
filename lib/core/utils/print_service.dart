@@ -67,41 +67,178 @@ class PrintService {
     final dueDate = invoice['dueDate'] is DateTime
         ? invoice['dueDate'] as DateTime
         : null;
+    final deliveryDate = invoice['deliveryDate'] is DateTime
+        ? invoice['deliveryDate'] as DateTime
+        : null;
     final subtotal = (invoice['subtotal'] as num?)?.toDouble() ?? 0;
     final tax = (invoice['tax'] as num?)?.toDouble() ?? 0;
+    final discount = (invoice['discount'] as num?)?.toDouble() ?? 0;
     final total = (invoice['total'] as num?)?.toDouble() ?? 0;
     final paid = (invoice['paid'] as num?)?.toDouble() ?? 0;
     final pending = total - paid;
-    final status = invoice['status'] ?? 'Pendiente';
     final notes = invoice['notes'] ?? '';
+    final salePaymentType = invoice['salePaymentType'] ?? 'cash';
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.letter,
         margin: const pw.EdgeInsets.all(40),
-        header: (context) =>
-            _buildPdfHeader(logo, 'RECIBO DE CAJA MENOR', number),
         footer: (context) => _buildPdfFooter(context),
         build: (context) => [
-          // ── Info cliente y fechas ──
+          // ── Barra de acento superior ──
+          pw.Container(
+            width: double.infinity,
+            height: 5,
+            decoration: pw.BoxDecoration(
+              color: PdfColors.blueGrey800,
+              borderRadius: pw.BorderRadius.circular(2),
+            ),
+          ),
+          pw.SizedBox(height: 20),
+
+          // ── Header: Título izquierda + Logo y empresa a la derecha ──
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Expanded(
-                child: _buildInfoBlock('CLIENTE', [
-                  customer,
-                  if (customerRuc.isNotEmpty) customerRuc,
-                ]),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'RECIBO DE CAJA',
+                      style: pw.TextStyle(
+                        fontSize: 22,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blueGrey900,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      '#$number',
+                      style: const pw.TextStyle(
+                        fontSize: 12,
+                        color: PdfColors.grey600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              pw.SizedBox(width: 20),
-              pw.Expanded(
-                child: _buildInfoBlock('DETALLES', [
-                  'Fecha: ${_formatDate(date)}',
-                  if (dueDate != null) 'Vence: ${_formatDate(dueDate)}',
-                  'Estado: $status',
-                ]),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  if (logo != null)
+                    pw.Container(width: 50, height: 50, child: pw.Image(logo))
+                  else
+                    pw.Container(
+                      width: 50,
+                      height: 50,
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.blue800,
+                        borderRadius: pw.BorderRadius.circular(8),
+                      ),
+                      child: pw.Center(
+                        child: pw.Text(
+                          'IM',
+                          style: pw.TextStyle(
+                            color: PdfColors.white,
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    companyName,
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
+                  pw.Text(
+                    companyNit,
+                    style: const pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey500,
+                    ),
+                  ),
+                ],
               ),
             ],
+          ),
+          pw.SizedBox(height: 24),
+
+          // ── Bloque cliente + fechas ──
+          pw.Container(
+            padding: const pw.EdgeInsets.all(14),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey50,
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: PdfColors.grey200),
+            ),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'CLIENTE',
+                        style: pw.TextStyle(
+                          fontSize: 8,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey500,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      pw.SizedBox(height: 6),
+                      pw.Text(
+                        customer,
+                        style: pw.TextStyle(
+                          fontSize: 15,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      if (customerRuc.isNotEmpty)
+                        pw.Text(
+                          'NIT/CC: $customerRuc',
+                          style: const pw.TextStyle(
+                            fontSize: 10,
+                            color: PdfColors.grey600,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text(
+                      'Fecha:  ${_formatDate(date)}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    if (dueDate != null) ...[
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        'Vence:  ${_formatDate(dueDate)}',
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                    ],
+                    if (deliveryDate != null) ...[
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        'Entrega:  ${_formatDate(deliveryDate)}',
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
           ),
           pw.SizedBox(height: 20),
 
@@ -113,22 +250,30 @@ class PrintService {
           pw.Align(
             alignment: pw.Alignment.centerRight,
             child: pw.Container(
-              width: 250,
+              width: 260,
               child: pw.Column(
                 children: [
                   _buildTotalRow('Subtotal', subtotal),
-                  if (tax > 0) _buildTotalRow('IVA', tax),
+                  if (discount > 0)
+                    _buildTotalRow(
+                      'Descuento',
+                      -discount,
+                      color: PdfColors.red700,
+                    ),
+                  if (tax > 0) _buildTotalRow('IVA (19%)', tax),
                   pw.Divider(thickness: 1.5),
                   _buildTotalRow('TOTAL', total, isBold: true, fontSize: 14),
                   if (paid > 0) ...[
+                    pw.SizedBox(height: 6),
                     _buildTotalRow('Pagado', paid, color: PdfColors.green700),
+                  ],
+                  if (pending > 0)
                     _buildTotalRow(
                       'Pendiente',
                       pending,
                       color: PdfColors.red700,
                       isBold: true,
                     ),
-                  ],
                 ],
               ),
             ),
@@ -140,8 +285,9 @@ class PrintService {
             pw.Container(
               padding: const pw.EdgeInsets.all(12),
               decoration: pw.BoxDecoration(
-                color: PdfColors.grey100,
+                color: PdfColors.amber50,
                 borderRadius: pw.BorderRadius.circular(4),
+                border: pw.Border.all(color: PdfColors.amber100),
               ),
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -151,7 +297,7 @@ class PrintService {
                     style: pw.TextStyle(
                       fontWeight: pw.FontWeight.bold,
                       fontSize: 9,
-                      color: PdfColors.grey600,
+                      color: PdfColors.orange900,
                     ),
                   ),
                   pw.SizedBox(height: 4),
@@ -161,6 +307,36 @@ class PrintService {
             ),
           ],
 
+          // ── Tipo de pago ──
+          pw.SizedBox(height: 16),
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.green50,
+                  borderRadius: pw.BorderRadius.circular(4),
+                  border: pw.Border.all(color: PdfColors.green200),
+                ),
+                child: pw.Text(
+                  'Tipo: ${salePaymentType == 'cash'
+                      ? 'Contado'
+                      : salePaymentType == 'credit'
+                      ? 'Crédito'
+                      : 'Adelanto'}',
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.green900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
           // ── Firma ──
           pw.SizedBox(height: 40),
           pw.Row(
@@ -169,6 +345,38 @@ class PrintService {
               _buildSignatureLine('Firma Autorizada'),
               _buildSignatureLine('Recibido por'),
             ],
+          ),
+
+          // ── Footer email + gracias ──
+          pw.SizedBox(height: 24),
+          pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.blue50,
+              borderRadius: pw.BorderRadius.circular(4),
+              border: pw.Border.all(color: PdfColors.blue100),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  companyEmail,
+                  style: const pw.TextStyle(
+                    fontSize: 9,
+                    color: PdfColors.blue700,
+                  ),
+                ),
+                pw.Text(
+                  '¡GRACIAS POR SU COMPRA!',
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blue700,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -223,6 +431,7 @@ class PrintService {
     final laborCost = (quotation['laborCost'] as num?)?.toDouble() ?? 0;
     final indirectCosts = (quotation['indirectCosts'] as num?)?.toDouble() ?? 0;
     final profitMargin = (quotation['profitMargin'] as num?)?.toDouble() ?? 0;
+    final discountQ = (quotation['discount'] as num?)?.toDouble() ?? 0;
     final total = (quotation['total'] as num?)?.toDouble() ?? 0;
     final weight = (quotation['weight'] as num?)?.toDouble() ?? 0;
     final notes = quotation['notes'] ?? '';
@@ -284,6 +493,12 @@ class PrintService {
                         profitMargin /
                         100,
                   ),
+                  if (discountQ > 0)
+                    _buildTotalRow(
+                      'Descuento',
+                      -discountQ,
+                      color: PdfColors.red700,
+                    ),
                   pw.Divider(thickness: 1.5),
                   _buildTotalRow('TOTAL', total, isBold: true, fontSize: 14),
                 ],

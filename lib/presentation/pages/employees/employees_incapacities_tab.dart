@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/helpers.dart';
 import '../../../data/datasources/payroll_datasource.dart';
+import '../../../data/providers/employees_provider.dart';
 import '../../../data/providers/payroll_provider.dart';
 
 /// Tab de incapacidades y permisos de empleados.
@@ -10,11 +11,14 @@ class EmployeesIncapacitiesTab extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<EmployeesIncapacitiesTab> createState() =>
-      _EmployeesIncapacitiesTabState();
+      EmployeesIncapacitiesTabState();
 }
 
-class _EmployeesIncapacitiesTabState
+class EmployeesIncapacitiesTabState
     extends ConsumerState<EmployeesIncapacitiesTab> {
+  /// Public API for shell coordinator to trigger new incapacity dialog
+  void showNewIncapacityDialog() => _showNewIncapacityDialog();
+
   @override
   Widget build(BuildContext context) {
     final payrollState = ref.watch(payrollProvider);
@@ -55,44 +59,98 @@ class _EmployeesIncapacitiesTabState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: _buildSummaryCard(
-                  'Incapacidades',
-                  '${activeIncapacidades.length}',
-                  Icons.local_hospital,
-                  const Color(0xFF7B1FA2),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSummaryCard(
-                  'Días Restantes',
-                  '$diasRestantesIncap',
-                  Icons.calendar_today,
-                  const Color(0xFFC62828),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSummaryCard(
-                  'Permisos',
-                  '${activePermisos.length}',
-                  Icons.event_busy,
-                  const Color(0xFFF9A825),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSummaryCard(
-                  'Días Permiso',
-                  '$diasRestantesPerm',
-                  Icons.timer,
-                  const Color(0xFFF9A825),
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              if (isMobile) {
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Incapacidades',
+                            '${activeIncapacidades.length}',
+                            Icons.local_hospital,
+                            const Color(0xFF7B1FA2),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Días Restantes',
+                            '$diasRestantesIncap',
+                            Icons.calendar_today,
+                            const Color(0xFFC62828),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Permisos',
+                            '${activePermisos.length}',
+                            Icons.event_busy,
+                            const Color(0xFFF9A825),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Días Permiso',
+                            '$diasRestantesPerm',
+                            Icons.timer,
+                            const Color(0xFFF9A825),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(
+                    child: _buildSummaryCard(
+                      'Incapacidades',
+                      '${activeIncapacidades.length}',
+                      Icons.local_hospital,
+                      const Color(0xFF7B1FA2),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSummaryCard(
+                      'Días Restantes',
+                      '$diasRestantesIncap',
+                      Icons.calendar_today,
+                      const Color(0xFFC62828),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSummaryCard(
+                      'Permisos',
+                      '${activePermisos.length}',
+                      Icons.event_busy,
+                      const Color(0xFFF9A825),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSummaryCard(
+                      'Días Permiso',
+                      '$diasRestantesPerm',
+                      Icons.timer,
+                      const Color(0xFFF9A825),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 20),
 
@@ -447,6 +505,318 @@ class _EmployeesIncapacitiesTabState
             child: const Text('Terminar'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showNewIncapacityDialog() {
+    final employees = ref.read(employeesProvider).activeEmployees;
+    if (employees.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay empleados activos'),
+          backgroundColor: Color(0xFFC62828),
+        ),
+      );
+      return;
+    }
+
+    String? selectedEmployeeId;
+    bool isPermiso = false;
+    String selectedType = 'enfermedad';
+    DateTime startDate = DateTime.now();
+    DateTime endDate = DateTime.now();
+    final reasonController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          final days = endDate.difference(startDate).inDays + 1;
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  isPermiso ? Icons.event_busy : Icons.local_hospital,
+                  color: isPermiso
+                      ? const Color(0xFFF9A825)
+                      : const Color(0xFF7B1FA2),
+                  size: 22,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isPermiso ? 'Registrar Permiso' : 'Registrar Incapacidad',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+            content: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 420, minWidth: 200),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Tipo: incapacidad o permiso
+                    SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(
+                          value: false,
+                          label: Text('Incapacidad'),
+                          icon: Icon(Icons.local_hospital),
+                        ),
+                        ButtonSegment(
+                          value: true,
+                          label: Text('Permiso'),
+                          icon: Icon(Icons.event_busy),
+                        ),
+                      ],
+                      selected: {isPermiso},
+                      onSelectionChanged: (v) {
+                        setState(() {
+                          isPermiso = v.first;
+                          selectedType = isPermiso ? 'permiso' : 'enfermedad';
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Empleado
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'Empleado',
+                        prefixIcon: Icon(Icons.person),
+                        border: OutlineInputBorder(),
+                      ),
+                      value: selectedEmployeeId,
+                      items: employees
+                          .map(
+                            (e) => DropdownMenuItem(
+                              value: e.id,
+                              child: Text('${e.fullName} - ${e.position}'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) =>
+                          setState(() => selectedEmployeeId = value),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Subtipo (solo incapacidad)
+                    if (!isPermiso) ...[
+                      DropdownButtonFormField<String>(
+                        value: selectedType,
+                        decoration: const InputDecoration(
+                          labelText: 'Tipo de Incapacidad',
+                          prefixIcon: Icon(Icons.medical_services),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'enfermedad',
+                            child: Text('Enfermedad General'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'accidente_laboral',
+                            child: Text('Accidente Laboral'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'accidente_comun',
+                            child: Text('Accidente Común'),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => selectedType = v!),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Fechas
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final date = await showDatePicker(
+                                context: ctx,
+                                initialDate: startDate,
+                                firstDate: DateTime.now().subtract(
+                                  const Duration(days: 30),
+                                ),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
+                              );
+                              if (date != null) {
+                                setState(() {
+                                  startDate = date;
+                                  if (endDate.isBefore(startDate)) {
+                                    endDate = startDate;
+                                  }
+                                });
+                              }
+                            },
+                            child: InputDecorator(
+                              decoration: const InputDecoration(
+                                labelText: 'Desde',
+                                prefixIcon: Icon(Icons.calendar_today),
+                                border: OutlineInputBorder(),
+                              ),
+                              child: Text(
+                                '${startDate.day}/${startDate.month}/${startDate.year}',
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final date = await showDatePicker(
+                                context: ctx,
+                                initialDate: endDate,
+                                firstDate: startDate,
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
+                              );
+                              if (date != null) {
+                                setState(() => endDate = date);
+                              }
+                            },
+                            child: InputDecorator(
+                              decoration: const InputDecoration(
+                                labelText: 'Hasta',
+                                prefixIcon: Icon(Icons.calendar_today),
+                                border: OutlineInputBorder(),
+                              ),
+                              child: Text(
+                                '${endDate.day}/${endDate.month}/${endDate.year}',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Días calculados
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            (isPermiso
+                                    ? const Color(0xFFF9A825)
+                                    : const Color(0xFF7B1FA2))
+                                .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.timer,
+                            size: 16,
+                            color: isPermiso
+                                ? const Color(0xFFF9A825)
+                                : const Color(0xFF7B1FA2),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$days día${days > 1 ? "s" : ""} de ${isPermiso ? "permiso" : "incapacidad"}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: isPermiso
+                                  ? const Color(0xFFEF6C00)
+                                  : const Color(0xFF6A1B9A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Motivo
+                    TextField(
+                      controller: reasonController,
+                      decoration: InputDecoration(
+                        labelText: isPermiso
+                            ? 'Motivo del permiso (opcional)'
+                            : 'Diagnóstico (opcional)',
+                        prefixIcon: Icon(
+                          isPermiso ? Icons.note : Icons.local_hospital,
+                        ),
+                        border: const OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton.icon(
+                onPressed: selectedEmployeeId == null
+                    ? null
+                    : () async {
+                        final messenger = ScaffoldMessenger.of(ctx);
+                        Navigator.pop(ctx);
+
+                        final emp = employees.firstWhere(
+                          (e) => e.id == selectedEmployeeId,
+                        );
+                        final incapacity = EmployeeIncapacity(
+                          id: '',
+                          employeeId: selectedEmployeeId!,
+                          type: selectedType,
+                          startDate: startDate,
+                          endDate: endDate,
+                          daysTotal: days,
+                          diagnosis: reasonController.text.isNotEmpty
+                              ? reasonController.text
+                              : null,
+                          employeeName: emp.fullName,
+                        );
+
+                        final success = await ref
+                            .read(payrollProvider.notifier)
+                            .createIncapacity(incapacity);
+
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? '✅ ${isPermiso ? "Permiso" : "Incapacidad"} registrada para ${emp.fullName}'
+                                  : '❌ Error al registrar',
+                            ),
+                            backgroundColor: success
+                                ? const Color(0xFF2E7D32)
+                                : const Color(0xFFC62828),
+                          ),
+                        );
+                      },
+                icon: const Icon(Icons.check, size: 16),
+                label: Text(
+                  isPermiso ? 'Registrar Permiso' : 'Registrar Incapacidad',
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: isPermiso
+                      ? const Color(0xFFF9A825)
+                      : const Color(0xFF7B1FA2),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

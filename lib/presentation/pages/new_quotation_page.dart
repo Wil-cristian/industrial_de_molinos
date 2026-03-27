@@ -4616,6 +4616,7 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                           'laborCost': widget.laborCost,
                           'indirectCosts': widget.indirectCosts,
                           'profitMargin': widget.profitMargin,
+                          'discount': widget.discount,
                           'total': widget.total,
                           'weight': widget.totalWeight,
                           'notes': widget.notes,

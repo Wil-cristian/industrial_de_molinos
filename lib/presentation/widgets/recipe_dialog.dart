@@ -128,7 +128,7 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final inventoryState = ref.watch(inventoryProvider);
+    final inventoryState = ref.read(inventoryProvider);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

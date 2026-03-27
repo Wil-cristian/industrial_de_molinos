@@ -394,7 +394,7 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
     showDialog(
       context: context,
       builder: (ctx) {
-        final suppState = ref.watch(suppliersProvider);
+        final suppState = ref.read(suppliersProvider);
         final suppliers = suppState.suppliers;
 
         return StatefulBuilder(
@@ -651,8 +651,8 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch for changes
-    final state = ref.watch(purchaseOrdersProvider);
+    // Read current state (no reactive watch in dialog)
+    final state = ref.read(purchaseOrdersProvider);
     final current = state.orders.where((o) => o.id == _order.id);
     if (current.isNotEmpty && current.first != _order) {
       _order = current.first;
@@ -1101,7 +1101,7 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
     showDialog(
       context: context,
       builder: (ctx) {
-        final materialsState = ref.watch(inventoryProvider);
+        final materialsState = ref.read(inventoryProvider);
         final allMaterials = materialsState.materials;
 
         return StatefulBuilder(

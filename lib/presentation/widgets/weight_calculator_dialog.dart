@@ -50,10 +50,8 @@ class WeightCalculatorDialog extends StatefulWidget {
   }) {
     return showDialog<WeightCalculatorResult>(
       context: context,
-      builder: (context) => WeightCalculatorDialog(
-        material: material,
-        initialCategory: category,
-      ),
+      builder: (context) =>
+          WeightCalculatorDialog(material: material, initialCategory: category),
     );
   }
 
@@ -67,10 +65,10 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
   final _thicknessCtrl = TextEditingController(text: '1/4');
   final _widthCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
-  
+
   // Controller para largo (siempre en cm)
   final _lengthCmCtrl = TextEditingController();
-  
+
   // Controller para cantidad
   final _quantityCtrl = TextEditingController(text: '1');
 
@@ -80,20 +78,14 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
 
   late String _selectedType;
 
-  // Fracciones comunes en pulgadas
-  static const List<String> _commonSizes = [
-    '1/16', '1/8', '3/16', '1/4', '5/16', '3/8', '1/2', '5/8',
-    '3/4', '7/8', '1', '1 1/4', '1 1/2', '2', '2 1/2', '3', '4', '5', '6',
-  ];
-
   @override
   void initState() {
     super.initState();
     _selectedType = widget.initialCategory == 'tubo'
         ? 'cylinder'
         : widget.initialCategory == 'lamina'
-            ? 'rectangular_plate'
-            : 'shaft';
+        ? 'rectangular_plate'
+        : 'shaft';
   }
 
   @override
@@ -110,12 +102,12 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
   /// Convierte una fracción de pulgada a milímetros
   double _inchFractionToMm(String value) {
     if (value.isEmpty) return 0;
-    
+
     double total = 0;
-    
+
     // Manejar valores mixtos como "1 1/4"
     final parts = value.trim().split(' ');
-    
+
     for (final part in parts) {
       if (part.contains('/')) {
         // Es una fracción
@@ -130,7 +122,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
         total += double.tryParse(part) ?? 0;
       }
     }
-    
+
     return total * 25.4; // Convertir pulgadas a mm
   }
 
@@ -154,14 +146,12 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
         }
         break;
       case 'rectangular_plate':
-        final width = double.tryParse(_widthCtrl.text) ?? 0; // cm
-        final height = double.tryParse(_heightCtrl.text) ?? 0; // cm - este es el "ancho" de la lámina
+        final anchoCm = double.tryParse(_widthCtrl.text) ?? 0;
         final thickness = _inchFractionToMm(_thicknessCtrl.text);
-        if (largoCm > 0 && width > 0 && thickness > 0) {
-          // Convertir todo a mm para el cálculo
+        if (largoCm > 0 && anchoCm > 0 && thickness > 0) {
           weight = WeightCalculator.calculateRectangularPlateWeight(
             width: largoCm * 10, // cm a mm (largo)
-            height: width * 10, // cm a mm (ancho)
+            height: anchoCm * 10, // cm a mm (ancho)
             thickness: thickness, // ya en mm
             density: _density,
           );
@@ -195,17 +185,13 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
     _totalCost = 0;
   }
 
-  /// Selector tipo rueda/barril para fracciones de pulgada
-  Widget _buildWheelSelector({
+  /// Campo de texto para dimensiones en pulgadas (el usuario escribe directamente)
+  Widget _buildInchField({
     required String label,
     required TextEditingController controller,
   }) {
-    int initialIndex = _commonSizes.indexOf(controller.text);
-    if (initialIndex < 0) initialIndex = 3; // Default a 1/4
-
     return Row(
       children: [
-        // Label
         SizedBox(
           width: 110,
           child: Text(
@@ -213,79 +199,23 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
             style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
           ),
         ),
-        // Wheel picker
         SizedBox(
-          width: 80,
-          height: 60,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-            ),
-            child: Stack(
-              children: [
-                // Highlight de selección
-                Center(
-                  child: Container(
-                    height: 24,
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                // Wheel
-                ListWheelScrollView.useDelegate(
-                  itemExtent: 24,
-                  diameterRatio: 1.2,
-                  perspective: 0.002,
-                  physics: const FixedExtentScrollPhysics(),
-                  controller: FixedExtentScrollController(initialItem: initialIndex),
-                  onSelectedItemChanged: (index) {
-                    controller.text = _commonSizes[index];
-                    _recalculate();
-                  },
-                  childDelegate: ListWheelChildBuilderDelegate(
-                    childCount: _commonSizes.length,
-                    builder: (context, index) {
-                      final size = _commonSizes[index];
-                      final isSelected = controller.text == size;
-                      return Center(
-                        child: Text(
-                          '$size"',
-                          style: TextStyle(
-                            fontSize: isSelected ? 14 : 11,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFF9E9E9E),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        // Input manual
-        SizedBox(
-          width: 55,
+          width: 100,
           child: TextField(
             controller: controller,
             decoration: InputDecoration(
-              hintText: '?',
+              hintText: '0',
               suffixText: '"',
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-              filled: true,
-              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 10,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
             ),
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             onChanged: (_) => _recalculate(),
           ),
         ),
@@ -294,7 +224,10 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
   }
 
   /// Campo para dimensiones en cm (largo, ancho)
-  Widget _buildCmField({required String label, required TextEditingController controller}) {
+  Widget _buildCmField({
+    required String label,
+    required TextEditingController controller,
+  }) {
     return Row(
       children: [
         SizedBox(
@@ -312,8 +245,13 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
               hintText: '0',
               suffixText: 'cm',
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 10,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             onChanged: (_) => _recalculate(),
@@ -334,9 +272,12 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             const SizedBox(height: 12),
-            _buildWheelSelector(label: 'Ø Exterior', controller: _outerDiameterCtrl),
+            _buildInchField(
+              label: 'Ø Exterior',
+              controller: _outerDiameterCtrl,
+            ),
             const SizedBox(height: 12),
-            _buildWheelSelector(label: 'Espesor Pared', controller: _thicknessCtrl),
+            _buildInchField(label: 'Espesor Pared', controller: _thicknessCtrl),
             const SizedBox(height: 12),
             _buildCmField(label: 'Largo', controller: _lengthCmCtrl),
           ],
@@ -355,7 +296,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
             const SizedBox(height: 12),
             _buildCmField(label: 'Ancho', controller: _widthCtrl),
             const SizedBox(height: 12),
-            _buildWheelSelector(label: 'Espesor', controller: _thicknessCtrl),
+            _buildInchField(label: 'Espesor', controller: _thicknessCtrl),
           ],
         );
 
@@ -368,7 +309,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             const SizedBox(height: 12),
-            _buildWheelSelector(label: 'Diámetro', controller: _outerDiameterCtrl),
+            _buildInchField(label: 'Diámetro', controller: _outerDiameterCtrl),
             const SizedBox(height: 12),
             _buildCmField(label: 'Largo', controller: _lengthCmCtrl),
           ],
@@ -397,7 +338,7 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
 
     final quantity = int.tryParse(_quantityCtrl.text) ?? 1;
     final largoCm = double.tryParse(_lengthCmCtrl.text) ?? 0;
-    
+
     final result = WeightCalculatorResult(
       weight: _calculatedWeight,
       cost: _totalCost,
@@ -407,7 +348,9 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
       outerDiameter: _inchFractionToMm(_outerDiameterCtrl.text),
       thickness: _inchFractionToMm(_thicknessCtrl.text),
       length: largoCm * 10, // cm a mm
-      width: _selectedType == 'rectangular_plate' ? (double.tryParse(_widthCtrl.text) ?? 0) * 10 : null,
+      width: _selectedType == 'rectangular_plate'
+          ? (double.tryParse(_widthCtrl.text) ?? 0) * 10
+          : null,
       height: null,
     );
 
@@ -427,25 +370,36 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
             // Título con indicador de tipo
             Row(
               children: [
-                Icon(Icons.calculate, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.calculate,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Calcular Peso - ${widget.material.name}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 // Chip indicando el tipo de material
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    _selectedType == 'cylinder' ? 'Tubo' 
-                        : _selectedType == 'rectangular_plate' ? 'Lámina' 
+                    _selectedType == 'cylinder'
+                        ? 'Tubo'
+                        : _selectedType == 'rectangular_plate'
+                        ? 'Lámina'
                         : 'Eje',
                     style: TextStyle(
                       fontSize: 12,
@@ -474,7 +428,10 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                   width: 110,
                   child: Text(
                     'Cantidad',
-                    style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: const Color(0xFF616161),
+                    ),
                   ),
                 ),
                 SizedBox(
@@ -484,8 +441,13 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                     decoration: InputDecoration(
                       hintText: '1',
                       isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                     ),
                     keyboardType: TextInputType.number,
                     onChanged: (_) => _recalculate(),
@@ -495,7 +457,10 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                 // Costo por kg
                 Text(
                   'Costo: \$ ${widget.material.effectiveCostPrice.toStringAsFixed(2)}/KG',
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -505,13 +470,13 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _calculatedWeight > 0 
-                    ? const Color(0xFF2E7D32).withOpacity(0.1) 
+                color: _calculatedWeight > 0
+                    ? const Color(0xFF2E7D32).withOpacity(0.1)
                     : const Color(0xFF9E9E9E).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: _calculatedWeight > 0 
-                      ? const Color(0xFF2E7D32).withOpacity(0.3) 
+                  color: _calculatedWeight > 0
+                      ? const Color(0xFF2E7D32).withOpacity(0.3)
                       : const Color(0xFF9E9E9E).withOpacity(0.3),
                 ),
               ),
@@ -521,13 +486,21 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Peso Total', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      Text(
+                        'Peso Total',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                       Text(
                         '${_calculatedWeight.toStringAsFixed(3)} kg',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: _calculatedWeight > 0 ? const Color(0xFF388E3C) : const Color(0xFF9E9E9E),
+                          color: _calculatedWeight > 0
+                              ? const Color(0xFF388E3C)
+                              : const Color(0xFF9E9E9E),
                         ),
                       ),
                     ],
@@ -535,13 +508,21 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('Costo Total', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      Text(
+                        'Costo Total',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                       Text(
                         '\$ ${_totalCost.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: _calculatedWeight > 0 ? const Color(0xFF388E3C) : const Color(0xFF9E9E9E),
+                          color: _calculatedWeight > 0
+                              ? const Color(0xFF388E3C)
+                              : const Color(0xFF9E9E9E),
                         ),
                       ),
                     ],

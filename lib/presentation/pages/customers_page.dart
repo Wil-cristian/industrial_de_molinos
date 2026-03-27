@@ -1149,8 +1149,8 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
   @override
   Widget build(BuildContext context) {
     final customer = widget.customer;
-    final invoicesState = ref.watch(invoicesProvider);
-    final quotationsState = ref.watch(quotationsProvider);
+    final invoicesState = ref.read(invoicesProvider);
+    final quotationsState = ref.read(quotationsProvider);
 
     // Filtrar facturas y cotizaciones de este cliente
     final customerInvoices =

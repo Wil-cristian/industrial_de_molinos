@@ -55,7 +55,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
   }
 
   List<mat.Material> get _filteredMaterials {
-    final state = ref.watch(inventoryProvider);
+    final state = ref.read(inventoryProvider);
     return state.materials.where((m) {
       final matchesSearch =
           m.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -311,70 +311,87 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                 // Filtros
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final isNarrow = constraints.maxWidth < 900;
-                    return Wrap(
-                      spacing: 12,
-                      runSpacing: 8,
+                    final isNarrow = constraints.maxWidth < 600;
+                    final isMedium = constraints.maxWidth < 900;
+                    return Column(
                       children: [
-                        SizedBox(
-                          width: isNarrow
-                              ? constraints.maxWidth
-                              : constraints.maxWidth * 0.52,
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: 'Buscar por nombre o código...',
-                              prefixIcon: const Icon(Icons.search, size: 20),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              isDense: true,
-                            ),
-                            onChanged: (value) =>
-                                setState(() => _searchQuery = value),
-                          ),
-                        ),
-                        SizedBox(
-                          width: isNarrow
-                              ? constraints.maxWidth - 52
-                              : constraints.maxWidth * 0.34,
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedCategory,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              labelText: 'Categoría',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              isDense: true,
-                            ),
-                            items: [
-                              const DropdownMenuItem(
-                                value: 'todos',
-                                child: Text('Todas'),
-                              ),
-                              ...state.categories.map(
-                                (cat) => DropdownMenuItem(
-                                  value: cat,
-                                  child: Text(
-                                    _getCategoryName(cat),
-                                    overflow: TextOverflow.ellipsis,
+                        // Búsqueda + Categoría en una fila
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: isNarrow ? 1 : 3,
+                              child: TextField(
+                                decoration: InputDecoration(
+                                  hintText: isNarrow
+                                      ? 'Buscar...'
+                                      : 'Buscar por nombre o código...',
+                                  prefixIcon: const Icon(
+                                    Icons.search,
+                                    size: 20,
                                   ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  isDense: true,
                                 ),
+                                onChanged: (value) =>
+                                    setState(() => _searchQuery = value),
                               ),
-                            ],
-                            onChanged: (value) => setState(() {
-                              _selectedCategory = value!;
-                              _selectedSubcategoryId = null;
-                            }),
-                          ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: isNarrow ? 1 : 2,
+                              child: DropdownButtonFormField<String>(
+                                value: _selectedCategory,
+                                isExpanded: true,
+                                decoration: InputDecoration(
+                                  labelText: 'Categoría',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  isDense: true,
+                                ),
+                                items: [
+                                  const DropdownMenuItem(
+                                    value: 'todos',
+                                    child: Text('Todas'),
+                                  ),
+                                  ...state.categories.map(
+                                    (cat) => DropdownMenuItem(
+                                      value: cat,
+                                      child: Text(
+                                        _getCategoryName(cat),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                onChanged: (value) => setState(() {
+                                  _selectedCategory = value!;
+                                  _selectedSubcategoryId = null;
+                                }),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              onPressed: _showManageCategoriesDialog,
+                              icon: const Icon(Icons.settings, size: 20),
+                              tooltip: 'Administrar categorías',
+                              style: IconButton.styleFrom(
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
+                              ),
+                            ),
+                          ],
                         ),
                         // Filtro de subcategoría (solo si hay subcategorías)
                         Builder(
@@ -390,11 +407,11 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             );
                             if (subcats.isEmpty) return const SizedBox();
                             return Padding(
-                              padding: const EdgeInsets.only(left: 8),
+                              padding: const EdgeInsets.only(top: 8),
                               child: SizedBox(
-                                width: isNarrow
-                                    ? constraints.maxWidth - 52
-                                    : constraints.maxWidth * 0.24,
+                                width: isMedium
+                                    ? constraints.maxWidth
+                                    : constraints.maxWidth * 0.4,
                                 child: DropdownButtonFormField<String?>(
                                   value: _selectedSubcategoryId,
                                   isExpanded: true,
@@ -431,16 +448,6 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                               ),
                             );
                           },
-                        ),
-                        IconButton(
-                          onPressed: _showManageCategoriesDialog,
-                          icon: const Icon(Icons.settings, size: 20),
-                          tooltip: 'Administrar categorías',
-                          style: IconButton.styleFrom(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.primaryContainer,
-                          ),
                         ),
                       ],
                     );
@@ -978,7 +985,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   final catName = _getCategoryName(material.category);
                   String? subcatName;
                   if (material.subcategoryId != null) {
-                    final catState = ref.watch(materialCategoryProvider);
+                    final catState = ref.read(materialCategoryProvider);
                     final subcat = catState.subcategories.where(
                       (s) => s.id == material.subcategoryId,
                     );
@@ -1430,7 +1437,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     if (material.subcategoryId == null) {
                       return const SizedBox();
                     }
-                    final catState = ref.watch(materialCategoryProvider);
+                    final catState = ref.read(materialCategoryProvider);
                     final subcat = catState.subcategories.where(
                       (s) => s.id == material.subcategoryId,
                     );
@@ -1946,12 +1953,11 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: Consumer(
-                                builder: (context, ref, _) {
-                                  final catState = ref.watch(
-                                    materialCategoryProvider,
-                                  );
-                                  final cats = catState.categories;
+                              child: Builder(
+                                builder: (context) {
+                                  final cats = ref
+                                      .read(materialCategoryProvider)
+                                      .categories;
                                   // Asegurar que el valor seleccionado existe en la lista
                                   final fallback = cats.isNotEmpty
                                       ? cats.first.slug
@@ -1969,6 +1975,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   }
                                   if (cats.isEmpty) return const SizedBox();
                                   return DropdownButtonFormField<String>(
+                                    key: ValueKey('cat_$validCategory'),
                                     value: validCategory,
                                     decoration: const InputDecoration(
                                       labelText: 'Categoría',
@@ -2039,10 +2046,11 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     ],
                   ),
                   // Subcategoría (solo si la categoría seleccionada tiene subcategorías)
-                  Consumer(
-                    builder: (context, ref, _) {
-                      final catState = ref.watch(materialCategoryProvider);
-                      final subcats = catState.subcategoriesForSlug(category);
+                  Builder(
+                    builder: (context) {
+                      final subcats = ref
+                          .read(materialCategoryProvider)
+                          .subcategoriesForSlug(category);
                       // Validar que subcategoryId existe en la lista
                       final validSubcatId =
                           subcats.any((s) => s.id == subcategoryId)
@@ -2716,9 +2724,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: Consumer(
-                          builder: (context, ref, _) {
-                            final suppState = ref.watch(suppliersProvider);
+                        child: Builder(
+                          builder: (context) {
+                            final suppState = ref.read(suppliersProvider);
                             final suppliers = suppState.suppliers;
                             // Cargar proveedores si aún no se han cargado
                             if (suppliers.isEmpty && !suppState.isLoading) {
@@ -2789,9 +2797,9 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Consumer(
-                          builder: (context, ref, _) {
-                            final settingsState = ref.watch(settingsProvider);
+                        child: Builder(
+                          builder: (context) {
+                            final settingsState = ref.read(settingsProvider);
                             final locations = settingsState.storageLocations;
                             if (locations.isEmpty && !settingsState.isLoading) {
                               Future.microtask(
@@ -3145,36 +3153,45 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
   // ==================== ADMINISTRAR CATEGORÍAS ====================
 
   void _showManageCategoriesDialog() {
+    // Use StatefulBuilder + ref.read instead of Consumer + ref.watch
+    // to avoid reactive rebuilds during mouse events on Windows desktop
+    // which triggers _debugDuringDeviceUpdate assertion in mouse_tracker.dart
     showDialog(
       context: context,
-      builder: (context) => Consumer(
-        builder: (context, ref, _) {
-          final catState = ref.watch(materialCategoryProvider);
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final catState = ref.read(materialCategoryProvider);
           return AlertDialog(
             title: Row(
               children: [
                 Icon(
                   Icons.category,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: Theme.of(dialogContext).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
-                const Text('Categorías de Materiales'),
-                const Spacer(),
+                Expanded(
+                  child: Text(
+                    'Categorías de Materiales',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 4),
                 FilledButton.icon(
                   onPressed: () async {
-                    final newCat = await _showNewCategoryDialog(context);
+                    final newCat = await _showNewCategoryDialog(dialogContext);
                     if (newCat != null) {
-                      // Recargar materiales para actualizar filtros
                       ref.read(inventoryProvider.notifier).loadMaterials();
                     }
+                    setDialogState(() {});
                   },
-                  icon: const Icon(Icons.add, size: 18),
+                  icon: const Icon(Icons.add, size: 16),
                   label: const Text('Nueva'),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                      horizontal: 8,
+                      vertical: 4,
                     ),
+                    textStyle: const TextStyle(fontSize: 12),
                   ),
                 ),
               ],
@@ -3189,12 +3206,13 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   : ListView.separated(
                       itemCount: catState.categories.length,
                       separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
+                      itemBuilder: (listContext, index) {
                         final cat = catState.categories[index];
                         final subcats = catState.subcategoriesForCategory(
                           cat.id,
                         );
                         return ExpansionTile(
+                          key: ValueKey(cat.id),
                           leading: CircleAvatar(
                             backgroundColor: cat.displayColor.withOpacity(0.15),
                             child: Icon(
@@ -3240,7 +3258,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                             style: TextStyle(
                               fontSize: 12,
                               color: Theme.of(
-                                context,
+                                listContext,
                               ).colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -3251,13 +3269,16 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                 icon: Icon(
                                   Icons.add,
                                   size: 18,
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: Theme.of(
+                                    listContext,
+                                  ).colorScheme.primary,
                                 ),
                                 onPressed: () async {
                                   await _showNewSubcategoryDialog(
-                                    context,
+                                    dialogContext,
                                     cat.slug,
                                   );
+                                  setDialogState(() {});
                                 },
                                 tooltip: 'Nueva subcategoría',
                                 visualDensity: VisualDensity.compact,
@@ -3270,7 +3291,11 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     color: AppColors.info,
                                   ),
                                   onPressed: () async {
-                                    await _showEditCategoryDialog(context, cat);
+                                    await _showEditCategoryDialog(
+                                      dialogContext,
+                                      cat,
+                                    );
+                                    setDialogState(() {});
                                   },
                                   tooltip: 'Editar',
                                   visualDensity: VisualDensity.compact,
@@ -3283,7 +3308,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   ),
                                   onPressed: () async {
                                     final confirm = await showDialog<bool>(
-                                      context: context,
+                                      context: dialogContext,
                                       builder: (ctx) => AlertDialog(
                                         title: const Text('Eliminar categoría'),
                                         content: Text(
@@ -3312,12 +3337,12 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                             materialCategoryProvider.notifier,
                                           )
                                           .deleteCategory(cat.id);
-                                      if (!ok && context.mounted) {
+                                      if (!ok && dialogContext.mounted) {
                                         final error = ref
                                             .read(materialCategoryProvider)
                                             .error;
                                         ScaffoldMessenger.of(
-                                          context,
+                                          dialogContext,
                                         ).showSnackBar(
                                           SnackBar(
                                             content: Text(
@@ -3327,6 +3352,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                           ),
                                         );
                                       }
+                                      setDialogState(() {});
                                     }
                                   },
                                   tooltip: 'Eliminar',
@@ -3339,7 +3365,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     style: TextStyle(fontSize: 10),
                                   ),
                                   backgroundColor: Theme.of(
-                                    context,
+                                    listContext,
                                   ).colorScheme.outlineVariant,
                                   padding: EdgeInsets.zero,
                                   visualDensity: VisualDensity.compact,
@@ -3358,7 +3384,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Theme.of(
-                                      context,
+                                      listContext,
                                     ).colorScheme.onSurfaceVariant,
                                     fontStyle: FontStyle.italic,
                                   ),
@@ -3366,6 +3392,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                               ),
                             ...subcats.map(
                               (subcat) => ListTile(
+                                key: ValueKey(subcat.id),
                                 contentPadding: const EdgeInsets.only(
                                   left: 56,
                                   right: 16,
@@ -3397,10 +3424,11 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       ),
                                       onPressed: () async {
                                         await _showEditSubcategoryDialog(
-                                          context,
+                                          dialogContext,
                                           subcat,
                                           cat.name,
                                         );
+                                        setDialogState(() {});
                                       },
                                       tooltip: 'Editar',
                                       visualDensity: VisualDensity.compact,
@@ -3413,7 +3441,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                       ),
                                       onPressed: () async {
                                         final confirm = await showDialog<bool>(
-                                          context: context,
+                                          context: dialogContext,
                                           builder: (ctx) => AlertDialog(
                                             title: const Text(
                                               'Eliminar subcategoría',
@@ -3446,12 +3474,12 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                                     .notifier,
                                               )
                                               .deleteSubcategory(subcat.id);
-                                          if (!ok && context.mounted) {
+                                          if (!ok && dialogContext.mounted) {
                                             final error = ref
                                                 .read(materialCategoryProvider)
                                                 .error;
                                             ScaffoldMessenger.of(
-                                              context,
+                                              dialogContext,
                                             ).showSnackBar(
                                               SnackBar(
                                                 content: Text(
@@ -3463,6 +3491,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                               ),
                                             );
                                           }
+                                          setDialogState(() {});
                                         }
                                       },
                                       tooltip: 'Eliminar',
@@ -3479,7 +3508,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('Cerrar'),
               ),
             ],

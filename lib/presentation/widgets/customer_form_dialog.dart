@@ -189,7 +189,7 @@ class _CustomerFormDialogState extends ConsumerState<CustomerFormDialog> {
                     ),
                   ),
                 ],
-                // Tipo de cliente
+                // Tipo de cliente + Tipo documento
                 Row(
                   children: [
                     Expanded(
@@ -198,6 +198,7 @@ class _CustomerFormDialogState extends ConsumerState<CustomerFormDialog> {
                         decoration: const InputDecoration(
                           labelText: 'Tipo de Cliente',
                           border: OutlineInputBorder(),
+                          isDense: true,
                         ),
                         items: CustomerType.values
                             .map(
@@ -221,13 +222,14 @@ class _CustomerFormDialogState extends ConsumerState<CustomerFormDialog> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<DocumentType>(
                         value: selectedDocType,
                         decoration: const InputDecoration(
                           labelText: 'Tipo Documento',
                           border: OutlineInputBorder(),
+                          isDense: true,
                         ),
                         items: _colombianDocTypes
                             .map(
@@ -243,45 +245,59 @@ class _CustomerFormDialogState extends ConsumerState<CustomerFormDialog> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: docNumberCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Número de Documento',
-                    border: OutlineInputBorder(),
-                    helperText: 'Ingresa un número de documento válido',
-                  ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'Campo requerido';
-                    if (value == '0') {
-                      return 'Ingresa un número de documento válido (no puede ser 0)';
-                    }
-                    if (int.tryParse(value!) == null) {
-                      return 'Debe ser un número válido';
-                    }
-                    return null;
-                  },
+                const SizedBox(height: 12),
+                // Nro documento + Nombre en fila
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 180,
+                      child: TextFormField(
+                        controller: docNumberCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Nro. Documento',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value?.isEmpty ?? true) return 'Requerido';
+                          if (value == '0') return 'No puede ser 0';
+                          if (int.tryParse(value!) == null) {
+                            return 'Número inválido';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: nameCtrl,
+                        decoration: InputDecoration(
+                          labelText: selectedType == CustomerType.business
+                              ? 'Razón Social'
+                              : 'Nombre Completo',
+                          border: const OutlineInputBorder(),
+                        ),
+                        validator: (value) =>
+                            value?.isEmpty ?? true ? 'Campo requerido' : null,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre / Razón Social',
-                    border: OutlineInputBorder(),
+                // Nombre Comercial solo para Empresa
+                if (selectedType == CustomerType.business) ...[
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: tradeNameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre Comercial',
+                      border: OutlineInputBorder(),
+                      hintText: 'Opcional',
+                    ),
                   ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Campo requerido' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: tradeNameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre Comercial',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
+                ],
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -293,7 +309,7 @@ class _CustomerFormDialogState extends ConsumerState<CustomerFormDialog> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: TextFormField(
                         controller: emailCtrl,
@@ -305,7 +321,7 @@ class _CustomerFormDialogState extends ConsumerState<CustomerFormDialog> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: addressCtrl,
                   decoration: const InputDecoration(
@@ -314,15 +330,15 @@ class _CustomerFormDialogState extends ConsumerState<CustomerFormDialog> {
                   ),
                   maxLines: 2,
                 ),
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
+                const Divider(height: 16),
                 const Text(
                   'Límite de Crédito y Deuda',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: TextFormField(
@@ -332,6 +348,7 @@ class _CustomerFormDialogState extends ConsumerState<CustomerFormDialog> {
                           labelText: 'Límite de Crédito',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.attach_money),
+                          helperText: ' ',
                         ),
                         validator: (value) {
                           if (value?.isEmpty ?? true) return 'Campo requerido';

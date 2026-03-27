@@ -1288,8 +1288,8 @@ class _SupplierDetailDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final smState = ref.watch(supplierMaterialsProvider);
-    final poState = ref.watch(purchaseOrdersProvider);
+    final smState = ref.read(supplierMaterialsProvider);
+    final poState = ref.read(purchaseOrdersProvider);
 
     return AlertDialog(
       title: Row(
@@ -1757,7 +1757,7 @@ class _SupplierDetailDialog extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) {
-        final materialsState = ref.watch(inventoryProvider);
+        final materialsState = ref.read(inventoryProvider);
         final materials = materialsState.materials;
 
         return StatefulBuilder(

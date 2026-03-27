@@ -109,406 +109,419 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
       child: Column(
         children: [
           // Header compacto
-          Row(
-            children: [
-              Expanded(
-                child: Row(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              if (isMobile) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Panel de Nómina',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Panel de Nómina',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Exportando...')),
+                              ),
+                          icon: const Icon(Icons.download, size: 14),
+                          label: const Text('Exp'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            textStyle: const TextStyle(fontSize: 11),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        FilledButton.icon(
+                          onPressed: _showCreatePayrollDialog,
+                          icon: const Icon(Icons.add, size: 14),
+                          label: const Text('Nuevo'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            textStyle: const TextStyle(fontSize: 11),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    // Navegación de periodos
-                    IconButton(
-                      onPressed: () {
-                        final periods =
-                            payrollState.periods
-                                .where((p) => p.periodType == 'quincenal')
-                                .toList()
-                              ..sort((a, b) {
-                                final yearCmp = a.year.compareTo(b.year);
-                                if (yearCmp != 0) return yearCmp;
-                                return a.periodNumber.compareTo(b.periodNumber);
-                              });
-                        final currentIdx = periods.indexWhere(
-                          (p) => p.id == payrollState.currentPeriod?.id,
-                        );
-                        if (currentIdx > 0) {
-                          ref
-                              .read(payrollProvider.notifier)
-                              .loadPayrollsForPeriod(
-                                periods[currentIdx - 1].id,
-                              );
-                        }
-                      },
-                      icon: const Icon(Icons.chevron_left, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 28,
-                        minHeight: 28,
-                      ),
-                      tooltip: 'Periodo anterior',
-                    ),
-                    Text(
-                      payrollState.currentPeriod?.displayName ?? 'Sin periodo',
-                      style: TextStyle(
-                        color: const Color(0xFF757575),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        final periods =
-                            payrollState.periods
-                                .where((p) => p.periodType == 'quincenal')
-                                .toList()
-                              ..sort((a, b) {
-                                final yearCmp = a.year.compareTo(b.year);
-                                if (yearCmp != 0) return yearCmp;
-                                return a.periodNumber.compareTo(b.periodNumber);
-                              });
-                        final currentIdx = periods.indexWhere(
-                          (p) => p.id == payrollState.currentPeriod?.id,
-                        );
-                        if (currentIdx >= 0 &&
-                            currentIdx < periods.length - 1) {
-                          ref
-                              .read(payrollProvider.notifier)
-                              .loadPayrollsForPeriod(
-                                periods[currentIdx + 1].id,
-                              );
-                        }
-                      },
-                      icon: const Icon(Icons.chevron_right, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 28,
-                        minHeight: 28,
-                      ),
-                      tooltip: 'Periodo siguiente',
+                    const SizedBox(height: 4),
+                    // Navegación de periodos centrada
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            final periods =
+                                payrollState.periods
+                                    .where((p) => p.periodType == 'quincenal')
+                                    .toList()
+                                  ..sort((a, b) {
+                                    final yearCmp = a.year.compareTo(b.year);
+                                    if (yearCmp != 0) return yearCmp;
+                                    return a.periodNumber.compareTo(
+                                      b.periodNumber,
+                                    );
+                                  });
+                            final currentIdx = periods.indexWhere(
+                              (p) => p.id == payrollState.currentPeriod?.id,
+                            );
+                            if (currentIdx > 0) {
+                              ref
+                                  .read(payrollProvider.notifier)
+                                  .loadPayrollsForPeriod(
+                                    periods[currentIdx - 1].id,
+                                  );
+                            }
+                          },
+                          icon: const Icon(Icons.chevron_left, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 28,
+                            minHeight: 28,
+                          ),
+                          tooltip: 'Periodo anterior',
+                        ),
+                        Text(
+                          payrollState.currentPeriod?.displayName ??
+                              'Sin periodo',
+                          style: TextStyle(
+                            color: const Color(0xFF757575),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            final periods =
+                                payrollState.periods
+                                    .where((p) => p.periodType == 'quincenal')
+                                    .toList()
+                                  ..sort((a, b) {
+                                    final yearCmp = a.year.compareTo(b.year);
+                                    if (yearCmp != 0) return yearCmp;
+                                    return a.periodNumber.compareTo(
+                                      b.periodNumber,
+                                    );
+                                  });
+                            final currentIdx = periods.indexWhere(
+                              (p) => p.id == payrollState.currentPeriod?.id,
+                            );
+                            if (currentIdx >= 0 &&
+                                currentIdx < periods.length - 1) {
+                              ref
+                                  .read(payrollProvider.notifier)
+                                  .loadPayrollsForPeriod(
+                                    periods[currentIdx + 1].id,
+                                  );
+                            }
+                          },
+                          icon: const Icon(Icons.chevron_right, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 28,
+                            minHeight: 28,
+                          ),
+                          tooltip: 'Periodo siguiente',
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Exportando...'))),
-                icon: const Icon(Icons.download, size: 14),
-                label: const Text('Exportar'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Text(
+                          'Panel de Nómina',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Navegación de periodos
+                        IconButton(
+                          onPressed: () {
+                            final periods =
+                                payrollState.periods
+                                    .where((p) => p.periodType == 'quincenal')
+                                    .toList()
+                                  ..sort((a, b) {
+                                    final yearCmp = a.year.compareTo(b.year);
+                                    if (yearCmp != 0) return yearCmp;
+                                    return a.periodNumber.compareTo(
+                                      b.periodNumber,
+                                    );
+                                  });
+                            final currentIdx = periods.indexWhere(
+                              (p) => p.id == payrollState.currentPeriod?.id,
+                            );
+                            if (currentIdx > 0) {
+                              ref
+                                  .read(payrollProvider.notifier)
+                                  .loadPayrollsForPeriod(
+                                    periods[currentIdx - 1].id,
+                                  );
+                            }
+                          },
+                          icon: const Icon(Icons.chevron_left, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 28,
+                            minHeight: 28,
+                          ),
+                          tooltip: 'Periodo anterior',
+                        ),
+                        Text(
+                          payrollState.currentPeriod?.displayName ??
+                              'Sin periodo',
+                          style: TextStyle(
+                            color: const Color(0xFF757575),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            final periods =
+                                payrollState.periods
+                                    .where((p) => p.periodType == 'quincenal')
+                                    .toList()
+                                  ..sort((a, b) {
+                                    final yearCmp = a.year.compareTo(b.year);
+                                    if (yearCmp != 0) return yearCmp;
+                                    return a.periodNumber.compareTo(
+                                      b.periodNumber,
+                                    );
+                                  });
+                            final currentIdx = periods.indexWhere(
+                              (p) => p.id == payrollState.currentPeriod?.id,
+                            );
+                            if (currentIdx >= 0 &&
+                                currentIdx < periods.length - 1) {
+                              ref
+                                  .read(payrollProvider.notifier)
+                                  .loadPayrollsForPeriod(
+                                    periods[currentIdx + 1].id,
+                                  );
+                            }
+                          },
+                          icon: const Icon(Icons.chevron_right, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 28,
+                            minHeight: 28,
+                          ),
+                          tooltip: 'Periodo siguiente',
+                        ),
+                      ],
+                    ),
                   ),
-                  textStyle: const TextStyle(fontSize: 12),
-                ),
-              ),
-              const SizedBox(width: 6),
-              FilledButton.icon(
-                onPressed: _showCreatePayrollDialog,
-                icon: const Icon(Icons.add, size: 14),
-                label: const Text('Nuevo Pago'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
+                  OutlinedButton.icon(
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Exportando...')),
+                    ),
+                    icon: const Icon(Icons.download, size: 14),
+                    label: const Text('Exportar'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
                   ),
-                  textStyle: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ],
+                  const SizedBox(width: 6),
+                  FilledButton.icon(
+                    onPressed: _showCreatePayrollDialog,
+                    icon: const Icon(Icons.add, size: 14),
+                    label: const Text('Nuevo Pago'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 8),
 
           // ── Tarjetas resumen de nómina ──
-          SizedBox(
-            height: 100,
-            child: Row(
-              children: [
-                // Costo Bruto (Salario + Bono)
-                Expanded(
-                  flex: 2,
-                  child: Card(
-                    elevation: 0,
-                    margin: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: const Color(0xFFEEEEEE)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.groups,
-                                size: 14,
-                                color: const Color(0xFF757575),
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  'Costo Bruto (${empleadosActivos.length} emp)',
-                                  style: TextStyle(
-                                    color: const Color(0xFF757575),
-                                    fontSize: 9,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          Text(
-                            Helpers.formatCurrency(costoTotalConBono),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'Base ${Helpers.formatCurrency(costoTotalQuincenal)} + Bono ${Helpers.formatCurrency(totalBonoQuincenal)}',
-                            style: TextStyle(
-                              fontSize: 8,
-                              color: const Color(0xFF9E9E9E),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+
+              Widget buildCostoBrutoCard() => _buildPayrollSummaryCard(
+                icon: Icons.groups,
+                label: 'Costo Bruto (${empleadosActivos.length} emp)',
+                value: Helpers.formatCurrency(costoTotalConBono),
+                subtitle:
+                    'Base ${Helpers.formatCurrency(costoTotalQuincenal)} + Bono ${Helpers.formatCurrency(totalBonoQuincenal)}',
+                iconColor: const Color(0xFF757575),
+              );
+              Widget buildDeduccionesCard() => _buildPayrollSummaryCard(
+                icon: Icons.remove_circle_outline,
+                label: '- Deducciones',
+                value: Helpers.formatCurrency(totalDeducciones),
+                iconColor: const Color(0xFFD32F2F),
+                valueColor: const Color(0xFFC62828),
+                borderColor: const Color(0xFFEF9A9A),
+                bgColor: const Color(0xFFFFEBEE),
+              );
+              Widget buildNetoCard() => Card(
+                elevation: 0,
+                margin: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
                   ),
                 ),
-                const SizedBox(width: 4),
-                // Deducciones
-                Expanded(
-                  flex: 2,
-                  child: Card(
-                    elevation: 0,
-                    margin: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: const Color(0xFFEF9A9A)),
-                    ),
-                    color: const Color(0xFFFFEBEE),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.remove_circle_outline,
-                                size: 14,
-                                color: const Color(0xFFD32F2F),
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  '- Deducciones',
-                                  style: TextStyle(
-                                    color: const Color(0xFFD32F2F),
-                                    fontSize: 9,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                          Icon(
+                            Icons.account_balance_wallet,
+                            size: 14,
+                            color: theme.colorScheme.primary,
                           ),
-                          const Spacer(),
+                          const SizedBox(width: 4),
                           Text(
-                            Helpers.formatCurrency(totalDeducciones),
+                            '= Neto a Pagar',
                             style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFFC62828),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                // Neto a Pagar (= Pagado + Pendiente)
-                Expanded(
-                  flex: 2,
-                  child: Card(
-                    elevation: 0,
-                    margin: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    color: theme.colorScheme.primary.withValues(alpha: 0.05),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.account_balance_wallet,
-                                size: 14,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '= Neto a Pagar',
-                                style: TextStyle(
-                                  color: theme.colorScheme.primary,
-                                  fontSize: 9,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            Helpers.formatCurrency(netoAPagar),
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
                               color: theme.colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: progreso,
-                              minHeight: 5,
-                              backgroundColor: const Color(0xFFEEEEEE),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                progreso >= 1.0
-                                    ? const Color(0xFF2E7D32)
-                                    : theme.colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${(progreso * 100).toStringAsFixed(0)}% pagado',
-                            style: TextStyle(
                               fontSize: 9,
-                              color: const Color(0xFF9E9E9E),
                             ),
                           ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        Helpers.formatCurrency(netoAPagar),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: progreso,
+                          minHeight: 5,
+                          backgroundColor: const Color(0xFFEEEEEE),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            progreso >= 1.0
+                                ? const Color(0xFF2E7D32)
+                                : theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${(progreso * 100).toStringAsFixed(0)}% pagado',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: const Color(0xFF9E9E9E),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 4),
-                // Pagado
-                Expanded(
-                  flex: 2,
-                  child: Card(
-                    elevation: 0,
-                    margin: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: const Color(0xFFA5D6A7)),
-                    ),
-                    color: const Color(0xFFE8F5E9),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              );
+              Widget buildPagadoCard() => _buildPayrollSummaryCard(
+                icon: Icons.check_circle,
+                label: 'Pagado (${nominasPagadas.length})',
+                value: Helpers.formatCurrency(totalPagado),
+                iconColor: const Color(0xFF388E3C),
+                valueColor: const Color(0xFF2E7D32),
+                borderColor: const Color(0xFFA5D6A7),
+                bgColor: const Color(0xFFE8F5E9),
+              );
+              Widget buildPendienteCard() => _buildPayrollSummaryCard(
+                icon: Icons.pending,
+                label:
+                    'Pendiente (${nominasPendientes.length + empleadosSinNomina.length})',
+                value: Helpers.formatCurrency(totalPendiente),
+                iconColor: const Color(0xFFF57C00),
+                valueColor: const Color(0xFFEF6C00),
+                borderColor: const Color(0xFFFFCC80),
+                bgColor: const Color(0xFFFFF3E0),
+              );
+
+              if (isMobile) {
+                return Column(
+                  children: [
+                    // Fila 1: Neto a Pagar (protagonista)
+                    SizedBox(height: 90, child: buildNetoCard()),
+                    const SizedBox(height: 4),
+                    // Fila 2: Bruto + Deducciones
+                    SizedBox(
+                      height: 70,
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle,
-                                size: 14,
-                                color: const Color(0xFF388E3C),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Pagado (${nominasPagadas.length})',
-                                style: TextStyle(
-                                  color: const Color(0xFF388E3C),
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          Text(
-                            Helpers.formatCurrency(totalPagado),
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF2E7D32),
-                            ),
-                          ),
+                          Expanded(child: buildCostoBrutoCard()),
+                          const SizedBox(width: 4),
+                          Expanded(child: buildDeduccionesCard()),
                         ],
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                // Pendiente
-                Expanded(
-                  flex: 2,
-                  child: Card(
-                    elevation: 0,
-                    margin: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: const Color(0xFFFFCC80)),
-                    ),
-                    color: const Color(0xFFFFF3E0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 4),
+                    // Fila 3: Pagado + Pendiente
+                    SizedBox(
+                      height: 70,
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.pending,
-                                size: 14,
-                                color: const Color(0xFFF57C00),
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  'Pendiente (${nominasPendientes.length + empleadosSinNomina.length})',
-                                  style: TextStyle(
-                                    color: const Color(0xFFF57C00),
-                                    fontSize: 10,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          Text(
-                            Helpers.formatCurrency(totalPendiente),
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFFEF6C00),
-                            ),
-                          ),
+                          Expanded(child: buildPagadoCard()),
+                          const SizedBox(width: 4),
+                          Expanded(child: buildPendienteCard()),
                         ],
                       ),
                     ),
-                  ),
+                  ],
+                );
+              }
+
+              return SizedBox(
+                height: 100,
+                child: Row(
+                  children: [
+                    Expanded(flex: 2, child: buildCostoBrutoCard()),
+                    const SizedBox(width: 4),
+                    Expanded(flex: 2, child: buildDeduccionesCard()),
+                    const SizedBox(width: 4),
+                    Expanded(flex: 2, child: buildNetoCard()),
+                    const SizedBox(width: 4),
+                    Expanded(flex: 2, child: buildPagadoCard()),
+                    const SizedBox(width: 6),
+                    Expanded(flex: 2, child: buildPendienteCard()),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
           const SizedBox(height: 8),
 
@@ -522,6 +535,62 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPayrollSummaryCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color iconColor,
+    Color? valueColor,
+    Color? borderColor,
+    Color? bgColor,
+    String? subtitle,
+  }) {
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: borderColor ?? const Color(0xFFEEEEEE)),
+      ),
+      color: bgColor,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 14, color: iconColor),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(color: iconColor, fontSize: 9),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: valueColor,
+              ),
+            ),
+            if (subtitle != null)
+              Text(
+                subtitle,
+                style: TextStyle(fontSize: 8, color: const Color(0xFF9E9E9E)),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1223,160 +1292,180 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
         .where((p) => p.status != 'pagado')
         .toList();
 
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: const Color(0xFFEEEEEE)),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Nóminas del Periodo (${payrollState.payrolls.length + empleadosSinNomina.length} empleados)',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+
+        return Card(
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: const Color(0xFFEEEEEE)),
           ),
-          // Header de tabla
-          Container(
-            color: const Color(0xFFFAFAFA),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            child: const Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'EMPLEADO',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF9E9E9E),
-                    ),
-                  ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
                 ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'SALARIO QUINC.',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF9E9E9E),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Nóminas del Periodo (${payrollState.payrolls.length + empleadosSinNomina.length} emp)',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'NETO A PAGAR',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF9E9E9E),
+              ),
+              // Header de tabla
+              Container(
+                color: const Color(0xFFFAFAFA),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      flex: 3,
+                      child: Text(
+                        'EMPLEADO',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF9E9E9E),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Text(
-                    'ESTADO',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF9E9E9E),
+                    if (!isMobile)
+                      const Expanded(
+                        flex: 2,
+                        child: Text(
+                          'SALARIO QUINC.',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF9E9E9E),
+                          ),
+                        ),
+                      ),
+                    const Expanded(
+                      flex: 2,
+                      child: Text(
+                        'NETO A PAGAR',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF9E9E9E),
+                        ),
+                      ),
                     ),
-                  ),
+                    const Expanded(
+                      flex: 1,
+                      child: Text(
+                        'ESTADO',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF9E9E9E),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 28),
+                  ],
                 ),
-                SizedBox(width: 28),
-              ],
-            ),
+              ),
+              // Lista de empleados
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    // Pendientes primero (necesitan acción)
+                    ...pendientes.map((payroll) {
+                      final employee = empState.employees
+                          .where((e) => e.id == payroll.employeeId)
+                          .firstOrNull;
+                      return _buildPayrollRow(
+                        theme: theme,
+                        name: payroll.employeeName ?? 'Empleado',
+                        position: payroll.employeePosition ?? '',
+                        salarioQuincenal:
+                            (employee?.salary ?? payroll.baseSalary * 2) / 2,
+                        netoPagar: payroll.netPay,
+                        status: payroll.status == 'aprobado'
+                            ? 'Aprobado'
+                            : 'Pendiente',
+                        statusColor: payroll.status == 'aprobado'
+                            ? const Color(0xFF1565C0)
+                            : const Color(0xFFF9A825),
+                        onTap: () => _showPayrollDetailDialog(payroll),
+                        onPagar: () => _showPayPayrollDialog(payroll),
+                        onEditar: () => _showAddConceptDialog(payroll),
+                        showActions: true,
+                        onPagoMensual: () => _showMonthlyPaymentDialog(payroll),
+                        onEliminar: () => _confirmDeletePayroll(payroll),
+                        isMobile: isMobile,
+                      );
+                    }),
+                    // Sin nómina creada
+                    ...empleadosSinNomina.map((employee) {
+                      return _buildPayrollRow(
+                        theme: theme,
+                        name: '${employee.firstName} ${employee.lastName}',
+                        position: employee.position,
+                        salarioQuincenal: (employee.salary ?? 0) / 2,
+                        netoPagar: null,
+                        status: 'Sin crear',
+                        statusColor: const Color(0xFF9E9E9E),
+                        onTap: null,
+                        onPagar: null,
+                        onEditar: null,
+                        showActions: false,
+                        onCrear: () => _showCreatePayrollDialog(
+                          preSelectedEmployee: employee,
+                        ),
+                        isMobile: isMobile,
+                      );
+                    }),
+                    // Pagados al final
+                    ...pagados.map((payroll) {
+                      final employee = empState.employees
+                          .where((e) => e.id == payroll.employeeId)
+                          .firstOrNull;
+                      return _buildPayrollRow(
+                        theme: theme,
+                        name: payroll.employeeName ?? 'Empleado',
+                        position: payroll.employeePosition ?? '',
+                        salarioQuincenal:
+                            (employee?.salary ?? payroll.baseSalary * 2) / 2,
+                        netoPagar: payroll.netPay,
+                        status: 'Pagado',
+                        statusColor: const Color(0xFF2E7D32),
+                        onTap: () => _showPayrollDetailDialog(payroll),
+                        onPagar: null,
+                        onEditar: null,
+                        showActions: true,
+                        onImprimir: () => _printPayroll(payroll),
+                        onEliminar: () => _confirmDeletePayroll(payroll),
+                        isMobile: isMobile,
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ],
           ),
-          // Lista de empleados
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                // Pendientes primero (necesitan acción)
-                ...pendientes.map((payroll) {
-                  final employee = empState.employees
-                      .where((e) => e.id == payroll.employeeId)
-                      .firstOrNull;
-                  return _buildPayrollRow(
-                    theme: theme,
-                    name: payroll.employeeName ?? 'Empleado',
-                    position: payroll.employeePosition ?? '',
-                    salarioQuincenal:
-                        (employee?.salary ?? payroll.baseSalary * 2) / 2,
-                    netoPagar: payroll.netPay,
-                    status: payroll.status == 'aprobado'
-                        ? 'Aprobado'
-                        : 'Pendiente',
-                    statusColor: payroll.status == 'aprobado'
-                        ? const Color(0xFF1565C0)
-                        : const Color(0xFFF9A825),
-                    onTap: () => _showPayrollDetailDialog(payroll),
-                    onPagar: () => _showPayPayrollDialog(payroll),
-                    onEditar: () => _showAddConceptDialog(payroll),
-                    showActions: true,
-                    onPagoMensual: () => _showMonthlyPaymentDialog(payroll),
-                    onEliminar: () => _confirmDeletePayroll(payroll),
-                  );
-                }),
-                // Sin nómina creada
-                ...empleadosSinNomina.map((employee) {
-                  return _buildPayrollRow(
-                    theme: theme,
-                    name: '${employee.firstName} ${employee.lastName}',
-                    position: employee.position,
-                    salarioQuincenal: (employee.salary ?? 0) / 2,
-                    netoPagar: null,
-                    status: 'Sin crear',
-                    statusColor: const Color(0xFF9E9E9E),
-                    onTap: null,
-                    onPagar: null,
-                    onEditar: null,
-                    showActions: false,
-                    onCrear: () =>
-                        _showCreatePayrollDialog(preSelectedEmployee: employee),
-                  );
-                }),
-                // Pagados al final
-                ...pagados.map((payroll) {
-                  final employee = empState.employees
-                      .where((e) => e.id == payroll.employeeId)
-                      .firstOrNull;
-                  return _buildPayrollRow(
-                    theme: theme,
-                    name: payroll.employeeName ?? 'Empleado',
-                    position: payroll.employeePosition ?? '',
-                    salarioQuincenal:
-                        (employee?.salary ?? payroll.baseSalary * 2) / 2,
-                    netoPagar: payroll.netPay,
-                    status: 'Pagado',
-                    statusColor: const Color(0xFF2E7D32),
-                    onTap: () => _showPayrollDetailDialog(payroll),
-                    onPagar: null,
-                    onEditar: null,
-                    showActions: true,
-                    onImprimir: () => _printPayroll(payroll),
-                    onEliminar: () => _confirmDeletePayroll(payroll),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1396,6 +1485,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
     VoidCallback? onPagoMensual,
     VoidCallback? onImprimir,
     VoidCallback? onEliminar,
+    bool isMobile = false,
   }) {
     return InkWell(
       onTap: onTap,
@@ -1452,13 +1542,17 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                 ],
               ),
             ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                Helpers.formatCurrency(salarioQuincenal),
-                style: TextStyle(fontSize: 11, color: const Color(0xFF616161)),
+            if (!isMobile)
+              Expanded(
+                flex: 2,
+                child: Text(
+                  Helpers.formatCurrency(salarioQuincenal),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: const Color(0xFF616161),
+                  ),
+                ),
               ),
-            ),
             Expanded(
               flex: 2,
               child: Text(
@@ -1604,269 +1698,278 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Container(
-              width: 600,
-              padding: const EdgeInsets.all(24),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.1),
-                          child: Text(
-                            (payroll.employeeName ?? 'E')
-                                .substring(0, 1)
-                                .toUpperCase(),
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 600, minWidth: 200),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.1),
+                            child: Text(
+                              (payroll.employeeName ?? 'E')
+                                  .substring(0, 1)
+                                  .toUpperCase(),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                payroll.employeeName ?? 'Empleado',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                payroll.employeePosition ?? '',
-                                style: TextStyle(
-                                  color: const Color(0xFF757575),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Status badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: payroll.status == 'pagado'
-                                ? const Color(0xFF2E7D32).withValues(alpha: 0.1)
-                                : const Color(
-                                    0xFFF9A825,
-                                  ).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            payroll.status == 'pagado' ? 'Pagado' : 'Pendiente',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: payroll.status == 'pagado'
-                                  ? const Color(0xFF388E3C)
-                                  : const Color(0xFFF57C00),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    const Divider(),
-                    const SizedBox(height: 12),
-
-                    // Salario base y días
-                    _buildDetailRowDialog(
-                      'Salario Quincenal',
-                      Helpers.formatCurrency(payroll.baseSalary),
-                    ),
-                    _buildDetailRowDialog(
-                      'Días Trabajados',
-                      '${payroll.daysWorked} días',
-                    ),
-                    if (payroll.daysAbsent > 0)
-                      _buildDetailRowDialog(
-                        'Días Ausencia',
-                        '${payroll.daysAbsent} días',
-                        const Color(0xFFF57C00),
-                      ),
-                    if (payroll.daysIncapacity > 0)
-                      _buildDetailRowDialog(
-                        'Días Incapacidad',
-                        '${payroll.daysIncapacity} días',
-                        const Color(0xFF1976D2),
-                      ),
-
-                    // Ingresos adicionales (detalles)
-                    if (incomes.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      Text(
-                        'INGRESOS ADICIONALES',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF388E3C),
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ...incomes.map(
-                        (d) => _buildDetailRowDialog(
-                          d.conceptName +
-                              (d.notes != null && d.notes!.isNotEmpty
-                                  ? ' (${d.notes})'
-                                  : ''),
-                          '+ ${Helpers.formatCurrency(d.amount)}',
-                          const Color(0xFF388E3C),
-                        ),
-                      ),
-                    ],
-
-                    // Descuentos (detalles)
-                    if (deductions.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      Text(
-                        'DESCUENTOS',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFFD32F2F),
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ...deductions.map(
-                        (d) => _buildDetailRowDialog(
-                          d.conceptName +
-                              (d.notes != null && d.notes!.isNotEmpty
-                                  ? ' (${d.notes})'
-                                  : ''),
-                          '- ${Helpers.formatCurrency(d.amount)}',
-                          const Color(0xFFD32F2F),
-                        ),
-                      ),
-                    ],
-
-                    const Divider(height: 32),
-                    _buildDetailRowDialog(
-                      'Total Ingresos',
-                      Helpers.formatCurrency(payroll.totalEarnings),
-                      const Color(0xFF2E7D32),
-                    ),
-                    _buildDetailRowDialog(
-                      'Total Descuentos',
-                      Helpers.formatCurrency(payroll.totalDeductions),
-                      const Color(0xFFC62828),
-                    ),
-                    const Divider(height: 32),
-                    _buildDetailRowDialog(
-                      'Neto a Pagar',
-                      Helpers.formatCurrency(payroll.netPay),
-                      Theme.of(context).colorScheme.primary,
-                      true,
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        // Eliminar nómina (solo si no está pagada)
-                        if (payroll.status != 'pagado')
-                          TextButton.icon(
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('Eliminar Nómina'),
-                                  content: Text(
-                                    '¿Eliminar la nómina de ${payroll.employeeName}?\n\nEsto permite recrearla con los datos actualizados.',
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  payroll.employeeName ?? 'Empleado',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(ctx, false),
-                                      child: const Text('Cancelar'),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: const Color(
-                                          0xFFC62828,
-                                        ),
-                                      ),
-                                      child: const Text('Eliminar'),
-                                    ),
-                                  ],
                                 ),
-                              );
-
-                              if (confirm == true) {
-                                final success = await ref
-                                    .read(payrollProvider.notifier)
-                                    .deletePayroll(payroll.id);
-
-                                if (mounted) {
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(
-                                    this.context,
-                                  ).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        success
-                                            ? '✅ Nómina eliminada. Puedes recrearla con +Nóm'
-                                            : '❌ Error al eliminar',
-                                      ),
-                                      backgroundColor: success
-                                          ? const Color(0xFF2E7D32)
-                                          : const Color(0xFFC62828),
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            icon: Icon(
-                              Icons.delete_outline,
-                              color: const Color(0xFFEF5350),
-                              size: 18,
-                            ),
-                            label: Text(
-                              'Eliminar',
-                              style: TextStyle(color: const Color(0xFFEF5350)),
+                                Text(
+                                  payroll.employeePosition ?? '',
+                                  style: TextStyle(
+                                    color: const Color(0xFF757575),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        const Spacer(),
-                        OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cerrar'),
-                        ),
-                        if (payroll.status != 'pagado') ...[
-                          const SizedBox(width: 12),
-                          FilledButton.icon(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _showPayPayrollDialog(payroll);
-                            },
-                            icon: const Icon(Icons.payments, size: 18),
-                            label: const Text('Procesar Pago'),
+                          // Status badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: payroll.status == 'pagado'
+                                  ? const Color(
+                                      0xFF2E7D32,
+                                    ).withValues(alpha: 0.1)
+                                  : const Color(
+                                      0xFFF9A825,
+                                    ).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              payroll.status == 'pagado'
+                                  ? 'Pagado'
+                                  : 'Pendiente',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: payroll.status == 'pagado'
+                                    ? const Color(0xFF388E3C)
+                                    : const Color(0xFFF57C00),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 20),
+                      const Divider(),
+                      const SizedBox(height: 12),
+
+                      // Salario base y días
+                      _buildDetailRowDialog(
+                        'Salario Quincenal',
+                        Helpers.formatCurrency(payroll.baseSalary),
+                      ),
+                      _buildDetailRowDialog(
+                        'Días Trabajados',
+                        '${payroll.daysWorked} días',
+                      ),
+                      if (payroll.daysAbsent > 0)
+                        _buildDetailRowDialog(
+                          'Días Ausencia',
+                          '${payroll.daysAbsent} días',
+                          const Color(0xFFF57C00),
+                        ),
+                      if (payroll.daysIncapacity > 0)
+                        _buildDetailRowDialog(
+                          'Días Incapacidad',
+                          '${payroll.daysIncapacity} días',
+                          const Color(0xFF1976D2),
+                        ),
+
+                      // Ingresos adicionales (detalles)
+                      if (incomes.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        Text(
+                          'INGRESOS ADICIONALES',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF388E3C),
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...incomes.map(
+                          (d) => _buildDetailRowDialog(
+                            d.conceptName +
+                                (d.notes != null && d.notes!.isNotEmpty
+                                    ? ' (${d.notes})'
+                                    : ''),
+                            '+ ${Helpers.formatCurrency(d.amount)}',
+                            const Color(0xFF388E3C),
+                          ),
+                        ),
                       ],
-                    ),
-                  ],
+
+                      // Descuentos (detalles)
+                      if (deductions.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        Text(
+                          'DESCUENTOS',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFD32F2F),
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...deductions.map(
+                          (d) => _buildDetailRowDialog(
+                            d.conceptName +
+                                (d.notes != null && d.notes!.isNotEmpty
+                                    ? ' (${d.notes})'
+                                    : ''),
+                            '- ${Helpers.formatCurrency(d.amount)}',
+                            const Color(0xFFD32F2F),
+                          ),
+                        ),
+                      ],
+
+                      const Divider(height: 32),
+                      _buildDetailRowDialog(
+                        'Total Ingresos',
+                        Helpers.formatCurrency(payroll.totalEarnings),
+                        const Color(0xFF2E7D32),
+                      ),
+                      _buildDetailRowDialog(
+                        'Total Descuentos',
+                        Helpers.formatCurrency(payroll.totalDeductions),
+                        const Color(0xFFC62828),
+                      ),
+                      const Divider(height: 32),
+                      _buildDetailRowDialog(
+                        'Neto a Pagar',
+                        Helpers.formatCurrency(payroll.netPay),
+                        Theme.of(context).colorScheme.primary,
+                        true,
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          // Eliminar nómina (solo si no está pagada)
+                          if (payroll.status != 'pagado')
+                            TextButton.icon(
+                              onPressed: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Eliminar Nómina'),
+                                    content: Text(
+                                      '¿Eliminar la nómina de ${payroll.employeeName}?\n\nEsto permite recrearla con los datos actualizados.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, false),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, true),
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: const Color(
+                                            0xFFC62828,
+                                          ),
+                                        ),
+                                        child: const Text('Eliminar'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirm == true) {
+                                  final success = await ref
+                                      .read(payrollProvider.notifier)
+                                      .deletePayroll(payroll.id);
+
+                                  if (mounted) {
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(
+                                      this.context,
+                                    ).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          success
+                                              ? '✅ Nómina eliminada. Puedes recrearla con +Nóm'
+                                              : '❌ Error al eliminar',
+                                        ),
+                                        backgroundColor: success
+                                            ? const Color(0xFF2E7D32)
+                                            : const Color(0xFFC62828),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: const Color(0xFFEF5350),
+                                size: 18,
+                              ),
+                              label: Text(
+                                'Eliminar',
+                                style: TextStyle(
+                                  color: const Color(0xFFEF5350),
+                                ),
+                              ),
+                            ),
+                          const Spacer(),
+                          OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cerrar'),
+                          ),
+                          if (payroll.status != 'pagado') ...[
+                            const SizedBox(width: 12),
+                            FilledButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _showPayPayrollDialog(payroll);
+                              },
+                              icon: const Icon(Icons.payments, size: 18),
+                              label: const Text('Procesar Pago'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1904,58 +2007,6 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPayrollSummaryCard(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: const Color(0xFF757575),
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      value,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -2190,11 +2241,8 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
       });
     }
 
-    // Por defecto seleccionar la quincena anterior (la actual no ha terminado)
-    // Si viene un empleado pre-seleccionado, usar la quincena actual (index 0)
-    int selectedQuincenaIndex = preSelectedEmployee != null
-        ? 0
-        : (availableQuincenas.length > 1 ? 1 : 0);
+    // Por defecto seleccionar la quincena actual para ver datos recientes
+    int selectedQuincenaIndex = 0;
 
     // Cargar empleados que ya tienen nómina en la quincena seleccionada por defecto
     final defaultQ = availableQuincenas[selectedQuincenaIndex];
@@ -2339,16 +2387,11 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
       final adjustments = await EmployeesDatasource.getTimeAdjustments(
         employeeId: employeeId,
         startDate: quinStart,
+        endDate: quinEnd,
       );
 
-      // Filtrar solo los de la quincena
-      final quinAdjustments = adjustments
-          .where(
-            (a) =>
-                !a.adjustmentDate.isBefore(quinStart) &&
-                !a.adjustmentDate.isAfter(quinEnd),
-          )
-          .toList();
+      // Los ajustes ya están filtrados por [quinStart, quinEnd] en la query
+      final quinAdjustments = adjustments;
 
       int ausencias = 0;
       int permisos = 0;
@@ -2510,10 +2553,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
             final effectiveOvertimeHours = manualOvertimeHours ?? overtimeHours;
             overtimePay =
                 effectiveOvertimeHours * hourlyRate * overtimeMultiplier;
-            underHoursDiscount =
-                (manualOvertimeHours != null && manualOvertimeHours! > 0)
-                ? 0
-                : underHours * hourlyRate;
+            underHoursDiscount = underHours * hourlyRate;
             // Bono: si hay override manual, usar ese; si no, automático
             ganaBono = bonoManualOverride ?? !pierdeBono;
             bonoAsistencia = (ganaBono && selectedEmployee != null)
@@ -2570,8 +2610,8 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                 Text(isComplemento ? 'Pago Complementario' : 'Crear Nómina'),
               ],
             ),
-            content: SizedBox(
-              width: 500,
+            content: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 500, minWidth: 200),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -3043,16 +3083,15 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                               daysAbsent =
                                   ausenciaDays + permisoDays + incapacidadDays;
 
-                              // Calcular horas extra o faltantes
-                              if (totalHoursWorked > baseHoursQuincena) {
-                                overtimeHours =
-                                    totalHoursWorked - baseHoursQuincena;
-                                underHours = 0;
-                              } else {
-                                overtimeHours = 0;
-                                underHours =
-                                    baseHoursQuincena - totalHoursWorked;
-                              }
+                              // Usar horas extra directamente de los ajustes (no comparación neta)
+                              overtimeHours =
+                                  (data['overtimeHours'] as double? ?? 0.0);
+                              // Horas faltantes = horas base - (horas trabajadas sin contar extras)
+                              final netWorkedWithoutOT =
+                                  totalHoursWorked - overtimeHours;
+                              underHours =
+                                  (baseHoursQuincena - netWorkedWithoutOT)
+                                      .clamp(0.0, double.infinity);
                             });
                           }
                         },
@@ -3268,18 +3307,21 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                                                   ausenciaDays +
                                                   permisoDays +
                                                   incapacidadDays;
-                                              if (totalHoursWorked >
-                                                  baseHoursQuincena) {
-                                                overtimeHours =
-                                                    totalHoursWorked -
-                                                    baseHoursQuincena;
-                                                underHours = 0;
-                                              } else {
-                                                overtimeHours = 0;
-                                                underHours =
-                                                    baseHoursQuincena -
-                                                    totalHoursWorked;
-                                              }
+                                              // Usar horas extra directamente de los ajustes (no comparación neta)
+                                              overtimeHours =
+                                                  (data['overtimeHours']
+                                                      as double? ??
+                                                  0.0);
+                                              final netWorkedWithoutOT =
+                                                  totalHoursWorked -
+                                                  overtimeHours;
+                                              underHours =
+                                                  (baseHoursQuincena -
+                                                          netWorkedWithoutOT)
+                                                      .clamp(
+                                                        0.0,
+                                                        double.infinity,
+                                                      );
                                             });
                                           }
                                         },
@@ -3405,18 +3447,16 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                                             ausenciaDays +
                                             permisoDays +
                                             incapacidadDays;
-                                        if (totalHoursWorked >
-                                            baseHoursQuincena) {
-                                          overtimeHours =
-                                              totalHoursWorked -
-                                              baseHoursQuincena;
-                                          underHours = 0;
-                                        } else {
-                                          overtimeHours = 0;
-                                          underHours =
-                                              baseHoursQuincena -
-                                              totalHoursWorked;
-                                        }
+                                        // Usar horas extra directamente de los ajustes (no comparación neta)
+                                        overtimeHours =
+                                            (data['overtimeHours'] as double? ??
+                                            0.0);
+                                        final netWorkedWithoutOT =
+                                            totalHoursWorked - overtimeHours;
+                                        underHours =
+                                            (baseHoursQuincena -
+                                                    netWorkedWithoutOT)
+                                                .clamp(0.0, double.infinity);
                                       });
                                     }
                                   },
@@ -4756,11 +4796,8 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                               }
                             }
 
-                            // Agregar descuento por horas faltantes si hay (solo si no hay override manual)
-                            if (underHours > 0 &&
-                                !isDailyPay &&
-                                (manualOvertimeHours == null ||
-                                    manualOvertimeHours! <= 0)) {
+                            // Agregar descuento por horas faltantes (ausencias/permisos)
+                            if (underHours > 0 && !isDailyPay) {
                               await ref
                                   .read(payrollProvider.notifier)
                                   .addUnderHoursDiscount(
@@ -4953,8 +4990,8 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
 
           return AlertDialog(
             title: const Text('Agregar Concepto'),
-            content: SizedBox(
-              width: 400,
+            content: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 400, minWidth: 200),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -5101,8 +5138,8 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
               const Text('Procesar Pago de Nómina'),
             ],
           ),
-          content: SizedBox(
-            width: 450,
+          content: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 450, minWidth: 200),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -5337,9 +5374,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
               child: const Text('Cancelar'),
             ),
             FilledButton.icon(
-              onPressed:
-                  selectedAccountId == null ||
-                      selectedAccountBalance < payroll.netPay
+              onPressed: selectedAccountId == null
                   ? null
                   : () async {
                       // Guardar referencia al messenger ANTES de cerrar
@@ -5887,8 +5922,8 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
               Text('Pago Mensual — $monthLabel $targetYear'),
             ],
           ),
-          content: SizedBox(
-            width: 500,
+          content: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 500, minWidth: 200),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -6211,9 +6246,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
               child: const Text('Cancelar'),
             ),
             FilledButton.icon(
-              onPressed:
-                  selectedAccountId == null ||
-                      selectedAccountBalance < totalToPay
+              onPressed: selectedAccountId == null
                   ? null
                   : () async {
                       final messenger = ScaffoldMessenger.of(context);

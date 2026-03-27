@@ -14,6 +14,7 @@ import '../../data/datasources/customers_datasource.dart';
 import '../../data/datasources/inventory_datasource.dart';
 import '../../data/datasources/products_datasource.dart';
 import '../../data/datasources/iva_datasource.dart';
+import '../../data/datasources/scan_corrections_datasource.dart';
 import '../../data/providers/invoices_provider.dart';
 import '../../data/providers/customers_provider.dart';
 import '../../domain/entities/customer.dart';
@@ -686,8 +687,10 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
   // ─── Review List ───────────────────────────────────────────────
   Widget _buildReviewList() {
     final cs = Theme.of(context).colorScheme;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final listPadding = screenWidth < 500 ? 8.0 : 16.0;
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(listPadding),
       itemCount: _items.length,
       itemBuilder: (context, index) {
         final item = _items[index];
@@ -722,65 +725,99 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                   '${item.clientNameCtrl.text} · ${Helpers.formatCurrency(double.tryParse(item.totalCtrl.text) ?? 0)}',
                   style: const TextStyle(fontSize: 13),
                 ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Indicador de cliente asociado
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: item.matchedCustomer != null
-                            ? const Color(0xFFE8F5E9)
-                            : const Color(0xFFFFF3E0),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            item.matchedCustomer != null
-                                ? Icons.person
-                                : Icons.person_search,
-                            size: 14,
+                trailing: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // On narrow screens, only show icon + expand
+                    final isNarrow = MediaQuery.of(context).size.width < 500;
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 4,
+                          ),
+                          constraints: BoxConstraints(
+                            maxWidth: isNarrow ? 40 : 180,
+                          ),
+                          decoration: BoxDecoration(
                             color: item.matchedCustomer != null
-                                ? const Color(0xFF2E7D32)
-                                : const Color(0xFFF57C00),
+                                ? const Color(0xFFE8F5E9)
+                                : const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            item.matchedCustomer != null
-                                ? item.matchedCustomer!.displayName
-                                : 'Sin asociar',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: item.matchedCustomer != null
-                                  ? const Color(0xFF2E7D32)
-                                  : const Color(0xFFF57C00),
-                              fontWeight: FontWeight.w600,
-                            ),
+                          child: isNarrow
+                              ? Icon(
+                                  item.matchedCustomer != null
+                                      ? Icons.person
+                                      : Icons.person_search,
+                                  size: 16,
+                                  color: item.matchedCustomer != null
+                                      ? const Color(0xFF2E7D32)
+                                      : const Color(0xFFF57C00),
+                                )
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      item.matchedCustomer != null
+                                          ? Icons.person
+                                          : Icons.person_search,
+                                      size: 14,
+                                      color: item.matchedCustomer != null
+                                          ? const Color(0xFF2E7D32)
+                                          : const Color(0xFFF57C00),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        item.matchedCustomer != null
+                                            ? item.matchedCustomer!.displayName
+                                            : 'Sin asociar',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: item.matchedCustomer != null
+                                              ? const Color(0xFF2E7D32)
+                                              : const Color(0xFFF57C00),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            item.isExpanded
+                                ? Icons.expand_less
+                                : Icons.expand_more,
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(
-                        item.isExpanded ? Icons.expand_less : Icons.expand_more,
-                      ),
-                      onPressed: () =>
-                          setState(() => item.isExpanded = !item.isExpanded),
-                    ),
-                  ],
+                          onPressed: () => setState(
+                            () => item.isExpanded = !item.isExpanded,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
 
               // Detalles expandibles
               if (item.isExpanded)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: EdgeInsets.fromLTRB(
+                    screenWidth < 500 ? 10 : 16,
+                    0,
+                    screenWidth < 500 ? 10 : 16,
+                    screenWidth < 500 ? 10 : 16,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -979,88 +1016,140 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
 
                       // ── Items escaneados con match de inventario ──
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              'Items (${item.itemMatches.length})',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: cs.primary,
-                              ),
-                            ),
-                          ),
-                          if (item.itemMatches.isNotEmpty) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: item.itemMatches.every((m) => m.hasMatch)
-                                    ? const Color(0xFFE8F5E9)
-                                    : const Color(0xFFFFF3E0),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '${item.itemMatches.where((m) => m.hasMatch).length}/${item.itemMatches.length} con inventario',
+                      LayoutBuilder(
+                        builder: (context, itemHeaderConstraints) {
+                          final narrow = itemHeaderConstraints.maxWidth < 360;
+                          return Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                'Items (${item.itemMatches.length})',
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color:
-                                      item.itemMatches.every((m) => m.hasMatch)
-                                      ? const Color(0xFF2E7D32)
-                                      : const Color(0xFFF57C00),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: cs.primary,
                                 ),
                               ),
-                            ),
-                          ],
-                          if (item.itemMatches.any((m) => !m.hasMatch)) ...[
-                            const SizedBox(width: 8),
-                            SizedBox(
-                              height: 28,
-                              child: FilledButton.icon(
-                                onPressed: () => _showAutoCreateDialog(item),
-                                icon: const Icon(
-                                  Icons.add_circle_outline,
-                                  size: 14,
-                                ),
-                                label: Text(
-                                  'Auto-crear ${item.itemMatches.where((m) => !m.hasMatch).length}',
-                                  style: const TextStyle(fontSize: 11),
-                                ),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1565C0),
+                              if (item.itemMatches.isNotEmpty)
+                                Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        item.itemMatches.every(
+                                          (m) => m.hasMatch,
+                                        )
+                                        ? const Color(0xFFE8F5E9)
+                                        : const Color(0xFFFFF3E0),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${item.itemMatches.where((m) => m.hasMatch).length}/${item.itemMatches.length} inv.',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          item.itemMatches.every(
+                                            (m) => m.hasMatch,
+                                          )
+                                          ? const Color(0xFF2E7D32)
+                                          : const Color(0xFFF57C00),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            height: 28,
-                            child: OutlinedButton.icon(
-                              onPressed: () => _showAddItemManualDialog(item),
-                              icon: const Icon(Icons.add, size: 14),
-                              label: const Text(
-                                'Agregar item',
-                                style: TextStyle(fontSize: 11),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
+                              if (item.itemMatches.any((m) => !m.hasMatch))
+                                SizedBox(
+                                  height: 28,
+                                  child: narrow
+                                      ? FilledButton(
+                                          onPressed: () =>
+                                              _showAutoCreateDialog(item),
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFF1565C0,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Auto-crear ${item.itemMatches.where((m) => !m.hasMatch).length}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        )
+                                      : FilledButton.icon(
+                                          onPressed: () =>
+                                              _showAutoCreateDialog(item),
+                                          icon: const Icon(
+                                            Icons.add_circle_outline,
+                                            size: 14,
+                                          ),
+                                          label: Text(
+                                            'Auto-crear ${item.itemMatches.where((m) => !m.hasMatch).length}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFF1565C0,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                            ),
+                                          ),
+                                        ),
                                 ),
-                                side: BorderSide(
-                                  color: cs.primary.withValues(alpha: 0.5),
-                                ),
+                              SizedBox(
+                                height: 28,
+                                child: narrow
+                                    ? OutlinedButton(
+                                        onPressed: () =>
+                                            _showAddItemManualDialog(item),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                          side: BorderSide(
+                                            color: cs.primary.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          '+ Item',
+                                          style: TextStyle(fontSize: 11),
+                                        ),
+                                      )
+                                    : OutlinedButton.icon(
+                                        onPressed: () =>
+                                            _showAddItemManualDialog(item),
+                                        icon: const Icon(Icons.add, size: 14),
+                                        label: const Text(
+                                          'Agregar item',
+                                          style: TextStyle(fontSize: 11),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                          ),
+                                          side: BorderSide(
+                                            color: cs.primary.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                               ),
-                            ),
-                          ),
-                        ],
+                            ],
+                          );
+                        },
                       ),
                       if (item.itemMatches.isNotEmpty) ...[
                         const SizedBox(height: 8),
@@ -1089,20 +1178,14 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                                       children: [
                                         Row(
                                           children: [
-                                            SizedBox(
-                                              width: 24,
-                                              height: 24,
-                                              child: Checkbox(
-                                                value: im.selected,
-                                                onChanged: (v) => setState(
-                                                  () => im.selected = v ?? true,
-                                                ),
-                                                visualDensity:
-                                                    VisualDensity.compact,
-                                                materialTapTargetSize:
-                                                    MaterialTapTargetSize
-                                                        .shrinkWrap,
-                                              ),
+                                            Icon(
+                                              im.hasMatch
+                                                  ? Icons.check_circle
+                                                  : Icons.warning_amber_rounded,
+                                              size: 18,
+                                              color: im.hasMatch
+                                                  ? const Color(0xFF2E7D32)
+                                                  : const Color(0xFFF57C00),
                                             ),
                                             const SizedBox(width: 6),
                                             Expanded(
@@ -1302,16 +1385,14 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                                         children: [
                                           SizedBox(
                                             width: 28,
-                                            child: Checkbox(
-                                              value: im.selected,
-                                              onChanged: (v) => setState(
-                                                () => im.selected = v ?? true,
-                                              ),
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              materialTapTargetSize:
-                                                  MaterialTapTargetSize
-                                                      .shrinkWrap,
+                                            child: Icon(
+                                              im.hasMatch
+                                                  ? Icons.check_circle
+                                                  : Icons.warning_amber_rounded,
+                                              size: 16,
+                                              color: im.hasMatch
+                                                  ? const Color(0xFF2E7D32)
+                                                  : const Color(0xFFF57C00),
                                             ),
                                           ),
                                           Expanded(
@@ -1434,77 +1515,85 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
 
                       // ── Control de inventario ──
                       const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                      InkWell(
+                        onTap: () => setState(
+                          () => item.deductInventory = !item.deductInventory,
                         ),
-                        decoration: BoxDecoration(
-                          color: item.deductInventory
-                              ? const Color(0xFFE3F2FD)
-                              : const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: item.deductInventory
-                                ? const Color(0xFF90CAF9)
-                                : const Color(0xFFE0E0E0),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: Checkbox(
-                                value: item.deductInventory,
-                                onChanged: (v) => setState(
-                                  () => item.deductInventory = v ?? false,
+                          decoration: BoxDecoration(
+                            color: item.deductInventory
+                                ? const Color(0xFFE3F2FD)
+                                : const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: item.deductInventory
+                                  ? const Color(0xFF90CAF9)
+                                  : const Color(0xFFE0E0E0),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Checkbox(
+                                  value: item.deductInventory,
+                                  onChanged: (v) => setState(
+                                    () => item.deductInventory = v ?? false,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                visualDensity: VisualDensity.compact,
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Descontar inventario (materiales y productos)',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Descontar inventario',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
-                                  ),
-                                  Text(
-                                    item.deductInventory
-                                        ? 'Se restará stock al registrar'
-                                        : 'Solo registra la factura y deuda CxC, sin mover stock',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.grey[600],
+                                    Text(
+                                      item.deductInventory
+                                          ? 'Se restará stock al registrar'
+                                          : 'Solo registra factura y deuda CxC, sin mover stock',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
 
                       // ── Tipo de pago ──
                       const SizedBox(height: 12),
-                      Row(
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           const Text(
-                            'Tipo de pago: ',
+                            'Tipo de pago:',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(width: 8),
                           _buildPaymentTypeChip(
                             item,
                             'cash',
@@ -1512,7 +1601,6 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                             Icons.payments,
                             const Color(0xFF2E7D32),
                           ),
-                          const SizedBox(width: 6),
                           _buildPaymentTypeChip(
                             item,
                             'credit',
@@ -1520,7 +1608,6 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                             Icons.calendar_month,
                             const Color(0xFFF9A825),
                           ),
-                          const SizedBox(width: 6),
                           _buildPaymentTypeChip(
                             item,
                             'advance',
@@ -1595,142 +1682,170 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
 
   // ─── Customer Association ──────────────────────────────────────
   Widget _buildCustomerAssociation(_BatchItem item) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: item.matchedCustomer != null
-            ? const Color(0xFFE8F5E9)
-            : const Color(0xFFFFF8E1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: item.matchedCustomer != null
-              ? const Color(0xFFA5D6A7)
-              : const Color(0xFFFFE082),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 400;
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: item.matchedCustomer != null
+                ? const Color(0xFFE8F5E9)
+                : const Color(0xFFFFF8E1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: item.matchedCustomer != null
+                  ? const Color(0xFFA5D6A7)
+                  : const Color(0xFFFFE082),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                item.matchedCustomer != null
-                    ? Icons.person
-                    : Icons.person_search,
-                size: 18,
-                color: item.matchedCustomer != null
-                    ? const Color(0xFF2E7D32)
-                    : const Color(0xFFF57C00),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  item.matchedCustomer != null
-                      ? 'Cliente asociado: ${item.matchedCustomer!.displayName}'
-                      : 'Cliente no encontrado — seleccionar o crear nuevo',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+              Row(
+                children: [
+                  Icon(
+                    item.matchedCustomer != null
+                        ? Icons.person
+                        : Icons.person_search,
+                    size: 18,
                     color: item.matchedCustomer != null
                         ? const Color(0xFF2E7D32)
                         : const Color(0xFFF57C00),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Botón para cambiar/seleccionar cliente
-              SizedBox(
-                height: 32,
-                child: OutlinedButton.icon(
-                  onPressed: () => _showCustomerPickerDialog(item),
-                  icon: const Icon(Icons.swap_horiz, size: 16),
-                  label: Text(
-                    item.matchedCustomer != null ? 'Cambiar' : 'Seleccionar',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (item.matchedCustomer != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const SizedBox(width: 26),
-                Flexible(
-                  child: Text(
-                    '${item.matchedCustomer!.documentType.displayName}: ${item.matchedCustomer!.documentNumber}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF616161),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (item.matchedCustomer!.currentBalance > 0) ...[
-                  const SizedBox(width: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEBEE),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                  const SizedBox(width: 8),
+                  Expanded(
                     child: Text(
-                      'Deuda actual: ${Helpers.formatCurrency(item.matchedCustomer!.currentBalance)}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFFC62828),
+                      item.matchedCustomer != null
+                          ? 'Cliente: ${item.matchedCustomer!.displayName}'
+                          : 'Sin cliente — seleccionar o crear',
+                      style: TextStyle(
+                        fontSize: isNarrow ? 12 : 13,
                         fontWeight: FontWeight.w600,
+                        color: item.matchedCustomer != null
+                            ? const Color(0xFF2E7D32)
+                            : const Color(0xFFF57C00),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (!isNarrow) ...[
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 32,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showCustomerPickerDialog(item),
+                        icon: const Icon(Icons.swap_horiz, size: 16),
+                        label: Text(
+                          item.matchedCustomer != null
+                              ? 'Cambiar'
+                              : 'Seleccionar',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
-            ),
-          ],
-          if (item.matchedCustomer == null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const SizedBox(width: 26),
-                Flexible(
-                  child: Text(
-                    'De la factura: ${item.clientNameCtrl.text} · ${item.clientNitCtrl.text}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF616161),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 12),
+              ),
+              if (isNarrow) ...[
+                const SizedBox(height: 8),
                 SizedBox(
-                  height: 28,
-                  child: FilledButton.icon(
-                    onPressed: () => _createCustomerFromScan(item),
-                    icon: const Icon(Icons.person_add, size: 14),
-                    label: const Text(
-                      'Crear Cliente',
-                      style: TextStyle(fontSize: 11),
+                  width: double.infinity,
+                  height: 32,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showCustomerPickerDialog(item),
+                    icon: const Icon(Icons.swap_horiz, size: 16),
+                    label: Text(
+                      item.matchedCustomer != null
+                          ? 'Cambiar cliente'
+                          : 'Seleccionar cliente',
+                      style: const TextStyle(fontSize: 12),
                     ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFF57C00),
+                    style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
                   ),
                 ),
               ],
-            ),
-          ],
-        ],
-      ),
+              if (item.matchedCustomer != null) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 26),
+                      child: Text(
+                        '${item.matchedCustomer!.documentType.displayName}: ${item.matchedCustomer!.documentNumber}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF616161),
+                        ),
+                      ),
+                    ),
+                    if (item.matchedCustomer!.currentBalance > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFEBEE),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Deuda: ${Helpers.formatCurrency(item.matchedCustomer!.currentBalance)}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFFC62828),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+              if (item.matchedCustomer == null) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 26),
+                      child: Text(
+                        'De factura: ${item.clientNameCtrl.text} · ${item.clientNitCtrl.text}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF616161),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 28,
+                      child: FilledButton.icon(
+                        onPressed: () => _createCustomerFromScan(item),
+                        icon: const Icon(Icons.person_add, size: 14),
+                        label: const Text(
+                          'Crear Cliente',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFF57C00),
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -2010,20 +2125,20 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
           const Divider(height: 20),
 
           // Estadísticas generales
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
               _summaryChip(
                 Icons.receipt_long,
                 '${saved.length} factura(s)',
                 const Color(0xFF1565C0),
               ),
-              const SizedBox(width: 8),
               _summaryChip(
                 Icons.people,
                 '${customerMap.length} cliente(s)',
                 const Color(0xFF2E7D32),
               ),
-              const SizedBox(width: 8),
               _summaryChip(
                 Icons.account_balance_wallet,
                 Helpers.formatCurrency(totalCxC),
@@ -2065,7 +2180,9 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
           const SizedBox(height: 12),
 
           // Items
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
               if (itemsAssociated > 0)
                 _summaryChip(
@@ -2073,13 +2190,11 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                   '$itemsAssociated asociado(s)',
                   const Color(0xFF2E7D32),
                 ),
-              if (itemsAssociated > 0 && itemsUnmatched > 0)
-                const SizedBox(width: 8),
               if (itemsUnmatched > 0)
                 _summaryChip(
-                  Icons.help_outline,
-                  '$itemsUnmatched sin asociar',
-                  const Color(0xFFF57C00),
+                  Icons.error_outline,
+                  '$itemsUnmatched sin asociar (requerido)',
+                  const Color(0xFFC62828),
                 ),
             ],
           ),
@@ -2159,14 +2274,22 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancelar'),
           ),
-          right: FilledButton.icon(
-            onPressed: _items.isEmpty ? null : _startScanning,
-            icon: const Icon(Icons.auto_awesome, size: 18),
-            label: Text(
-              _items.isEmpty
-                  ? 'Selecciona archivos'
-                  : 'Analizar ${_items.length} factura(s)',
-            ),
+          right: LayoutBuilder(
+            builder: (ctx, constraints) {
+              final narrow = constraints.maxWidth < 180;
+              return FilledButton.icon(
+                onPressed: _items.isEmpty ? null : _startScanning,
+                icon: const Icon(Icons.auto_awesome, size: 18),
+                label: Text(
+                  _items.isEmpty
+                      ? (narrow ? 'Selecciona' : 'Selecciona archivos')
+                      : (narrow
+                            ? 'Analizar ${_items.length}'
+                            : 'Analizar ${_items.length} factura(s)'),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              );
+            },
           ),
         );
       case _ScanStep.scanning:
@@ -2183,29 +2306,40 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                   i.matchedCustomer == null,
             )
             .length;
+        final isNarrowActions = MediaQuery.of(context).size.width < 500;
         return _actionsBar(
           left: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
+                style: TextButton.styleFrom(
+                  padding: isNarrowActions
+                      ? const EdgeInsets.symmetric(horizontal: 6)
+                      : null,
+                ),
                 child: const Text('Cancelar'),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 2),
               OutlinedButton.icon(
                 onPressed: _addMorePhotos,
                 icon: const Icon(Icons.add_a_photo, size: 16),
-                label: const Text('Otra foto', style: TextStyle(fontSize: 12)),
+                label: isNarrowActions
+                    ? const SizedBox.shrink()
+                    : const Text('Otra foto', style: TextStyle(fontSize: 12)),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isNarrowActions ? 8 : 10,
+                  ),
                 ),
               ),
             ],
           ),
           center: unassociated > 0
-              ? Flexible(
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
-                    '$unassociated sin cliente',
+                    '$unassociated sin cli.',
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFFF57C00),
@@ -2214,15 +2348,21 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                   ),
                 )
               : null,
-          right: Flexible(
-            child: FilledButton.icon(
-              onPressed: _selectedCount == 0 ? null : _saveAll,
-              icon: const Icon(Icons.save, size: 18),
-              label: Text(
-                'Reconciliar $_selectedCount',
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+          right: LayoutBuilder(
+            builder: (ctx, constraints) {
+              final narrow = constraints.maxWidth < 140;
+              return FilledButton.icon(
+                onPressed: _selectedCount == 0 ? null : _saveAll,
+                icon: const Icon(Icons.save, size: 18),
+                label: Text(
+                  narrow ? '$_selectedCount' : 'Reconciliar $_selectedCount',
+                  overflow: TextOverflow.ellipsis,
+                ),
+                style: FilledButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: narrow ? 8 : 16),
+                ),
+              );
+            },
           ),
         );
       case _ScanStep.saving:
@@ -2231,10 +2371,18 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
             .every((i) => i.saved || i.saveError != null);
         return _actionsBar(
           left: allDone
-              ? OutlinedButton.icon(
-                  onPressed: _resetForNewScan,
-                  icon: const Icon(Icons.document_scanner, size: 18),
-                  label: const Text('Escanear otra factura'),
+              ? LayoutBuilder(
+                  builder: (ctx, constraints) {
+                    final narrow = constraints.maxWidth < 180;
+                    return OutlinedButton.icon(
+                      onPressed: _resetForNewScan,
+                      icon: const Icon(Icons.document_scanner, size: 18),
+                      label: Text(
+                        narrow ? 'Otra' : 'Escanear otra factura',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  },
                 )
               : const SizedBox.shrink(),
           right: allDone
@@ -2253,7 +2401,10 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
     Widget? center,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.of(context).size.width < 500 ? 12 : 20,
+        vertical: 10,
+      ),
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
@@ -2261,10 +2412,13 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
       ),
       child: Row(
         children: [
-          left,
-          if (center != null) ...[const Spacer(), center],
-          const Spacer(),
-          right,
+          Flexible(child: left),
+          if (center != null) ...[
+            const SizedBox(width: 4),
+            Flexible(child: center),
+          ],
+          const SizedBox(width: 8),
+          Flexible(child: right),
         ],
       ),
     );
@@ -2475,9 +2629,13 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
             title: Text(
               'Asociar: ${itemMatch.scannedItem.description}',
               style: const TextStyle(fontSize: 14),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             content: SizedBox(
-              width: 500,
+              width: MediaQuery.of(ctx).size.width < 500
+                  ? double.maxFinite
+                  : 500,
               height: 450,
               child: Column(
                 children: [
@@ -2587,54 +2745,71 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                 ],
               ),
             ),
+            actionsOverflowButtonSpacing: 0,
+            actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             actions: [
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  _createProductFromItem(itemMatch);
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text(
-                  'Crear Producto',
-                  style: TextStyle(fontSize: 12),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF1565C0),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                ),
-              ),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  _createMaterialFromItem(itemMatch);
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text(
-                  'Crear Material',
-                  style: TextStyle(fontSize: 12),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                ),
-              ),
-              if (itemMatch.hasMatch)
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    setState(() {
-                      itemMatch.matchedProduct = null;
-                      itemMatch.matchedMaterial = null;
-                    });
-                  },
-                  child: const Text(
-                    'Quitar asociación',
-                    style: TextStyle(color: Color(0xFFC62828)),
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _createProductFromItem(itemMatch);
+                          },
+                          icon: const Icon(Icons.add, size: 14),
+                          label: const Text(
+                            'Producto',
+                            style: TextStyle(fontSize: 11),
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF1565C0),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: const Size(0, 34),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _createMaterialFromItem(itemMatch);
+                          },
+                          icon: const Icon(Icons.add, size: 14),
+                          label: const Text(
+                            'Material',
+                            style: TextStyle(fontSize: 11),
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF2E7D32),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: const Size(0, 34),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancelar'),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, 32),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           );
@@ -2687,7 +2862,9 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
               style: TextStyle(fontSize: 16),
             ),
             content: SizedBox(
-              width: 520,
+              width: MediaQuery.of(ctx).size.width < 500
+                  ? double.maxFinite
+                  : 520,
               height: 500,
               child: Column(
                 children: [
@@ -3066,24 +3243,27 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
         builder: (ctx, setInnerState) {
           final productCount = choices.values.where((v) => v).length;
           final materialCount = choices.values.where((v) => !v).length;
+          final dialogNarrow = MediaQuery.of(ctx).size.width < 500;
           return AlertDialog(
             title: const Text(
               'Crear items sin asociar',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             content: SizedBox(
-              width: 560,
+              width: dialogNarrow ? double.maxFinite : 560,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Selecciona si cada item es un Producto o un Material:',
+                    'Selecciona si cada item es Producto o Material:',
                     style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                   ),
                   const SizedBox(height: 12),
-                  // Botones para marcar todos
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       OutlinedButton.icon(
                         onPressed: () => setInnerState(() {
@@ -3103,7 +3283,6 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                           minimumSize: const Size(0, 30),
                         ),
                       ),
-                      const SizedBox(width: 8),
                       OutlinedButton.icon(
                         onPressed: () => setInnerState(() {
                           for (final k in choices.keys) {
@@ -3122,16 +3301,9 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                           minimumSize: const Size(0, 30),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          '$productCount producto(s), $materialCount material(es)',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[600],
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      Text(
+                        '$productCount prod., $materialCount mat.',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -3145,6 +3317,61 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                       itemBuilder: (ctx, i) {
                         final im = unmatched[i];
                         final isProduct = choices[im] ?? true;
+                        if (dialogNarrow) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  im.scannedItem.description,
+                                  style: const TextStyle(fontSize: 12),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Cant: ${im.scannedItem.quantity.toStringAsFixed(0)} · '
+                                  '\$${im.scannedItem.total.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                SegmentedButton<bool>(
+                                  segments: const [
+                                    ButtonSegment(
+                                      value: true,
+                                      label: Text(
+                                        'Producto',
+                                        style: TextStyle(fontSize: 11),
+                                      ),
+                                      icon: Icon(Icons.category, size: 14),
+                                    ),
+                                    ButtonSegment(
+                                      value: false,
+                                      label: Text(
+                                        'Material',
+                                        style: TextStyle(fontSize: 11),
+                                      ),
+                                      icon: Icon(Icons.inventory_2, size: 14),
+                                    ),
+                                  ],
+                                  selected: {isProduct},
+                                  onSelectionChanged: (v) {
+                                    setInnerState(() => choices[im] = v.first);
+                                  },
+                                  style: ButtonStyle(
+                                    visualDensity: VisualDensity.compact,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Row(
@@ -3172,7 +3399,6 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              // Toggle Producto / Material
                               SegmentedButton<bool>(
                                 segments: const [
                                   ButtonSegment(
@@ -3319,6 +3545,37 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
         .toList();
     if (toSave.isEmpty) return;
 
+    // Verificar que todos los items estén asociados a producto/material
+    final unmatchedItems = <_BatchItem>[];
+    for (final item in toSave) {
+      if (item.itemMatches.any((im) => !im.hasMatch)) {
+        unmatchedItems.add(item);
+      }
+    }
+    if (unmatchedItems.isNotEmpty) {
+      // Mostrar auto-crear para cada factura con items sin asociar
+      for (final item in unmatchedItems) {
+        await _showAutoCreateDialog(item);
+      }
+      // Verificar de nuevo si quedaron sin asociar
+      final stillUnmatched = toSave.any(
+        (item) => item.itemMatches.any((im) => !im.hasMatch),
+      );
+      if (stillUnmatched) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Todos los items deben estar asociados a un producto o material para poder guardar.',
+              ),
+              backgroundColor: Color(0xFFD32F2F),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     // Verificar que todos tengan cliente
     final sinCliente = toSave.where((i) => i.matchedCustomer == null).toList();
     if (sinCliente.isNotEmpty) {
@@ -3444,6 +3701,7 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
     final taxRate = double.tryParse(item.taxRateCtrl.text) ?? 0;
 
     // Preparar items de factura con product_id / material_id
+    // TODOS los items se guardan siempre (para estadísticas de ventas)
     final invoiceItems = item.itemMatches.map((im) {
       final si = im.scannedItem;
       final st = si.quantity * si.unitPrice;
@@ -3451,8 +3709,8 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
       return InvoiceItem(
         id: '',
         invoiceId: '',
-        productId: im.selected ? im.matchedProduct?.id : null,
-        materialId: im.selected ? im.matchedMaterial?.id : null,
+        productId: im.matchedProduct?.id,
+        materialId: im.matchedMaterial?.id,
         productCode: im.matchedProduct?.code ?? im.matchedMaterial?.code,
         productName: si.description,
         description: si.referenceCode,
@@ -3538,6 +3796,27 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
       );
     } catch (_) {
       // No fallar la factura por error en IVA
+    }
+
+    // Guardar correcciones para aprendizaje IA
+    if (item.result != null) {
+      try {
+        await ScanCorrectionsDataSource.saveCorrection(
+          correctionType: 'sale',
+          originalResult: item.result!,
+          correctedTotal: total,
+          correctedSubtotal: subtotal,
+          correctedTaxRate: taxRate,
+          correctedTaxAmount: taxAmount,
+          correctedInvoiceNumber: originalNumber.isNotEmpty
+              ? originalNumber
+              : 'SIN-NUM',
+          supplierName: customer.displayName,
+          imageRef: item.result!.imagePath,
+        );
+      } catch (_) {
+        // No fallar la factura por error guardando corrección
+      }
     }
   }
 
