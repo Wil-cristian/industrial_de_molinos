@@ -1,4 +1,4 @@
-package com.industrial.molinos_app
+package com.industrial.molino.app
 
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle

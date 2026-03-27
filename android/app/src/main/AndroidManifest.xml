@@ -6,7 +6,7 @@
     <uses-feature android:name="android.hardware.nfc" android:required="false"/>
     <uses-feature android:name="android.hardware.nfc.hce" android:required="false"/>
     <application
-        android:label="molinos_app"
+        android:label="Industrial de Molinos"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

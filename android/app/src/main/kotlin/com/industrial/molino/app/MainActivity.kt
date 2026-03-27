@@ -1,4 +1,4 @@
-package com.industrial.molinos_app
+package com.industrial.molino.app
 
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
@@ -7,7 +7,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "com.industrial.molinos_app/nfc_hce"
+    private val CHANNEL = "com.industrial.molino.app/nfc_hce"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

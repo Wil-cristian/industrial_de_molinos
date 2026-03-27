@@ -92,9 +92,9 @@ BEGIN
             VALUE "CompanyName", "Industrial de Molinos" "\0"
             VALUE "FileDescription", "Sistema de Gestion - Industrial de Molinos" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "molinos_app" "\0"
+            VALUE "InternalName", "com.industrial.molino.app" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 Industrial de Molinos. All rights reserved." "\0"
-            VALUE "OriginalFilename", "molinos_app.exe" "\0"
+            VALUE "OriginalFilename", "com.industrial.molino.app.exe" "\0"
             VALUE "ProductName", "Industrial de Molinos" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END

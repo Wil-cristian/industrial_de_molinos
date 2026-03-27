@@ -29,3 +29,7 @@ Thumbs.db
 # Generated
 *.g.dart
 *.freezed.dart
+
+# Python - venv y scripts utilitarios
+venv/
+fix_app_icons.py
