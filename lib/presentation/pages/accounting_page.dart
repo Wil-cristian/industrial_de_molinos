@@ -79,24 +79,26 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
-      body: Column(
-        children: [
-          // ── Header ──
-          _buildHeader(state),
-          // ── Contenido ──
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildLibroDiario(state),
-                _buildBalanceGeneral(state),
-                _buildEstadoResultados(state),
-                _buildLibroMayor(state),
-                _buildBalanceComprobacion(state),
-              ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Header ──
+            _buildHeader(state),
+            // ── Contenido ──
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildLibroDiario(state),
+                  _buildBalanceGeneral(state),
+                  _buildEstadoResultados(state),
+                  _buildLibroMayor(state),
+                  _buildBalanceComprobacion(state),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

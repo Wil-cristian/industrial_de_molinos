@@ -34,6 +34,7 @@ class ScannedInvoiceItem {
   final double taxAmount;
   final double subtotal;
   final double total;
+  final double theoreticalKg;
 
   ScannedInvoiceItem({
     this.referenceCode,
@@ -46,6 +47,7 @@ class ScannedInvoiceItem {
     this.taxAmount = 0,
     this.subtotal = 0,
     this.total = 0,
+    this.theoreticalKg = 0,
   });
 
   factory ScannedInvoiceItem.fromJson(Map<String, dynamic> json) {
@@ -60,6 +62,7 @@ class ScannedInvoiceItem {
       taxAmount: (json['tax_amount'] as num?)?.toDouble() ?? 0,
       subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
       total: (json['total'] as num?)?.toDouble() ?? 0,
+      theoreticalKg: (json['theoretical_kg'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -74,6 +77,7 @@ class ScannedInvoiceItem {
     'tax_amount': taxAmount,
     'subtotal': subtotal,
     'total': total,
+    'theoretical_kg': theoreticalKg,
   };
 }
 
@@ -245,6 +249,7 @@ class InvoiceScanResult {
             taxAmount: 0,
             subtotal: item.subtotal,
             total: item.subtotal, // total = subtotal sin IVA
+            theoreticalKg: item.theoreticalKg,
           );
         }
       }

@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/datasources/accounts_datasource.dart';
+import '../../data/datasources/ai_assistant_datasource.dart';
 import '../../data/datasources/iva_datasource.dart';
 import '../../domain/entities/cash_movement.dart';
 import '../../domain/entities/account.dart';
+import '../widgets/expense_scan_dialog.dart';
 import '../widgets/invoice_scan_dialog.dart';
 
 class ExpensesPage extends ConsumerStatefulWidget {
@@ -151,21 +153,23 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-                    children: [
-                      _buildCategoryCards(),
-                      _buildTabBar(),
-                      Expanded(child: _buildTabContent()),
-                    ],
-                  ),
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                      children: [
+                        _buildCategoryCards(),
+                        _buildTabBar(),
+                        Expanded(child: _buildTabContent()),
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -295,6 +299,30 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                 label: const Text('Escanear Factura'),
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: _scanExpense,
+                icon: const Icon(Icons.receipt_long, size: 18),
+                label: const Text('Escanear Gasto'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFE65100),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: _allExpenses.isEmpty ? null : _analyzeWithAI,
+                icon: const Icon(Icons.auto_awesome, size: 18),
+                label: const Text('Analizar con IA'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF00897B),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
@@ -1125,11 +1153,120 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
   }
 
   // ═══════════════════════════════════════════════════════════
+  //  AI ANALYSIS
+  // ═══════════════════════════════════════════════════════════
+  String _buildExpenseSummaryForAI() {
+    final buf = StringBuffer();
+    final byCategory = _expenseByCategory;
+    final countByCat = _countByCategory;
+    final total = _totalExpenses;
+
+    buf.writeln('=== DATOS DE GASTOS ===');
+    if (_dateRange != null) {
+      buf.writeln(
+        'Período: ${Formatters.date(_dateRange!.start)} a ${Formatters.date(_dateRange!.end)}',
+      );
+    } else {
+      buf.writeln('Período: Todos los registros');
+    }
+    buf.writeln('Total gastos: ${Formatters.currency(total)}');
+    buf.writeln('Cantidad de movimientos: ${_allExpenses.length}');
+    buf.writeln();
+    buf.writeln('--- Desglose por Categoría ---');
+
+    // Sort categories by amount descending
+    final sorted = _expenseCategories.toList()
+      ..sort((a, b) {
+        final amtA = byCategory[a] ?? 0;
+        final amtB = byCategory[b] ?? 0;
+        return amtB.compareTo(amtA);
+      });
+
+    for (final cat in sorted) {
+      final amount = byCategory[cat] ?? 0;
+      final count = countByCat[cat] ?? 0;
+      final pct = total > 0 ? (amount / total * 100) : 0.0;
+      buf.writeln(
+        '• ${_categoryLabel(cat)}: ${Formatters.currency(amount)} '
+        '($count movimientos, ${pct.toStringAsFixed(1)}%)',
+      );
+    }
+
+    // Top 10 biggest individual expenses
+    final topExpenses = List<CashMovement>.from(_allExpenses)
+      ..sort((a, b) => b.amount.compareTo(a.amount));
+    final top = topExpenses.take(10).toList();
+    if (top.isNotEmpty) {
+      buf.writeln();
+      buf.writeln('--- Top ${top.length} Gastos Más Grandes ---');
+      for (final m in top) {
+        buf.writeln(
+          '• ${Formatters.currency(m.amount)} - ${m.description} '
+          '(${m.categoryLabel}, ${Formatters.date(m.date)})',
+        );
+      }
+    }
+
+    // IVA summary if available
+    if (_ivaInvoices.isNotEmpty) {
+      final totalIvaBase = _ivaInvoices.fold(0.0, (s, i) => s + i.baseAmount);
+      final totalIva = _ivaInvoices.fold(0.0, (s, i) => s + i.ivaAmount);
+      buf.writeln();
+      buf.writeln('--- Facturas IVA Compras ---');
+      buf.writeln('Facturas registradas: ${_ivaInvoices.length}');
+      buf.writeln('Base gravable total: ${Formatters.currency(totalIvaBase)}');
+      buf.writeln('IVA total: ${Formatters.currency(totalIva)}');
+    }
+
+    // Monthly trend if we have data spanning multiple months
+    final byMonth = <String, double>{};
+    for (final m in _allExpenses) {
+      final key = '${m.date.year}-${m.date.month.toString().padLeft(2, '0')}';
+      byMonth[key] = (byMonth[key] ?? 0) + m.amount;
+    }
+    if (byMonth.length > 1) {
+      final sortedMonths = byMonth.keys.toList()..sort();
+      buf.writeln();
+      buf.writeln('--- Tendencia Mensual ---');
+      for (final month in sortedMonths) {
+        buf.writeln('• $month: ${Formatters.currency(byMonth[month]!)}');
+      }
+    }
+
+    return buf.toString();
+  }
+
+  Future<void> _analyzeWithAI() async {
+    final summary = _buildExpenseSummaryForAI();
+    final prompt =
+        'Analiza los siguientes gastos de mi negocio '
+        '(Industrial de Molinos). Dame insights útiles: '
+        'qué categorías consumen más, si hay gastos inusuales, '
+        'recomendaciones para reducir costos, y tendencias. '
+        'Sé específico con los números.\n\n$summary';
+
+    // Show dialog with loading, then result
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _AiAnalysisDialog(prompt: prompt),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
   //  ACTIONS
   // ═══════════════════════════════════════════════════════════
   Future<void> _scanInvoice() async {
     final period = await InvoiceScanDialog.show(context);
     if (period != null && mounted) {
+      _loadData();
+    }
+  }
+
+  Future<void> _scanExpense() async {
+    final registered = await ExpenseScanDialog.show(context);
+    if (registered == true && mounted) {
       _loadData();
     }
   }
@@ -1171,5 +1308,207 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
       default:
         return cat.name;
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AI ANALYSIS DIALOG
+// ═══════════════════════════════════════════════════════════════
+class _AiAnalysisDialog extends StatefulWidget {
+  final String prompt;
+  const _AiAnalysisDialog({required this.prompt});
+
+  @override
+  State<_AiAnalysisDialog> createState() => _AiAnalysisDialogState();
+}
+
+class _AiAnalysisDialogState extends State<_AiAnalysisDialog> {
+  bool _loading = true;
+  String _result = '';
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _runAnalysis();
+  }
+
+  Future<void> _runAnalysis() async {
+    try {
+      final response = await AiAssistantDatasource.sendMessage(
+        message: widget.prompt,
+      );
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        if (response.success) {
+          _result = response.response;
+        } else {
+          _error = response.error;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Error de conexión: $e';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final dialogWidth = width > 700 ? 600.0 : width * 0.9;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: dialogWidth,
+        constraints: const BoxConstraints(maxHeight: 600),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00897B).withValues(alpha: 0.1),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00897B).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      color: Color(0xFF00897B),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Análisis IA de Gastos',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          _loading
+                              ? 'Analizando tus gastos...'
+                              : 'Análisis completado',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!_loading)
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close),
+                    ),
+                ],
+              ),
+            ),
+            // Content
+            Flexible(
+              child: _loading
+                  ? const Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              color: Color(0xFF00897B),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'La IA está analizando todas las categorías\n'
+                            'de gastos y buscando patrones...',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _error != null
+                  ? Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: AppColors.danger,
+                            size: 48,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.danger),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: SelectableText(
+                        _result,
+                        style: const TextStyle(fontSize: 14, height: 1.5),
+                      ),
+                    ),
+            ),
+            // Footer
+            if (!_loading)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: Row(
+                  children: [
+                    if (_error != null)
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _loading = true;
+                            _error = null;
+                          });
+                          _runAnalysis();
+                        },
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Reintentar'),
+                      ),
+                    const Spacer(),
+                    FilledButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cerrar'),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }

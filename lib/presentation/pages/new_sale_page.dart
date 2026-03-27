@@ -448,18 +448,20 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      body: isMobile
-          ? mainContent
-          : Row(
-              children: [
-                Container(
-                  width: 280,
-                  color: Colors.white,
-                  child: _buildSummaryPanel(),
-                ),
-                Expanded(child: mainContent),
-              ],
-            ),
+      body: SafeArea(
+        child: isMobile
+            ? mainContent
+            : Row(
+                children: [
+                  Container(
+                    width: 280,
+                    color: Colors.white,
+                    child: _buildSummaryPanel(),
+                  ),
+                  Expanded(child: mainContent),
+                ],
+              ),
+      ),
       floatingActionButton: isMobile
           ? FloatingActionButton.small(
               backgroundColor: _saleThemeColor,

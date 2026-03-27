@@ -52,20 +52,22 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     final state = ref.watch(assetsProvider);
 
     return Scaffold(
-      body: Container(
-        color: Theme.of(context).colorScheme.surfaceContainerLowest,
-        child: Column(
-          children: [
-            // Header
-            _buildHeader(context),
+      body: SafeArea(
+        child: Container(
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
+          child: Column(
+            children: [
+              // Header
+              _buildHeader(context),
 
-            // Content
-            Expanded(
-              child: state.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildResponsiveContent(state),
-            ),
-          ],
+              // Content
+              Expanded(
+                child: state.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _buildResponsiveContent(state),
+              ),
+            ],
+          ),
         ),
       ),
     );

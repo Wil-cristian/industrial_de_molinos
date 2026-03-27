@@ -33,22 +33,24 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      body: Container(
-        color: colorScheme.surfaceContainerLowest,
-        child: Column(
-          children: [
-            _buildHeader(context, state),
-            _buildFilterBar(context, state),
-            Expanded(
-              child: state.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : state.error != null
-                  ? _buildErrorState(context, state.error!)
-                  : state.logs.isEmpty
-                  ? _buildEmptyState(context)
-                  : _buildLogList(context, state),
-            ),
-          ],
+      body: SafeArea(
+        child: Container(
+          color: colorScheme.surfaceContainerLowest,
+          child: Column(
+            children: [
+              _buildHeader(context, state),
+              _buildFilterBar(context, state),
+              Expanded(
+                child: state.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : state.error != null
+                    ? _buildErrorState(context, state.error!)
+                    : state.logs.isEmpty
+                    ? _buildEmptyState(context)
+                    : _buildLogList(context, state),
+              ),
+            ],
+          ),
         ),
       ),
     );

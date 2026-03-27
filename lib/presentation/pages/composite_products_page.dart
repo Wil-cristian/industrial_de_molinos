@@ -44,200 +44,204 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      body: Column(
-        children: [
-          // ── Header ──
-          Container(
-            padding: const EdgeInsets.all(24),
-            color: Colors.white,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isNarrow = constraints.maxWidth < 980;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.arrow_back,
-                            color: Theme.of(context).colorScheme.primary,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Header ──
+            Container(
+              padding: const EdgeInsets.all(24),
+              color: Colors.white,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 980;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.arrow_back,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            onPressed: () => context.go('/'),
+                            tooltip: 'Volver al menú',
                           ),
-                          onPressed: () => context.go('/'),
-                          tooltip: 'Volver al menú',
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Productos',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${state.products.length} productos registrados',
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Productos',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 8,
-                      children: [
-                        _buildQuickStat(
-                          'Compuestos',
-                          '${state.products.where((p) => p.components.isNotEmpty).length}',
-                          const Color(0xFF1565C0),
-                          Icons.settings,
-                        ),
-                        _buildQuickStat(
-                          'Simples',
-                          '${state.products.where((p) => p.components.isEmpty).length}',
-                          const Color(0xFF2E7D32),
-                          Icons.category,
-                        ),
-                        FilledButton.icon(
-                          onPressed: () => _showCreateProductDialog(),
-                          icon: const Icon(Icons.add),
-                          label: Text(isNarrow ? 'Nuevo' : 'Nuevo Producto'),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 16,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 10,
-                      children: [
-                        SizedBox(
-                          width: isNarrow
-                              ? constraints.maxWidth
-                              : constraints.maxWidth * 0.62,
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: 'Buscar por nombre o código...',
-                              prefixIcon: const Icon(Icons.search),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
-                            onChanged: (value) => ref
-                                .read(compositeProductsProvider.notifier)
-                                .setSearchQuery(value),
-                          ),
-                        ),
-                        SizedBox(
-                          width: isNarrow
-                              ? constraints.maxWidth
-                              : constraints.maxWidth * 0.34,
-                          child: DropdownButtonFormField<String>(
-                            value: state.selectedCategory,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              labelText: 'Categoría',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
-                            items: [
-                              const DropdownMenuItem(
-                                value: 'todos',
-                                child: Text('Todas'),
-                              ),
-                              ...ProductCategories.all.map(
-                                (cat) => DropdownMenuItem(
-                                  value: cat,
-                                  child: Text(
-                                    ProductCategories.getDisplayName(cat),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${state.products.length} productos registrados',
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
-                              ),
-                            ],
-                            onChanged: (value) => ref
-                                .read(compositeProductsProvider.notifier)
-                                .setSelectedCategory(value ?? 'todos'),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-
-          // ── Contenido ──
-          Expanded(
-            child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state.error != null
-                ? _buildErrorState(state.error!)
-                : filteredProducts.isEmpty
-                ? _buildEmptyState()
-                : Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final columns = constraints.maxWidth >= 1400
-                            ? 4
-                            : constraints.maxWidth >= 1000
-                            ? 3
-                            : constraints.maxWidth >= 600
-                            ? 2
-                            : 1;
-                        return GridView.builder(
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: columns,
-                                childAspectRatio: columns == 1
-                                    ? 1.8
-                                    : columns == 2
-                                    ? 2.0
-                                    : 1.6,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 8,
+                        children: [
+                          _buildQuickStat(
+                            'Compuestos',
+                            '${state.products.where((p) => p.components.isNotEmpty).length}',
+                            const Color(0xFF1565C0),
+                            Icons.settings,
+                          ),
+                          _buildQuickStat(
+                            'Simples',
+                            '${state.products.where((p) => p.components.isEmpty).length}',
+                            const Color(0xFF2E7D32),
+                            Icons.category,
+                          ),
+                          FilledButton.icon(
+                            onPressed: () => _showCreateProductDialog(),
+                            icon: const Icon(Icons.add),
+                            label: Text(isNarrow ? 'Nuevo' : 'Nuevo Producto'),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
                               ),
-                          itemCount: filteredProducts.length,
-                          itemBuilder: (context, index) {
-                            return _buildProductCard(filteredProducts[index]);
-                          },
-                        );
-                      },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 10,
+                        children: [
+                          SizedBox(
+                            width: isNarrow
+                                ? constraints.maxWidth
+                                : constraints.maxWidth * 0.62,
+                            child: TextField(
+                              decoration: InputDecoration(
+                                hintText: 'Buscar por nombre o código...',
+                                prefixIcon: const Icon(Icons.search),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                              onChanged: (value) => ref
+                                  .read(compositeProductsProvider.notifier)
+                                  .setSearchQuery(value),
+                            ),
+                          ),
+                          SizedBox(
+                            width: isNarrow
+                                ? constraints.maxWidth
+                                : constraints.maxWidth * 0.34,
+                            child: DropdownButtonFormField<String>(
+                              value: state.selectedCategory,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                labelText: 'Categoría',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                              items: [
+                                const DropdownMenuItem(
+                                  value: 'todos',
+                                  child: Text('Todas'),
+                                ),
+                                ...ProductCategories.all.map(
+                                  (cat) => DropdownMenuItem(
+                                    value: cat,
+                                    child: Text(
+                                      ProductCategories.getDisplayName(cat),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              onChanged: (value) => ref
+                                  .read(compositeProductsProvider.notifier)
+                                  .setSelectedCategory(value ?? 'todos'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+
+            // ── Contenido ──
+            Expanded(
+              child: state.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.error != null
+                  ? _buildErrorState(state.error!)
+                  : filteredProducts.isEmpty
+                  ? _buildEmptyState()
+                  : Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final columns = constraints.maxWidth >= 1400
+                              ? 4
+                              : constraints.maxWidth >= 1000
+                              ? 3
+                              : constraints.maxWidth >= 600
+                              ? 2
+                              : 1;
+                          return GridView.builder(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: columns,
+                                  childAspectRatio: columns == 1
+                                      ? 1.8
+                                      : columns == 2
+                                      ? 2.0
+                                      : 1.6,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                ),
+                            itemCount: filteredProducts.length,
+                            itemBuilder: (context, index) {
+                              return _buildProductCard(filteredProducts[index]);
+                            },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -45,21 +45,23 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
-      body: Column(
-        children: [
-          _buildHeader(state),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildFacturasTab(state),
-                _buildLiquidacionTab(state),
-                _buildCalculadoraTab(state),
-                _buildConfigTab(state),
-              ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(state),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildFacturasTab(state),
+                  _buildLiquidacionTab(state),
+                  _buildCalculadoraTab(state),
+                  _buildConfigTab(state),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

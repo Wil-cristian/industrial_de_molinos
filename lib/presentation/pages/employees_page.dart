@@ -79,102 +79,104 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
         : const Color(0xFFEEEEEE);
 
     return Scaffold(
-      body: Column(
-        children: [
-          // Header compacto con tabs inline
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            decoration: BoxDecoration(
-              color: theme.scaffoldBackgroundColor,
-              border: Border(bottom: BorderSide(color: borderColor)),
-            ),
-            child: Row(
-              children: [
-                // Stats compactos
-                _buildCompactStat(
-                  Icons.people,
-                  '${state.employees.length}',
-                  'Emp',
-                  const Color(0xFF1565C0),
-                  isDark,
-                ),
-                const SizedBox(width: 4),
-                _buildCompactStat(
-                  Icons.check_circle,
-                  '${state.activeEmployees.length}',
-                  'Act',
-                  const Color(0xFF2E7D32),
-                  isDark,
-                ),
-                const SizedBox(width: 4),
-                _buildCompactStat(
-                  Icons.pending_actions,
-                  '${state.tasks.where((t) => t.status == TaskStatus.pendiente || t.status == TaskStatus.enProgreso).length}',
-                  'Tar',
-                  const Color(0xFFF9A825),
-                  isDark,
-                ),
-                const SizedBox(width: 8),
-                // Tabs
-                Expanded(
-                  child: TabBar(
-                    controller: _tabController,
-                    labelColor: theme.colorScheme.primary,
-                    unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-                    indicatorColor: theme.colorScheme.primary,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 8),
-                    tabs: const [
-                      Tab(text: 'Empleados'),
-                      Tab(text: 'Tareas'),
-                      Tab(text: 'Nómina'),
-                      Tab(text: 'Préstamos'),
-                      Tab(text: 'Incapacidades'),
-                    ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header compacto con tabs inline
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.scaffoldBackgroundColor,
+                border: Border(bottom: BorderSide(color: borderColor)),
+              ),
+              child: Row(
+                children: [
+                  // Stats compactos
+                  _buildCompactStat(
+                    Icons.people,
+                    '${state.employees.length}',
+                    'Emp',
+                    const Color(0xFF1565C0),
+                    isDark,
                   ),
-                ),
-                // Periodo
-                if (payrollState.currentPeriod != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                  const SizedBox(width: 4),
+                  _buildCompactStat(
+                    Icons.check_circle,
+                    '${state.activeEmployees.length}',
+                    'Act',
+                    const Color(0xFF2E7D32),
+                    isDark,
+                  ),
+                  const SizedBox(width: 4),
+                  _buildCompactStat(
+                    Icons.pending_actions,
+                    '${state.tasks.where((t) => t.status == TaskStatus.pendiente || t.status == TaskStatus.enProgreso).length}',
+                    'Tar',
+                    const Color(0xFFF9A825),
+                    isDark,
+                  ),
+                  const SizedBox(width: 8),
+                  // Tabs
+                  Expanded(
+                    child: TabBar(
+                      controller: _tabController,
+                      labelColor: theme.colorScheme.primary,
+                      unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                      indicatorColor: theme.colorScheme.primary,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                      tabs: const [
+                        Tab(text: 'Empleados'),
+                        Tab(text: 'Tareas'),
+                        Tab(text: 'Nómina'),
+                        Tab(text: 'Préstamos'),
+                        Tab(text: 'Incapacidades'),
+                      ],
                     ),
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      payrollState.currentPeriod!.displayName,
-                      style: TextStyle(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 11,
+                  ),
+                  // Periodo
+                  if (payrollState.currentPeriod != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        payrollState.currentPeriod!.displayName,
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                        ),
                       ),
                     ),
-                  ),
-                // Botón de acción
-                _buildHeaderActionButton(),
-              ],
+                  // Botón de acción
+                  _buildHeaderActionButton(),
+                ],
+              ),
             ),
-          ),
 
-          // Contenido
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                EmployeesMainTab(key: _mainTabKey),
-                EmployeesTasksTab(key: _tasksTabKey),
-                EmployeesPayrollTab(key: _payrollTabKey),
-                EmployeesLoansTab(key: _loansTabKey),
-                EmployeesIncapacitiesTab(key: _incapacitiesTabKey),
-              ],
+            // Contenido
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  EmployeesMainTab(key: _mainTabKey),
+                  EmployeesTasksTab(key: _tasksTabKey),
+                  EmployeesPayrollTab(key: _payrollTabKey),
+                  EmployeesLoansTab(key: _loansTabKey),
+                  EmployeesIncapacitiesTab(key: _incapacitiesTabKey),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

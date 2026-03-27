@@ -268,144 +268,146 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      body: Row(
-        children: [
-          // Panel lateral con resumen - REDUCIDO A 280
-          Container(
-            width: 280,
-            color: Colors.white,
-            child: _buildSummaryPanel(),
-          ),
-          // Contenido principal
-          Expanded(
-            child: Column(
-              children: [
-                _buildHeader(),
-                Expanded(
-                  child: Form(
-                    key: _formKey,
-                    child: Stepper(
-                      currentStep: _currentStep,
-                      onStepContinue: _onStepContinue,
-                      onStepCancel: _onStepCancel,
-                      onStepTapped: (step) =>
-                          setState(() => _currentStep = step),
-                      controlsBuilder: (context, details) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Row(
-                            children: [
-                              if (_currentStep < 3)
-                                ElevatedButton(
-                                  onPressed: details.onStepContinue,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 10,
+      body: SafeArea(
+        child: Row(
+          children: [
+            // Panel lateral con resumen - REDUCIDO A 280
+            Container(
+              width: 280,
+              color: Colors.white,
+              child: _buildSummaryPanel(),
+            ),
+            // Contenido principal
+            Expanded(
+              child: Column(
+                children: [
+                  _buildHeader(),
+                  Expanded(
+                    child: Form(
+                      key: _formKey,
+                      child: Stepper(
+                        currentStep: _currentStep,
+                        onStepContinue: _onStepContinue,
+                        onStepCancel: _onStepCancel,
+                        onStepTapped: (step) =>
+                            setState(() => _currentStep = step),
+                        controlsBuilder: (context, details) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Row(
+                              children: [
+                                if (_currentStep < 3)
+                                  ElevatedButton(
+                                    onPressed: details.onStepContinue,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 10,
+                                      ),
                                     ),
+                                    child: const Text('Continuar'),
                                   ),
-                                  child: const Text('Continuar'),
-                                ),
-                              if (_currentStep == 3) ...[
-                                ElevatedButton.icon(
-                                  onPressed: _showPreviewDialog,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF1565C0),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
+                                if (_currentStep == 3) ...[
+                                  ElevatedButton.icon(
+                                    onPressed: _showPreviewDialog,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1565C0),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 12,
+                                      ),
                                     ),
+                                    icon: const Icon(Icons.preview),
+                                    label: const Text('Previsualizar'),
                                   ),
-                                  icon: const Icon(Icons.preview),
-                                  label: const Text('Previsualizar'),
-                                ),
+                                  const SizedBox(width: 12),
+                                  ElevatedButton.icon(
+                                    onPressed: _saveQuotation,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.success,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 12,
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.save),
+                                    label: const Text('Guardar Cotización'),
+                                  ),
+                                ],
                                 const SizedBox(width: 12),
-                                ElevatedButton.icon(
-                                  onPressed: _saveQuotation,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.success,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
+                                if (_currentStep > 0)
+                                  TextButton(
+                                    onPressed: details.onStepCancel,
+                                    child: const Text('Atrás'),
                                   ),
-                                  icon: const Icon(Icons.save),
-                                  label: const Text('Guardar Cotización'),
-                                ),
                               ],
-                              const SizedBox(width: 12),
-                              if (_currentStep > 0)
-                                TextButton(
-                                  onPressed: details.onStepCancel,
-                                  child: const Text('Atrás'),
-                                ),
-                            ],
+                            ),
+                          );
+                        },
+                        steps: [
+                          Step(
+                            title: const Text('Cliente'),
+                            subtitle: Text(
+                              _selectedCustomerId != null
+                                  ? _customers.firstWhere(
+                                      (c) => c['id'] == _selectedCustomerId,
+                                    )['name']
+                                  : 'Selecciona un cliente',
+                            ),
+                            isActive: _currentStep >= 0,
+                            state: _currentStep > 0
+                                ? StepState.complete
+                                : StepState.indexed,
+                            content: _buildCustomerStep(),
                           ),
-                        );
-                      },
-                      steps: [
-                        Step(
-                          title: const Text('Cliente'),
-                          subtitle: Text(
-                            _selectedCustomerId != null
-                                ? _customers.firstWhere(
-                                    (c) => c['id'] == _selectedCustomerId,
-                                  )['name']
-                                : 'Selecciona un cliente',
+                          Step(
+                            title: const Text('Componentes'),
+                            subtitle: Text(
+                              '${_items.length} items - ${Helpers.formatNumber(_totalWeight)} kg',
+                            ),
+                            isActive: _currentStep >= 1,
+                            state: _currentStep > 1
+                                ? StepState.complete
+                                : StepState.indexed,
+                            content: _buildComponentsStep(),
                           ),
-                          isActive: _currentStep >= 0,
-                          state: _currentStep > 0
-                              ? StepState.complete
-                              : StepState.indexed,
-                          content: _buildCustomerStep(),
-                        ),
-                        Step(
-                          title: const Text('Componentes'),
-                          subtitle: Text(
-                            '${_items.length} items - ${Helpers.formatNumber(_totalWeight)} kg',
+                          Step(
+                            title: const Text('Costos Adicionales'),
+                            subtitle: Text(
+                              'M.O. + Indirectos: ${Helpers.formatCurrency(_laborCost + _indirectCosts)}',
+                            ),
+                            isActive: _currentStep >= 2,
+                            state: _currentStep > 2
+                                ? StepState.complete
+                                : StepState.indexed,
+                            content: _buildCostsStep(),
                           ),
-                          isActive: _currentStep >= 1,
-                          state: _currentStep > 1
-                              ? StepState.complete
-                              : StepState.indexed,
-                          content: _buildComponentsStep(),
-                        ),
-                        Step(
-                          title: const Text('Costos Adicionales'),
-                          subtitle: Text(
-                            'M.O. + Indirectos: ${Helpers.formatCurrency(_laborCost + _indirectCosts)}',
+                          Step(
+                            title: const Text('Resumen y Confirmación'),
+                            subtitle: Text(
+                              'Total: ${Helpers.formatCurrency(_total)}',
+                            ),
+                            isActive: _currentStep >= 3,
+                            state: _currentStep == 3
+                                ? StepState.indexed
+                                : StepState.indexed,
+                            content: _buildSummaryStep(),
                           ),
-                          isActive: _currentStep >= 2,
-                          state: _currentStep > 2
-                              ? StepState.complete
-                              : StepState.indexed,
-                          content: _buildCostsStep(),
-                        ),
-                        Step(
-                          title: const Text('Resumen y Confirmación'),
-                          subtitle: Text(
-                            'Total: ${Helpers.formatCurrency(_total)}',
-                          ),
-                          isActive: _currentStep >= 3,
-                          state: _currentStep == 3
-                              ? StepState.indexed
-                              : StepState.indexed,
-                          content: _buildSummaryStep(),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

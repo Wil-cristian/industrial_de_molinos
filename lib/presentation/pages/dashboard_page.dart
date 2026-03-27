@@ -48,81 +48,83 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         .toList();
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.read(invoicesProvider.notifier).refresh();
-          ref.read(inventoryProvider.notifier).loadMaterials();
-          ref.read(activitiesProvider.notifier).loadActivities();
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.base,
-            vertical: AppSpacing.md,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context, cs, tt),
-              const SizedBox(height: AppSpacing.base),
-              _buildSummaryCards(
-                context,
-                cs,
-                tt,
-                invoicesState,
-                productsState,
-                customersState,
-              ),
-              const SizedBox(height: AppSpacing.base),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  if (constraints.maxWidth < 980) {
-                    return Column(
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.read(invoicesProvider.notifier).refresh();
+            ref.read(inventoryProvider.notifier).loadMaterials();
+            ref.read(activitiesProvider.notifier).loadActivities();
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.base,
+              vertical: AppSpacing.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context, cs, tt),
+                const SizedBox(height: AppSpacing.base),
+                _buildSummaryCards(
+                  context,
+                  cs,
+                  tt,
+                  invoicesState,
+                  productsState,
+                  customersState,
+                ),
+                const SizedBox(height: AppSpacing.base),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 980) {
+                      return Column(
+                        children: [
+                          _buildNotificationsPanel(
+                            context,
+                            cs,
+                            tt,
+                            lowStockMaterials,
+                            invoicesState,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          _buildMiniCalendar(context, cs, tt),
+                        ],
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildNotificationsPanel(
-                          context,
-                          cs,
-                          tt,
-                          lowStockMaterials,
-                          invoicesState,
+                        Expanded(
+                          flex: 2,
+                          child: _buildNotificationsPanel(
+                            context,
+                            cs,
+                            tt,
+                            lowStockMaterials,
+                            invoicesState,
+                          ),
                         ),
-                        const SizedBox(height: AppSpacing.md),
-                        _buildMiniCalendar(context, cs, tt),
+                        const SizedBox(width: AppSpacing.base),
+                        Expanded(
+                          flex: 1,
+                          child: _buildMiniCalendar(context, cs, tt),
+                        ),
                       ],
                     );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: _buildNotificationsPanel(
-                          context,
-                          cs,
-                          tt,
-                          lowStockMaterials,
-                          invoicesState,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.base),
-                      Expanded(
-                        flex: 1,
-                        child: _buildMiniCalendar(context, cs, tt),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _buildRecentSalesCard(
-                context,
-                cs,
-                tt,
-                invoicesState,
-                recentInvoices,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-            ],
+                  },
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _buildRecentSalesCard(
+                  context,
+                  cs,
+                  tt,
+                  invoicesState,
+                  recentInvoices,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+              ],
+            ),
           ),
         ),
       ),

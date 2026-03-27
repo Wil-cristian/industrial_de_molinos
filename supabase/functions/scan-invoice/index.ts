@@ -73,6 +73,14 @@ REGLAS ESPECIALES PARA CANTIDAD Y UNIDAD (MUY IMPORTANTE):
 - Para aceros estructurales, láminas, tubos, canales, vigas: la unidad casi siempre es UND y la cantidad es el número de barras/láminas/tramos pedidos (normalmente 1 a 20).
 - Si unit_price × quantity NO cuadra con el subtotal del renglón, revisa si estás leyendo mal la columna de cantidad.
 
+REGLAS PARA KG TEÓRICOS (MUY IMPORTANTE):
+- Muchas facturas de aceros/metales tienen una columna "KG TEÓRICOS", "KG TEO", "PESO TEÓRICO", "KG" junto a cada ítem.
+- SIEMPRE extrae este valor en el campo "theoretical_kg" del ítem. Es el peso teórico TOTAL del renglón (no por unidad).
+- Si la factura muestra un total de kg teóricos al pie (ej: "KG 3,860.73"), extráelo en totals.theoretical_kg_total.
+- Si NO hay columna de kg teóricos, pon theoretical_kg: 0.
+- Ejemplos: "LAMINA A36 4,5mm 1,2m×6m | KG TEÓRICOS: 1,017.36 | UND | 4 | $776,000" → theoretical_kg=1017.36, quantity=4, unit="UND".
+- Si ves dimensiones en la descripción (ej: "4,5 mm 1,2 m x 6m"), inclúyelas en la descripción completa del ítem.
+
 REGLAS DE UNIDAD DE MEDIDA (OBLIGATORIO):
 - El campo "unit" DEBE ser EXACTAMENTE uno de estos valores normalizados:
   - "KG" → kilogramos (cuando la factura dice kg, kgs, kilo, kilos, kilogramo, kilogramos)
@@ -145,7 +153,7 @@ Formato JSON:
   "items": [
     {
       "reference_code": "Código del producto",
-      "description": "Descripción completa del ítem",
+      "description": "Descripción completa del ítem (incluir dimensiones si las hay)",
       "quantity": 1.0,
       "unit": "UND, KG, M, L, GAL, M2, GLB (normalizar siempre a estos valores exactos)",
       "unit_price": 0.00,
@@ -153,7 +161,8 @@ Formato JSON:
       "tax_rate": 0,
       "tax_amount": 0,
       "subtotal": 0.00,
-      "total": 0.00
+      "total": 0.00,
+      "theoretical_kg": 0.00
     }
   ],
   "totals": {
@@ -166,7 +175,8 @@ Formato JSON:
     "retention_ica": 0.00,
     "retention_iva": 0.00,
     "freight": 0.00,
-    "total": 0.00
+    "total": 0.00,
+    "theoretical_kg_total": 0.00
   },
   "notes": "Observaciones o notas de la factura si las hay"
 }`;

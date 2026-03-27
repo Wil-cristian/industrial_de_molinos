@@ -199,144 +199,153 @@ class _QuotationsPageState extends ConsumerState<QuotationsPage>
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      body: Column(
-        children: [
-          // Header
-          _buildHeader(),
-          // Stats Cards
-          _buildStatsCards(),
-          // Tabs y Lista
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF000000).withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Tabs
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Theme.of(context).colorScheme.outlineVariant,
-                        ),
-                      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            _buildHeader(),
+            // Stats Cards
+            _buildStatsCards(),
+            // Tabs y Lista
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF000000).withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
                     ),
-                    child: TabBar(
-                      controller: _tabController,
-                      labelColor: Theme.of(context).colorScheme.primary,
-                      unselectedLabelColor: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant,
-                      indicatorColor: Theme.of(context).colorScheme.primary,
-                      isScrollable: true,
-                      tabs: [
-                        Tab(text: 'Todas ($_totalQuotations)'),
-                        Tab(
-                          text:
-                              'Borrador (${_quotations.where((q) => q['status'] == 'Borrador').length})',
-                        ),
-                        Tab(
-                          text:
-                              'Enviadas (${_quotations.where((q) => q['status'] == 'Enviada').length})',
-                        ),
-                        Tab(text: 'Aprobadas ($_approvedQuotations)'),
-                        Tab(
-                          text:
-                              'Rechazadas (${_quotations.where((q) => q['status'] == 'Rechazada').length})',
-                        ),
-                        Tab(
-                          text:
-                              'Anuladas (${_quotations.where((q) => q['status'] == 'Anulada').length})',
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Search Bar
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: TextField(
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
-                      decoration: InputDecoration(
-                        hintText: 'Buscar por número, cliente o descripción...',
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Tabs
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
                             color: Theme.of(context).colorScheme.outlineVariant,
                           ),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                      child: TabBar(
+                        controller: _tabController,
+                        labelColor: Theme.of(context).colorScheme.primary,
+                        unselectedLabelColor: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant,
+                        indicatorColor: Theme.of(context).colorScheme.primary,
+                        isScrollable: true,
+                        tabs: [
+                          Tab(text: 'Todas ($_totalQuotations)'),
+                          Tab(
+                            text:
+                                'Borrador (${_quotations.where((q) => q['status'] == 'Borrador').length})',
                           ),
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFFAFAFA),
+                          Tab(
+                            text:
+                                'Enviadas (${_quotations.where((q) => q['status'] == 'Enviada').length})',
+                          ),
+                          Tab(text: 'Aprobadas ($_approvedQuotations)'),
+                          Tab(
+                            text:
+                                'Rechazadas (${_quotations.where((q) => q['status'] == 'Rechazada').length})',
+                          ),
+                          Tab(
+                            text:
+                                'Anuladas (${_quotations.where((q) => q['status'] == 'Anulada').length})',
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  // Lista de cotizaciones
-                  Expanded(
-                    child: quotationsState.isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : quotationsState.error != null
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  size: 48,
-                                  color: const Color(0xFFE57373),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Error: ${quotationsState.error}',
-                                  style: TextStyle(
-                                    color: const Color(0xFFD32F2F),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  onPressed: () => ref
-                                      .read(quotationsProvider.notifier)
-                                      .loadQuotations(),
-                                  icon: const Icon(Icons.refresh),
-                                  label: const Text('Reintentar'),
-                                ),
-                              ],
+                    // Search Bar
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: TextField(
+                        onChanged: (value) =>
+                            setState(() => _searchQuery = value),
+                        decoration: InputDecoration(
+                          hintText:
+                              'Buscar por número, cliente o descripción...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
                             ),
-                          )
-                        : _filteredQuotations.isEmpty
-                        ? _buildEmptyState()
-                        : ListView.separated(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _filteredQuotations.length,
-                            separatorBuilder: (_, __) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final quotation = _filteredQuotations[index];
-                              return _buildQuotationItem(quotation);
-                            },
                           ),
-                  ),
-                ],
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFFAFAFA),
+                        ),
+                      ),
+                    ),
+                    // Lista de cotizaciones
+                    Expanded(
+                      child: quotationsState.isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : quotationsState.error != null
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 48,
+                                    color: const Color(0xFFE57373),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Error: ${quotationsState.error}',
+                                    style: TextStyle(
+                                      color: const Color(0xFFD32F2F),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton.icon(
+                                    onPressed: () => ref
+                                        .read(quotationsProvider.notifier)
+                                        .loadQuotations(),
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('Reintentar'),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : _filteredQuotations.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.separated(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              itemCount: _filteredQuotations.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final quotation = _filteredQuotations[index];
+                                return _buildQuotationItem(quotation);
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

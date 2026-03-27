@@ -77,30 +77,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
-      body: Row(
-        children: [
-          // Panel lateral de navegación
-          _buildSidebar(),
-          // Contenido principal
-          Expanded(
-            child: Column(
-              children: [
-                // Breadcrumbs
-                _buildBreadcrumbs(),
-                // Contenido de la sección
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(32),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 960),
-                      child: _buildSectionContent(),
+      body: SafeArea(
+        child: Row(
+          children: [
+            // Panel lateral de navegación
+            _buildSidebar(),
+            // Contenido principal
+            Expanded(
+              child: Column(
+                children: [
+                  // Breadcrumbs
+                  _buildBreadcrumbs(),
+                  // Contenido de la sección
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(32),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 960),
+                        child: _buildSectionContent(),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -39,165 +39,94 @@ class _ProductionOrdersPageState extends ConsumerState<ProductionOrdersPage> {
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLow,
-      body: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            padding: EdgeInsets.fromLTRB(
-              isCompact ? 16 : 24,
-              20,
-              isCompact ? 16 : 24,
-              16,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isCompact)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.factory, color: cs.primary),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Ordenes de Produccion',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: cs.primary,
-                                  ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              color: Colors.white,
+              padding: EdgeInsets.fromLTRB(
+                isCompact ? 16 : 24,
+                20,
+                isCompact ? 16 : 24,
+                16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isCompact)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.factory, color: cs.primary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Ordenes de Produccion',
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: cs.primary,
+                                    ),
+                              ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Flujo en cadena: componentes, procesos, tareas, recursos e informes',
+                          style: TextStyle(color: cs.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: () => _openCreateOrderDialog(context),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Nueva OP'),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Flujo en cadena: componentes, procesos, tareas, recursos e informes',
-                        style: TextStyle(color: cs.onSurfaceVariant),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
+                        ),
+                      ],
+                    )
+                  else
+                    Row(
+                      children: [
+                        Icon(Icons.factory, color: cs.primary),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ordenes de Produccion',
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: cs.primary,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Flujo en cadena: componentes, procesos, tareas, recursos e informes',
+                                style: TextStyle(color: cs.onSurfaceVariant),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton.icon(
                           onPressed: () => _openCreateOrderDialog(context),
                           icon: const Icon(Icons.add),
                           label: const Text('Nueva OP'),
                         ),
-                      ),
-                    ],
-                  )
-                else
-                  Row(
-                    children: [
-                      Icon(Icons.factory, color: cs.primary),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Ordenes de Produccion',
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: cs.primary,
-                                  ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Flujo en cadena: componentes, procesos, tareas, recursos e informes',
-                              style: TextStyle(color: cs.onSurfaceVariant),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      FilledButton.icon(
-                        onPressed: () => _openCreateOrderDialog(context),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Nueva OP'),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 14),
-                if (isCompact)
-                  Column(
-                    children: [
-                      TextField(
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.search),
-                          labelText: 'Buscar OP o producto',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        onChanged: (value) => ref
-                            .read(productionOrdersProvider.notifier)
-                            .setSearchQuery(value),
-                      ),
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<String>(
-                        value: state.selectedStatus,
-                        decoration: const InputDecoration(
-                          labelText: 'Estado',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'todos',
-                            child: Text('Todos'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'planificada',
-                            child: Text('Planificada'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'en_proceso',
-                            child: Text('En proceso'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'pausada',
-                            child: Text('Pausada'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'completada',
-                            child: Text('Completada'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'cancelada',
-                            child: Text('Cancelada'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value == null) return;
-                          ref
-                              .read(productionOrdersProvider.notifier)
-                              .setSelectedStatus(value);
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () => ref
-                              .read(productionOrdersProvider.notifier)
-                              .loadOrders(),
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Actualizar'),
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      SizedBox(
-                        width: 280,
-                        child: TextField(
+                      ],
+                    ),
+                  const SizedBox(height: 14),
+                  if (isCompact)
+                    Column(
+                      children: [
+                        TextField(
                           decoration: const InputDecoration(
                             prefixIcon: Icon(Icons.search),
                             labelText: 'Buscar OP o producto',
@@ -208,10 +137,8 @@ class _ProductionOrdersPageState extends ConsumerState<ProductionOrdersPage> {
                               .read(productionOrdersProvider.notifier)
                               .setSearchQuery(value),
                         ),
-                      ),
-                      SizedBox(
-                        width: 210,
-                        child: DropdownButtonFormField<String>(
+                        const SizedBox(height: 10),
+                        DropdownButtonFormField<String>(
                           value: state.selectedStatus,
                           decoration: const InputDecoration(
                             labelText: 'Estado',
@@ -251,47 +178,125 @@ class _ProductionOrdersPageState extends ConsumerState<ProductionOrdersPage> {
                                 .setSelectedStatus(value);
                           },
                         ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () => ref
-                            .read(productionOrdersProvider.notifier)
-                            .loadOrders(),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Actualizar'),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state.error != null
-                ? _buildErrorState(state.error!)
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isWide = constraints.maxWidth >= 1100;
-
-                      if (!isWide) {
-                        return _buildMobileList(state);
-                      }
-
-                      return Row(
-                        children: [
-                          SizedBox(width: 420, child: _buildOrdersList(state)),
-                          const VerticalDivider(width: 1),
-                          Expanded(
-                            child: selectedOrder == null
-                                ? _buildNoSelection()
-                                : _buildOrderDetail(selectedOrder),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => ref
+                                .read(productionOrdersProvider.notifier)
+                                .loadOrders(),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Actualizar'),
                           ),
-                        ],
-                      );
-                    },
-                  ),
-          ),
-        ],
+                        ),
+                      ],
+                    )
+                  else
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        SizedBox(
+                          width: 280,
+                          child: TextField(
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(Icons.search),
+                              labelText: 'Buscar OP o producto',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            onChanged: (value) => ref
+                                .read(productionOrdersProvider.notifier)
+                                .setSearchQuery(value),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 210,
+                          child: DropdownButtonFormField<String>(
+                            value: state.selectedStatus,
+                            decoration: const InputDecoration(
+                              labelText: 'Estado',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'todos',
+                                child: Text('Todos'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'planificada',
+                                child: Text('Planificada'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'en_proceso',
+                                child: Text('En proceso'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'pausada',
+                                child: Text('Pausada'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'completada',
+                                child: Text('Completada'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'cancelada',
+                                child: Text('Cancelada'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value == null) return;
+                              ref
+                                  .read(productionOrdersProvider.notifier)
+                                  .setSelectedStatus(value);
+                            },
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => ref
+                              .read(productionOrdersProvider.notifier)
+                              .loadOrders(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Actualizar'),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: state.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.error != null
+                  ? _buildErrorState(state.error!)
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth >= 1100;
+
+                        if (!isWide) {
+                          return _buildMobileList(state);
+                        }
+
+                        return Row(
+                          children: [
+                            SizedBox(
+                              width: 420,
+                              child: _buildOrdersList(state),
+                            ),
+                            const VerticalDivider(width: 1),
+                            Expanded(
+                              child: selectedOrder == null
+                                  ? _buildNoSelection()
+                                  : _buildOrderDetail(selectedOrder),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

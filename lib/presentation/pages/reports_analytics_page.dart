@@ -55,121 +55,123 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
-      body: Column(
-        children: [
-          // Header compacto con tabs en línea
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF000000).withValues(alpha: 0.05),
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, size: 20),
-                      onPressed: () => context.go('/'),
-                      color: Theme.of(context).colorScheme.primary,
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        'Reportes y Analytics',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header compacto con tabs en línea
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF000000).withValues(alpha: 0.05),
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, size: 20),
+                        onPressed: () => context.go('/'),
+                        color: Theme.of(context).colorScheme.primary,
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () => _showMonthlyReportDialog(context),
-                      icon: const Icon(
-                        Icons.picture_as_pdf,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      label: const Text(
-                        'Informe Mensual',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD32F2F),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Reportes y Analytics',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                TabBar(
-                  controller: _tabController,
-                  labelColor: Theme.of(context).colorScheme.primary,
-                  unselectedLabelColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant,
-                  indicatorColor: Theme.of(context).colorScheme.primary,
-                  indicatorWeight: 2,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-                  tabs: const [
-                    Tab(text: 'Analytics'),
-                    Tab(text: 'Inventario'),
-                    Tab(text: 'Cobranzas'),
-                    Tab(text: 'Mora'),
-                    Tab(text: 'Flujo Caja'),
-                    Tab(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.person_remove_outlined, size: 14),
-                          SizedBox(width: 4),
-                          Text('Gastos Empleados'),
-                        ],
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: () => _showMonthlyReportDialog(context),
+                        icon: const Icon(
+                          Icons.picture_as_pdf,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        label: const Text(
+                          'Informe Mensual',
+                          style: TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD32F2F),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: Theme.of(context).colorScheme.primary,
+                    unselectedLabelColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant,
+                    indicatorColor: Theme.of(context).colorScheme.primary,
+                    indicatorWeight: 2,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    tabs: const [
+                      Tab(text: 'Analytics'),
+                      Tab(text: 'Inventario'),
+                      Tab(text: 'Cobranzas'),
+                      Tab(text: 'Mora'),
+                      Tab(text: 'Flujo Caja'),
+                      Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.person_remove_outlined, size: 14),
+                            SizedBox(width: 4),
+                            Text('Gastos Empleados'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          // Contenido de tabs
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildAnalyticsTab(analyticsState),
-                _buildInventoryTab(inventoryState),
-                _buildCobranzasTab(analyticsState, receivablesState),
-                _buildMoraInteresesTab(debtState),
-                _buildCashFlowTab(),
-                const _EmployeeExpensesTab(),
-              ],
+            // Contenido de tabs
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildAnalyticsTab(analyticsState),
+                  _buildInventoryTab(inventoryState),
+                  _buildCobranzasTab(analyticsState, receivablesState),
+                  _buildMoraInteresesTab(debtState),
+                  _buildCashFlowTab(),
+                  const _EmployeeExpensesTab(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

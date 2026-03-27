@@ -86,160 +86,167 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      body: Column(
-        children: [
-          // Header ultra compacto
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            color: Colors.white,
-            child: Row(
-              children: [
-                Text(
-                  'Calendario',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Navegador de mes inline
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _displayedMonth = DateTime(
-                        _displayedMonth.year,
-                        _displayedMonth.month - 1,
-                      );
-                    });
-                  },
-                  icon: const Icon(Icons.chevron_left, size: 18),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 28,
-                    minHeight: 28,
-                  ),
-                ),
-                Text(
-                  '${_monthNames[_displayedMonth.month - 1]} ${_displayedMonth.year}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _displayedMonth = DateTime(
-                        _displayedMonth.year,
-                        _displayedMonth.month + 1,
-                      );
-                    });
-                  },
-                  icon: const Icon(Icons.chevron_right, size: 18),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 28,
-                    minHeight: 28,
-                  ),
-                ),
-                const Spacer(),
-                // Filtros inline
-                _buildCompactFilter('type', _filterType),
-                const SizedBox(width: 4),
-                _buildCompactFilter('status', _filterStatus),
-                const SizedBox(width: 8),
-                SizedBox(
-                  height: 28,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _showActivityDialog(),
-                    icon: const Icon(Icons.add, size: 14),
-                    label: const Text('Nueva', style: TextStyle(fontSize: 11)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header ultra compacto
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              color: Colors.white,
+              child: Row(
+                children: [
+                  Text(
+                    'Calendario',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          // Contenido Principal
-          Expanded(
-            child: Row(
-              children: [
-                // Calendario
-                Expanded(
-                  flex: 1,
-                  child: Container(
-                    color: Colors.white,
-                    margin: const EdgeInsets.all(2),
-                    child: _buildCalendarGrid(),
+                  const SizedBox(width: 8),
+                  // Navegador de mes inline
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _displayedMonth = DateTime(
+                          _displayedMonth.year,
+                          _displayedMonth.month - 1,
+                        );
+                      });
+                    },
+                    icon: const Icon(Icons.chevron_left, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                   ),
-                ),
-                // Lista de Actividades
-                Expanded(
-                  flex: 1,
-                  child: Container(
-                    color: Colors.white,
-                    margin: const EdgeInsets.fromLTRB(0, 2, 2, 2),
-                    child: Column(
-                      children: [
-                        // Título de la fecha seleccionada
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.outlineVariant,
-                              ),
+                  Text(
+                    '${_monthNames[_displayedMonth.month - 1]} ${_displayedMonth.year}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _displayedMonth = DateTime(
+                          _displayedMonth.year,
+                          _displayedMonth.month + 1,
+                        );
+                      });
+                    },
+                    icon: const Icon(Icons.chevron_right, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
+                  ),
+                  const Spacer(),
+                  // Filtros inline
+                  _buildCompactFilter('type', _filterType),
+                  const SizedBox(width: 4),
+                  _buildCompactFilter('status', _filterStatus),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 28,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showActivityDialog(),
+                      icon: const Icon(Icons.add, size: 14),
+                      label: const Text(
+                        'Nueva',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Contenido Principal
+            Expanded(
+              child: Row(
+                children: [
+                  // Calendario
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      color: Colors.white,
+                      margin: const EdgeInsets.all(2),
+                      child: _buildCalendarGrid(),
+                    ),
+                  ),
+                  // Lista de Actividades
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      color: Colors.white,
+                      margin: const EdgeInsets.fromLTRB(0, 2, 2, 2),
+                      child: Column(
+                        children: [
+                          // Título de la fecha seleccionada
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.event,
-                                size: 14,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _dateFormat(_selectedDate),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                '${_filteredActivities.length} actividades',
-                                style: TextStyle(
-                                  fontSize: 10,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
                                   color: Theme.of(
                                     context,
-                                  ).colorScheme.onSurfaceVariant,
+                                  ).colorScheme.outlineVariant,
                                 ),
                               ),
-                            ],
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.event,
+                                  size: 14,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _dateFormat(_selectedDate),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  '${_filteredActivities.length} actividades',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        Expanded(child: _buildActivityList()),
-                      ],
+                          Expanded(child: _buildActivityList()),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

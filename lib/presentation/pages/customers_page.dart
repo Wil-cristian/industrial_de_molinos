@@ -93,68 +93,70 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
-      body: Column(
-        children: [
-          // Header con tabs
-          Container(
-            color: cs.surface,
-            padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, color: cs.primary, size: 20),
-                  onPressed: () => context.go('/'),
-                  tooltip: 'Volver al menú',
-                  visualDensity: VisualDensity.compact,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TabBar(
-                    controller: _tabController,
-                    indicatorColor: cs.primary,
-                    labelColor: cs.primary,
-                    unselectedLabelColor: cs.onSurfaceVariant,
-                    indicatorWeight: 3,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    labelStyle: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                    tabs: const [
-                      Tab(
-                        icon: Icon(Icons.people, size: 18),
-                        text: 'Clientes',
-                        height: 44,
-                      ),
-                      Tab(
-                        icon: Icon(Icons.local_shipping, size: 18),
-                        text: 'Proveedores',
-                        height: 44,
-                      ),
-                      Tab(
-                        icon: Icon(Icons.shopping_cart, size: 18),
-                        text: 'Órdenes de Compra',
-                        height: 44,
-                      ),
-                    ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header con tabs
+            Container(
+              color: cs.surface,
+              padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back, color: cs.primary, size: 20),
+                    onPressed: () => context.go('/'),
+                    tooltip: 'Volver al menú',
+                    visualDensity: VisualDensity.compact,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TabBar(
+                      controller: _tabController,
+                      indicatorColor: cs.primary,
+                      labelColor: cs.primary,
+                      unselectedLabelColor: cs.onSurfaceVariant,
+                      indicatorWeight: 3,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      tabs: const [
+                        Tab(
+                          icon: Icon(Icons.people, size: 18),
+                          text: 'Clientes',
+                          height: 44,
+                        ),
+                        Tab(
+                          icon: Icon(Icons.local_shipping, size: 18),
+                          text: 'Proveedores',
+                          height: 44,
+                        ),
+                        Tab(
+                          icon: Icon(Icons.shopping_cart, size: 18),
+                          text: 'Órdenes de Compra',
+                          height: 44,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          // Contenido de tabs
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildCustomersContent(theme, state, filteredCustomers),
-                const SuppliersPage(),
-                const PurchaseOrdersPage(),
-              ],
+            // Contenido de tabs
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildCustomersContent(theme, state, filteredCustomers),
+                  const SuppliersPage(),
+                  const PurchaseOrdersPage(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

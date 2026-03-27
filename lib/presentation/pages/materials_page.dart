@@ -76,347 +76,289 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      body: Column(
-        children: [
-          // Header compacto
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            color: Theme.of(context).colorScheme.surface,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isNarrow = constraints.maxWidth < 980;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Icons.arrow_back,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 20,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header compacto
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              color: Theme.of(context).colorScheme.surface,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 980;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  Icons.arrow_back,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                                onPressed: () => context.go('/'),
+                                tooltip: 'Volver al menú',
+                                visualDensity: VisualDensity.compact,
                               ),
-                              onPressed: () => context.go('/'),
-                              tooltip: 'Volver al menú',
-                              visualDensity: VisualDensity.compact,
+                              Expanded(
+                                child: Text(
+                                  'Inventario de Materiales',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${state.materials.length} materiales',
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 8,
+                            children: [
+                              _buildQuickStat(
+                                'Valor Total',
+                                '\$${Helpers.formatNumber(state.totalInventoryValue)}',
+                                AppColors.success,
+                                Icons.attach_money,
+                              ),
+                              _buildQuickStat(
+                                'Stock Bajo',
+                                '${state.lowStockMaterials.length}',
+                                AppColors.warning,
+                                Icons.warning,
+                              ),
+                              if (state.lowStockMaterials.isNotEmpty)
+                                ElevatedButton.icon(
+                                  onPressed: _creatingOrders
+                                      ? null
+                                      : _createPurchaseOrdersFromLowStock,
+                                  icon: _creatingOrders
+                                      ? SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.surface,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.shopping_cart,
+                                          size: 16,
+                                        ),
+                                  label: Text(
+                                    _creatingOrders
+                                        ? 'Creando...'
+                                        : isNarrow
+                                        ? 'Pedir Faltantes'
+                                        : 'Pedir ${state.lowStockMaterials.length} Faltante${state.lowStockMaterials.length > 1 ? "s" : ""}',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.warning,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                ),
+                              FilledButton.icon(
+                                onPressed: _showAddMaterialDialog,
+                                icon: const Icon(Icons.add, size: 18),
+                                label: const Text('Nuevo Material'),
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  // Banner de resultado de la orden de compra
+                  if (_createdOrderNumbers != null || _orderError != null) ...[
+                    const SizedBox(height: 8),
+                    if (_createdOrderNumbers != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.success.withOpacity(0.7),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              size: 16,
+                              color: AppColors.success,
                             ),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Inventario de Materiales',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${state.materials.length} materiales',
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 8,
-                          children: [
-                            _buildQuickStat(
-                              'Valor Total',
-                              '\$${Helpers.formatNumber(state.totalInventoryValue)}',
-                              AppColors.success,
-                              Icons.attach_money,
-                            ),
-                            _buildQuickStat(
-                              'Stock Bajo',
-                              '${state.lowStockMaterials.length}',
-                              AppColors.warning,
-                              Icons.warning,
-                            ),
-                            if (state.lowStockMaterials.isNotEmpty)
-                              ElevatedButton.icon(
-                                onPressed: _creatingOrders
-                                    ? null
-                                    : _createPurchaseOrdersFromLowStock,
-                                icon: _creatingOrders
-                                    ? SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.surface,
-                                        ),
-                                      )
-                                    : const Icon(Icons.shopping_cart, size: 16),
-                                label: Text(
-                                  _creatingOrders
-                                      ? 'Creando...'
-                                      : isNarrow
-                                      ? 'Pedir Faltantes'
-                                      : 'Pedir ${state.lowStockMaterials.length} Faltante${state.lowStockMaterials.length > 1 ? "s" : ""}',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.warning,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 10,
-                                  ),
-                                ),
-                              ),
-                            FilledButton.icon(
-                              onPressed: _showAddMaterialDialog,
-                              icon: const Icon(Icons.add, size: 18),
-                              label: const Text('Nuevo Material'),
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
+                                _createdOrderNumbers!.length == 1
+                                    ? '✅ Orden de compra creada: ${_createdOrderNumbers!.first}'
+                                    : '✅ ${_createdOrderNumbers!.length} órdenes creadas: ${_createdOrderNumbers!.join(", ")}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                // Banner de resultado de la orden de compra
-                if (_createdOrderNumbers != null || _orderError != null) ...[
-                  const SizedBox(height: 8),
-                  if (_createdOrderNumbers != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: AppColors.success.withOpacity(0.7),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 16,
-                            color: AppColors.success,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _createdOrderNumbers!.length == 1
-                                  ? '✅ Orden de compra creada: ${_createdOrderNumbers!.first}'
-                                  : '✅ ${_createdOrderNumbers!.length} órdenes creadas: ${_createdOrderNumbers!.join(", ")}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.success,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          if (_materialsWithoutSupplier != null &&
-                              _materialsWithoutSupplier!.isNotEmpty) ...[
-                            const SizedBox(width: 8),
-                            Tooltip(
-                              message:
-                                  'Sin proveedor: ${_materialsWithoutSupplier!.map((m) => m['material_name']).join(", ")}',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.person_off,
-                                    size: 14,
-                                    color: AppColors.warning,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${_materialsWithoutSupplier!.length} sin proveedor',
-                                    style: TextStyle(
-                                      fontSize: 11,
+                            if (_materialsWithoutSupplier != null &&
+                                _materialsWithoutSupplier!.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Tooltip(
+                                message:
+                                    'Sin proveedor: ${_materialsWithoutSupplier!.map((m) => m['material_name']).join(", ")}',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.person_off,
+                                      size: 14,
                                       color: AppColors.warning,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${_materialsWithoutSupplier!.length} sin proveedor',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.warning,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                            ],
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 16),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => setState(() {
+                                _createdOrderNumbers = null;
+                                _materialsWithoutSupplier = null;
+                              }),
                             ),
                           ],
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () => setState(() {
-                              _createdOrderNumbers = null;
-                              _materialsWithoutSupplier = null;
-                            }),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (_orderError != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.danger.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: AppColors.danger.withOpacity(0.6),
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.error, size: 16, color: AppColors.danger),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Error: $_orderError',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.danger,
-                              ),
-                            ),
+                    if (_orderError != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.danger.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.danger.withOpacity(0.6),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () => setState(() => _orderError = null),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-                const SizedBox(height: 12),
-                // Filtros
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isNarrow = constraints.maxWidth < 600;
-                    final isMedium = constraints.maxWidth < 900;
-                    return Column(
-                      children: [
-                        // Búsqueda + Categoría en una fila
-                        Row(
+                        ),
+                        child: Row(
                           children: [
-                            Expanded(
-                              flex: isNarrow ? 1 : 3,
-                              child: TextField(
-                                decoration: InputDecoration(
-                                  hintText: isNarrow
-                                      ? 'Buscar...'
-                                      : 'Buscar por nombre o código...',
-                                  prefixIcon: const Icon(
-                                    Icons.search,
-                                    size: 20,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  isDense: true,
-                                ),
-                                onChanged: (value) =>
-                                    setState(() => _searchQuery = value),
-                              ),
+                            Icon(
+                              Icons.error,
+                              size: 16,
+                              color: AppColors.danger,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              flex: isNarrow ? 1 : 2,
-                              child: DropdownButtonFormField<String>(
-                                value: _selectedCategory,
-                                isExpanded: true,
-                                decoration: InputDecoration(
-                                  labelText: 'Categoría',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  isDense: true,
+                              child: Text(
+                                'Error: $_orderError',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.danger,
                                 ),
-                                items: [
-                                  const DropdownMenuItem(
-                                    value: 'todos',
-                                    child: Text('Todas'),
-                                  ),
-                                  ...state.categories.map(
-                                    (cat) => DropdownMenuItem(
-                                      value: cat,
-                                      child: Text(
-                                        _getCategoryName(cat),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                onChanged: (value) => setState(() {
-                                  _selectedCategory = value!;
-                                  _selectedSubcategoryId = null;
-                                }),
                               ),
                             ),
-                            const SizedBox(width: 4),
                             IconButton(
-                              onPressed: _showManageCategoriesDialog,
-                              icon: const Icon(Icons.settings, size: 20),
-                              tooltip: 'Administrar categorías',
-                              style: IconButton.styleFrom(
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.primaryContainer,
-                              ),
+                              icon: const Icon(Icons.close, size: 16),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () =>
+                                  setState(() => _orderError = null),
                             ),
                           ],
                         ),
-                        // Filtro de subcategoría (solo si hay subcategorías)
-                        Builder(
-                          builder: (context) {
-                            if (_selectedCategory == 'todos') {
-                              return const SizedBox();
-                            }
-                            final catState = ref.watch(
-                              materialCategoryProvider,
-                            );
-                            final subcats = catState.subcategoriesForSlug(
-                              _selectedCategory,
-                            );
-                            if (subcats.isEmpty) return const SizedBox();
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: SizedBox(
-                                width: isMedium
-                                    ? constraints.maxWidth
-                                    : constraints.maxWidth * 0.4,
-                                child: DropdownButtonFormField<String?>(
-                                  value: _selectedSubcategoryId,
+                      ),
+                  ],
+                  const SizedBox(height: 12),
+                  // Filtros
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 600;
+                      final isMedium = constraints.maxWidth < 900;
+                      return Column(
+                        children: [
+                          // Búsqueda + Categoría en una fila
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: isNarrow ? 1 : 3,
+                                child: TextField(
+                                  decoration: InputDecoration(
+                                    hintText: isNarrow
+                                        ? 'Buscar...'
+                                        : 'Buscar por nombre o código...',
+                                    prefixIcon: const Icon(
+                                      Icons.search,
+                                      size: 20,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    isDense: true,
+                                  ),
+                                  onChanged: (value) =>
+                                      setState(() => _searchQuery = value),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: isNarrow ? 1 : 2,
+                                child: DropdownButtonFormField<String>(
+                                  value: _selectedCategory,
                                   isExpanded: true,
                                   decoration: InputDecoration(
-                                    labelText: 'Subcategoría',
+                                    labelText: 'Categoría',
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
@@ -427,107 +369,178 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                                     isDense: true,
                                   ),
                                   items: [
-                                    const DropdownMenuItem<String?>(
-                                      value: null,
+                                    const DropdownMenuItem(
+                                      value: 'todos',
                                       child: Text('Todas'),
                                     ),
-                                    ...subcats.map(
-                                      (s) => DropdownMenuItem<String?>(
-                                        value: s.id,
+                                    ...state.categories.map(
+                                      (cat) => DropdownMenuItem(
+                                        value: cat,
                                         child: Text(
-                                          s.name,
+                                          _getCategoryName(cat),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                     ),
                                   ],
-                                  onChanged: (value) => setState(
-                                    () => _selectedSubcategoryId = value,
-                                  ),
+                                  onChanged: (value) => setState(() {
+                                    _selectedCategory = value!;
+                                    _selectedSubcategoryId = null;
+                                  }),
                                 ),
                               ),
-                            );
-                          },
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          // Lista de materiales
-          Expanded(
-            child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state.error != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: AppColors.danger.withOpacity(0.6),
-                        ),
-                        const SizedBox(height: 16),
-                        Text('Error: ${state.error}'),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () => ref
-                              .read(inventoryProvider.notifier)
-                              .loadMaterials(),
-                          child: const Text('Reintentar'),
-                        ),
-                      ],
-                    ),
-                  )
-                : _filteredMaterials.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 64,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No hay materiales',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
+                              const SizedBox(width: 4),
+                              IconButton(
+                                onPressed: _showManageCategoriesDialog,
+                                icon: const Icon(Icons.settings, size: 20),
+                                tooltip: 'Administrar categorías',
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Agrega materiales al inventario para comenzar',
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
+                          // Filtro de subcategoría (solo si hay subcategorías)
+                          Builder(
+                            builder: (context) {
+                              if (_selectedCategory == 'todos') {
+                                return const SizedBox();
+                              }
+                              final catState = ref.watch(
+                                materialCategoryProvider,
+                              );
+                              final subcats = catState.subcategoriesForSlug(
+                                _selectedCategory,
+                              );
+                              if (subcats.isEmpty) return const SizedBox();
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: SizedBox(
+                                  width: isMedium
+                                      ? constraints.maxWidth
+                                      : constraints.maxWidth * 0.4,
+                                  child: DropdownButtonFormField<String?>(
+                                    value: _selectedSubcategoryId,
+                                    isExpanded: true,
+                                    decoration: InputDecoration(
+                                      labelText: 'Subcategoría',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 10,
+                                          ),
+                                      isDense: true,
+                                    ),
+                                    items: [
+                                      const DropdownMenuItem<String?>(
+                                        value: null,
+                                        child: Text('Todas'),
+                                      ),
+                                      ...subcats.map(
+                                        (s) => DropdownMenuItem<String?>(
+                                          value: s.id,
+                                          child: Text(
+                                            s.name,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                    onChanged: (value) => setState(
+                                      () => _selectedSubcategoryId = value,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.all(3),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        if (constraints.maxWidth < 700) {
-                          return _buildMaterialsCards();
-                        }
-                        return _buildMaterialsTable();
-                      },
-                    ),
+                        ],
+                      );
+                    },
                   ),
-          ),
-        ],
+                ],
+              ),
+            ),
+
+            // Lista de materiales
+            Expanded(
+              child: state.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.error != null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: AppColors.danger.withOpacity(0.6),
+                          ),
+                          const SizedBox(height: 16),
+                          Text('Error: ${state.error}'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => ref
+                                .read(inventoryProvider.notifier)
+                                .loadMaterials(),
+                            child: const Text('Reintentar'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _filteredMaterials.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            size: 64,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No hay materiales',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Agrega materiales al inventario para comenzar',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.all(3),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (constraints.maxWidth < 700) {
+                            return _buildMaterialsCards();
+                          }
+                          return _buildMaterialsTable();
+                        },
+                      ),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

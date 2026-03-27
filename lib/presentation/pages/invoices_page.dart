@@ -186,320 +186,331 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      body: Column(
-        children: [
-          // Header ultra compacto
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Theme.of(context).colorScheme.surface,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isNarrow = constraints.maxWidth < 980;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          'Recibos de Caja',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                        ),
-                        _buildQuickStat(
-                          'Ventas',
-                          Formatters.currency(_totalVentas),
-                          const Color(0xFF1565C0),
-                          Icons.trending_up,
-                        ),
-                        _buildQuickStat(
-                          'Cobrado',
-                          Formatters.currency(_totalCobrado),
-                          const Color(0xFF2E7D32),
-                          Icons.check_circle,
-                        ),
-                        _buildQuickStat(
-                          'Pendiente',
-                          Formatters.currency(_totalPendiente),
-                          const Color(0xFFF9A825),
-                          Icons.schedule,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        SizedBox(
-                          width: isNarrow ? constraints.maxWidth : 260,
-                          height: 36,
-                          child: TextField(
-                            onChanged: (value) =>
-                                setState(() => _searchQuery = value),
-                            decoration: InputDecoration(
-                              hintText: 'Buscar...',
-                              prefixIcon: const Icon(Icons.search, size: 18),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header ultra compacto
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Theme.of(context).colorScheme.surface,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 980;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Recibos de Caja',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant,
-                                ),
-                              ),
-                              filled: true,
-                              fillColor: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerLowest,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 0,
-                              ),
-                              isDense: true,
-                            ),
                           ),
-                        ),
-                        SizedBox(
-                          height: 36,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Theme.of(
+                          _buildQuickStat(
+                            'Ventas',
+                            Formatters.currency(_totalVentas),
+                            const Color(0xFF1565C0),
+                            Icons.trending_up,
+                          ),
+                          _buildQuickStat(
+                            'Cobrado',
+                            Formatters.currency(_totalCobrado),
+                            const Color(0xFF2E7D32),
+                            Icons.check_circle,
+                          ),
+                          _buildQuickStat(
+                            'Pendiente',
+                            Formatters.currency(_totalPendiente),
+                            const Color(0xFFF9A825),
+                            Icons.schedule,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          SizedBox(
+                            width: isNarrow ? constraints.maxWidth : 260,
+                            height: 36,
+                            child: TextField(
+                              onChanged: (value) =>
+                                  setState(() => _searchQuery = value),
+                              decoration: InputDecoration(
+                                hintText: 'Buscar...',
+                                prefixIcon: const Icon(Icons.search, size: 18),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: Theme.of(
                                   context,
-                                ).colorScheme.outlineVariant,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerLowest,
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedStatus,
+                                ).colorScheme.surfaceContainerLowest,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 0,
+                                ),
                                 isDense: true,
-                                items:
-                                    [
-                                          'Todos',
-                                          'Pagada',
-                                          'Pendiente',
-                                          'Parcial',
-                                          'Vencida',
-                                          'Anulada',
-                                        ]
-                                        .map(
-                                          (s) => DropdownMenuItem(
-                                            value: s,
-                                            child: Text(
-                                              s,
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                onChanged: (value) =>
-                                    setState(() => _selectedStatus = value!),
                               ),
                             ),
                           ),
-                        ),
-                        SizedBox(
-                          height: 36,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.outlineVariant,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerLowest,
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedPaymentType,
-                                isDense: true,
-                                items: [
-                                  DropdownMenuItem(
-                                    value: 'Todos',
-                                    child: Text(
-                                      'Tipo: Todos',
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'cash',
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.payments,
-                                          size: 14,
-                                          color: const Color(0xFF2E7D32),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Contado',
-                                          style: const TextStyle(fontSize: 13),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'credit',
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.calendar_month,
-                                          size: 14,
-                                          color: const Color(0xFFF9A825),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Crédito',
-                                          style: const TextStyle(fontSize: 13),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'advance',
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.savings,
-                                          size: 14,
-                                          color: const Color(0xFF7B1FA2),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Adelanto',
-                                          style: const TextStyle(fontSize: 13),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                                onChanged: (value) => setState(
-                                  () => _selectedPaymentType = value!,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          height: 36,
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              final range = await showDateRangePicker(
-                                context: context,
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime.now().add(
-                                  const Duration(days: 365),
-                                ),
-                                initialDateRange: _dateRange,
-                              );
-                              if (range != null) {
-                                setState(() => _dateRange = range);
-                              }
-                            },
-                            icon: const Icon(Icons.calendar_today, size: 14),
-                            label: Text(
-                              _dateRange == null
-                                  ? 'Fecha'
-                                  : '${Formatters.date(_dateRange!.start)} - ${Formatters.date(_dateRange!.end)}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            style: OutlinedButton.styleFrom(
+                          SizedBox(
+                            height: 36,
+                            child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
                               ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerLowest,
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedStatus,
+                                  isDense: true,
+                                  items:
+                                      [
+                                            'Todos',
+                                            'Pagada',
+                                            'Pendiente',
+                                            'Parcial',
+                                            'Vencida',
+                                            'Anulada',
+                                          ]
+                                          .map(
+                                            (s) => DropdownMenuItem(
+                                              value: s,
+                                              child: Text(
+                                                s,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                  onChanged: (value) =>
+                                      setState(() => _selectedStatus = value!),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        if (_dateRange != null)
                           SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: IconButton(
-                              icon: const Icon(Icons.clear, size: 14),
-                              onPressed: () =>
-                                  setState(() => _dateRange = null),
-                              tooltip: 'Limpiar',
-                              padding: EdgeInsets.zero,
-                            ),
-                          ),
-                        SizedBox(
-                          height: 36,
-                          child: FilledButton.icon(
-                            onPressed: () async {
-                              final created = await SaleInvoiceScanDialog.show(
-                                context,
-                              );
-                              if (created == true) {
-                                ref.read(invoicesProvider.notifier).refresh();
-                              }
-                            },
-                            icon: const Icon(Icons.receipt_long, size: 16),
-                            label: const Text(
-                              'Reconciliar Deudas',
-                              style: TextStyle(fontSize: 13),
-                            ),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFFE65100),
+                            height: 36,
+                            child: Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
+                                horizontal: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerLowest,
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedPaymentType,
+                                  isDense: true,
+                                  items: [
+                                    DropdownMenuItem(
+                                      value: 'Todos',
+                                      child: Text(
+                                        'Tipo: Todos',
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'cash',
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.payments,
+                                            size: 14,
+                                            color: const Color(0xFF2E7D32),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Contado',
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'credit',
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.calendar_month,
+                                            size: 14,
+                                            color: const Color(0xFFF9A825),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Crédito',
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'advance',
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.savings,
+                                            size: 14,
+                                            color: const Color(0xFF7B1FA2),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Adelanto',
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (value) => setState(
+                                    () => _selectedPaymentType = value!,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        SizedBox(
-                          height: 36,
-                          child: FilledButton.icon(
-                            onPressed: () => context.go('/invoices/new'),
-                            icon: const Icon(Icons.add, size: 16),
-                            label: const Text(
-                              'Nuevo',
-                              style: TextStyle(fontSize: 13),
-                            ),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
+                          SizedBox(
+                            height: 36,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final range = await showDateRangePicker(
+                                  context: context,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime.now().add(
+                                    const Duration(days: 365),
+                                  ),
+                                  initialDateRange: _dateRange,
+                                );
+                                if (range != null) {
+                                  setState(() => _dateRange = range);
+                                }
+                              },
+                              icon: const Icon(Icons.calendar_today, size: 14),
+                              label: Text(
+                                _dateRange == null
+                                    ? 'Fecha'
+                                    : '${Formatters.date(_dateRange!.start)} - ${Formatters.date(_dateRange!.end)}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
+                          if (_dateRange != null)
+                            SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: IconButton(
+                                icon: const Icon(Icons.clear, size: 14),
+                                onPressed: () =>
+                                    setState(() => _dateRange = null),
+                                tooltip: 'Limpiar',
+                                padding: EdgeInsets.zero,
+                              ),
+                            ),
+                          SizedBox(
+                            height: 36,
+                            child: FilledButton.icon(
+                              onPressed: () async {
+                                final created =
+                                    await SaleInvoiceScanDialog.show(context);
+                                if (created == true) {
+                                  ref.read(invoicesProvider.notifier).refresh();
+                                }
+                              },
+                              icon: const Icon(Icons.receipt_long, size: 16),
+                              label: const Text(
+                                'Reconciliar Deudas',
+                                style: TextStyle(fontSize: 13),
+                              ),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: const Color(0xFFE65100),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            height: 36,
+                            child: FilledButton.icon(
+                              onPressed: () => context.go('/invoices/new'),
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text(
+                                'Nuevo',
+                                style: TextStyle(fontSize: 13),
+                              ),
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-          // Lista de recibos
-          Expanded(child: _buildInvoicesList(_filteredInvoices)),
-        ],
+            // Lista de recibos
+            Expanded(child: _buildInvoicesList(_filteredInvoices)),
+          ],
+        ),
       ),
     );
   }

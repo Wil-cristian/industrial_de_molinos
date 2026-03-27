@@ -115,18 +115,20 @@ class _PendingDeliveriesPageState extends ConsumerState<PendingDeliveriesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: Column(
-        children: [
-          _buildHeader(),
-          if (!_isLoading) _buildSummaryCards(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _deliveries.isEmpty
-                ? _buildEmptyState()
-                : _buildDeliveriesList(),
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            if (!_isLoading) _buildSummaryCards(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _deliveries.isEmpty
+                  ? _buildEmptyState()
+                  : _buildDeliveriesList(),
+            ),
+          ],
+        ),
       ),
     );
   }

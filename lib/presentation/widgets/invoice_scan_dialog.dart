@@ -44,6 +44,15 @@ class _ItemInventoryMatch {
   final TextEditingController unitPriceCtrl;
   String unitOverride;
 
+  // ── Calculadora Kg Teóricos ──
+  bool showKgCalculator = false;
+  final double
+  scannedKgTeoricos; // kg teóricos extraídos de la factura (0 si no había)
+  final TextEditingController kgThicknessCtrl; // mm
+  final TextEditingController kgWidthCtrl; // metros
+  final TextEditingController kgLengthCtrl; // metros
+  final TextEditingController kgPlateQtyCtrl; // unidades de láminas
+
   _ItemInventoryMatch({
     required this.item,
     this.aiRecommendation,
@@ -55,17 +64,41 @@ class _ItemInventoryMatch {
     String? initialDescription,
     double? initialQuantity,
     double? initialUnitPrice,
+    double invoiceTaxRate = 0,
   }) : descriptionCtrl = TextEditingController(
          text: initialDescription ?? item.description,
        ),
+       // Auto-convertir a KG si hay kg teóricos de factura
        quantityCtrl = TextEditingController(
-         text: (initialQuantity ?? item.quantity).toString(),
+         text:
+             (initialQuantity ??
+                     (item.theoreticalKg > 0
+                         ? item.theoreticalKg
+                         : item.quantity))
+                 .toString(),
        ),
        unitPriceCtrl = TextEditingController(
-         text: (initialUnitPrice ?? item.unitPrice).toString(),
+         text:
+             (initialUnitPrice ??
+                     (item.theoreticalKg > 0 && item.subtotal > 0
+                         ? (item.subtotal * (1 + invoiceTaxRate / 100)) /
+                               item.theoreticalKg
+                         : item.unitPrice))
+                 .toStringAsFixed(2),
        ),
        unitOverride =
-           initialUnit ?? (item.unit.isEmpty ? 'UND' : item.unit.toUpperCase());
+           initialUnit ??
+           (item.theoreticalKg > 0
+               ? 'KG'
+               : (item.unit.isEmpty ? 'UND' : item.unit.toUpperCase())),
+       scannedKgTeoricos = item.theoreticalKg,
+       showKgCalculator = item.theoreticalKg > 0,
+       kgThicknessCtrl = TextEditingController(),
+       kgWidthCtrl = TextEditingController(),
+       kgLengthCtrl = TextEditingController(),
+       kgPlateQtyCtrl = TextEditingController(
+         text: (initialQuantity ?? item.quantity).toStringAsFixed(0),
+       );
 
   bool get isNew => createNew || matchedMaterial == null;
 
@@ -80,6 +113,21 @@ class _ItemInventoryMatch {
       ? unitOverride
       : (item.unit.isEmpty ? 'UND' : item.unit.toUpperCase());
   double get effectiveSubtotal => effectiveQuantity * effectiveUnitPrice;
+
+  /// Calcula kg teóricos para láminas de acero
+  /// Fórmula: ancho_m × largo_m × espesor_m × 7850 kg/m³
+  double get kgTeoricoUnitario {
+    final thicknessMm = double.tryParse(kgThicknessCtrl.text) ?? 0;
+    final widthM = double.tryParse(kgWidthCtrl.text) ?? 0;
+    final lengthM = double.tryParse(kgLengthCtrl.text) ?? 0;
+    if (thicknessMm <= 0 || widthM <= 0 || lengthM <= 0) return 0;
+    return widthM * lengthM * (thicknessMm / 1000) * 7850;
+  }
+
+  double get kgTeoricoTotal {
+    final qty = double.tryParse(kgPlateQtyCtrl.text) ?? 0;
+    return kgTeoricoUnitario * qty;
+  }
 }
 
 enum _BatchScanStatus { pending, scanning, done, error }
@@ -252,6 +300,7 @@ class _BatchInvoiceItem {
         matchedMaterial: bestScore >= 2 ? bestMatch : null,
         createNew: bestScore < 2,
         selected: true,
+        invoiceTaxRate: r.taxRate,
       );
     }).toList();
     invoiceNumberCtrl.text = r.invoiceNumber ?? '';
@@ -1487,33 +1536,54 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: item.supplierPhoneCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Teléfono',
-                      prefixIcon: Icon(Icons.phone),
-                      border: OutlineInputBorder(),
-                      isDense: true,
+            if (_isMobile) ...[
+              TextFormField(
+                controller: item.supplierPhoneCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Teléfono',
+                  prefixIcon: Icon(Icons.phone),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: item.supplierEmailCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ] else
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: item.supplierPhoneCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Teléfono',
+                        prefixIcon: Icon(Icons.phone),
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: item.supplierEmailCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: item.supplierEmailCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email),
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
@@ -1539,14 +1609,15 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
       child: Column(
         children: [
           if (compact) ...[
-            // Mobile: 2 rows for better readability
+            // Mobile: stack fields for readability
             Row(
               children: [
                 Expanded(
+                  flex: 3,
                   child: TextFormField(
                     controller: item.invoiceNumberCtrl,
                     decoration: const InputDecoration(
-                      labelText: '# Nº',
+                      labelText: 'Nº Factura',
                       prefixText: 'F  ',
                       border: OutlineInputBorder(),
                       isDense: true,
@@ -1555,6 +1626,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
+                  flex: 2,
                   child: TextFormField(
                     controller: item.invoiceDateCtrl,
                     decoration: const InputDecoration(
@@ -1567,18 +1639,35 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                     onTap: () => _pickDateForCtrl(item.invoiceDateCtrl),
                   ),
                 ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 44,
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
                   child: TextFormField(
                     controller: item.creditDaysCtrl,
                     decoration: const InputDecoration(
-                      labelText: 'Días',
+                      labelText: 'Días crédito',
+                      prefixIcon: Icon(Icons.schedule, size: 16),
                       border: OutlineInputBorder(),
                       isDense: true,
                     ),
-                    textAlign: TextAlign.center,
                     keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: item.dueDateCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Vencimiento',
+                      suffixIcon: Icon(Icons.event, size: 16),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    readOnly: true,
+                    onTap: () => _pickDateForCtrl(item.dueDateCtrl),
                   ),
                 ),
               ],
@@ -1995,6 +2084,9 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  // ── Calculadora Kg Teóricos ──
+                  _buildKgTeoricoCalculator(im, batchItem, theme),
                 ],
               ),
             ),
@@ -2054,6 +2146,618 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     );
   }
 
+  // ── Espesores comunes de lámina en pulgadas → mm ──
+  static const _commonThicknesses = <String, double>{
+    '3/16"': 4.76,
+    '1/4"': 6.35,
+    '5/16"': 7.94,
+    '3/8"': 9.53,
+    '1/2"': 12.70,
+    '5/8"': 15.88,
+    '3/4"': 19.05,
+    '7/8"': 22.23,
+    '1"': 25.40,
+    '1 1/4"': 31.75,
+    '1 1/2"': 38.10,
+    '2"': 50.80,
+  };
+
+  /// Intenta parsear dimensiones de lámina desde la descripción del ítem
+  static Map<String, double> _parsePlateDimensionsFromDesc(String desc) {
+    final result = <String, double>{};
+    final lower = desc.toLowerCase();
+
+    // Buscar espesor en pulgadas: "1/2", "3/4", "1 1/4", etc.
+    final thicknessInchRegex = RegExp(
+      r'(\d+\s+)?(\d+)/(\d+)\s*(?:"|pulgada|pulg)',
+    );
+    final thicknessMatch = thicknessInchRegex.firstMatch(lower);
+    if (thicknessMatch != null) {
+      final whole = double.tryParse(thicknessMatch.group(1)?.trim() ?? '') ?? 0;
+      final num = double.tryParse(thicknessMatch.group(2) ?? '') ?? 0;
+      final den = double.tryParse(thicknessMatch.group(3) ?? '') ?? 1;
+      final inches = whole + (num / den);
+      result['thickness'] = inches * 25.4;
+    }
+
+    // Buscar espesor en mm: "12mm", "19 mm"
+    if (!result.containsKey('thickness')) {
+      final mmRegex = RegExp(r'(\d+(?:[.,]\d+)?)\s*mm');
+      final mmMatch = mmRegex.firstMatch(lower);
+      if (mmMatch != null) {
+        result['thickness'] =
+            double.tryParse(mmMatch.group(1)!.replaceAll(',', '.')) ?? 0;
+      }
+    }
+
+    // Buscar dimensiones tipo "1.20X6MTS", "1.20x6", "1200x6000"
+    final dimRegex = RegExp(
+      r'(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)\s*(?:mts?|metros?)?',
+    );
+    final dimMatch = dimRegex.firstMatch(lower);
+    if (dimMatch != null) {
+      var d1 = double.tryParse(dimMatch.group(1)!.replaceAll(',', '.')) ?? 0;
+      var d2 = double.tryParse(dimMatch.group(2)!.replaceAll(',', '.')) ?? 0;
+      // Si son > 100 probablemente en mm → convertir a metros
+      if (d1 > 100) d1 /= 1000;
+      if (d2 > 100) d2 /= 1000;
+      // El menor es ancho, el mayor es largo
+      result['width'] = d1 < d2 ? d1 : d2;
+      result['length'] = d1 < d2 ? d2 : d1;
+    }
+
+    return result;
+  }
+
+  Widget _buildKgTeoricoCalculator(
+    _ItemInventoryMatch im,
+    _BatchInvoiceItem batchItem,
+    ThemeData theme,
+  ) {
+    final hasScannedKg = im.scannedKgTeoricos > 0;
+    // Botón para expandir/colapsar
+    return Column(
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              im.showKgCalculator = !im.showKgCalculator;
+              // Auto-parsear dimensiones al abrir si los campos están vacíos
+              if (im.showKgCalculator && im.kgThicknessCtrl.text.isEmpty) {
+                final parsed = _parsePlateDimensionsFromDesc(
+                  im.effectiveDescription,
+                );
+                if (parsed.containsKey('thickness')) {
+                  im.kgThicknessCtrl.text = parsed['thickness']!
+                      .toStringAsFixed(2);
+                }
+                if (parsed.containsKey('width')) {
+                  im.kgWidthCtrl.text = parsed['width']!.toStringAsFixed(2);
+                }
+                if (parsed.containsKey('length')) {
+                  im.kgLengthCtrl.text = parsed['length']!.toStringAsFixed(2);
+                }
+              }
+            });
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: hasScannedKg
+                  ? const Color(0xFF2E7D32).withOpacity(0.10)
+                  : const Color(0xFF5C6BC0).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: hasScannedKg
+                    ? const Color(0xFF2E7D32).withOpacity(0.35)
+                    : const Color(0xFF5C6BC0).withOpacity(0.25),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  hasScannedKg ? Icons.scale : Icons.straighten,
+                  size: 16,
+                  color: hasScannedKg
+                      ? const Color(0xFF2E7D32)
+                      : const Color(0xFF5C6BC0),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    hasScannedKg
+                        ? '⚖️ Kg Teóricos: ${im.scannedKgTeoricos.toStringAsFixed(2)} kg (de factura)'
+                        : '📐 Calculadora Kg Teóricos',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: hasScannedKg
+                          ? const Color(0xFF1B5E20)
+                          : const Color(0xFF3949AB),
+                    ),
+                  ),
+                ),
+                Icon(
+                  im.showKgCalculator
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  size: 18,
+                  color: hasScannedKg
+                      ? const Color(0xFF2E7D32)
+                      : const Color(0xFF5C6BC0),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (im.showKgCalculator) ...[
+          const SizedBox(height: 8),
+          _buildKgTeoricoPanel(im, batchItem, theme),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildKgTeoricoPanel(
+    _ItemInventoryMatch im,
+    _BatchInvoiceItem batchItem,
+    ThemeData theme,
+  ) {
+    final kgUnit = im.kgTeoricoUnitario;
+    final kgTotal = im.kgTeoricoTotal;
+    final subtotalItem = im.effectiveSubtotal;
+    final taxRate = double.tryParse(batchItem.taxRateCtrl.text) ?? 0;
+
+    final precioKgSinIva = kgTotal > 0 ? subtotalItem / kgTotal : 0.0;
+    final precioKgConIva = kgTotal > 0
+        ? (subtotalItem * (1 + taxRate / 100)) / kgTotal
+        : 0.0;
+
+    // Kg teóricos de factura (escaneados)
+    final scannedKg = im.scannedKgTeoricos;
+    final scannedPrecioSinIva = scannedKg > 0 ? subtotalItem / scannedKg : 0.0;
+    final scannedPrecioConIva = scannedKg > 0
+        ? (subtotalItem * (1 + taxRate / 100)) / scannedKg
+        : 0.0;
+    final scannedKgPerUnit = im.effectiveQuantity > 0
+        ? scannedKg / im.effectiveQuantity
+        : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8EAF6),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFC5CAE9)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Sección: Kg de Factura (si existen) ──
+          if (scannedKg > 0) ...[
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFA5D6A7)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '⚖️ Kg Teóricos de Factura',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1B5E20),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _kgResultRow(
+                    '⚖️ Kg/unidad',
+                    '${scannedKgPerUnit.toStringAsFixed(2)} kg',
+                    const Color(0xFF2E7D32),
+                  ),
+                  const Divider(height: 12),
+                  _kgResultRow(
+                    '⚖️ Kg totales',
+                    '${scannedKg.toStringAsFixed(2)} kg',
+                    const Color(0xFF1B5E20),
+                    isBold: true,
+                  ),
+                  const Divider(height: 12),
+                  _kgResultRow(
+                    '💰 \$/kg sin IVA',
+                    '\$ ${Helpers.formatNumber(scannedPrecioSinIva)}',
+                    const Color(0xFF00796B),
+                  ),
+                  const Divider(height: 12),
+                  _kgResultRow(
+                    '💰 \$/kg con IVA (${taxRate.toStringAsFixed(0)}%)',
+                    '\$ ${Helpers.formatNumber(scannedPrecioConIva)}',
+                    const Color(0xFF388E3C),
+                    isBold: true,
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          im.quantityCtrl.text = scannedKg.toStringAsFixed(2);
+                          im.unitOverride = 'KG';
+                          im.unitPriceCtrl.text = scannedPrecioConIva
+                              .toStringAsFixed(2);
+                        });
+                      },
+                      icon: const Icon(Icons.check_circle, size: 16),
+                      label: Text(
+                        'Aplicar: ${scannedKg.toStringAsFixed(1)} KG a \$${Helpers.formatNumber(scannedPrecioConIva)}/kg',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E7D32),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '📐 Calculadora manual (opcional):',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF3949AB),
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
+          // Presets de espesor
+          const Text(
+            'Espesor rápido (pulgadas):',
+            style: TextStyle(fontSize: 11, color: Color(0xFF3949AB)),
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: _commonThicknesses.entries.map((e) {
+              final isSelected =
+                  im.kgThicknessCtrl.text == e.value.toStringAsFixed(2);
+              return InkWell(
+                onTap: () => setState(() {
+                  im.kgThicknessCtrl.text = e.value.toStringAsFixed(2);
+                }),
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF5C6BC0) : Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF5C6BC0)
+                          : const Color(0xFFBDBDBD),
+                    ),
+                  ),
+                  child: Text(
+                    e.key,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 10),
+          // Campos: espesor, ancho, largo, cantidad
+          if (_isMobile) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: im.kgThicknessCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Espesor (mm)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(fontSize: 12),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: TextField(
+                    controller: im.kgPlateQtyCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Cant. láminas',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(fontSize: 12),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: im.kgWidthCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Ancho (m)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(fontSize: 12),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: TextField(
+                    controller: im.kgLengthCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Largo (m)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(fontSize: 12),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+              ],
+            ),
+          ] else
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: im.kgThicknessCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Espesor (mm)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(fontSize: 12),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: TextField(
+                    controller: im.kgWidthCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Ancho (m)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(fontSize: 12),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: TextField(
+                    controller: im.kgLengthCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Largo (m)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(fontSize: 12),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                SizedBox(
+                  width: 60,
+                  child: TextField(
+                    controller: im.kgPlateQtyCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Cant.',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(fontSize: 12),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 10),
+          // Resultados
+          if (kgTotal > 0) ...[
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFC5CAE9)),
+              ),
+              child: Column(
+                children: [
+                  _kgResultRow(
+                    '⚖️ Kg/unidad',
+                    '${kgUnit.toStringAsFixed(2)} kg',
+                    const Color(0xFF5C6BC0),
+                  ),
+                  const Divider(height: 12),
+                  _kgResultRow(
+                    '⚖️ Kg totales',
+                    '${kgTotal.toStringAsFixed(2)} kg',
+                    const Color(0xFF3949AB),
+                    isBold: true,
+                  ),
+                  const Divider(height: 12),
+                  _kgResultRow(
+                    '💰 \$/kg sin IVA',
+                    '\$ ${Helpers.formatNumber(precioKgSinIva)}',
+                    const Color(0xFF00796B),
+                  ),
+                  const Divider(height: 12),
+                  _kgResultRow(
+                    '💰 \$/kg con IVA (${taxRate.toStringAsFixed(0)}%)',
+                    '\$ ${Helpers.formatNumber(precioKgConIva)}',
+                    const Color(0xFF388E3C),
+                    isBold: true,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Botón aplicar
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    // Aplicar kg teóricos como cantidad
+                    im.quantityCtrl.text = kgTotal.toStringAsFixed(2);
+                    im.unitOverride = 'KG';
+                    // Precio por kg con IVA incluido
+                    im.unitPriceCtrl.text = precioKgConIva.toStringAsFixed(2);
+                  });
+                },
+                icon: const Icon(Icons.check_circle, size: 16),
+                label: Text(
+                  'Aplicar: ${kgTotal.toStringAsFixed(1)} KG a \$${Helpers.formatNumber(precioKgConIva)}/kg',
+                  style: const TextStyle(fontSize: 11),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5C6BC0),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ] else
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, size: 14, color: Color(0xFFF57C00)),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Ingresa espesor, ancho, largo y cantidad para calcular',
+                      style: TextStyle(fontSize: 11, color: Color(0xFFE65100)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _kgResultRow(
+    String label,
+    String value,
+    Color color, {
+    bool isBold = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: color,
+            fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: isBold ? 14 : 13,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
   void _splitItem(_BatchInvoiceItem batchItem, int matchIndex) {
     // Insert a new blank item after the current one — user fills in the details
     final newItem = _ItemInventoryMatch(
@@ -2103,7 +2807,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
               title: const Text('Asociar material'),
               content: SizedBox(
                 width: double.maxFinite,
-                height: 400,
+                height: MediaQuery.of(ctx).size.height * 0.5,
                 child: Column(
                   children: [
                     Text(
@@ -2287,42 +2991,40 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
   Widget _buildItemTotalsSection(_BatchInvoiceItem item) {
     final theme = Theme.of(context);
     final compact = _isMobile;
+    final fields1 = [
+      _buildAmountField('Subtotal', item.subtotalCtrl),
+      const SizedBox(height: 8),
+      _buildAmountField('IVA (%)', item.taxRateCtrl, suffix: '%'),
+      const SizedBox(height: 8),
+      _buildAmountField('Monto IVA', item.taxAmountCtrl),
+      const SizedBox(height: 8),
+      _buildAmountField('Fletes', item.freightCtrl),
+    ];
+    final fields2 = [
+      _buildAmountField('Ret. Fuente', item.reteFteCtrl),
+      const SizedBox(height: 8),
+      _buildAmountField('Ret. ICA', item.reteIcaCtrl),
+      const SizedBox(height: 8),
+      _buildAmountField('Ret. IVA', item.reteIvaCtrl),
+      const SizedBox(height: 8),
+      _buildAmountField('TOTAL', item.totalCtrl, isBold: true),
+    ];
     return _buildSection(
       theme,
       icon: Icons.calculate,
       title: 'Totales y Retenciones',
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
+      child: compact
+          ? Column(
+              children: [...fields1, const SizedBox(height: 8), ...fields2],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildAmountField('Subtotal', item.subtotalCtrl),
-                const SizedBox(height: 8),
-                _buildAmountField('IVA (%)', item.taxRateCtrl, suffix: '%'),
-                const SizedBox(height: 8),
-                _buildAmountField('Monto IVA', item.taxAmountCtrl),
-                const SizedBox(height: 8),
-                _buildAmountField('Fletes', item.freightCtrl),
+                Expanded(child: Column(children: fields1)),
+                const SizedBox(width: 12),
+                Expanded(child: Column(children: fields2)),
               ],
             ),
-          ),
-          SizedBox(width: compact ? 6 : 12),
-          Expanded(
-            child: Column(
-              children: [
-                _buildAmountField('Ret. Fuente', item.reteFteCtrl),
-                const SizedBox(height: 8),
-                _buildAmountField('Ret. ICA', item.reteIcaCtrl),
-                const SizedBox(height: 8),
-                _buildAmountField('Ret. IVA', item.reteIvaCtrl),
-                const SizedBox(height: 8),
-                _buildAmountField('TOTAL', item.totalCtrl, isBold: true),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -2593,13 +3295,20 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         color: Color(0xFFFAFAFA),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: buttons
-            .expand((b) => [const SizedBox(width: 8), b])
-            .skip(1)
-            .toList(),
-      ),
+      child: compact
+          ? Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: buttons,
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: buttons
+                  .expand((b) => [const SizedBox(width: 8), b])
+                  .skip(1)
+                  .toList(),
+            ),
     );
   }
 
@@ -3512,11 +4221,17 @@ class _InventoryUpdateDialogState extends State<_InventoryUpdateDialog> {
   Widget build(BuildContext context) {
     final selectedCount = widget.matches.where((m) => m.selected).length;
 
+    final screenW = MediaQuery.of(context).size.width;
+    final screenH = MediaQuery.of(context).size.height;
+    final isMobile = screenW < 600;
     return Dialog(
+      insetPadding: isMobile
+          ? const EdgeInsets.symmetric(horizontal: 8, vertical: 16)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 700,
-        constraints: const BoxConstraints(maxHeight: 700),
+        width: isMobile ? screenW : 700,
+        constraints: BoxConstraints(maxHeight: isMobile ? screenH * 0.88 : 700),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

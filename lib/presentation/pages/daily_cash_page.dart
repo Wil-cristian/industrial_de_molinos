@@ -85,261 +85,272 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     }
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // Contenido principal (sin sidebar - el router lo maneja)
-          Container(
-            color: Theme.of(context).colorScheme.surfaceContainerLowest,
-            child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-                    children: [
-                      // Header section compacto
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final isNarrow = constraints.maxWidth < 900;
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Contenido principal (sin sidebar - el router lo maneja)
+            Container(
+              color: Theme.of(context).colorScheme.surfaceContainerLowest,
+              child: state.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                      children: [
+                        // Header section compacto
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isNarrow = constraints.maxWidth < 900;
 
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 36,
-                                      height: 36,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        Icons.factory,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        size: 20,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Caja Diaria',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).colorScheme.primary,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
-                                          Text(
-                                            'Control de ingresos, gastos y traslados',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  color: const Color(
-                                                    0xFF757575,
-                                                  ),
-                                                ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
+                                        ),
+                                        child: Icon(
+                                          Icons.factory,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          size: 20,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                        maxWidth: isNarrow
-                                            ? constraints.maxWidth
-                                            : 360,
-                                      ),
-                                      child: InkWell(
-                                        onTap: () => _selectDate(context),
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 8,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                                .withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            border: Border.all(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                                  .withOpacity(0.3),
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.calendar_today,
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.primary,
-                                                size: 16,
-                                              ),
-                                              const SizedBox(width: 6),
-                                              Flexible(
-                                                child: Text(
-                                                  isNarrow
-                                                      ? Formatters.date(
-                                                          state.selectedDate,
-                                                        )
-                                                      : Formatters.dateLong(
-                                                          state.selectedDate,
-                                                        ),
-                                                  style: TextStyle(
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'Caja Diaria',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleMedium
+                                                  ?.copyWith(
                                                     color: Theme.of(
                                                       context,
                                                     ).colorScheme.primary,
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
                                                   ),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                            ),
+                                            Text(
+                                              'Control de ingresos, gastos y traslados',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    color: const Color(
+                                                      0xFF757575,
+                                                    ),
+                                                  ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          maxWidth: isNarrow
+                                              ? constraints.maxWidth
+                                              : 360,
+                                        ),
+                                        child: InkWell(
+                                          onTap: () => _selectDate(context),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                                  .withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                    .withOpacity(0.3),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.calendar_today,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                                  size: 16,
                                                 ),
-                                              ),
-                                              const SizedBox(width: 2),
-                                              Icon(
-                                                Icons.arrow_drop_down,
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.primary,
-                                                size: 20,
-                                              ),
-                                            ],
+                                                const SizedBox(width: 6),
+                                                Flexible(
+                                                  child: Text(
+                                                    isNarrow
+                                                        ? Formatters.date(
+                                                            state.selectedDate,
+                                                          )
+                                                        : Formatters.dateLong(
+                                                            state.selectedDate,
+                                                          ),
+                                                    style: TextStyle(
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 13,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 2),
+                                                Icon(
+                                                  Icons.arrow_drop_down,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                                  size: 20,
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    OutlinedButton.icon(
-                                      onPressed: () =>
-                                          _showHistoryRangeDialog(context),
-                                      icon: const Icon(Icons.history, size: 18),
-                                      label: const Text('Ver Historial'),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(
-                                          0xFF616161,
+                                      OutlinedButton.icon(
+                                        onPressed: () =>
+                                            _showHistoryRangeDialog(context),
+                                        icon: const Icon(
+                                          Icons.history,
+                                          size: 18,
                                         ),
-                                        side: BorderSide(
-                                          color: const Color(0xFFE0E0E0),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 10,
-                                        ),
-                                      ),
-                                    ),
-                                    ElevatedButton.icon(
-                                      onPressed: () =>
-                                          _showAddMovementDialog(context),
-                                      icon: const Icon(Icons.add, size: 18),
-                                      label: Text(
-                                        isNarrow ? 'Nuevo' : 'Nuevo Movimiento',
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 10,
+                                        label: const Text('Ver Historial'),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: const Color(
+                                            0xFF616161,
+                                          ),
+                                          side: BorderSide(
+                                            color: const Color(0xFFE0E0E0),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 10,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    ElevatedButton.icon(
-                                      onPressed: () =>
-                                          _showTransferDialog(context),
-                                      icon: const Icon(
-                                        Icons.swap_horiz,
-                                        size: 18,
-                                      ),
-                                      label: const Text('Traslado'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(
-                                          0xFFF9A825,
+                                      ElevatedButton.icon(
+                                        onPressed: () =>
+                                            _showAddMovementDialog(context),
+                                        icon: const Icon(Icons.add, size: 18),
+                                        label: Text(
+                                          isNarrow
+                                              ? 'Nuevo'
+                                              : 'Nuevo Movimiento',
                                         ),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 10,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 10,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    IconButton(
-                                      onPressed: () => ref
-                                          .read(dailyCashProvider.notifier)
-                                          .load(),
-                                      icon: const Icon(Icons.refresh),
-                                      tooltip: 'Recargar datos',
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                      // Contenido
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(4),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Cards de cuentas
-                              _buildAccountCards(context, state),
-                              const SizedBox(height: 4),
-
-                              // Resumen del día
-                              _buildDaySummary(context, state),
-                              const SizedBox(height: 4),
-
-                              // Desglose por categoría
-                              if (state.movements.isNotEmpty)
-                                _buildCategoryBreakdown(context, state),
-                              if (state.movements.isNotEmpty)
-                                const SizedBox(height: 4),
-
-                              // Lista de movimientos
-                              _buildMovementsList(context, state),
-                            ],
+                                      ElevatedButton.icon(
+                                        onPressed: () =>
+                                            _showTransferDialog(context),
+                                        icon: const Icon(
+                                          Icons.swap_horiz,
+                                          size: 18,
+                                        ),
+                                        label: const Text('Traslado'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(
+                                            0xFFF9A825,
+                                          ),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 10,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: () => ref
+                                            .read(dailyCashProvider.notifier)
+                                            .load(),
+                                        icon: const Icon(Icons.refresh),
+                                        tooltip: 'Recargar datos',
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-          ),
-        ],
+                        // Contenido
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(4),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Cards de cuentas
+                                _buildAccountCards(context, state),
+                                const SizedBox(height: 4),
+
+                                // Resumen del día
+                                _buildDaySummary(context, state),
+                                const SizedBox(height: 4),
+
+                                // Desglose por categoría
+                                if (state.movements.isNotEmpty)
+                                  _buildCategoryBreakdown(context, state),
+                                if (state.movements.isNotEmpty)
+                                  const SizedBox(height: 4),
+
+                                // Lista de movimientos
+                                _buildMovementsList(context, state),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
