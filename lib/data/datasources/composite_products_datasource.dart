@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/logger.dart';
 import '../../domain/entities/composite_product.dart';
+import 'audit_log_datasource.dart';
 import 'supabase_datasource.dart';
 
 /// DataSource unificado para productos compuestos
@@ -16,7 +17,7 @@ class CompositeProductsDataSource {
           .from('products')
           .select()
           .eq('is_active', true)
-          .order('name');
+          .order('name', ascending: false);
 
       if (productsResponse.isEmpty) return [];
 
@@ -151,7 +152,14 @@ class CompositeProductsDataSource {
       }
 
       AppLogger.info('✅ Producto compuesto creado: ${product.name}');
-      return await getById(productId);
+      final result = await getById(productId);
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'composite_products',
+        recordId: productId,
+        description: 'Producto compuesto creado: ${product.name}',
+      );
+      return result;
     } catch (e) {
       AppLogger.error('❌ Error creando producto compuesto: $e');
       rethrow;
@@ -180,7 +188,14 @@ class CompositeProductsDataSource {
       }
 
       AppLogger.info('✅ Producto compuesto actualizado: ${product.name}');
-      return await getById(product.id);
+      final result = await getById(product.id);
+      AuditLogDatasource.log(
+        action: 'update',
+        module: 'composite_products',
+        recordId: product.id,
+        description: 'Producto compuesto actualizado: ${product.name}',
+      );
+      return result;
     } catch (e) {
       AppLogger.error('❌ Error actualizando producto compuesto: $e');
       rethrow;
@@ -192,6 +207,12 @@ class CompositeProductsDataSource {
     try {
       // Los componentes se eliminan por CASCADE
       await _client.from('products').delete().eq('id', id);
+      AuditLogDatasource.log(
+        action: 'delete',
+        module: 'composite_products',
+        recordId: id,
+        description: 'Producto compuesto eliminado',
+      );
       AppLogger.info('✅ Producto compuesto eliminado');
     } catch (e) {
       AppLogger.error('❌ Error eliminando producto compuesto: $e');

@@ -315,6 +315,42 @@ class InvoiceItem {
     );
   }
 
+  InvoiceItem copyWith({
+    String? id,
+    String? invoiceId,
+    String? productId,
+    String? materialId,
+    String? productName,
+    String? productCode,
+    String? description,
+    double? quantity,
+    String? unit,
+    double? unitPrice,
+    double? discount,
+    double? taxRate,
+    double? subtotal,
+    double? taxAmount,
+    double? total,
+  }) {
+    return InvoiceItem(
+      id: id ?? this.id,
+      invoiceId: invoiceId ?? this.invoiceId,
+      productId: productId ?? this.productId,
+      materialId: materialId ?? this.materialId,
+      productName: productName ?? this.productName,
+      productCode: productCode ?? this.productCode,
+      description: description ?? this.description,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      unitPrice: unitPrice ?? this.unitPrice,
+      discount: discount ?? this.discount,
+      taxRate: taxRate ?? this.taxRate,
+      subtotal: subtotal ?? this.subtotal,
+      taxAmount: taxAmount ?? this.taxAmount,
+      total: total ?? this.total,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

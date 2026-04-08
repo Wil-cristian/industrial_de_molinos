@@ -260,6 +260,45 @@ class InvoicesNotifier extends Notifier<InvoicesState> {
       return false;
     }
   }
+
+  // ── Item-level operations ─────────────────────────────────────────
+
+  Future<bool> updateItem(InvoiceItem item) async {
+    try {
+      await InvoicesDataSource.updateItem(item);
+      await refresh();
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> deleteItem(String itemId, String invoiceId) async {
+    try {
+      await InvoicesDataSource.deleteItem(itemId, invoiceId);
+      await refresh();
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> splitItem(
+    String itemId,
+    String invoiceId,
+    double keepQty,
+  ) async {
+    try {
+      await InvoicesDataSource.splitItem(itemId, invoiceId, keepQty);
+      await refresh();
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return false;
+    }
+  }
 }
 
 // Provider principal de recibos

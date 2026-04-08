@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/supplier_material.dart';
+import 'audit_log_datasource.dart';
 import 'supabase_datasource.dart';
 
 class SupplierMaterialsDataSource {
@@ -76,12 +77,26 @@ class SupplierMaterialsDataSource {
         .upsert(data, onConflict: 'supplier_id,material_id')
         .select()
         .single();
-    return SupplierMaterial.fromJson(response);
+    final result = SupplierMaterial.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'supplier_materials',
+      recordId: result.id,
+      description:
+          'Precio proveedor-material actualizado: \$${unitPrice.toStringAsFixed(2)}',
+    );
+    return result;
   }
 
   /// Eliminar relación
   static Future<void> delete(String id) async {
     await _client.from(_table).delete().eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'supplier_materials',
+      recordId: id,
+      description: 'Relación proveedor-material eliminada',
+    );
   }
 
   /// Obtener todos los precios (para cálculo de órdenes)

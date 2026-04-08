@@ -853,7 +853,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
           conceptCode: 'DESC_PRESTAMO',
           conceptName: 'Cuota Préstamo',
           type: 'descuento',
-          amount: loan.installmentAmount,
+          amount: loan.nextInstallmentAmount,
           notes:
               'Cuota ${loan.paidInstallments + 1}/${loan.installments} - Préstamo',
         );
@@ -870,14 +870,14 @@ class PayrollNotifier extends Notifier<PayrollState> {
         '📋 Concepto préstamo: ${concept.code} (${concept.name}) id=${concept.id}',
       );
       print(
-        '💰 Monto cuota: ${loan.installmentAmount}, Cuota ${loan.paidInstallments + 1}/${loan.installments}',
+        '💰 Monto cuota: ${loan.nextInstallmentAmount}, Cuota ${loan.paidInstallments + 1}/${loan.installments}',
       );
 
       // Agregar como detalle de nómina (skipReload para evitar reload intermedio)
       await addConceptToPayroll(
         payrollId: payrollId,
         conceptId: concept.id,
-        amount: loan.installmentAmount,
+        amount: loan.nextInstallmentAmount,
         notes:
             'Cuota ${loan.paidInstallments + 1}/${loan.installments} - Préstamo',
         skipReload: skipReload,
@@ -907,7 +907,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
     // 1. Registrar pago en loan_payments + actualizar employee_loans
     await registerLoanPayment(
       loanId: loan.id,
-      amount: loan.installmentAmount,
+      amount: loan.nextInstallmentAmount,
       installmentNumber: loan.paidInstallments + 1,
       payrollId: payrollId,
     );
@@ -921,7 +921,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
     try {
       await PayrollDatasource.createLoanSettlementEntry(
         loanId: loan.id,
-        amount: loan.installmentAmount,
+        amount: loan.nextInstallmentAmount,
         employeeName: loan.employeeName ?? 'Empleado',
         installmentNumber: loan.paidInstallments + 1,
         totalInstallments: loan.installments,

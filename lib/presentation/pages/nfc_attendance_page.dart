@@ -15,6 +15,7 @@ class NfcAttendancePage extends ConsumerStatefulWidget {
 class _NfcAttendancePageState extends ConsumerState<NfcAttendancePage>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
+  final _manualController = TextEditingController();
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _NfcAttendancePageState extends ConsumerState<NfcAttendancePage>
   @override
   void dispose() {
     _pulseController.dispose();
+    _manualController.dispose();
     super.dispose();
   }
 
@@ -66,9 +68,7 @@ class _NfcAttendancePageState extends ConsumerState<NfcAttendancePage>
                   ref.read(nfcKioskProvider.notifier).cancelCardLinking(),
               icon: const Icon(Icons.close, size: 18),
               label: const Text('Cancelar vinculacion'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.danger,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
             ),
           const SizedBox(width: 8),
           Chip(
@@ -78,7 +78,20 @@ class _NfcAttendancePageState extends ConsumerState<NfcAttendancePage>
               style: theme.textTheme.labelLarge,
             ),
           ),
+          const SizedBox(width: 4),
+          Chip(
+            avatar: const Icon(Icons.nfc, size: 18),
+            label: Text(
+              '${kioskState.scanCount}',
+              style: theme.textTheme.labelLarge,
+            ),
+          ),
           const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.keyboard),
+            tooltip: 'Entrada manual (test)',
+            onPressed: () => _showManualInput(),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Actualizar estado',
@@ -91,6 +104,73 @@ class _NfcAttendancePageState extends ConsumerState<NfcAttendancePage>
       body: kioskState.isLinkingCard
           ? _buildLinkingOverlay(kioskState, theme)
           : _buildKioskMode(kioskState, theme),
+    );
+  }
+
+  /// Dialogo para entrada manual de Card ID (testing sin hardware)
+  void _showManualInput() {
+    _manualController.clear();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.keyboard),
+            SizedBox(width: 8),
+            Text('Entrada Manual (Test)'),
+          ],
+        ),
+        content: SizedBox(
+          width: 350,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Ingresa un Card ID manualmente para simular un escaneo NFC. '
+                'Útil para pruebas sin el lector físico.',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _manualController,
+                decoration: const InputDecoration(
+                  labelText: 'Card ID (hex)',
+                  hintText: 'Ej: 04A1B2C3D4E5F6',
+                  prefixIcon: Icon(Icons.credit_card),
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.characters,
+                onSubmitted: (value) {
+                  if (value.trim().length >= 4) {
+                    Navigator.pop(context);
+                    ref
+                        .read(nfcKioskProvider.notifier)
+                        .simulateScan(value.trim());
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              final value = _manualController.text.trim();
+              if (value.length >= 4) {
+                Navigator.pop(context);
+                ref.read(nfcKioskProvider.notifier).simulateScan(value);
+              }
+            },
+            icon: const Icon(Icons.nfc, size: 18),
+            label: const Text('Simular Escaneo'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -332,10 +412,7 @@ class _NfcAttendancePageState extends ConsumerState<NfcAttendancePage>
     if (isCompact) {
       return Column(
         children: [
-          Expanded(
-            flex: 3,
-            child: _buildCheckpointPanel(kioskState, theme),
-          ),
+          Expanded(flex: 3, child: _buildCheckpointPanel(kioskState, theme)),
           Divider(height: 1, color: theme.dividerColor),
           Expanded(
             flex: 2,
@@ -377,14 +454,17 @@ class _NfcAttendancePageState extends ConsumerState<NfcAttendancePage>
                           animation: _pulseController,
                           builder: (context, child) {
                             final scale = 1.0 + (_pulseController.value * 0.15);
-                            final opacity = 0.3 + (_pulseController.value * 0.7);
+                            final opacity =
+                                0.3 + (_pulseController.value * 0.7);
                             return Transform.scale(
                               scale: kioskState.isActive ? scale : 1.0,
                               child: Icon(
                                 Icons.contactless,
                                 size: 100,
                                 color: kioskState.isActive
-                                    ? colorScheme.primary.withValues(alpha: opacity)
+                                    ? colorScheme.primary.withValues(
+                                        alpha: opacity,
+                                      )
                                     : Colors.grey.withValues(alpha: 0.3),
                               ),
                             );
@@ -393,7 +473,7 @@ class _NfcAttendancePageState extends ConsumerState<NfcAttendancePage>
                         const SizedBox(height: 24),
                         Text(
                           kioskState.isActive
-                              ? 'Lector NFC Activo'
+                              ? 'Lector ACR1552U Activo'
                               : 'Lector NFC Inactivo',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,

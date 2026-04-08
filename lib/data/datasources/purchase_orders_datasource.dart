@@ -77,7 +77,7 @@ class PurchaseOrdersDataSource {
         )
         .single();
     final created = PurchaseOrder.fromJson(response);
-    AuditLogDatasource.log(
+    await AuditLogDatasource.log(
       action: 'create',
       module: 'expenses',
       recordId: created.id,
@@ -120,7 +120,15 @@ class PurchaseOrdersDataSource {
           '*, proveedores(name), purchase_order_items(*, materials(name, code))',
         )
         .single();
-    return PurchaseOrder.fromJson(response);
+    final updated = PurchaseOrder.fromJson(response);
+    await AuditLogDatasource.log(
+      action: 'update',
+      module: 'expenses',
+      recordId: orderId,
+      description: 'Cambió estado de orden a: ${status.name}',
+      details: {'status': status.name},
+    );
+    return updated;
   }
 
   /// Registrar pago
@@ -149,7 +157,21 @@ class PurchaseOrdersDataSource {
           '*, proveedores(name), purchase_order_items(*, materials(name, code))',
         )
         .single();
-    return PurchaseOrder.fromJson(response);
+    final updated = PurchaseOrder.fromJson(response);
+    await AuditLogDatasource.log(
+      action: 'update',
+      module: 'expenses',
+      recordId: orderId,
+      description:
+          'Registró pago de \$${amount.toStringAsFixed(0)} por $method',
+      details: {
+        'amount': amount,
+        'method': method,
+        'total_paid': newPaid,
+        'payment_status': newPaymentStatus,
+      },
+    );
+    return updated;
   }
 
   /// Eliminar orden (solo borradores)
@@ -182,7 +204,21 @@ class PurchaseOrdersDataSource {
         .insert(data)
         .select('*, materials(name, code)')
         .single();
-    return PurchaseOrderItem.fromJson(response);
+    final newItem = PurchaseOrderItem.fromJson(response);
+    await AuditLogDatasource.log(
+      action: 'create',
+      module: 'expenses',
+      recordId: item.orderId,
+      description:
+          'Agregó ítem a orden: ${item.description} (${item.quantity} x \$${item.unitPrice})',
+      details: {
+        'item_id': newItem.id,
+        'quantity': item.quantity,
+        'unit_price': item.unitPrice,
+        'subtotal': item.quantity * item.unitPrice,
+      },
+    );
+    return newItem;
   }
 
   /// Actualizar ítem
@@ -209,12 +245,34 @@ class PurchaseOrdersDataSource {
         .eq('id', item.id)
         .select('*, materials(name, code)')
         .single();
-    return PurchaseOrderItem.fromJson(response);
+    final updated = PurchaseOrderItem.fromJson(response);
+    await AuditLogDatasource.log(
+      action: 'update',
+      module: 'expenses',
+      recordId: item.orderId,
+      description:
+          'Modificó ítem: ${item.description} (${item.quantity} x \$${item.unitPrice})',
+      details: {
+        'item_id': item.id,
+        'quantity': item.quantity,
+        'unit_price': item.unitPrice,
+        'received': item.quantityReceived,
+        'total': item.itemTotal,
+      },
+    );
+    return updated;
   }
 
   /// Eliminar ítem
-  static Future<void> deleteItem(String itemId) async {
+  static Future<void> deleteItem(String itemId, String orderId) async {
     await _client.from(_itemsTable).delete().eq('id', itemId);
+    await AuditLogDatasource.log(
+      action: 'delete',
+      module: 'expenses',
+      recordId: orderId,
+      description: 'Eliminó ítem de orden',
+      details: {'item_id': itemId},
+    );
   }
 
   /// Obtener ítems de una orden

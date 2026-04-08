@@ -13,6 +13,7 @@ import '../../data/datasources/storage_datasource.dart';
 import '../../data/datasources/supabase_datasource.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
+import '../../core/utils/print_service.dart';
 
 String _categoryLabel(MovementCategory category, [String? customName]) {
   switch (category) {
@@ -1086,7 +1087,8 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 '${isIncome || isTransferIn ? '+' : '-'}${Formatters.currency(movement.amount)}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 17,
+                  letterSpacing: 0.3,
                   color: isTransfer
                       ? const Color(0xFFF9A825)
                       : (isIncome ? AppColors.success : AppColors.danger),
@@ -1126,6 +1128,8 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             onSelected: (value) {
               if (value == 'detail') {
                 _showMovementDetail(context, movement, state);
+              } else if (value == 'receipt') {
+                _printMovementReceipt(movement);
               } else if (value == 'delete') {
                 _confirmDeleteMovement(context, movement);
               }
@@ -1142,6 +1146,20 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     ),
                     SizedBox(width: 8),
                     Text('Ver Detalle'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'receipt',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.receipt_long,
+                      color: Color(0xFF2E7D32),
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Text('Imprimir Recibo'),
                   ],
                 ),
               ),
@@ -1621,6 +1639,18 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _printMovementReceipt(CashMovement movement) async {
+    await PrintService.printExpenseReceipt(
+      amount: movement.amount,
+      personName: movement.personName ?? 'Sin nombre',
+      description: movement.description,
+      category: movement.categoryLabel,
+      date: movement.date,
+      reference: movement.reference,
+      accountName: movement.account?.name,
     );
   }
 

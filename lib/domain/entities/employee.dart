@@ -230,6 +230,8 @@ class EmployeeTask {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? assignedBy;
+  final String? productionOrderId;
+  final String? productionStageId;
 
   EmployeeTask({
     required this.id,
@@ -250,6 +252,8 @@ class EmployeeTask {
     required this.createdAt,
     required this.updatedAt,
     this.assignedBy,
+    this.productionOrderId,
+    this.productionStageId,
   });
 
   String get statusLabel {
@@ -364,6 +368,8 @@ class EmployeeTask {
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       assignedBy: json['assigned_by'] as String?,
+      productionOrderId: json['production_order_id'] as String?,
+      productionStageId: json['production_stage_id'] as String?,
     );
   }
 
@@ -390,6 +396,12 @@ class EmployeeTask {
     if (notes != null) json['notes'] = notes;
     if (assignedBy != null) json['assigned_by'] = assignedBy;
     if (activityId != null) json['activity_id'] = activityId;
+    if (productionOrderId != null) {
+      json['production_order_id'] = productionOrderId;
+    }
+    if (productionStageId != null) {
+      json['production_stage_id'] = productionStageId;
+    }
 
     return json;
   }

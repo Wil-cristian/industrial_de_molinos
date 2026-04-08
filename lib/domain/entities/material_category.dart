@@ -16,6 +16,7 @@ class MaterialCategory {
   final bool isSystem; // Categorías del sistema (no editables/eliminables)
   final bool isActive;
   final int sortOrder;
+  final String? codePrefix; // 2-digit prefix for auto-generated codes
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -32,6 +33,7 @@ class MaterialCategory {
     this.isSystem = false,
     this.isActive = true,
     this.sortOrder = 0,
+    this.codePrefix,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -139,6 +141,7 @@ class MaterialCategory {
     bool? isSystem,
     bool? isActive,
     int? sortOrder,
+    String? codePrefix,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -155,6 +158,7 @@ class MaterialCategory {
       isSystem: isSystem ?? this.isSystem,
       isActive: isActive ?? this.isActive,
       sortOrder: sortOrder ?? this.sortOrder,
+      codePrefix: codePrefix ?? this.codePrefix,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -174,6 +178,7 @@ class MaterialCategory {
       isSystem: json['is_system'] ?? false,
       isActive: json['is_active'] ?? true,
       sortOrder: json['sort_order'] ?? 0,
+      codePrefix: json['code_prefix'],
       createdAt: DateTime.parse(
         json['created_at'] ?? DateTime.now().toIso8601String(),
       ),
@@ -196,6 +201,7 @@ class MaterialCategory {
       'is_system': isSystem,
       'is_active': isActive,
       'sort_order': sortOrder,
+      'code_prefix': codePrefix,
     };
   }
 

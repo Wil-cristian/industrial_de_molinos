@@ -10,6 +10,7 @@ import '../../data/providers/composite_products_provider.dart';
 import '../../data/providers/inventory_provider.dart';
 import '../../data/providers/settings_provider.dart';
 import '../../domain/entities/company_settings.dart';
+import '../widgets/material_form_dialog.dart';
 
 class CompositeProductsPage extends ConsumerStatefulWidget {
   const CompositeProductsPage({super.key});
@@ -513,7 +514,10 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
-                                        comp.materialName ?? 'Componente',
+                                        comp.label != null &&
+                                                comp.label!.isNotEmpty
+                                            ? '${comp.label} (${comp.materialName ?? 'Componente'})'
+                                            : comp.materialName ?? 'Componente',
                                         style: const TextStyle(fontSize: 11),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -574,7 +578,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                     ),
                     _buildStatColumn(
                       'Venta',
-                      '\$ ${Helpers.formatNumber(product.materialsCost)}',
+                      '\$ ${Helpers.formatNumber(product.customPrice ?? product.materialsCost)}',
                     ),
                     Container(
                       width: 1,
@@ -582,7 +586,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                       color: const Color(0xFFE0E0E0),
                     ),
                     _buildStatColumn(
-                      'Ganancia',
+                      'Margen',
                       '${product.realProfitMargin.toStringAsFixed(1)}%',
                     ),
                   ],
@@ -864,6 +868,18 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  if (comp.label != null &&
+                                      comp.label!.isNotEmpty)
+                                    Text(
+                                      comp.label!,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
+                                    ),
                                   Text(
                                     comp.materialName ?? 'Componente',
                                     style: const TextStyle(
@@ -939,9 +955,16 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                       '\$ ${Helpers.formatNumber(product.materialsCostPrice)}',
                     ),
                     _buildCostRow(
-                      'Precio Venta',
+                      'Venta Materiales',
                       '\$ ${Helpers.formatNumber(product.materialsCost)}',
                     ),
+                    if (product.customPrice != null)
+                      _buildCostRow(
+                        'Precio Final',
+                        '\$ ${Helpers.formatNumber(product.customPrice!)}',
+                        isBold: true,
+                        valueColor: Theme.of(context).colorScheme.primary,
+                      ),
                     _buildCostRow(
                       'Peso total',
                       '${Helpers.formatNumber(product.totalWeight)} kg',
@@ -949,9 +972,12 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                     const Divider(),
                     _buildCostRow(
                       'Ganancia',
-                      '\$ ${Helpers.formatNumber(product.materialsProfit)}',
+                      '\$ ${Helpers.formatNumber((product.customPrice ?? product.materialsCost) - product.materialsCostPrice)}',
                       isBold: true,
-                      valueColor: product.materialsProfit > 0
+                      valueColor:
+                          (product.customPrice ?? product.materialsCost) -
+                                  product.materialsCostPrice >
+                              0
                           ? const Color(0xFF388E3C)
                           : const Color(0xFFD32F2F),
                     ),
@@ -1137,6 +1163,9 @@ class _CompositeProductFormDialogState
   final _formKey = GlobalKey<FormState>();
   bool _isSaving = false;
 
+  // Split ratio for calculator vs component list (0.0 to 1.0)
+  double _topPanelRatio = 0.55;
+
   // Campos del producto
   late TextEditingController _codeController;
   late TextEditingController _nameController;
@@ -1146,6 +1175,7 @@ class _CompositeProductFormDialogState
   late TextEditingController _laborRateController;
   late TextEditingController _indirectCostsController;
   late TextEditingController _profitMarginController;
+  late TextEditingController _customPriceController;
 
   // Lista de componentes agregados
   late List<_ComponentFormData> _components;
@@ -1170,6 +1200,7 @@ class _CompositeProductFormDialogState
   final _ladoController = TextEditingController(
     text: '1',
   ); // Lado de eje cuadrado
+  final _labelController = TextEditingController(); // Título de la pieza
   final _cantidadController = TextEditingController(text: '1');
   final _directQuantityController = TextEditingController(text: '1');
   final _wasteController = TextEditingController(text: '5');
@@ -1205,6 +1236,9 @@ class _CompositeProductFormDialogState
     _profitMarginController = TextEditingController(
       text: (p?.profitMargin ?? 20).toString(),
     );
+    _customPriceController = TextEditingController(
+      text: p?.customPrice != null ? p!.customPrice!.toStringAsFixed(0) : '',
+    );
 
     _components =
         p?.components
@@ -1227,12 +1261,15 @@ class _CompositeProductFormDialogState
     _laborRateController.dispose();
     _indirectCostsController.dispose();
     _profitMarginController.dispose();
+    _customPriceController.dispose();
     _largoController.dispose();
     _anchoController.dispose();
     _espesorController.dispose();
     _diametroExtController.dispose();
     _espesorParedController.dispose();
     _diametroController.dispose();
+    _ladoController.dispose();
+    _labelController.dispose();
     _cantidadController.dispose();
     _directQuantityController.dispose();
     _wasteController.dispose();
@@ -1253,6 +1290,9 @@ class _CompositeProductFormDialogState
       laborRate: double.tryParse(_laborRateController.text) ?? 25,
       indirectCosts: double.tryParse(_indirectCostsController.text) ?? 0,
       profitMargin: double.tryParse(_profitMarginController.text) ?? 20,
+      customPrice: _customPriceController.text.trim().isNotEmpty
+          ? double.tryParse(_customPriceController.text.trim())
+          : null,
       createdAt: widget.product?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -1470,15 +1510,46 @@ class _CompositeProductFormDialogState
           child: Column(
             children: [
               _previewRow(
-                'Materiales',
-                '\$ ${Helpers.formatNumber(preview.materialsCost)}',
+                'Costo',
+                '\$ ${Helpers.formatNumber(preview.materialsCostPrice)}',
               ),
               _previewRow(
-                'TOTAL',
-                '\$ ${Helpers.formatNumber(preview.totalPrice)}',
-                bold: true,
+                'Venta Materiales',
+                '\$ ${Helpers.formatNumber(preview.materialsCost)}',
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
+              // Campo editable de precio final
+              TextFormField(
+                controller: _customPriceController,
+                decoration: InputDecoration(
+                  labelText: 'Precio de venta final',
+                  hintText: 'Ej: 10000000',
+                  prefixText: '\$ ',
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFFFF8E1),
+                ),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 4),
+              _previewRow(
+                'Margen',
+                '${preview.realProfitMargin.toStringAsFixed(1)}%',
+                bold: true,
+                color: preview.realProfitMargin > 0
+                    ? const Color(0xFF388E3C)
+                    : const Color(0xFFD32F2F),
+              ),
               _previewRow(
                 'Peso',
                 '${Helpers.formatNumber(preview.totalWeight)} kg',
@@ -1495,41 +1566,81 @@ class _CompositeProductFormDialogState
   // ═══════════════════════════════════════════════════
 
   Widget _buildRightPanel(InventoryState inventoryState) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Panel de agregar componente ──
-        Expanded(
-          flex: 3,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAFAFA),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalHeight = constraints.maxHeight;
+        final topHeight = (totalHeight * _topPanelRatio).clamp(
+          100.0,
+          totalHeight - 100.0,
+        );
+        final bottomHeight = totalHeight - topHeight - 14; // 14 = divider area
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Panel de agregar componente ──
+            SizedBox(
+              height: topHeight,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAFA),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // Tabs: Calculado | Directo
+                    _buildModeTabs(),
+                    const Divider(height: 1),
+                    // Contenido según modo
+                    Expanded(
+                      child: _addMode == 'calculado'
+                          ? _buildCalculadoPanel(inventoryState)
+                          : _buildDirectoPanel(inventoryState),
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: Column(
-              children: [
-                // Tabs: Calculado | Directo
-                _buildModeTabs(),
-                const Divider(height: 1),
-                // Contenido según modo
-                Expanded(
-                  child: _addMode == 'calculado'
-                      ? _buildCalculadoPanel(inventoryState)
-                      : _buildDirectoPanel(inventoryState),
+
+            // ── Divisor arrastrable ──
+            GestureDetector(
+              onVerticalDragUpdate: (details) {
+                setState(() {
+                  _topPanelRatio =
+                      ((_topPanelRatio + details.delta.dy / totalHeight).clamp(
+                        0.2,
+                        0.8,
+                      ));
+                });
+              },
+              child: MouseRegion(
+                cursor: SystemMouseCursors.resizeRow,
+                child: Container(
+                  height: 14,
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
 
-        const SizedBox(height: 6),
-
-        // ── Lista de componentes agregados ──
-        Expanded(flex: 2, child: _buildComponentsList()),
-      ],
+            // ── Lista de componentes agregados ──
+            SizedBox(
+              height: bottomHeight.clamp(0.0, double.infinity),
+              child: _buildComponentsList(),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1820,6 +1931,24 @@ class _CompositeProductFormDialogState
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 6),
+
+            // Título de la pieza (opcional)
+            TextField(
+              controller: _labelController,
+              decoration: InputDecoration(
+                labelText: 'Nombre de la pieza (opcional)',
+                hintText: 'Ej: tapa lateral, fondo, cuerpo...',
+                isDense: true,
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 6,
+                ),
+                prefixIcon: const Icon(Icons.label_outline, size: 16),
+              ),
+              style: const TextStyle(fontSize: 11),
             ),
             const SizedBox(height: 6),
 
@@ -2665,42 +2794,94 @@ class _CompositeProductFormDialogState
                     separatorBuilder: (_, __) => const SizedBox(height: 4),
                     itemBuilder: (context, index) {
                       final comp = _components[index];
-                      return Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 14,
-                              backgroundColor: _getMaterialCategoryColor(
-                                comp.category,
-                              ),
-                              child: Icon(
-                                _getMaterialCategoryIcon(comp.category),
-                                size: 14,
-                                color: Colors.white,
-                              ),
+                      final hasAssociation = comp.materialId.isNotEmpty;
+                      return InkWell(
+                        onTap: () => _showEditComponentDialog(index),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: hasAssociation
+                                ? Colors.white
+                                : const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: hasAssociation
+                                  ? Theme.of(context).colorScheme.outlineVariant
+                                  : const Color(0xFFFFB74D),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 14,
+                                backgroundColor: hasAssociation
+                                    ? _getMaterialCategoryColor(comp.category)
+                                    : const Color(0xFFFF9800),
+                                child: Icon(
+                                  hasAssociation
+                                      ? _getMaterialCategoryIcon(comp.category)
+                                      : Icons.link_off,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (comp.label.isNotEmpty)
+                                      Text(
+                                        comp.label,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    Text(
+                                      '${comp.quantity}× ${comp.name}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    Text(
+                                      hasAssociation
+                                          ? comp.description
+                                          : 'Toca para asociar material',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: hasAssociation
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant
+                                            : const Color(0xFFE65100),
+                                        fontStyle: hasAssociation
+                                            ? FontStyle.normal
+                                            : FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    '${comp.quantity}× ${comp.name}',
+                                    '${comp.totalWeight.toStringAsFixed(2)} kg',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 11,
                                     ),
                                   ),
                                   Text(
-                                    comp.description,
+                                    Helpers.formatCurrency(comp.totalPrice),
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: Theme.of(
@@ -2710,39 +2891,18 @@ class _CompositeProductFormDialogState
                                   ),
                                 ],
                               ),
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '${comp.totalWeight.toStringAsFixed(2)} kg',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 11,
-                                  ),
+                              const SizedBox(width: 4),
+                              InkWell(
+                                onTap: () =>
+                                    setState(() => _components.removeAt(index)),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: const Color(0xFFEF5350),
                                 ),
-                                Text(
-                                  Helpers.formatCurrency(comp.totalPrice),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(width: 4),
-                            InkWell(
-                              onTap: () =>
-                                  setState(() => _components.removeAt(index)),
-                              child: Icon(
-                                Icons.close,
-                                size: 16,
-                                color: const Color(0xFFEF5350),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -2902,8 +3062,10 @@ class _CompositeProductFormDialogState
     }
 
     final pesoConPerdidas = _calculatedWeight * (1 + _wastePercentage / 100);
-    final costoConPerdidas =
-        pesoConPerdidas * _selectedMaterial!.effectiveCostPrice;
+    final costoPorUnidad =
+        (pesoConPerdidas / cantidad) * _selectedMaterial!.effectiveCostPrice;
+    final ventaPorUnidad =
+        (pesoConPerdidas / cantidad) * _selectedMaterial!.effectivePrice;
 
     setState(() {
       _components.add(
@@ -2912,6 +3074,7 @@ class _CompositeProductFormDialogState
           name: _selectedMaterial!.name,
           category: _selectedMaterial!.category,
           description: description,
+          label: _labelController.text.trim(),
           shape: shape,
           outerDiameter: outerDiameter,
           thickness: thickness,
@@ -2919,13 +3082,15 @@ class _CompositeProductFormDialogState
           width: width,
           quantity: cantidad,
           weightPerUnit: pesoConPerdidas / cantidad,
-          pricePerUnit: costoConPerdidas / cantidad,
+          pricePerUnit: ventaPorUnidad,
+          costPricePerUnit: costoPorUnidad,
         ),
       );
 
       // Reset para siguiente componente
       _selectedMaterial = null;
       _calculatedWeight = 0;
+      _labelController.clear();
       _clearDimensionFields();
     });
   }
@@ -2935,6 +3100,8 @@ class _CompositeProductFormDialogState
 
     final cantidad = double.tryParse(_directQuantityController.text) ?? 1;
     final material = _selectedDirectMaterial!;
+    final qtyInt = cantidad.ceil() > 0 ? cantidad.ceil() : 1;
+    final weightPU = cantidad / qtyInt;
 
     setState(() {
       _components.add(
@@ -2945,18 +3112,36 @@ class _CompositeProductFormDialogState
           description:
               '${cantidad.toStringAsFixed(cantidad == cantidad.roundToDouble() ? 0 : 1)} ${material.unit}',
           shape: MaterialShape.custom,
-          quantity: cantidad.ceil(),
-          weightPerUnit: cantidad / (cantidad.ceil() > 0 ? cantidad.ceil() : 1),
-          pricePerUnit:
-              material.effectiveCostPrice *
-              cantidad /
-              (cantidad.ceil() > 0 ? cantidad.ceil() : 1),
+          quantity: qtyInt,
+          weightPerUnit: weightPU,
+          pricePerUnit: material.effectivePrice * weightPU,
+          costPricePerUnit: material.effectiveCostPrice * weightPU,
         ),
       );
 
       _selectedDirectMaterial = null;
       _directQuantityController.text = '1';
     });
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  EDITAR COMPONENTE (CLICK)
+  // ═══════════════════════════════════════════════════
+
+  void _showEditComponentDialog(int index) {
+    final comp = _components[index];
+    final inventoryState = ref.read(inventoryProvider);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => _EditComponentDialog(
+        component: comp,
+        materials: inventoryState.materials,
+        onSave: (updated) {
+          setState(() => _components[index] = updated);
+        },
+      ),
+    );
   }
 
   // ═══════════════════════════════════════════════════
@@ -2974,7 +3159,12 @@ class _CompositeProductFormDialogState
     );
   }
 
-  Widget _previewRow(String label, String value, {bool bold = false}) {
+  Widget _previewRow(
+    String label,
+    String value, {
+    bool bold = false,
+    Color? color,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -2990,7 +3180,9 @@ class _CompositeProductFormDialogState
             value,
             style: TextStyle(
               fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-              color: bold ? Theme.of(context).colorScheme.primary : null,
+              color:
+                  color ??
+                  (bold ? Theme.of(context).colorScheme.primary : null),
               fontSize: bold ? 15 : 13,
             ),
           ),
@@ -3440,6 +3632,1110 @@ class _ManageCategoriesDialogState
 }
 
 // ═══════════════════════════════════════════════════════
+//  DIÁLOGO EDITAR COMPONENTE (ASOCIAR MATERIAL + CÁLCULO)
+// ═══════════════════════════════════════════════════════
+
+class _EditComponentDialog extends StatefulWidget {
+  final _ComponentFormData component;
+  final List<mat.Material> materials;
+  final void Function(_ComponentFormData updated) onSave;
+
+  const _EditComponentDialog({
+    required this.component,
+    required this.materials,
+    required this.onSave,
+  });
+
+  @override
+  State<_EditComponentDialog> createState() => _EditComponentDialogState();
+}
+
+class _EditComponentDialogState extends State<_EditComponentDialog> {
+  late List<mat.Material> _materials;
+  late TextEditingController _labelController;
+  late TextEditingController _quantityController;
+  late TextEditingController _searchController;
+  late TextEditingController _largoController;
+  late TextEditingController _anchoController;
+  late TextEditingController _espesorController;
+  late TextEditingController _diametroExtController;
+  late TextEditingController _espesorParedController;
+  late TextEditingController _diametroController;
+  late TextEditingController _ladoController;
+  late TextEditingController _wasteController;
+  late TextEditingController _unitPriceController;
+
+  mat.Material? _selectedMaterial;
+  String? _calcType; // null = directo, 'lamina', 'tubo', 'eje', 'eje_cuadrado'
+  double _calculatedWeight = 0;
+  double _wastePercentage = 5;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _materials = List.from(widget.materials);
+    final c = widget.component;
+    _labelController = TextEditingController(text: c.label);
+    _quantityController = TextEditingController(text: c.quantity.toString());
+    _searchController = TextEditingController();
+    _largoController = TextEditingController();
+    _anchoController = TextEditingController();
+    _espesorController = TextEditingController(text: '1/4');
+    _diametroExtController = TextEditingController(text: '1');
+    _espesorParedController = TextEditingController(text: '1/4');
+    _diametroController = TextEditingController(text: '1');
+    _ladoController = TextEditingController(text: '1');
+    _wasteController = TextEditingController(text: '5');
+    _unitPriceController = TextEditingController(
+      text: c.pricePerUnit > 0 ? c.pricePerUnit.toStringAsFixed(0) : '',
+    );
+
+    // Pre-select material if already associated
+    if (c.materialId.isNotEmpty) {
+      final idx = _materials.indexWhere((m) => m.id == c.materialId);
+      if (idx >= 0) {
+        _selectedMaterial = _materials[idx];
+        // Update price field with current material venta price
+        _unitPriceController.text = _selectedMaterial!.effectivePrice
+            .toStringAsFixed(0);
+      }
+    }
+
+    // Pre-load dimensions if they exist
+    if (c.length != null && c.length! > 0) {
+      _largoController.text = (c.length! / 10).toStringAsFixed(1); // mm→cm
+    }
+    if (c.width != null && c.width! > 0) {
+      _anchoController.text = (c.width! / 10).toStringAsFixed(1);
+    }
+    if (c.weightPerUnit > 0) {
+      _calculatedWeight = c.weightPerUnit * c.quantity;
+    }
+
+    // Detect calc type from shape
+    switch (c.shape) {
+      case MaterialShape.rectangularPlate:
+        _calcType = 'lamina';
+        break;
+      case MaterialShape.cylinder:
+        _calcType = 'tubo';
+        break;
+      case MaterialShape.solidCylinder:
+        _calcType = 'eje';
+        break;
+      case MaterialShape.solidSquare:
+        _calcType = 'eje_cuadrado';
+        break;
+      default:
+        _calcType = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _quantityController.dispose();
+    _searchController.dispose();
+    _largoController.dispose();
+    _anchoController.dispose();
+    _espesorController.dispose();
+    _diametroExtController.dispose();
+    _espesorParedController.dispose();
+    _diametroController.dispose();
+    _ladoController.dispose();
+    _wasteController.dispose();
+    _unitPriceController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        width: 800,
+        height: 600,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Icon(
+                  Icons.edit,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Editar: ${widget.component.label.isNotEmpty ? widget.component.label : widget.component.name}',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, size: 18),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+            const Divider(height: 12),
+
+            // Body: two columns
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left: Material search
+                  Expanded(flex: 1, child: _buildMaterialSearch()),
+                  const SizedBox(width: 12),
+                  Container(width: 1, color: const Color(0xFFE0E0E0)),
+                  const SizedBox(width: 12),
+                  // Right: Config + calc
+                  Expanded(flex: 1, child: _buildConfigPanel()),
+                ],
+              ),
+            ),
+
+            const Divider(height: 12),
+
+            // Footer: preview + buttons
+            _buildFooter(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Material Search Panel ──
+  Widget _buildMaterialSearch() {
+    final filtered = _materials.where((m) {
+      if (_searchQuery.isEmpty) return true;
+      final q = _searchQuery.toLowerCase();
+      return m.name.toLowerCase().contains(q) ||
+          m.code.toLowerCase().contains(q) ||
+          m.category.toLowerCase().contains(q);
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Asociar Material del Inventario',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'Buscar en todo el inventario...',
+            prefixIcon: const Icon(Icons.search, size: 16),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 8,
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+            filled: true,
+            fillColor: const Color(0xFFF5F5F5),
+          ),
+          style: const TextStyle(fontSize: 11),
+          onChanged: (v) => setState(() => _searchQuery = v),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '${filtered.length} materiales',
+          style: TextStyle(
+            fontSize: 10,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _createNewMaterial,
+            icon: const Icon(Icons.add, size: 14),
+            label: const Text(
+              'Crear nuevo material',
+              style: TextStyle(fontSize: 11),
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Expanded(
+          child: ListView.builder(
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              final m = filtered[index];
+              final isSelected = _selectedMaterial?.id == m.id;
+              return InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedMaterial = m;
+                    // Auto-fill price in Directo mode (show venta price)
+                    if (_calcType == null) {
+                      _unitPriceController.text = m.effectivePrice
+                          .toStringAsFixed(0);
+                    }
+                    _recalculate();
+                  });
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : const Color(0xFFEEEEEE),
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              m.name,
+                              style: TextStyle(
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                                fontSize: 11,
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : const Color(0xFF424242),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '${m.category} • ${m.unit} • Stock: ${m.stock.toStringAsFixed(1)}',
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '${Helpers.formatCurrency(m.effectivePrice)} V\n${Helpers.formatCurrency(m.effectiveCostPrice)} C',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 9,
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : const Color(0xFF616161),
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                      if (isSelected) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.check_circle,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 16,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Config Panel (right side) ──
+  Widget _buildConfigPanel() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Label field
+          Text(
+            'Nombre de la pieza',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          TextField(
+            controller: _labelController,
+            decoration: const InputDecoration(
+              hintText: 'Ej: Lamina Base, Tapa Superior...',
+              isDense: true,
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            ),
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+
+          // Calc type selector
+          Text(
+            'Tipo de cálculo',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              _editCalcChip('Directo', null, Icons.straighten),
+              const SizedBox(width: 4),
+              _editCalcChip('Lám', 'lamina', Icons.crop_square),
+              const SizedBox(width: 4),
+              _editCalcChip('Tubo', 'tubo', Icons.circle_outlined),
+              const SizedBox(width: 4),
+              _editCalcChip('Eje', 'eje', Icons.horizontal_rule),
+              const SizedBox(width: 4),
+              _editCalcChip('Cuad', 'eje_cuadrado', Icons.square_outlined),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Dimension fields based on type
+          if (_calcType != null) ...[
+            Text(
+              'Dimensiones',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            _buildEditDimensionFields(),
+            const SizedBox(height: 8),
+          ],
+
+          // Quantity + waste
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _quantityController,
+                  decoration: const InputDecoration(
+                    labelText: 'Cantidad',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                  ),
+                  style: const TextStyle(fontSize: 12),
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => _recalculate(),
+                ),
+              ),
+              if (_calcType != null) ...[
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 70,
+                  child: TextField(
+                    controller: _wasteController,
+                    decoration: InputDecoration(
+                      labelText: '% Pérd.',
+                      isDense: true,
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 8,
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9A825).withOpacity(0.1),
+                    ),
+                    style: const TextStyle(fontSize: 11),
+                    keyboardType: TextInputType.number,
+                    onChanged: (v) {
+                      _wastePercentage = (double.tryParse(v) ?? 0).clamp(0, 50);
+                      _recalculate();
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+
+          // Direct price (when no calc type)
+          if (_calcType == null) ...[
+            const SizedBox(height: 8),
+            TextField(
+              controller: _unitPriceController,
+              readOnly: _selectedMaterial != null,
+              decoration: InputDecoration(
+                labelText:
+                    _selectedMaterial != null && _selectedMaterial!.unit == 'KG'
+                    ? 'Precio VENTA por kg (\$)'
+                    : 'Precio VENTA unitario (\$)',
+                hintText: _selectedMaterial != null
+                    ? Helpers.formatCurrency(_selectedMaterial!.effectivePrice)
+                    : 'Precio por unidad',
+                isDense: true,
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 8,
+                ),
+                suffixText: _selectedMaterial != null
+                    ? '/${_selectedMaterial!.unit == 'KG' ? 'kg' : 'und'}'
+                    : null,
+              ),
+              style: const TextStyle(fontSize: 12),
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
+
+          const SizedBox(height: 12),
+
+          // Result preview - always show
+          if (_selectedMaterial != null ||
+              _calcType != null ||
+              _unitPriceController.text.isNotEmpty) ...[
+            _buildResultPreview(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _editCalcChip(String label, String? type, IconData icon) {
+    final isActive = _calcType == type;
+    final color = type == null
+        ? const Color(0xFF616161)
+        : type == 'lamina'
+        ? const Color(0xFF1565C0)
+        : type == 'tubo'
+        ? const Color(0xFF2E7D32)
+        : type == 'eje'
+        ? const Color(0xFFF9A825)
+        : const Color(0xFF8E24AA);
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _calcType = type;
+          _calculatedWeight = 0;
+        });
+        _recalculate();
+      },
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: isActive ? color.withOpacity(0.15) : Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isActive ? color : const Color(0xFFE0E0E0),
+            width: isActive ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? color : const Color(0xFF9E9E9E),
+              size: 12,
+            ),
+            const SizedBox(width: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                color: isActive ? color : const Color(0xFF616161),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditDimensionFields() {
+    switch (_calcType) {
+      case 'lamina':
+        return Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _largoController,
+                decoration: const InputDecoration(
+                  labelText: 'Largo cm',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 11),
+                keyboardType: TextInputType.number,
+                onChanged: (_) => _recalculate(),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: TextField(
+                controller: _anchoController,
+                decoration: const InputDecoration(
+                  labelText: 'Ancho cm',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 11),
+                keyboardType: TextInputType.number,
+                onChanged: (_) => _recalculate(),
+              ),
+            ),
+            const SizedBox(width: 4),
+            SizedBox(
+              width: 80,
+              child: TextField(
+                controller: _espesorController,
+                decoration: const InputDecoration(
+                  labelText: 'Esp. "',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 11),
+                onChanged: (_) => _recalculate(),
+              ),
+            ),
+          ],
+        );
+      case 'tubo':
+        return Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _diametroExtController,
+                decoration: const InputDecoration(
+                  labelText: 'Ø Ext "',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 11),
+                onChanged: (_) => _recalculate(),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: TextField(
+                controller: _espesorParedController,
+                decoration: const InputDecoration(
+                  labelText: 'Pared "',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 11),
+                onChanged: (_) => _recalculate(),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: TextField(
+                controller: _largoController,
+                decoration: const InputDecoration(
+                  labelText: 'Largo cm',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 11),
+                keyboardType: TextInputType.number,
+                onChanged: (_) => _recalculate(),
+              ),
+            ),
+          ],
+        );
+      case 'eje':
+        return Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _diametroController,
+                decoration: const InputDecoration(
+                  labelText: 'Diámetro "',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 11),
+                onChanged: (_) => _recalculate(),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: TextField(
+                controller: _largoController,
+                decoration: const InputDecoration(
+                  labelText: 'Largo cm',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 11),
+                keyboardType: TextInputType.number,
+                onChanged: (_) => _recalculate(),
+              ),
+            ),
+          ],
+        );
+      case 'eje_cuadrado':
+        return Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _ladoController,
+                decoration: const InputDecoration(
+                  labelText: 'Lado "',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 11),
+                onChanged: (_) => _recalculate(),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: TextField(
+                controller: _largoController,
+                decoration: const InputDecoration(
+                  labelText: 'Largo cm',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 11),
+                keyboardType: TextInputType.number,
+                onChanged: (_) => _recalculate(),
+              ),
+            ),
+          ],
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildResultPreview() {
+    final cantidad = int.tryParse(_quantityController.text) ?? 1;
+    double pesoTotal = 0;
+    double costoCompra = 0;
+    double costoVenta = 0;
+    String unitLabel = 'und';
+
+    if (_calcType != null &&
+        _calculatedWeight > 0 &&
+        _selectedMaterial != null) {
+      final pesoConPerdidas = _calculatedWeight * (1 + _wastePercentage / 100);
+      pesoTotal = pesoConPerdidas;
+      costoCompra = pesoConPerdidas * _selectedMaterial!.effectiveCostPrice;
+      costoVenta = pesoConPerdidas * _selectedMaterial!.effectivePrice;
+      unitLabel = 'kg';
+    } else if (_calcType == null) {
+      // Directo - use material prices when available, fallback to manual
+      final manualPrice = double.tryParse(_unitPriceController.text) ?? 0;
+      if (_selectedMaterial != null) {
+        unitLabel = _selectedMaterial!.unit == 'KG' ? 'kg' : 'und';
+        costoCompra = _selectedMaterial!.effectiveCostPrice * cantidad;
+        costoVenta = _selectedMaterial!.effectivePrice * cantidad;
+        pesoTotal = _selectedMaterial!.unit == 'KG' ? cantidad.toDouble() : 0;
+      } else {
+        costoCompra = manualPrice * cantidad;
+        costoVenta = manualPrice * cantidad;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: (pesoTotal > 0 || costoCompra > 0)
+            ? const Color(0xFF2E7D32).withOpacity(0.08)
+            : const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: (pesoTotal > 0 || costoCompra > 0)
+              ? const Color(0xFF2E7D32).withOpacity(0.3)
+              : const Color(0xFFE0E0E0),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          Column(
+            children: [
+              Text(
+                pesoTotal > 0 ? 'Peso' : 'Cantidad',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                pesoTotal > 0
+                    ? '${pesoTotal.toStringAsFixed(2)} kg'
+                    : '$cantidad $unitLabel',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF388E3C),
+                ),
+              ),
+            ],
+          ),
+          Column(
+            children: [
+              Text(
+                'Compra',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                Helpers.formatCurrency(costoCompra),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFE65100),
+                ),
+              ),
+            ],
+          ),
+          Column(
+            children: [
+              Text(
+                'Venta',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                Helpers.formatCurrency(costoVenta),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF388E3C),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Footer: save/cancel ──
+  Widget _buildFooter() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        // Material info chip
+        if (_selectedMaterial != null) ...[
+          Icon(Icons.check_circle, size: 14, color: const Color(0xFF2E7D32)),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              '${_selectedMaterial!.name} • V:${Helpers.formatCurrency(_selectedMaterial!.effectivePrice)} C:${Helpers.formatCurrency(_selectedMaterial!.effectiveCostPrice)}/${_selectedMaterial!.unit == 'KG' ? 'kg' : 'und'}',
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF2E7D32),
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 12),
+        ] else ...[
+          const Spacer(),
+        ],
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        const SizedBox(width: 8),
+        FilledButton.icon(
+          onPressed: _saveChanges,
+          icon: const Icon(Icons.check, size: 16),
+          label: const Text('Guardar', style: TextStyle(fontSize: 12)),
+        ),
+      ],
+    );
+  }
+
+  // ── Calculation logic ──
+  double _parseFraction(String value) {
+    if (value.isEmpty) return 0;
+    value = value.trim();
+    if (double.tryParse(value) != null) return double.parse(value);
+    if (value.contains(' ')) {
+      final parts = value.split(' ');
+      if (parts.length == 2) {
+        return (double.tryParse(parts[0]) ?? 0) + _parseFraction(parts[1]);
+      }
+    }
+    if (value.contains('/')) {
+      final parts = value.split('/');
+      if (parts.length == 2) {
+        final num = double.tryParse(parts[0]) ?? 0;
+        final den = double.tryParse(parts[1]) ?? 1;
+        return den != 0 ? num / den : 0;
+      }
+    }
+    return 0;
+  }
+
+  void _recalculate() {
+    if (_calcType == null) {
+      setState(() {});
+      return;
+    }
+
+    final cantidad = int.tryParse(_quantityController.text) ?? 1;
+    double pesoUnitario = 0;
+    const double steelDensity = 7.85; // g/cm³
+
+    if (_calcType == 'lamina') {
+      final largo = double.tryParse(_largoController.text) ?? 0;
+      final ancho = double.tryParse(_anchoController.text) ?? 0;
+      final espesorPulg = _parseFraction(_espesorController.text);
+      final espesorCm = espesorPulg * 2.54;
+      if (largo > 0 && ancho > 0 && espesorCm > 0) {
+        final volumenCm3 = largo * ancho * espesorCm;
+        pesoUnitario = (volumenCm3 * steelDensity) / 1000;
+      }
+    } else if (_calcType == 'tubo') {
+      final dExtPulg = _parseFraction(_diametroExtController.text);
+      final espesorParedPulg = _parseFraction(_espesorParedController.text);
+      final largo = double.tryParse(_largoController.text) ?? 0;
+      final dExtCm = dExtPulg * 2.54;
+      final espesorParedCm = espesorParedPulg * 2.54;
+      final dIntCm = dExtCm - (2 * espesorParedCm);
+      if (dExtCm > 0 && dIntCm > 0 && largo > 0) {
+        final rExt = dExtCm / 2;
+        final rInt = dIntCm / 2;
+        final volumenCm3 = math.pi * (rExt * rExt - rInt * rInt) * largo;
+        pesoUnitario = (volumenCm3 * steelDensity) / 1000;
+      }
+    } else if (_calcType == 'eje') {
+      final dPulg = _parseFraction(_diametroController.text);
+      final largo = double.tryParse(_largoController.text) ?? 0;
+      final dCm = dPulg * 2.54;
+      if (dCm > 0 && largo > 0) {
+        final r = dCm / 2;
+        final volumenCm3 = math.pi * r * r * largo;
+        pesoUnitario = (volumenCm3 * steelDensity) / 1000;
+      }
+    } else if (_calcType == 'eje_cuadrado') {
+      final ladoPulg = _parseFraction(_ladoController.text);
+      final largo = double.tryParse(_largoController.text) ?? 0;
+      final ladoCm = ladoPulg * 2.54;
+      if (ladoCm > 0 && largo > 0) {
+        final volumenCm3 = ladoCm * ladoCm * largo;
+        pesoUnitario = (volumenCm3 * steelDensity) / 1000;
+      }
+    }
+
+    setState(() {
+      _calculatedWeight = pesoUnitario * cantidad;
+    });
+  }
+
+  void _saveChanges() {
+    final cantidad = int.tryParse(_quantityController.text) ?? 1;
+    String description = '';
+    MaterialShape shape = MaterialShape.custom;
+    double? outerDiameter;
+    double? thickness;
+    double? length;
+    double? width;
+    double weightPerUnit = 0;
+    double pricePerUnit = 0;
+    double costPricePerUnit = 0;
+    String materialId = _selectedMaterial?.id ?? '';
+    String materialName = _selectedMaterial?.name ?? widget.component.name;
+    String category = _selectedMaterial?.category ?? widget.component.category;
+
+    if (_calcType != null &&
+        _calculatedWeight > 0 &&
+        _selectedMaterial != null) {
+      // Calculated mode
+      final pesoConPerdidas = _calculatedWeight * (1 + _wastePercentage / 100);
+      weightPerUnit = pesoConPerdidas / cantidad;
+      pricePerUnit = weightPerUnit * _selectedMaterial!.effectivePrice;
+      costPricePerUnit = weightPerUnit * _selectedMaterial!.effectiveCostPrice;
+
+      if (_calcType == 'lamina') {
+        shape = MaterialShape.rectangularPlate;
+        description =
+            '${_largoController.text}×${_anchoController.text}cm, ${_espesorController.text}"';
+        length = (double.tryParse(_largoController.text) ?? 0) * 10;
+        width = (double.tryParse(_anchoController.text) ?? 0) * 10;
+        thickness = _parseFraction(_espesorController.text) * 25.4;
+      } else if (_calcType == 'tubo') {
+        shape = MaterialShape.cylinder;
+        description =
+            'Ø${_diametroExtController.text}" × ${_espesorParedController.text}" × ${_largoController.text}cm';
+        outerDiameter = _parseFraction(_diametroExtController.text) * 25.4;
+        thickness = _parseFraction(_espesorParedController.text) * 25.4;
+        length = (double.tryParse(_largoController.text) ?? 0) * 10;
+      } else if (_calcType == 'eje') {
+        shape = MaterialShape.solidCylinder;
+        description =
+            'Ø${_diametroController.text}" × ${_largoController.text}cm';
+        outerDiameter = _parseFraction(_diametroController.text) * 25.4;
+        length = (double.tryParse(_largoController.text) ?? 0) * 10;
+      } else if (_calcType == 'eje_cuadrado') {
+        shape = MaterialShape.solidSquare;
+        description = '◻${_ladoController.text}" × ${_largoController.text}cm';
+        width = _parseFraction(_ladoController.text) * 25.4;
+        length = (double.tryParse(_largoController.text) ?? 0) * 10;
+      }
+
+      if (_wastePercentage > 0) {
+        description += ' (+${_wastePercentage.toStringAsFixed(0)}% pérdida)';
+      }
+    } else {
+      // Direct mode
+      if (_selectedMaterial != null) {
+        final m = _selectedMaterial!;
+        if (m.unit == 'KG') {
+          pricePerUnit = m.effectivePrice;
+          costPricePerUnit = m.effectiveCostPrice;
+          weightPerUnit = 1;
+          description = '$cantidad KG';
+        } else {
+          pricePerUnit = m.effectivePrice;
+          costPricePerUnit = m.effectiveCostPrice;
+          weightPerUnit = 1;
+          description = '$cantidad UND';
+        }
+      } else {
+        final manualPrice = double.tryParse(_unitPriceController.text) ?? 0;
+        pricePerUnit = manualPrice > 0
+            ? manualPrice
+            : widget.component.pricePerUnit;
+        costPricePerUnit = widget.component.costPricePerUnit;
+        weightPerUnit = 0;
+        description = '$cantidad UND';
+      }
+    }
+
+    final updated = _ComponentFormData(
+      materialId: materialId,
+      name: materialName,
+      category: category,
+      description: description,
+      label: _labelController.text.trim().isNotEmpty
+          ? _labelController.text.trim()
+          : widget.component.label,
+      shape: shape,
+      outerDiameter: outerDiameter,
+      thickness: thickness,
+      length: length,
+      width: width,
+      quantity: cantidad,
+      weightPerUnit: weightPerUnit,
+      pricePerUnit: pricePerUnit,
+      costPricePerUnit: costPricePerUnit,
+    );
+
+    widget.onSave(updated);
+    Navigator.pop(context);
+  }
+
+  Future<void> _createNewMaterial() async {
+    final created = await MaterialFormDialog.show(
+      context,
+      suggestedName: widget.component.name,
+    );
+    if (created != null && mounted) {
+      setState(() {
+        _materials.insert(0, created);
+        _selectedMaterial = created;
+        if (_calcType == null) {
+          _unitPriceController.text = created.effectiveCostPrice
+              .toStringAsFixed(0);
+        }
+      });
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 //  MODELO DE DATOS PARA COMPONENTES
 // ═══════════════════════════════════════════════════════
 
@@ -3448,6 +4744,7 @@ class _ComponentFormData {
   final String name;
   final String category;
   final String description;
+  final String label; // Título de la pieza (ej: "tapa lateral")
   final MaterialShape shape;
   final double? outerDiameter;
   final double? thickness;
@@ -3456,12 +4753,14 @@ class _ComponentFormData {
   final int quantity;
   final double weightPerUnit;
   final double pricePerUnit;
+  final double costPricePerUnit;
 
   _ComponentFormData({
     this.materialId = '',
     this.name = '',
     this.category = '',
     this.description = '',
+    this.label = '',
     this.shape = MaterialShape.custom,
     this.outerDiameter,
     this.thickness,
@@ -3470,10 +4769,12 @@ class _ComponentFormData {
     this.quantity = 1,
     this.weightPerUnit = 0,
     this.pricePerUnit = 0,
+    this.costPricePerUnit = 0,
   });
 
   double get totalWeight => weightPerUnit * quantity;
   double get totalPrice => pricePerUnit * quantity;
+  double get totalCostPrice => costPricePerUnit * quantity;
 
   factory _ComponentFormData.fromComponent(ProductComponent c) {
     return _ComponentFormData(
@@ -3481,6 +4782,7 @@ class _ComponentFormData {
       name: c.materialName ?? '',
       category: '',
       description: c.dimensionsDescription,
+      label: c.label ?? '',
       shape: c.shape ?? MaterialShape.custom,
       outerDiameter: c.outerDiameter,
       thickness: c.thickness,
@@ -3489,6 +4791,7 @@ class _ComponentFormData {
       quantity: c.quantity,
       weightPerUnit: c.weightPerUnit,
       pricePerUnit: c.pricePerUnit,
+      costPricePerUnit: c.costPricePerUnit,
     );
   }
 
@@ -3497,6 +4800,7 @@ class _ComponentFormData {
       id: '',
       materialId: materialId,
       materialName: name,
+      label: label.isNotEmpty ? label : null,
       shape: shape,
       outerDiameter: outerDiameter,
       thickness: thickness,
@@ -3505,6 +4809,7 @@ class _ComponentFormData {
       quantity: quantity,
       weightPerUnit: weightPerUnit,
       pricePerUnit: pricePerUnit,
+      costPricePerUnit: costPricePerUnit,
     );
   }
 }

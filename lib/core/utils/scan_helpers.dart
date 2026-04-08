@@ -57,32 +57,41 @@ String inferCategoryFromDescription(String description) {
   if (d.contains('tubo') ||
       d.contains('tubería') ||
       d.contains('tuberia') ||
-      d.contains('caño'))
+      d.contains('caño')) {
     return 'Tubería';
+  }
   if (d.contains('lámina') ||
       d.contains('lamina') ||
       d.contains('chapa') ||
-      d.contains('placa'))
+      d.contains('placa')) {
     return 'Láminas';
-  if (d.contains('eje') || d.contains('barra') || d.contains('varilla'))
+  }
+  if (d.contains('eje') || d.contains('barra') || d.contains('varilla')) {
     return 'Ejes y Barras';
+  }
   if (d.contains('tornillo') ||
       d.contains('perno') ||
       d.contains('tuerca') ||
-      d.contains('arandela'))
+      d.contains('arandela')) {
     return 'Tornillería';
+  }
   if (d.contains('sold') || d.contains('electrod')) return 'Soldadura';
-  if (d.contains('pintura') || d.contains('anticorr') || d.contains('esmalte'))
+  if (d.contains('pintura') ||
+      d.contains('anticorr') ||
+      d.contains('esmalte')) {
     return 'Pintura';
+  }
   if (d.contains('rodamiento') ||
       d.contains('balero') ||
-      d.contains('chumacera'))
+      d.contains('chumacera')) {
     return 'Rodamientos';
+  }
   if (d.contains('disco') ||
       d.contains('lija') ||
       d.contains('grasa') ||
-      d.contains('aceite'))
+      d.contains('aceite')) {
     return 'Consumibles';
+  }
   if (d.contains('filtro')) return 'Consumibles';
   return 'General';
 }

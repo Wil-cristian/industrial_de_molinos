@@ -60,9 +60,14 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             'products': inv.items
                 .map(
                   (item) => {
+                    'itemId': item.id,
+                    'invoiceId': item.invoiceId,
                     'name': item.productName,
                     'quantity': item.quantity,
+                    'unit': item.unit,
                     'unitPrice': item.unitPrice,
+                    'discount': item.discount,
+                    'taxRate': item.taxRate,
                     'total': item.total,
                     'productId': item.productId,
                     'components': () {
@@ -944,9 +949,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                   ),
                 ),
               ],
-              if (invoice['status'] != 'Anulada' &&
-                  invoice['status'] != 'Pagada' &&
-                  invoice['status'] != 'Parcial') ...[
+              if (invoice['status'] != 'Anulada') ...[
                 const PopupMenuDivider(),
                 const PopupMenuItem(
                   value: 'cancel',
@@ -1773,105 +1776,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
     final status = invoice['status'] ?? 'Borrador';
     final paidAmount = (invoice['paid'] as num?)?.toDouble() ?? 0.0;
     final total = (invoice['total'] as num?)?.toDouble() ?? 0.0;
+    final hasPagos = paidAmount > 0;
 
     // ═══════════════════════════════════════════════
-    // BLINDAJE 1: Bloquear facturas pagadas/parciales
-    // ═══════════════════════════════════════════════
-    if (status == 'Pagada' || status == 'Parcial' || paidAmount > 0) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.shield, color: AppColors.danger, size: 28),
-              const SizedBox(width: 8),
-              const Text('Anulación Bloqueada'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBEE),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.danger.withOpacity(0.5)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.lock, color: AppColors.danger, size: 24),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'No se puede anular esta factura',
-                            style: TextStyle(
-                              color: const Color(0xFFC62828),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'La factura $invoiceNumber tiene pagos registrados '
-                      'por \$${paidAmount.toStringAsFixed(2)} de un total de \$${total.toStringAsFixed(2)}.',
-                      style: TextStyle(color: AppColors.danger, fontSize: 13),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Las facturas con pagos no pueden ser anuladas para '
-                      'proteger la integridad contable del sistema.',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF90CAF9)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: AppColors.info, size: 20),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Si necesita corregir esta factura, contacte al administrador del sistema.',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Entendido'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
-    // ═══════════════════════════════════════════════
-    // BLINDAJE 2: Factura ya está anulada
+    // Factura ya está anulada
     // ═══════════════════════════════════════════════
     if (status == 'Anulada' || status == 'cancelled') {
       messenger.showSnackBar(
@@ -1884,7 +1792,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
     }
 
     // ═══════════════════════════════════════════════
-    // ANULACIÓN PERMITIDA: Mostrar diálogo con motivo
+    // ANULACIÓN: Mostrar diálogo con motivo obligatorio
     // ═══════════════════════════════════════════════
     final reasonController = TextEditingController();
 
@@ -1898,52 +1806,101 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             const Text('Anular Factura'),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E0),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.warning.withOpacity(0.5)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber, color: AppColors.warning),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Esta acción anulará la factura $invoiceNumber de forma permanente '
-                      'y se registrará en el historial de auditoría.',
-                      style: TextStyle(color: AppColors.warning, fontSize: 13),
-                    ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Advertencia de pagos si aplica
+              if (hasPagos) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEBEE),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.danger.withOpacity(0.5)),
                   ),
-                ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.payments, color: AppColors.danger, size: 22),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Esta factura tiene pagos registrados',
+                              style: TextStyle(
+                                color: const Color(0xFFC62828),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Pagado: \$${paidAmount.toStringAsFixed(2)} de \$${total.toStringAsFixed(2)}',
+                        style: TextStyle(color: AppColors.danger, fontSize: 13),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Al anular, los pagos serán revertidos automáticamente y se registrará en auditoría.',
+                        style: TextStyle(
+                          color: Theme.of(dialogContext).colorScheme.onSurface,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              // Advertencia general
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.warning.withOpacity(0.5)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: AppColors.warning),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Esta acción anulará la factura $invoiceNumber de forma permanente '
+                        'y se registrará en el historial de auditoría.',
+                        style: TextStyle(color: AppColors.warning, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Estado actual: $status  |  Total: \$${total.toStringAsFixed(2)}',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 13,
+              const SizedBox(height: 12),
+              Text(
+                'Estado actual: $status  |  Total: \$${total.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: reasonController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Motivo de anulación *',
-                hintText:
-                    'Ej: Error en los datos, duplicada, solicitud del cliente...',
-                prefixIcon: Icon(Icons.comment),
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Motivo de anulación *',
+                  hintText:
+                      'Ej: Error en los datos, duplicada, solicitud del cliente...',
+                  prefixIcon: Icon(Icons.comment),
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1964,14 +1921,12 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
               Navigator.pop(dialogContext);
 
               try {
-                // Usar anulación segura server-side
                 final result = await InvoicesDataSource.secureCancelInvoice(
                   invoiceId,
                   reason: reasonController.text.trim(),
                 );
 
                 if (result['success'] == true) {
-                  // Refrescar la lista
                   ref.read(invoicesProvider.notifier).refresh();
                   messenger.showSnackBar(
                     SnackBar(
@@ -1982,6 +1937,11 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                           Text(
                             'Factura ${result['invoice_number']} anulada correctamente ✓',
                           ),
+                          if (result['payments_reverted'] != null && (result['payments_reverted'] as num) > 0)
+                            Text(
+                              '✓ ${result['payments_reverted']} pago(s) revertido(s) por \$${result['payment_total_reverted']}',
+                              style: const TextStyle(fontSize: 11),
+                            ),
                           if (result['inventory_reverted'] == true)
                             Text(
                               '✓ Inventario restaurado (${result['inventory_items']} items)',
@@ -1990,14 +1950,13 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                         ],
                       ),
                       backgroundColor: AppColors.success,
-                      duration: const Duration(seconds: 4),
+                      duration: const Duration(seconds: 5),
                     ),
                   );
                 } else if (result['blocked'] == true) {
-                  // Fue bloqueada por el servidor
                   messenger.showSnackBar(
                     SnackBar(
-                      content: Text('🚫 ${result['reason']}'),
+                      content: Text('${result['reason']}'),
                       backgroundColor: AppColors.danger,
                       duration: const Duration(seconds: 6),
                     ),
@@ -2039,7 +1998,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
 // ============================================
 // DIÁLOGO COMPLETO DE DETALLE DE FACTURA
 // ============================================
-class _InvoiceFullDetailDialog extends StatefulWidget {
+class _InvoiceFullDetailDialog extends ConsumerStatefulWidget {
   final Map<String, dynamic> invoice;
   final VoidCallback onPayment;
   final VoidCallback onCancel;
@@ -2053,11 +2012,12 @@ class _InvoiceFullDetailDialog extends StatefulWidget {
   });
 
   @override
-  State<_InvoiceFullDetailDialog> createState() =>
+  ConsumerState<_InvoiceFullDetailDialog> createState() =>
       _InvoiceFullDetailDialogState();
 }
 
-class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
+class _InvoiceFullDetailDialogState
+    extends ConsumerState<_InvoiceFullDetailDialog>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _paymentHistory = [];
@@ -2520,6 +2480,7 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
     final discount = (inv['discount'] as num?)?.toDouble() ?? 0;
     final products = inv['products'] as List<dynamic>? ?? [];
     final paymentProgress = total > 0 ? (paid / total).clamp(0.0, 1.0) : 0.0;
+    final isDraft = inv['status'] == 'Borrador';
 
     return Container(
       color: const Color(0xFFF1F4F8),
@@ -2764,6 +2725,18 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                   textAlign: TextAlign.right,
                                 ),
                               ),
+                              if (isDraft)
+                                const SizedBox(
+                                  width: 110,
+                                  child: Text(
+                                    'Acciones',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -2858,6 +2831,50 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
                                         textAlign: TextAlign.right,
                                       ),
                                     ),
+                                    if (isDraft)
+                                      SizedBox(
+                                        width: 110,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            _ItemActionButton(
+                                              icon: Icons.edit,
+                                              tooltip: 'Editar',
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                              onPressed: () =>
+                                                  _showEditItemDialog(prod),
+                                            ),
+                                            _ItemActionButton(
+                                              icon: Icons.call_split,
+                                              tooltip: 'Dividir',
+                                              color: const Color(0xFFF9A825),
+                                              onPressed:
+                                                  (prod['quantity'] as num?)
+                                                              ?.toDouble() !=
+                                                          null &&
+                                                      ((prod['quantity']
+                                                                      as num?)
+                                                                  ?.toDouble() ??
+                                                              0) >
+                                                          1
+                                                  ? () => _showSplitItemDialog(
+                                                      prod,
+                                                    )
+                                                  : null,
+                                            ),
+                                            _ItemActionButton(
+                                              icon: Icons.delete,
+                                              tooltip: 'Eliminar',
+                                              color: const Color(0xFFC62828),
+                                              onPressed: () =>
+                                                  _confirmDeleteItem(prod),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
@@ -5042,6 +5059,337 @@ class _InvoiceFullDetailDialogState extends State<_InvoiceFullDetailDialog>
             style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Item actions (edit / split / delete) ───────────────────────────
+
+  void _showEditItemDialog(Map<String, dynamic> prod) {
+    final itemId = (prod['itemId'] ?? '').toString();
+    final invoiceId = (prod['invoiceId'] ?? '').toString();
+    if (itemId.isEmpty || invoiceId.isEmpty) return;
+
+    final qtyCtrl = TextEditingController(
+      text: ((prod['quantity'] as num?)?.toDouble() ?? 0).toStringAsFixed(2),
+    );
+    final priceCtrl = TextEditingController(
+      text: ((prod['unitPrice'] as num?)?.toDouble() ?? 0).toStringAsFixed(2),
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.edit, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Editar: ${prod['name'] ?? 'Ítem'}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 350,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: qtyCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Cantidad (${prod['unit'] ?? 'UND'})',
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: priceCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Precio Unitario (\$)',
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF43A047).withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Subtotal:'),
+                      Text(
+                        Helpers.formatCurrency(
+                          (double.tryParse(qtyCtrl.text) ?? 0) *
+                              (double.tryParse(priceCtrl.text) ?? 0),
+                        ),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                final qty = double.tryParse(qtyCtrl.text) ?? 0;
+                final price = double.tryParse(priceCtrl.text) ?? 0;
+                if (qty <= 0 || price <= 0) return;
+                final taxRate = (prod['taxRate'] as num?)?.toDouble() ?? 0;
+                final sub = qty * price;
+                final tax = sub * taxRate;
+                final disc = (prod['discount'] as num?)?.toDouble() ?? 0;
+                final item = InvoiceItem(
+                  id: itemId,
+                  invoiceId: invoiceId,
+                  productName: (prod['name'] ?? '').toString(),
+                  quantity: qty,
+                  unitPrice: price,
+                  discount: disc,
+                  taxRate: taxRate,
+                  subtotal: sub,
+                  taxAmount: tax,
+                  total: sub + tax - disc,
+                );
+                final ok = await ref
+                    .read(invoicesProvider.notifier)
+                    .updateItem(item);
+                if (!mounted) return;
+                if (ok) {
+                  widget.onRefresh();
+                  Navigator.pop(context); // close detail dialog
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Error al actualizar ítem'),
+                      backgroundColor: Color(0xFFC62828),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSplitItemDialog(Map<String, dynamic> prod) {
+    final itemId = (prod['itemId'] ?? '').toString();
+    final invoiceId = (prod['invoiceId'] ?? '').toString();
+    if (itemId.isEmpty || invoiceId.isEmpty) return;
+
+    final totalQty = (prod['quantity'] as num?)?.toDouble() ?? 0;
+    final keepCtrl = TextEditingController(
+      text: (totalQty / 2).toStringAsFixed(2),
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final keepQty = double.tryParse(keepCtrl.text) ?? 0;
+          final remainQty = totalQty - keepQty;
+          return AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.call_split, color: Color(0xFFF9A825)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Dividir: ${prod['name'] ?? 'Ítem'}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 350,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Cantidad total: ${totalQty.toStringAsFixed(2)}'),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: keepCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Cantidad en ítem original',
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9A825).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Ítem 1:'),
+                            Text(
+                              keepQty.toStringAsFixed(2),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Ítem 2 (nuevo):'),
+                            Text(
+                              remainQty.toStringAsFixed(2),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: remainQty > 0
+                                    ? const Color(0xFF43A047)
+                                    : const Color(0xFFC62828),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: keepQty > 0 && remainQty > 0
+                    ? () async {
+                        Navigator.pop(ctx);
+                        final ok = await ref
+                            .read(invoicesProvider.notifier)
+                            .splitItem(itemId, invoiceId, keepQty);
+                        if (!mounted) return;
+                        if (ok) {
+                          widget.onRefresh();
+                          Navigator.pop(context);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Error al dividir ítem'),
+                              backgroundColor: Color(0xFFC62828),
+                            ),
+                          );
+                        }
+                      }
+                    : null,
+                child: const Text('Dividir'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _confirmDeleteItem(Map<String, dynamic> prod) {
+    final itemId = (prod['itemId'] ?? '').toString();
+    final invoiceId = (prod['invoiceId'] ?? '').toString();
+    if (itemId.isEmpty || invoiceId.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar ítem'),
+        content: Text(
+          '¿Eliminar "${prod['name'] ?? 'este ítem'}" de la factura?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final ok = await ref
+                  .read(invoicesProvider.notifier)
+                  .deleteItem(itemId, invoiceId);
+              if (!mounted) return;
+              if (ok) {
+                widget.onRefresh();
+                Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Error al eliminar ítem'),
+                    backgroundColor: Color(0xFFC62828),
+                  ),
+                );
+              }
+            },
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ItemActionButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback? onPressed;
+
+  const _ItemActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(4),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(
+            icon,
+            size: 16,
+            color: onPressed != null ? color : color.withOpacity(0.3),
+          ),
+        ),
       ),
     );
   }

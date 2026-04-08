@@ -19,7 +19,7 @@ class InvoicesDataSource {
         .from('invoices')
         .select('*, invoice_items(*)')
         .neq('series', 'CMP')
-        .order('issue_date', ascending: false);
+        .order('number', ascending: false);
 
     return (response as List).map((json) => Invoice.fromJson(json)).toList();
   }
@@ -31,7 +31,7 @@ class InvoicesDataSource {
         .select('*, invoice_items(*)')
         .neq('series', 'CMP')
         .eq('status', status)
-        .order('issue_date', ascending: false);
+        .order('number', ascending: false);
 
     return (response as List).map((json) => Invoice.fromJson(json)).toList();
   }
@@ -54,7 +54,7 @@ class InvoicesDataSource {
         .from('invoices')
         .select('*, invoice_items(*)')
         .eq('customer_id', customerId)
-        .order('issue_date', ascending: false);
+        .order('number', ascending: false);
 
     return (response as List).map((json) => Invoice.fromJson(json)).toList();
   }
@@ -80,7 +80,7 @@ class InvoicesDataSource {
         .select('*, invoice_items(*)')
         .neq('series', 'CMP')
         .not('status', 'in', '(paid,cancelled)')
-        .order('issue_date', ascending: false);
+        .order('number', ascending: false);
 
     return (response as List).map((json) => Invoice.fromJson(json)).toList();
   }
@@ -96,6 +96,128 @@ class InvoicesDataSource {
     return (response as List)
         .map((json) => InvoiceItem.fromJson(json))
         .toList();
+  }
+
+  // ==================== ITEM-LEVEL CRUD ====================
+
+  /// Actualiza un ítem de factura y recalcula totales
+  static Future<void> updateItem(InvoiceItem item) async {
+    await _client
+        .from('invoice_items')
+        .update({
+          'quantity': item.quantity,
+          'unit_price': item.unitPrice,
+          'discount': item.discount,
+          'tax_rate': item.taxRate,
+          'subtotal': item.subtotal,
+          'tax_amount': item.taxAmount,
+          'total': item.total,
+        })
+        .eq('id', item.id)
+        .select()
+        .single();
+    await _recalculateInvoiceTotals(item.invoiceId);
+    await AuditLogDatasource.log(
+      action: 'update',
+      module: 'invoices',
+      recordId: item.invoiceId,
+      description: 'Modificó ítem: ${item.productName}',
+      details: {
+        'quantity': item.quantity,
+        'unit_price': item.unitPrice,
+        'total': item.total,
+      },
+    );
+  }
+
+  /// Elimina un ítem de factura y recalcula totales
+  static Future<void> deleteItem(String itemId, String invoiceId) async {
+    await _client.from('invoice_items').delete().eq('id', itemId);
+    await _recalculateInvoiceTotals(invoiceId);
+    await AuditLogDatasource.log(
+      action: 'delete',
+      module: 'invoices',
+      recordId: invoiceId,
+      description: 'Eliminó ítem de factura',
+      details: {'item_id': itemId},
+    );
+  }
+
+  /// Divide un ítem en dos: el original queda con [keepQty] y se crea uno nuevo con el resto
+  static Future<void> splitItem(
+    String itemId,
+    String invoiceId,
+    double keepQty,
+  ) async {
+    final response = await _client
+        .from('invoice_items')
+        .select()
+        .eq('id', itemId)
+        .single();
+    final original = InvoiceItem.fromJson(response);
+
+    final remainQty = original.quantity - keepQty;
+    if (remainQty <= 0 || keepQty <= 0) return;
+
+    // Actualizar el original con la cantidad reducida
+    final origSubtotal = keepQty * original.unitPrice;
+    final origTax = origSubtotal * original.taxRate;
+    await _client
+        .from('invoice_items')
+        .update({
+          'quantity': keepQty,
+          'subtotal': origSubtotal,
+          'tax_amount': origTax,
+          'total': origSubtotal + origTax - original.discount,
+        })
+        .eq('id', itemId);
+
+    // Crear el nuevo ítem con el resto
+    final newSubtotal = remainQty * original.unitPrice;
+    final newTax = newSubtotal * original.taxRate;
+    await _client.from('invoice_items').insert({
+      'invoice_id': invoiceId,
+      'product_id': original.productId,
+      'material_id': original.materialId,
+      'product_code': original.productCode,
+      'product_name': original.productName,
+      'description': original.description,
+      'quantity': remainQty,
+      'unit': original.unit,
+      'unit_price': original.unitPrice,
+      'discount': 0,
+      'tax_rate': original.taxRate,
+      'subtotal': newSubtotal,
+      'tax_amount': newTax,
+      'total': newSubtotal + newTax,
+      'sort_order': 999,
+    });
+
+    await _recalculateInvoiceTotals(invoiceId);
+  }
+
+  /// Recalcula subtotal, tax_amount y total de la factura a partir de sus ítems
+  static Future<void> _recalculateInvoiceTotals(String invoiceId) async {
+    final items = await getItems(invoiceId);
+    double subtotal = 0;
+    double taxAmount = 0;
+    for (final item in items) {
+      subtotal += item.subtotal;
+      taxAmount += item.taxAmount;
+    }
+
+    final currentInvoice = await _client
+        .from('invoices')
+        .select('discount')
+        .eq('id', invoiceId)
+        .single();
+    final discount = (currentInvoice['discount'] as num?)?.toDouble() ?? 0;
+    final total = subtotal + taxAmount - discount;
+
+    await _client
+        .from('invoices')
+        .update({'subtotal': subtotal, 'tax_amount': taxAmount, 'total': total})
+        .eq('id', invoiceId);
   }
 
   /// Genera el siguiente número de recibo para una serie
@@ -214,7 +336,22 @@ class InvoicesDataSource {
         .select()
         .single();
 
-    return Invoice.fromJson(response);
+    final invoice = Invoice.fromJson(response);
+    await AuditLogDatasource.log(
+      action: 'create',
+      module: 'invoices',
+      recordId: invoice.id,
+      description:
+          'Creó factura ${invoice.series}-${invoice.number} para ${customer.name} por \$${subtotal.toStringAsFixed(0)}',
+      details: {
+        'series': series,
+        'number': invoice.number,
+        'customer': customer.name,
+        'total': subtotal,
+      },
+    );
+
+    return invoice;
   }
 
   /// Crea un recibo con sus items
@@ -293,6 +430,19 @@ class InvoicesDataSource {
       AppLogger.success(
         '? Item insertado: ${item.productName} x${item.quantity}',
       );
+      await AuditLogDatasource.log(
+        action: 'create',
+        module: 'invoices',
+        recordId: invoice.id,
+        description:
+            'Agregó ítem a factura: ${item.productName} x${item.quantity}',
+        details: {
+          'product': item.productName,
+          'quantity': item.quantity,
+          'unit_price': item.unitPrice,
+          'total': item.total,
+        },
+      );
     }
 
     // NOTA: El descuento de inventario se hace en updateStatus() cuando
@@ -349,7 +499,7 @@ class InvoicesDataSource {
 
     await _client.from('invoices').update({'status': status}).eq('id', id);
 
-    AuditLogDatasource.log(
+    await AuditLogDatasource.log(
       action: status == 'cancelled' ? 'cancel' : 'update',
       module: 'invoices',
       recordId: id,
@@ -698,7 +848,7 @@ class InvoicesDataSource {
     }
 
     await _client.from('invoices').delete().eq('id', id);
-    AuditLogDatasource.log(
+    await AuditLogDatasource.log(
       action: 'delete',
       module: 'invoices',
       recordId: id,

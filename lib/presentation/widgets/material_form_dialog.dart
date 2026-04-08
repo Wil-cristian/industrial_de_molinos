@@ -8,6 +8,7 @@ import '../../data/providers/purchase_orders_provider.dart';
 import '../../data/datasources/inventory_datasource.dart';
 import '../../domain/entities/material.dart' as mat;
 import '../../domain/entities/material_category.dart';
+import '../../core/utils/material_code_generator.dart';
 
 /// Diálogo reutilizable para crear o editar un Material.
 /// Se puede invocar desde cualquier parte de la app (materials_page, scan dialog, etc.)
@@ -32,6 +33,7 @@ class MaterialFormDialog extends ConsumerStatefulWidget {
   });
 
   /// Muestra el diálogo y retorna el material creado/editado, o null.
+  /// En móvil (<600dp) se abre como página fullscreen con AppBar.
   static Future<mat.Material?> show(
     BuildContext context, {
     mat.Material? initial,
@@ -41,17 +43,21 @@ class MaterialFormDialog extends ConsumerStatefulWidget {
     String? suggestedUnit,
     String? suggestedCategory,
   }) {
-    return showDialog<mat.Material?>(
-      context: context,
-      builder: (_) => MaterialFormDialog(
-        initial: initial,
-        suggestedName: suggestedName,
-        suggestedCostPrice: suggestedCostPrice,
-        suggestedUnitPrice: suggestedUnitPrice,
-        suggestedUnit: suggestedUnit,
-        suggestedCategory: suggestedCategory,
-      ),
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final widget = MaterialFormDialog(
+      initial: initial,
+      suggestedName: suggestedName,
+      suggestedCostPrice: suggestedCostPrice,
+      suggestedUnitPrice: suggestedUnitPrice,
+      suggestedUnit: suggestedUnit,
+      suggestedCategory: suggestedCategory,
     );
+    if (isMobile) {
+      return Navigator.of(context, rootNavigator: true).push<mat.Material?>(
+        MaterialPageRoute(fullscreenDialog: true, builder: (_) => widget),
+      );
+    }
+    return showDialog<mat.Material?>(context: context, builder: (_) => widget);
   }
 
   @override
@@ -79,6 +85,11 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
   late String category;
   late String unit;
   String? subcategoryId;
+
+  // Auto-code generation
+  bool _autoCodeEnabled = true;
+  bool _isGeneratingCode = false;
+  String _codePreview = '';
 
   @override
   void initState() {
@@ -152,10 +163,111 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
       unit = 'KG';
     }
     subcategoryId = m?.subcategoryId;
+
+    // Disable auto-code for editing existing materials
+    _autoCodeEnabled = !isEditing && codeCtrl.text.isEmpty;
+
+    // Listen to name changes for auto-code generation
+    nameCtrl.addListener(_onNameChanged);
+
+    // Ensure categories are loaded
+    _ensureCategoriesLoaded();
+  }
+
+  Future<void> _ensureCategoriesLoaded() async {
+    final catState = ref.read(materialCategoryProvider);
+    if (catState.categories.isEmpty && !catState.isLoading) {
+      await ref.read(materialCategoryProvider.notifier).loadCategories();
+      // Update default category after load
+      if (mounted) {
+        final loaded = ref.read(materialCategoryProvider);
+        if (loaded.categories.isNotEmpty && category.isEmpty) {
+          setState(() => category = loaded.categories.first.slug);
+        }
+      }
+    }
+  }
+
+  void _onNameChanged() {
+    if (_autoCodeEnabled) _generateAutoCode();
+  }
+
+  /// Genera el código automático basado en nombre + categoría + subcategoría.
+  Future<void> _generateAutoCode() async {
+    if (!_autoCodeEnabled || !mounted) return;
+
+    final name = nameCtrl.text.trim();
+    if (name.isEmpty) {
+      setState(() {
+        _codePreview = '';
+        codeCtrl.text = '';
+      });
+      return;
+    }
+
+    // Get category code prefix
+    final catState = ref.read(materialCategoryProvider);
+    final cats = catState.categories.where((c) => c.slug == category);
+    final catPrefix = cats.isNotEmpty
+        ? (cats.first.codePrefix ??
+              cats.first.sortOrder.toString().padLeft(2, '0'))
+        : '00';
+
+    // Get subcategory slug
+    String? subcatSlug;
+    if (subcategoryId != null) {
+      final subcats = catState.subcategories.where(
+        (s) => s.id == subcategoryId,
+      );
+      if (subcats.isNotEmpty) subcatSlug = subcats.first.slug;
+    }
+
+    // Build prefix for preview
+    final prefix = MaterialCodeGenerator.codePrefix(
+      name: name,
+      categoryCodePrefix: catPrefix,
+      subcategorySlug: subcatSlug,
+    );
+
+    // Show preview immediately
+    if (mounted) {
+      setState(() {
+        _codePreview = '$prefix-...';
+        _isGeneratingCode = true;
+      });
+    }
+
+    // Query next sequential
+    try {
+      final nextSeq = await InventoryDataSource.getNextSequential(prefix);
+      if (!mounted || !_autoCodeEnabled) return;
+      final code = MaterialCodeGenerator.generate(
+        name: name,
+        categoryCodePrefix: catPrefix,
+        subcategorySlug: subcatSlug,
+        nextSequential: nextSeq,
+      );
+      setState(() {
+        codeCtrl.text = code;
+        _codePreview = code;
+        _isGeneratingCode = false;
+      });
+    } catch (_) {
+      // Fallback: use timestamp-based sequential
+      if (!mounted || !_autoCodeEnabled) return;
+      final fallbackSeq = DateTime.now().millisecondsSinceEpoch % 10000;
+      final code = '$prefix-${fallbackSeq.toString().padLeft(4, '0')}';
+      setState(() {
+        codeCtrl.text = code;
+        _codePreview = code;
+        _isGeneratingCode = false;
+      });
+    }
   }
 
   @override
   void dispose() {
+    nameCtrl.removeListener(_onNameChanged);
     codeCtrl.dispose();
     nameCtrl.dispose();
     descCtrl.dispose();
@@ -177,7 +289,63 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final dialogWidth = screenWidth < 600 ? screenWidth * 0.95 : 600.0;
+    final isMobile = screenWidth < 600;
+
+    if (isMobile) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(isEditing ? 'Editar Material' : 'Nuevo Material'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilledButton(
+                onPressed: _onSave,
+                child: Text(isEditing ? 'Guardar' : 'Crear'),
+              ),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildCodeCategoryRow(),
+                _buildSubcategoryRow(),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Nombre *'),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descCtrl,
+                  decoration: const InputDecoration(labelText: 'Descripción'),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                _buildUnitDropdown(),
+                const SizedBox(height: 16),
+                if (_hasDimensions) _buildDimensionsSection(),
+                _buildPricingSection(),
+                const SizedBox(height: 16),
+                _buildStockRow(),
+                const SizedBox(height: 16),
+                _buildSupplierLocationRow(),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final dialogWidth = 600.0;
 
     return AlertDialog(
       title: Text(isEditing ? 'Editar Material' : 'Nuevo Material'),
@@ -248,14 +416,51 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
         Expanded(
           child: TextField(
             controller: codeCtrl,
-            decoration: const InputDecoration(labelText: 'Código *'),
+            readOnly: _autoCodeEnabled,
+            decoration: InputDecoration(
+              labelText: 'Código *',
+              helperText: _autoCodeEnabled ? 'Auto-generado' : null,
+              helperStyle: const TextStyle(
+                fontSize: 10,
+                color: Color(0xFF4CAF50),
+              ),
+              suffixIcon: !isEditing
+                  ? IconButton(
+                      icon: Icon(
+                        _autoCodeEnabled ? Icons.lock : Icons.lock_open,
+                        size: 18,
+                        color: _autoCodeEnabled
+                            ? const Color(0xFF4CAF50)
+                            : const Color(0xFF9E9E9E),
+                      ),
+                      tooltip: _autoCodeEnabled
+                          ? 'Código automático (clic para editar manual)'
+                          : 'Código manual (clic para auto-generar)',
+                      onPressed: () {
+                        setState(() {
+                          _autoCodeEnabled = !_autoCodeEnabled;
+                          if (_autoCodeEnabled) {
+                            _generateAutoCode();
+                          }
+                        });
+                      },
+                    )
+                  : null,
+              suffix: _isGeneratingCode
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : null,
+            ),
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: Builder(
             builder: (context) {
-              final catState = ref.read(materialCategoryProvider);
+              final catState = ref.watch(materialCategoryProvider);
               final cats = catState.categories;
               final fallback = cats.isNotEmpty ? cats.first.slug : '';
               final validCategory = cats.any((c) => c.slug == category)
@@ -266,7 +471,27 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
                   () => setState(() => category = validCategory),
                 );
               }
-              if (cats.isEmpty) return const SizedBox();
+              if (cats.isEmpty) {
+                if (catState.isLoading) {
+                  return const Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                }
+                if (catState.error != null) {
+                  return Text(
+                    'Error: ${catState.error}',
+                    style: const TextStyle(fontSize: 10, color: Colors.red),
+                  );
+                }
+                return const Text(
+                  'Sin categorías',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF9E9E9E)),
+                );
+              }
               return DropdownButtonFormField<String>(
                 value: validCategory,
                 isExpanded: true,
@@ -302,6 +527,7 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
                   subcategoryId = null;
                   final selectedCat = cats.firstWhere((c) => c.slug == v);
                   unit = selectedCat.defaultUnit.toUpperCase();
+                  if (_autoCodeEnabled) _generateAutoCode();
                 }),
               );
             },
@@ -315,7 +541,7 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
   Widget _buildSubcategoryRow() {
     return Builder(
       builder: (context) {
-        final catState = ref.read(materialCategoryProvider);
+        final catState = ref.watch(materialCategoryProvider);
         final subcats = catState.subcategoriesForSlug(category);
         final validSubcatId = subcats.any((s) => s.id == subcategoryId)
             ? subcategoryId
@@ -349,7 +575,10 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
                         ),
                       ),
                     ],
-                    onChanged: (v) => setState(() => subcategoryId = v),
+                    onChanged: (v) {
+                      setState(() => subcategoryId = v);
+                      if (_autoCodeEnabled) _generateAutoCode();
+                    },
                   ),
                 )
               else
@@ -1016,8 +1245,11 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
   // ─── Save ──────────────────────────────────────────────────────
   Future<void> _onSave() async {
     if (codeCtrl.text.isEmpty && !isEditing) {
-      // Auto-generar código si está vacío
-      codeCtrl.text = 'MAT-${DateTime.now().millisecondsSinceEpoch % 100000}';
+      // Generate auto-code on save if still empty
+      await _generateAutoCode();
+      if (codeCtrl.text.isEmpty) {
+        codeCtrl.text = 'MAT-${DateTime.now().millisecondsSinceEpoch % 100000}';
+      }
     }
     if (nameCtrl.text.isEmpty) {
       ScaffoldMessenger.of(

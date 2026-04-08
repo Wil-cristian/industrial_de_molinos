@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/material_subcategory.dart';
+import 'audit_log_datasource.dart';
 import 'supabase_datasource.dart';
 
 /// DataSource para la tabla 'material_subcategories'
@@ -16,7 +17,9 @@ class MaterialSubcategoryDatasource {
     if (activeOnly) {
       query = query.eq('is_active', true);
     }
-    final response = await query.order('sort_order').order('name');
+    final response = await query
+        .order('sort_order')
+        .order('name', ascending: false);
     return response
         .map<MaterialSubcategory>((json) => MaterialSubcategory.fromJson(json))
         .toList();
@@ -31,7 +34,9 @@ class MaterialSubcategoryDatasource {
     if (activeOnly) {
       query = query.eq('is_active', true);
     }
-    final response = await query.order('sort_order').order('name');
+    final response = await query
+        .order('sort_order')
+        .order('name', ascending: false);
     return response
         .map<MaterialSubcategory>((json) => MaterialSubcategory.fromJson(json))
         .toList();
@@ -57,7 +62,14 @@ class MaterialSubcategoryDatasource {
   ) async {
     final data = subcategory.toJson();
     final response = await _client.from(_table).insert(data).select().single();
-    return MaterialSubcategory.fromJson(response);
+    final created = MaterialSubcategory.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'material_categories',
+      recordId: created.id,
+      description: 'Subcategoría creada: ${created.name}',
+    );
+    return created;
   }
 
   /// Actualizar subcategoría
@@ -71,6 +83,12 @@ class MaterialSubcategoryDatasource {
         .eq('id', subcategory.id)
         .select()
         .single();
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'material_categories',
+      recordId: subcategory.id,
+      description: 'Subcategoría actualizada: ${subcategory.name}',
+    );
     return MaterialSubcategory.fromJson(response);
   }
 
@@ -91,6 +109,12 @@ class MaterialSubcategoryDatasource {
     }
 
     await _client.from(_table).delete().eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'material_categories',
+      recordId: id,
+      description: 'Subcategoría eliminada',
+    );
     return true;
   }
 

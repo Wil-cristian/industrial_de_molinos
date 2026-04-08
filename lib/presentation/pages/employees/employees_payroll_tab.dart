@@ -24,6 +24,48 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
   /// Public API for shell coordinator to open payroll creation dialog.
   void showCreatePayrollDialog() => _showCreatePayrollDialog();
 
+  /// Determina si un préstamo debe descontarse en la quincena actual
+  /// basándose en el campo reason que contiene "Inicio descuento: Mes Q1/Q2 Año"
+  static bool _isLoanDueThisPeriod(String? reason) {
+    if (reason == null || reason.isEmpty) return true; // Sin info → incluir
+
+    // Extraer "Mes Q1/Q2 Año" del reason
+    final match = RegExp(
+      r'Inicio descuento:\s*(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic)\s+Q([12])\s+(\d{4})',
+    ).firstMatch(reason);
+    if (match == null) return true; // No se pudo parsear → incluir
+
+    const meses = {
+      'Ene': 1,
+      'Feb': 2,
+      'Mar': 3,
+      'Abr': 4,
+      'May': 5,
+      'Jun': 6,
+      'Jul': 7,
+      'Ago': 8,
+      'Sep': 9,
+      'Oct': 10,
+      'Nov': 11,
+      'Dic': 12,
+    };
+
+    final startMonth = meses[match.group(1)] ?? 1;
+    final startQ = int.parse(match.group(2)!);
+    final startYear = int.parse(match.group(3)!);
+    final startPeriod = startQ == 1 ? (startMonth * 2 - 1) : (startMonth * 2);
+
+    // Periodo actual
+    final now = DateTime.now();
+    final currentPeriod = now.day <= 15 ? (now.month * 2 - 1) : (now.month * 2);
+    final currentYear = now.year;
+
+    // Comparar: solo incluir si startYear/startPeriod <= currentYear/currentPeriod
+    if (startYear < currentYear) return true;
+    if (startYear > currentYear) return false;
+    return startPeriod <= currentPeriod;
+  }
+
   @override
   Widget build(BuildContext context) {
     final empState = ref.watch(employeesProvider);
@@ -1950,6 +1992,25 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                                 ),
                               ),
                             ),
+                          // Revertir pago (solo si está pagada)
+                          if (payroll.status == 'pagado')
+                            TextButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _confirmRevertPayrollPayment(payroll);
+                              },
+                              icon: Icon(
+                                Icons.undo,
+                                color: const Color(0xFFE65100),
+                                size: 18,
+                              ),
+                              label: Text(
+                                'Revertir Pago',
+                                style: TextStyle(
+                                  color: const Color(0xFFE65100),
+                                ),
+                              ),
+                            ),
                           const Spacer(),
                           OutlinedButton(
                             onPressed: () => Navigator.pop(context),
@@ -2315,6 +2376,8 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
 
     // Fecha de corte personalizable (para quincena actual)
     DateTime? customEndDate;
+    // Fecha de inicio personalizable (para empleados que ingresaron a mitad de quincena)
+    DateTime? customStartDate;
 
     // Modo complemento: para pagar días restantes cuando ya hay nómina
     bool isComplemento = false;
@@ -2480,7 +2543,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
           final qEnd = selectedQ['endDate'] as DateTime;
           final qStart = (isComplemento && complementStartDate != null)
               ? complementStartDate!
-              : selectedQ['startDate'] as DateTime;
+              : (customStartDate ?? selectedQ['startDate'] as DateTime);
           final qOriginalStart = selectedQ['startDate'] as DateTime;
           // Fecha de corte efectiva
           final effectiveCutDate =
@@ -2489,7 +2552,9 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                   ? DateTime.now()
                   : qEnd);
           final bool isPartialQuincena =
-              effectiveCutDate.isBefore(qEnd) || isComplemento;
+              effectiveCutDate.isBefore(qEnd) ||
+              isComplemento ||
+              customStartDate != null;
 
           // === CÁLCULO DIFERENCIADO POR TIPO DE PAGO ===
           double fortnightSalary;
@@ -2545,9 +2610,13 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
           } else {
             // PAGO POR HORAS (empleados normales)
             // Salario base: proporcional por días calendario (domingos incluidos)
+            print(
+              '💰 SALARY CALC: isPartialQuincena=$isPartialQuincena, customStartDate=$customStartDate, calendarDays=$calendarDays, dailyRate=$dailyRate, baseSalary=$baseSalary',
+            );
             fortnightSalary = isPartialQuincena
                 ? dailyRate * calendarDays
                 : baseSalary / 2;
+            print('💰 RESULT: fortnightSalary=$fortnightSalary');
             final overtimeMultiplier = getOvertimeMultiplier(overtimeType);
             // Usar horas extras manuales si fueron ingresadas, sino las auto-detectadas
             final effectiveOvertimeHours = manualOvertimeHours ?? overtimeHours;
@@ -2561,8 +2630,9 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                 : 0.0;
           }
 
-          // Buscar préstamos activos del empleado
-          final activeLoans = selectedEmployeeId != null
+          // Buscar préstamos activos del empleado cuyo periodo de inicio
+          // ya llegó (no incluir préstamos que empiezan en quincenas futuras)
+          final allActiveLoans = selectedEmployeeId != null
               ? currentPayrollState.loans
                     .where(
                       (l) =>
@@ -2571,8 +2641,11 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                     )
                     .toList()
               : <EmployeeLoan>[];
+          final activeLoans = allActiveLoans.where((loan) {
+            return _isLoanDueThisPeriod(loan.reason);
+          }).toList();
           final loanDeduction = includeActiveLoans
-              ? activeLoans.fold(0.0, (sum, l) => sum + l.installmentAmount)
+              ? activeLoans.fold(0.0, (sum, l) => sum + l.nextInstallmentAmount)
               : 0.0;
 
           // Debug: verificar préstamos cargados
@@ -2582,7 +2655,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
             );
             for (final l in activeLoans) {
               print(
-                '   💰 Préstamo ${l.id}: cuota=${l.installmentAmount}, status=${l.status}, ${l.paidInstallments}/${l.installments}',
+                '   💰 Préstamo ${l.id}: cuota=${l.nextInstallmentAmount}, status=${l.status}, ${l.paidInstallments}/${l.installments}',
               );
             }
             print(
@@ -2696,6 +2769,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                           setState(() {
                             selectedQuincenaIndex = value;
                             customEndDate = null; // Resetear fecha de corte
+                            customStartDate = null; // Resetear fecha de inicio
                             isComplemento = false; // Resetear modo complemento
                             complementStartDate = null;
                             availableEmployees = employees
@@ -3035,11 +3109,11 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                               }
                             }
 
-                            // Fecha de inicio: complemento o inicio regular
+                            // Fecha de inicio: complemento o inicio regular o customStartDate
                             final effectiveStart =
                                 (isComplemento && complementStartDate != null)
                                 ? complementStartDate!
-                                : qOrigStart;
+                                : (customStartDate ?? qOrigStart);
                             // Fecha de corte: en complemento usar fin de quincena, sino hoy si es actual
                             final effectiveEnd =
                                 customEndDate ??
@@ -3058,10 +3132,10 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                               effectiveEnd,
                             );
 
-                            // Contar días calendario
+                            // Contar días calendario de la quincena completa
                             final qFullEnd = selectedQ['endDate'] as DateTime;
                             final fullCal =
-                                qFullEnd.difference(effectiveStart).inDays + 1;
+                                qFullEnd.difference(qOrigStart).inDays + 1;
 
                             setState(() {
                               isLoadingHours = false;
@@ -3346,9 +3420,118 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                                         ),
                                       )
                                     else
-                                      Text(
-                                        'Desde: ${qStart.day}/${qStart.month.toString().padLeft(2, '0')}/${qStart.year}',
-                                        style: const TextStyle(fontSize: 13),
+                                      GestureDetector(
+                                        onTap: () async {
+                                          final dpFirstDate = qOriginalStart;
+                                          final dpLastDate = effectiveCutDate;
+                                          var dpInitial = qStart;
+                                          if (dpInitial.isBefore(dpFirstDate)) {
+                                            dpInitial = dpFirstDate;
+                                          }
+                                          if (dpInitial.isAfter(dpLastDate)) {
+                                            dpInitial = dpLastDate;
+                                          }
+                                          final picked = await showDatePicker(
+                                            context: context,
+                                            initialDate: dpInitial,
+                                            firstDate: dpFirstDate,
+                                            lastDate: dpLastDate,
+                                            helpText:
+                                                'Fecha de inicio (ej: ingreso del empleado)',
+                                          );
+                                          if (picked != null &&
+                                              selectedEmployeeId != null) {
+                                            setState(() {
+                                              customStartDate = picked;
+                                              isLoadingHours = true;
+                                            });
+                                            print(
+                                              '📅 START DATE CHANGED: picked=$picked, effectiveCutDate=$effectiveCutDate',
+                                            );
+                                            final data =
+                                                await loadEmployeeAttendance(
+                                                  selectedEmployeeId!,
+                                                  picked,
+                                                  effectiveCutDate,
+                                                );
+                                            print(
+                                              '📅 ATTENDANCE RESULT: calendarDays=${data['calendarDays']}, daysWorked=${data['daysWorked']}, baseHours=${data['baseHours']}',
+                                            );
+                                            final fullCal =
+                                                qEnd
+                                                    .difference(qOriginalStart)
+                                                    .inDays +
+                                                1;
+                                            setState(() {
+                                              isLoadingHours = false;
+                                              totalHoursWorked =
+                                                  (data['workedHours']
+                                                      as double);
+                                              baseHoursQuincena =
+                                                  (data['baseHours'] as double);
+                                              totalWorkdays =
+                                                  data['totalWorkdays'] as int;
+                                              daysWorked =
+                                                  data['daysWorked'] as int;
+                                              calendarDays =
+                                                  data['calendarDays'] as int;
+                                              fullCalendarDays = fullCal;
+                                              ausenciaDays =
+                                                  data['ausenciaDays'] as int;
+                                              permisoDays =
+                                                  data['permisoDays'] as int;
+                                              incapacidadDays =
+                                                  data['incapacidadDays']
+                                                      as int;
+                                              domingoDeductions =
+                                                  data['domingoDeductions']
+                                                      as int;
+                                              pierdeBono =
+                                                  data['pierdeBono'] as bool;
+                                              absentDates =
+                                                  (data['absentDates']
+                                                      as Set<String>?) ??
+                                                  {};
+                                              daysAbsent =
+                                                  ausenciaDays +
+                                                  permisoDays +
+                                                  incapacidadDays;
+                                              overtimeHours =
+                                                  (data['overtimeHours']
+                                                      as double? ??
+                                                  0.0);
+                                              final netWorkedWithoutOT =
+                                                  totalHoursWorked -
+                                                  overtimeHours;
+                                              underHours =
+                                                  (baseHoursQuincena -
+                                                          netWorkedWithoutOT)
+                                                      .clamp(
+                                                        0.0,
+                                                        double.infinity,
+                                                      );
+                                            });
+                                          }
+                                        },
+                                        child: Row(
+                                          children: [
+                                            Text(
+                                              'Desde: ${qStart.day}/${qStart.month.toString().padLeft(2, '0')}/${qStart.year}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: const Color(0xFF1976D2),
+                                                decoration:
+                                                    TextDecoration.underline,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.edit_calendar,
+                                              size: 14,
+                                              color: const Color(0xFF1976D2),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     const SizedBox(height: 4),
                                     Row(
@@ -4233,7 +4416,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                                       ],
                                     ),
                                     Text(
-                                      '- ${Helpers.formatCurrency(loan.installmentAmount)}',
+                                      '- ${Helpers.formatCurrency(loan.nextInstallmentAmount)}',
                                       style: TextStyle(
                                         color: const Color(0xFFE53935),
                                         fontWeight: FontWeight.w500,
@@ -4827,7 +5010,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                                   );
                                 } else {
                                   print(
-                                    '✅ Cuota ${loan.paidInstallments + 1}/${loan.installments} descontada: ${loan.installmentAmount}',
+                                    '✅ Cuota ${loan.paidInstallments + 1}/${loan.installments} descontada: ${loan.nextInstallmentAmount}',
                                   );
                                 }
                               }
@@ -5608,6 +5791,117 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al eliminar: $e'),
+            backgroundColor: const Color(0xFFC62828),
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmRevertPayrollPayment(EmployeePayroll payroll) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Revertir Pago'),
+        content: Text(
+          '¿Revertir el pago de la nómina de ${payroll.employeeName}?\n\n'
+          'Se devolverá el saldo a la cuenta y la nómina quedará en estado borrador.\n'
+          'Podrás agregar descuentos (préstamos, etc.) y volver a procesar el pago.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _revertPayrollPayment(payroll);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFE65100),
+            ),
+            child: const Text('Revertir Pago'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _revertPayrollPayment(EmployeePayroll payroll) async {
+    try {
+      if (payroll.cashMovementId != null) {
+        final movement = await Supabase.instance.client
+            .from('cash_movements')
+            .select()
+            .eq('id', payroll.cashMovementId!)
+            .maybeSingle();
+
+        if (movement != null) {
+          final accountId = movement['account_id'] as String?;
+          final amount = (movement['amount'] as num?)?.toDouble() ?? 0;
+
+          // Devolver el saldo a la cuenta
+          if (accountId != null && amount > 0) {
+            final account = await Supabase.instance.client
+                .from('accounts')
+                .select('balance')
+                .eq('id', accountId)
+                .single();
+            final currentBalance =
+                (account['balance'] as num?)?.toDouble() ?? 0;
+            await AccountsDataSource.updateAccountBalance(
+              accountId,
+              currentBalance + amount,
+            );
+            print(
+              '✅ Saldo devuelto: $amount a cuenta $accountId (nuevo: ${currentBalance + amount})',
+            );
+          }
+
+          // Eliminar movimiento de caja
+          await Supabase.instance.client
+              .from('cash_movements')
+              .delete()
+              .eq('id', payroll.cashMovementId!);
+          print('✅ Movimiento de caja eliminado: ${payroll.cashMovementId}');
+        }
+      }
+
+      // Cambiar estado a borrador sin eliminar la nómina
+      await Supabase.instance.client
+          .from('payroll')
+          .update({
+            'cash_movement_id': null,
+            'account_id': null,
+            'status': 'borrador',
+          })
+          .eq('id', payroll.id);
+
+      // Recargar nóminas
+      final currentPeriod = ref.read(payrollProvider).currentPeriod;
+      if (currentPeriod != null) {
+        await ref
+            .read(payrollProvider.notifier)
+            .loadPayrollsForPeriod(currentPeriod.id);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '✅ Pago revertido. Ahora puedes agregar el préstamo y volver a pagar.',
+            ),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error revirtiendo pago: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al revertir pago: $e'),
             backgroundColor: const Color(0xFFC62828),
           ),
         );

@@ -5,6 +5,25 @@ Todos los cambios notables en esta aplicacion seran documentados en este archivo
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.0.6] - 2026-03-31
+
+### Mejorado
+- Actualización general de estabilidad y correcciones
+
+## [1.0.5] - 2026-03-28
+
+### Corregido
+- Fix crítico: createStage solo guardaba 4 de 12 campos (materiales, activos, empleado, reporte, notas se perdían)
+- Fix crítico: updateStage y updateOrderStatus fallaban silenciosamente (sin .select().single())
+- Fix UX: diálogos mostraban éxito aunque la operación fallara (agregado try/catch con error SnackBar)
+
+### Nuevo
+- Módulo Remisiones y Entregas completo (migración 073)
+- Vinculación factura ↔ orden de producción
+- Auto-llenado de ítems desde materiales de OP
+- Deducción automática de stock al despachar remisión
+- Alertas de plazos de entrega vencidos (tarjeta resumen + badge días)
+
 ## [1.0.4] - 2026-03-25
 
 ### Corregido

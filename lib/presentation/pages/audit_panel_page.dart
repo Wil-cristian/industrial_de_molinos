@@ -130,141 +130,205 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage> {
           bottom: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
         ),
       ),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          // Filtro por módulo
-          SizedBox(
-            width: isMobile ? double.infinity : 160,
-            child: DropdownButtonFormField<String>(
-              value: state.filterModule,
-              decoration: InputDecoration(
-                labelText: 'Módulo',
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                isDense: true,
-              ),
-              items: const [
-                DropdownMenuItem(value: null, child: Text('Todos')),
-                DropdownMenuItem(value: 'invoices', child: Text('Ventas')),
-                DropdownMenuItem(value: 'expenses', child: Text('Compras')),
-                DropdownMenuItem(value: 'materials', child: Text('Materiales')),
-                DropdownMenuItem(value: 'inventory', child: Text('Inventario')),
-                DropdownMenuItem(value: 'cash', child: Text('Caja')),
-                DropdownMenuItem(
-                  value: 'production',
-                  child: Text('Producción'),
-                ),
-                DropdownMenuItem(value: 'customers', child: Text('Clientes')),
-                DropdownMenuItem(value: 'employees', child: Text('Empleados')),
-                DropdownMenuItem(
-                  value: 'quotations',
-                  child: Text('Cotizaciones'),
-                ),
-                DropdownMenuItem(value: 'assets', child: Text('Activos')),
-                DropdownMenuItem(
-                  value: 'accounting',
-                  child: Text('Contabilidad'),
-                ),
-                DropdownMenuItem(value: 'auth', child: Text('Autenticación')),
-                DropdownMenuItem(value: 'users', child: Text('Usuarios')),
-              ],
-              onChanged: (v) =>
-                  ref.read(auditLogProvider.notifier).setModuleFilter(v),
-            ),
-          ),
-          // Filtro por acción
-          SizedBox(
-            width: isMobile ? double.infinity : 140,
-            child: DropdownButtonFormField<String>(
-              value: state.filterAction,
-              decoration: InputDecoration(
-                labelText: 'Acción',
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                isDense: true,
-              ),
-              items: const [
-                DropdownMenuItem(value: null, child: Text('Todas')),
-                DropdownMenuItem(value: 'create', child: Text('Crear')),
-                DropdownMenuItem(value: 'update', child: Text('Editar')),
-                DropdownMenuItem(value: 'delete', child: Text('Eliminar')),
-                DropdownMenuItem(value: 'approve', child: Text('Aprobar')),
-                DropdownMenuItem(value: 'cancel', child: Text('Anular')),
-                DropdownMenuItem(value: 'login', child: Text('Login')),
-              ],
-              onChanged: (v) =>
-                  ref.read(auditLogProvider.notifier).setActionFilter(v),
-            ),
-          ),
-          // Filtro por usuario
-          if (state.activeUsers.isNotEmpty)
-            SizedBox(
-              width: isMobile ? double.infinity : 200,
-              child: DropdownButtonFormField<String>(
-                value: state.filterUserId,
-                decoration: InputDecoration(
-                  labelText: 'Usuario',
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  isDense: true,
-                ),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('Todos')),
-                  ...state.activeUsers.map(
-                    (u) => DropdownMenuItem(
-                      value: u['user_id'],
-                      child: Text(
-                        u['user_display_name']?.isNotEmpty == true
-                            ? u['user_display_name']!
-                            : u['user_email'] ?? 'Sin nombre',
-                        overflow: TextOverflow.ellipsis,
-                      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableWidth = constraints.maxWidth;
+          final dropdownWidth = isMobile
+              ? availableWidth
+              : (availableWidth - 48) / 4 > 180
+              ? 180.0
+              : (availableWidth - 48) / 4;
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              // Filtro por módulo
+              SizedBox(
+                width: isMobile
+                    ? double.infinity
+                    : dropdownWidth.clamp(120.0, 180.0),
+                child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: state.filterModule,
+                  decoration: InputDecoration(
+                    labelText: 'Módulo',
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    isDense: true,
                   ),
-                ],
-                onChanged: (v) =>
-                    ref.read(auditLogProvider.notifier).setUserFilter(v),
+                  items: const [
+                    DropdownMenuItem(value: null, child: Text('Todos')),
+                    DropdownMenuItem(value: 'invoices', child: Text('Ventas')),
+                    DropdownMenuItem(value: 'expenses', child: Text('Compras')),
+                    DropdownMenuItem(
+                      value: 'materials',
+                      child: Text('Materiales'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'inventory',
+                      child: Text('Inventario'),
+                    ),
+                    DropdownMenuItem(value: 'cash', child: Text('Caja')),
+                    DropdownMenuItem(
+                      value: 'production',
+                      child: Text('Producción'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'customers',
+                      child: Text('Clientes'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'employees',
+                      child: Text('Empleados'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'suppliers',
+                      child: Text('Proveedores'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'products',
+                      child: Text('Productos'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'activities',
+                      child: Text('Actividades'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'quotations',
+                      child: Text('Cotizaciones'),
+                    ),
+                    DropdownMenuItem(value: 'assets', child: Text('Activos')),
+                    DropdownMenuItem(value: 'iva', child: Text('IVA')),
+                    DropdownMenuItem(
+                      value: 'settings',
+                      child: Text('Configuración'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'composite_products',
+                      child: Text('Prod. Compuestos'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'supplier_materials',
+                      child: Text('Prov-Materiales'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'material_categories',
+                      child: Text('Cat. Materiales'),
+                    ),
+                    DropdownMenuItem(value: 'recipes', child: Text('Recetas')),
+                    DropdownMenuItem(
+                      value: 'accounting',
+                      child: Text('Contabilidad'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'auth',
+                      child: Text('Autenticación'),
+                    ),
+                    DropdownMenuItem(value: 'users', child: Text('Usuarios')),
+                  ],
+                  onChanged: (v) =>
+                      ref.read(auditLogProvider.notifier).setModuleFilter(v),
+                ),
               ),
-            ),
-          // Rango de fechas
-          ActionChip(
-            avatar: const Icon(Icons.date_range, size: 18),
-            label: Text(
-              state.filterFromDate != null
-                  ? '${_dateOnlyFormat.format(state.filterFromDate!)} - ${state.filterToDate != null ? _dateOnlyFormat.format(state.filterToDate!) : 'Hoy'}'
-                  : 'Fechas',
-            ),
-            onPressed: () => _selectDateRange(context),
-          ),
-          // Limpiar filtros
-          if (state.filterModule != null ||
-              state.filterAction != null ||
-              state.filterUserId != null ||
-              state.filterFromDate != null)
-            ActionChip(
-              avatar: const Icon(Icons.clear_all, size: 18),
-              label: const Text('Limpiar'),
-              onPressed: () =>
-                  ref.read(auditLogProvider.notifier).clearFilters(),
-            ),
-        ],
+              // Filtro por acción
+              SizedBox(
+                width: isMobile
+                    ? double.infinity
+                    : dropdownWidth.clamp(120.0, 160.0),
+                child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: state.filterAction,
+                  decoration: InputDecoration(
+                    labelText: 'Acción',
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: null, child: Text('Todas')),
+                    DropdownMenuItem(value: 'create', child: Text('Crear')),
+                    DropdownMenuItem(value: 'update', child: Text('Editar')),
+                    DropdownMenuItem(value: 'delete', child: Text('Eliminar')),
+                    DropdownMenuItem(value: 'approve', child: Text('Aprobar')),
+                    DropdownMenuItem(value: 'cancel', child: Text('Anular')),
+                    DropdownMenuItem(value: 'login', child: Text('Login')),
+                  ],
+                  onChanged: (v) =>
+                      ref.read(auditLogProvider.notifier).setActionFilter(v),
+                ),
+              ),
+              // Filtro por usuario
+              if (state.activeUsers.isNotEmpty)
+                SizedBox(
+                  width: isMobile
+                      ? double.infinity
+                      : dropdownWidth.clamp(140.0, 220.0),
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: state.filterUserId,
+                    decoration: InputDecoration(
+                      labelText: 'Usuario',
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      isDense: true,
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('Todos')),
+                      ...state.activeUsers.map(
+                        (u) => DropdownMenuItem(
+                          value: u['user_id'],
+                          child: Text(
+                            u['user_display_name']?.isNotEmpty == true
+                                ? u['user_display_name']!
+                                : u['user_email'] ?? 'Sin nombre',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (v) =>
+                        ref.read(auditLogProvider.notifier).setUserFilter(v),
+                  ),
+                ),
+              // Rango de fechas
+              ActionChip(
+                avatar: const Icon(Icons.date_range, size: 18),
+                label: Text(
+                  state.filterFromDate != null
+                      ? '${_dateOnlyFormat.format(state.filterFromDate!)} - ${state.filterToDate != null ? _dateOnlyFormat.format(state.filterToDate!) : 'Hoy'}'
+                      : 'Fechas',
+                ),
+                onPressed: () => _selectDateRange(context),
+              ),
+              // Limpiar filtros
+              if (state.filterModule != null ||
+                  state.filterAction != null ||
+                  state.filterUserId != null ||
+                  state.filterFromDate != null)
+                ActionChip(
+                  avatar: const Icon(Icons.clear_all, size: 18),
+                  label: const Text('Limpiar'),
+                  onPressed: () =>
+                      ref.read(auditLogProvider.notifier).clearFilters(),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -502,7 +566,10 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage> {
                         const SizedBox(width: 2),
                         Flexible(
                           child: Text(
-                            log.userDisplayName ?? log.userEmail ?? 'Sistema',
+                            log.employeeName ??
+                                log.userDisplayName ??
+                                log.userEmail ??
+                                'Sistema',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
@@ -717,6 +784,12 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage> {
                   log.userDisplayName ?? log.userEmail ?? 'Sistema',
                 ),
                 _detailRow('Rol', log.userRole ?? 'N/A'),
+                if (log.employeeName != null)
+                  _detailRow('Empleado', log.employeeName!),
+                if (log.employeePosition != null)
+                  _detailRow('Cargo', log.employeePosition!),
+                if (log.employeeDepartment != null)
+                  _detailRow('Departamento', log.employeeDepartment!),
                 _detailRow(
                   'Fecha y hora',
                   _dateFormat.format(log.createdAt.toLocal()),

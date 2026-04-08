@@ -10,6 +10,8 @@ class ProductionOrderMaterial {
   final double consumedQuantity;
   final String unit;
   final double estimatedCost;
+  final String? pieceTitle;
+  final String? dimensions;
 
   const ProductionOrderMaterial({
     required this.id,
@@ -21,6 +23,8 @@ class ProductionOrderMaterial {
     required this.consumedQuantity,
     required this.unit,
     required this.estimatedCost,
+    this.pieceTitle,
+    this.dimensions,
   });
 
   double get pendingQuantity =>
@@ -39,6 +43,8 @@ class ProductionOrderMaterial {
       consumedQuantity: (json['consumed_quantity'] as num?)?.toDouble() ?? 0,
       unit: (json['unit'] ?? 'UND').toString(),
       estimatedCost: (json['estimated_cost'] as num?)?.toDouble() ?? 0,
+      pieceTitle: json['piece_title']?.toString(),
+      dimensions: json['dimensions']?.toString(),
     );
   }
 }
@@ -55,6 +61,8 @@ class ProductionStage {
   final String? assignedEmployeeId;
   final String? assignedEmployeeName;
   final List<String> resources;
+  final List<String> materialIds;
+  final List<String> assetIds;
   final String? report;
   final String? notes;
 
@@ -70,6 +78,8 @@ class ProductionStage {
     this.assignedEmployeeId,
     this.assignedEmployeeName,
     this.resources = const [],
+    this.materialIds = const [],
+    this.assetIds = const [],
     this.report,
     this.notes,
   });
@@ -88,6 +98,8 @@ class ProductionStage {
     String? assignedEmployeeId,
     String? assignedEmployeeName,
     List<String>? resources,
+    List<String>? materialIds,
+    List<String>? assetIds,
     String? report,
     String? notes,
   }) {
@@ -103,6 +115,8 @@ class ProductionStage {
       assignedEmployeeId: assignedEmployeeId ?? this.assignedEmployeeId,
       assignedEmployeeName: assignedEmployeeName ?? this.assignedEmployeeName,
       resources: resources ?? this.resources,
+      materialIds: materialIds ?? this.materialIds,
+      assetIds: assetIds ?? this.assetIds,
       report: report ?? this.report,
       notes: notes ?? this.notes,
     );
@@ -137,9 +151,18 @@ class ProductionStage {
       assignedEmployeeId: json['assigned_employee_id']?.toString(),
       assignedEmployeeName: fullName.isEmpty ? null : fullName,
       resources: parsedResources,
+      materialIds: _parseStringList(json['material_ids']),
+      assetIds: _parseStringList(json['asset_ids']),
       report: json['report']?.toString(),
       notes: json['notes']?.toString(),
     );
+  }
+
+  static List<String> _parseStringList(dynamic raw) {
+    if (raw is List) {
+      return raw.map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
+    }
+    return const [];
   }
 
   Map<String, dynamic> toJson() {
@@ -153,6 +176,8 @@ class ProductionStage {
       'status': status,
       'assigned_employee_id': assignedEmployeeId,
       'resources': resources,
+      'material_ids': materialIds,
+      'asset_ids': assetIds,
       'report': report,
       'notes': notes,
     };
@@ -176,6 +201,8 @@ class ProductionOrder {
   final DateTime updatedAt;
   final List<ProductionOrderMaterial> materials;
   final List<ProductionStage> stages;
+  final String? invoiceId;
+  final int sortOrder;
 
   const ProductionOrder({
     required this.id,
@@ -194,6 +221,8 @@ class ProductionOrder {
     required this.updatedAt,
     this.materials = const [],
     this.stages = const [],
+    this.invoiceId,
+    this.sortOrder = 0,
   });
 
   double get progress {
@@ -248,6 +277,8 @@ class ProductionOrder {
     DateTime? updatedAt,
     List<ProductionOrderMaterial>? materials,
     List<ProductionStage>? stages,
+    String? invoiceId,
+    int? sortOrder,
   }) {
     return ProductionOrder(
       id: id ?? this.id,
@@ -266,6 +297,8 @@ class ProductionOrder {
       updatedAt: updatedAt ?? this.updatedAt,
       materials: materials ?? this.materials,
       stages: stages ?? this.stages,
+      invoiceId: invoiceId ?? this.invoiceId,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 
@@ -304,8 +337,22 @@ class ProductionOrder {
       updatedAt: parseDate(json['updated_at']),
       materials: materials,
       stages: stages,
+      invoiceId: json['invoice_id']?.toString(),
+      sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
     );
   }
+}
+
+class ProcessChainItem {
+  final String processName;
+  final String? employeeId;
+  final String? employeeName;
+
+  const ProcessChainItem({
+    required this.processName,
+    this.employeeId,
+    this.employeeName,
+  });
 }
 
 class ProductionOrderCreationInput {
@@ -314,7 +361,7 @@ class ProductionOrderCreationInput {
   final DateTime? dueDate;
   final String priority;
   final String? notes;
-  final List<String> processChain;
+  final List<ProcessChainItem> processChain;
 
   const ProductionOrderCreationInput({
     required this.product,

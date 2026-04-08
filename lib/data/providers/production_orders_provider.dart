@@ -42,7 +42,7 @@ class ProductionOrdersState {
   }
 
   List<ProductionOrder> get filteredOrders {
-    return orders.where((order) {
+    final filtered = orders.where((order) {
       final byStatus =
           selectedStatus == 'todos' || order.status == selectedStatus;
       if (!byStatus) return false;
@@ -53,6 +53,9 @@ class ProductionOrdersState {
           order.productName.toLowerCase().contains(q) ||
           order.productCode.toLowerCase().contains(q);
     }).toList();
+    // Sort by manual sort_order (drag-reorder)
+    filtered.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    return filtered;
   }
 
   ProductionOrder? get selectedOrder {
@@ -110,6 +113,47 @@ class ProductionOrdersNotifier extends Notifier<ProductionOrdersState> {
       state = state.copyWith(selectedOrderId: orderId);
     } catch (e) {
       state = state.copyWith(error: e.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> deleteOrder(String orderId) async {
+    try {
+      await ProductionOrdersDataSource.deleteOrder(orderId);
+      await loadOrders();
+      // Clear selection if deleted order was selected
+      if (state.selectedOrderId == orderId) {
+        final first = state.orders.isNotEmpty ? state.orders.first.id : null;
+        state = state.copyWith(
+          selectedOrderId: first,
+          clearSelectedOrder: first == null,
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> updatePriority(String orderId, String priority) async {
+    try {
+      await ProductionOrdersDataSource.updatePriority(orderId, priority);
+      await loadOrders();
+      state = state.copyWith(selectedOrderId: orderId);
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> updateDueDate(String orderId, DateTime dueDate) async {
+    try {
+      await ProductionOrdersDataSource.updateDueDate(orderId, dueDate);
+      await loadOrders();
+      state = state.copyWith(selectedOrderId: orderId);
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      rethrow;
     }
   }
 
@@ -120,6 +164,7 @@ class ProductionOrdersNotifier extends Notifier<ProductionOrdersState> {
       state = state.copyWith(selectedOrderId: stage.productionOrderId);
     } catch (e) {
       state = state.copyWith(error: e.toString());
+      rethrow;
     }
   }
 
@@ -128,6 +173,14 @@ class ProductionOrdersNotifier extends Notifier<ProductionOrdersState> {
     required String processName,
     required String workstation,
     required double estimatedHours,
+    double actualHours = 0,
+    String status = 'pendiente',
+    String? assignedEmployeeId,
+    List<String> resources = const [],
+    List<String> materialIds = const [],
+    List<String> assetIds = const [],
+    String? report,
+    String? notes,
   }) async {
     try {
       await ProductionOrdersDataSource.createStage(
@@ -135,6 +188,14 @@ class ProductionOrdersNotifier extends Notifier<ProductionOrdersState> {
         processName: processName,
         workstation: workstation,
         estimatedHours: estimatedHours,
+        actualHours: actualHours,
+        status: status,
+        assignedEmployeeId: assignedEmployeeId,
+        resources: resources,
+        materialIds: materialIds,
+        assetIds: assetIds,
+        report: report,
+        notes: notes,
       );
       await loadOrders();
       state = state.copyWith(selectedOrderId: orderId);
@@ -170,6 +231,105 @@ class ProductionOrdersNotifier extends Notifier<ProductionOrdersState> {
       return;
     }
     state = state.copyWith(selectedOrderId: orderId);
+  }
+
+  /// Reorder orders by drag-and-drop
+  Future<void> reorderOrders(int oldIndex, int newIndex) async {
+    final orders = List<ProductionOrder>.from(state.filteredOrders);
+    if (newIndex > oldIndex) newIndex -= 1;
+    final item = orders.removeAt(oldIndex);
+    orders.insert(newIndex, item);
+
+    // Update sort_order locally first for instant UI feedback
+    final updatedAll = List<ProductionOrder>.from(state.orders);
+    for (int i = 0; i < orders.length; i++) {
+      final idx = updatedAll.indexWhere((o) => o.id == orders[i].id);
+      if (idx >= 0) {
+        updatedAll[idx] = updatedAll[idx].copyWith(sortOrder: i + 1);
+      }
+    }
+    state = state.copyWith(orders: updatedAll);
+
+    // Persist to DB
+    try {
+      await ProductionOrdersDataSource.updateSortOrders(
+        orders.map((o) => o.id).toList(),
+      );
+    } catch (e) {
+      // Reload on error to restore correct order
+      await loadOrders();
+    }
+  }
+
+  // ── BOM Materials ─────────────────────────────────────────────────
+
+  Future<void> addMaterialToOrder({
+    required String orderId,
+    required String materialId,
+    required String materialName,
+    String? materialCode,
+    required double requiredQuantity,
+    String unit = 'UND',
+    double estimatedCost = 0,
+    String? pieceTitle,
+    String? dimensions,
+  }) async {
+    try {
+      await ProductionOrdersDataSource.addMaterialToOrder(
+        orderId: orderId,
+        materialId: materialId,
+        materialName: materialName,
+        materialCode: materialCode,
+        requiredQuantity: requiredQuantity,
+        unit: unit,
+        estimatedCost: estimatedCost,
+        pieceTitle: pieceTitle,
+        dimensions: dimensions,
+      );
+      await loadOrders();
+      state = state.copyWith(selectedOrderId: orderId);
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+    }
+  }
+
+  Future<void> removeMaterialFromOrder({
+    required String orderId,
+    required String materialRowId,
+  }) async {
+    try {
+      await ProductionOrdersDataSource.removeMaterialFromOrder(materialRowId);
+      await loadOrders();
+      state = state.copyWith(selectedOrderId: orderId);
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+    }
+  }
+
+  /// Vincular factura a OP
+  Future<bool> linkInvoice(String orderId, String invoiceId) async {
+    try {
+      await ProductionOrdersDataSource.linkInvoice(orderId, invoiceId);
+      await loadOrders();
+      state = state.copyWith(selectedOrderId: orderId);
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return false;
+    }
+  }
+
+  /// Desvincular factura de OP
+  Future<bool> unlinkInvoice(String orderId) async {
+    try {
+      await ProductionOrdersDataSource.unlinkInvoice(orderId);
+      await loadOrders();
+      state = state.copyWith(selectedOrderId: orderId);
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return false;
+    }
   }
 }
 

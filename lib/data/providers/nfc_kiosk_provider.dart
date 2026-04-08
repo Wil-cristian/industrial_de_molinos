@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/nfc_reader_service.dart';
 import '../../core/utils/logger.dart';
@@ -47,7 +48,7 @@ class NfcAttendanceResult {
   }
 }
 
-/// Estado del kiosko NFC de asistencia (Windows - lector USB)
+/// Estado del kiosko NFC de asistencia (Windows - ACR1552U USB)
 class NfcKioskState {
   final bool isActive;
   final bool isProcessing;
@@ -55,6 +56,9 @@ class NfcKioskState {
   final List<NfcAttendanceResult> recentResults;
   final List<Map<String, dynamic>> todayStatus;
   final String? error;
+
+  /// Conteo de escaneos de esta sesión
+  final int scanCount;
 
   /// Modo vincular tarjeta: esperando escaneo para asignar a un empleado
   final bool isLinkingCard;
@@ -69,6 +73,7 @@ class NfcKioskState {
     this.recentResults = const [],
     this.todayStatus = const [],
     this.error,
+    this.scanCount = 0,
     this.isLinkingCard = false,
     this.linkingEmployeeId,
     this.linkingEmployeeName,
@@ -82,6 +87,7 @@ class NfcKioskState {
     List<NfcAttendanceResult>? recentResults,
     List<Map<String, dynamic>>? todayStatus,
     String? error,
+    int? scanCount,
     bool? isLinkingCard,
     String? linkingEmployeeId,
     String? linkingEmployeeName,
@@ -97,6 +103,7 @@ class NfcKioskState {
       recentResults: recentResults ?? this.recentResults,
       todayStatus: todayStatus ?? this.todayStatus,
       error: clearError ? null : error ?? this.error,
+      scanCount: scanCount ?? this.scanCount,
       isLinkingCard: clearLinking ? false : isLinkingCard ?? this.isLinkingCard,
       linkingEmployeeId: clearLinking
           ? null
@@ -120,6 +127,10 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
   StreamSubscription<NfcScanResult>? _scanSubscription;
   Timer? _clearResultTimer;
 
+  /// Cooldown por empleado: evita re-registros accidentales
+  final Map<String, DateTime> _employeeCooldowns = {};
+  static const _employeeCooldownSeconds = 30;
+
   @override
   NfcKioskState build() {
     ref.onDispose(() {
@@ -130,9 +141,18 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
     return const NfcKioskState();
   }
 
-  // ========== KIOSKO (lector USB Windows) ==========
+  // ========== FEEDBACK SONORO ==========
 
-  /// Inicia el modo kiosko (para lectores USB en Windows)
+  /// Reproduce sonido del sistema al escanear
+  void _playFeedback({bool success = true}) {
+    try {
+      SystemSound.play(success ? SystemSoundType.click : SystemSoundType.alert);
+    } catch (_) {}
+  }
+
+  // ========== KIOSKO (ACR1552U USB Windows) ==========
+
+  /// Inicia el modo kiosko (para ACR1552U en Windows)
   Future<void> startKiosk({String? deviceName}) async {
     state = state.copyWith(isActive: true, clearError: true);
 
@@ -143,7 +163,7 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
 
     await NfcReaderService.instance.startNfcReading();
     await loadTodayStatus();
-    AppLogger.info('Modo kiosko iniciado');
+    AppLogger.info('Modo kiosko iniciado (ACR1552U)');
   }
 
   void stopKiosk() {
@@ -155,14 +175,32 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
 
   Future<void> _onKioskScan(NfcScanResult scan) async {
     if (state.isProcessing) return;
-    state = state.copyWith(isProcessing: true, clearLastResult: true);
+
+    // Verificar cooldown: si la RPC ya devolvió empleado recientemente, ignorar
+    // (protección adicional al anti-duplicado del NfcReaderService)
+    if (_isEmployeeOnCooldown(scan.cardId)) return;
+
+    state = state.copyWith(
+      isProcessing: true,
+      clearLastResult: true,
+      scanCount: NfcReaderService.instance.scanCount,
+    );
 
     try {
       final response = await EmployeesDatasource.registerNfcAttendance(
         nfcCardId: scan.cardId,
-        deviceName: 'Kiosko Windows',
+        deviceName: 'Kiosko Windows (ACR1552U)',
       );
       final result = NfcAttendanceResult.fromRpcResponse(response);
+
+      // Feedback sonoro
+      _playFeedback(success: result.success);
+
+      // Cooldown por empleado para evitar re-registros accidentales
+      if (result.employeeId != null) {
+        _employeeCooldowns[scan.cardId] = DateTime.now();
+      }
+
       state = state.copyWith(
         isProcessing: false,
         lastResult: result,
@@ -171,8 +209,17 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
       if (result.success) await loadTodayStatus();
       _scheduleResultClear();
     } catch (e) {
+      _playFeedback(success: false);
       state = state.copyWith(isProcessing: false, error: '$e');
     }
+  }
+
+  /// Verifica si un cardId está en cooldown (escaneado recientemente)
+  bool _isEmployeeOnCooldown(String cardId) {
+    final lastScan = _employeeCooldowns[cardId];
+    if (lastScan == null) return false;
+    return DateTime.now().difference(lastScan).inSeconds <
+        _employeeCooldownSeconds;
   }
 
   void _scheduleResultClear() {
@@ -208,6 +255,8 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
       await startKiosk();
     }
 
+    NfcReaderService.instance.resetDuplicateGuard();
+
     _scanSubscription?.cancel();
     _scanSubscription = NfcReaderService.instance.onCardScanned.listen(
       _onLinkingScan,
@@ -224,6 +273,7 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
 
   /// Cancela el modo vinculacion y vuelve al modo kiosko normal
   void cancelCardLinking() {
+    NfcReaderService.instance.resetDuplicateGuard();
     _scanSubscription?.cancel();
     _scanSubscription = NfcReaderService.instance.onCardScanned.listen(
       _onKioskScan,
@@ -240,12 +290,28 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
     state = state.copyWith(isProcessing: true);
 
     try {
+      // Verificar que la tarjeta no esté ya asignada a otro empleado
+      final existingEmployee = await EmployeesDatasource.getEmployeeByNfc(
+        scan.cardId,
+      );
+      if (existingEmployee != null &&
+          existingEmployee.id != state.linkingEmployeeId) {
+        _playFeedback(success: false);
+        state = state.copyWith(
+          isProcessing: false,
+          error:
+              'Esta tarjeta (${scan.cardId}) ya está asignada a ${existingEmployee.firstName} ${existingEmployee.lastName}',
+        );
+        return;
+      }
+
       final success = await EmployeesDatasource.assignNfcCard(
         employeeId: state.linkingEmployeeId!,
         nfcCardId: scan.cardId,
       );
 
       if (success) {
+        _playFeedback(success: true);
         state = state.copyWith(
           isProcessing: false,
           linkingResult:
@@ -258,12 +324,14 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
         await Future.delayed(const Duration(seconds: 3));
         cancelCardLinking();
       } else {
+        _playFeedback(success: false);
         state = state.copyWith(
           isProcessing: false,
           error: 'No se pudo asignar la tarjeta. Puede que ya este en uso.',
         );
       }
     } catch (e) {
+      _playFeedback(success: false);
       state = state.copyWith(
         isProcessing: false,
         error: 'Error asignando tarjeta: $e',

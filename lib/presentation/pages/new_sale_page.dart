@@ -9,6 +9,8 @@ import '../../data/datasources/invoices_datasource.dart';
 import '../../data/datasources/inventory_datasource.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/composite_products_datasource.dart';
+import '../../data/datasources/production_orders_datasource.dart';
+import '../../domain/entities/production_order.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/invoice.dart';
@@ -59,6 +61,20 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
   bool _isSaving = false;
   bool _loadingStock = false;
   List<Map<String, dynamic>>? _consolidatedStock;
+
+  // Producción
+  bool _createProductionOrder = true;
+  final List<String> _selectedProcesses = ['Corte'];
+  static const List<String> _processTemplates = [
+    'Corte',
+    'Torno',
+    'Soldadura',
+    'Armado',
+    'Pintura',
+    'Control Calidad',
+    'Empaque',
+  ];
+  final _customProcessController = TextEditingController();
 
   // Clientes del provider
   List<Map<String, dynamic>> get _customers {
@@ -195,6 +211,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
     _discountController.dispose();
     _notesController.dispose();
     _advanceAmountController.dispose();
+    _customProcessController.dispose();
     super.dispose();
   }
 
@@ -1967,6 +1984,187 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           ),
         ),
         const SizedBox(height: 16),
+        // ═══════ ORDEN DE PRODUCCIÓN ═══════
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _createProductionOrder
+                  ? const Color(0xFFFF8F00).withValues(alpha: 0.4)
+                  : const Color(0xFFEEEEEE),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.precision_manufacturing,
+                    color: _createProductionOrder
+                        ? const Color(0xFFFF8F00)
+                        : Colors.grey,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Orden de Producción',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  Switch(
+                    value: _createProductionOrder,
+                    activeColor: const Color(0xFFFF8F00),
+                    onChanged: (v) =>
+                        setState(() => _createProductionOrder = v),
+                  ),
+                ],
+              ),
+              if (_createProductionOrder) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Selecciona los procesos de fabricación para esta venta:',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _processTemplates.map((process) {
+                    final selected = _selectedProcesses.contains(process);
+                    return FilterChip(
+                      label: Text(process),
+                      selected: selected,
+                      selectedColor: const Color(
+                        0xFFFF8F00,
+                      ).withValues(alpha: 0.2),
+                      checkmarkColor: const Color(0xFFFF8F00),
+                      onSelected: (val) {
+                        setState(() {
+                          if (val) {
+                            _selectedProcesses.add(process);
+                          } else {
+                            _selectedProcesses.remove(process);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _customProcessController,
+                        decoration: const InputDecoration(
+                          labelText: 'Proceso personalizado',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.tonalIcon(
+                      onPressed: () {
+                        final value = _customProcessController.text.trim();
+                        if (value.isEmpty) return;
+                        if (_selectedProcesses.contains(value)) return;
+                        setState(() {
+                          _selectedProcesses.add(value);
+                          _customProcessController.clear();
+                        });
+                      },
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Agregar'),
+                    ),
+                  ],
+                ),
+                if (_selectedProcesses.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF8E1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFFFE082)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Cadena de procesos (${_selectedProcesses.length}):',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: List.generate(_selectedProcesses.length, (
+                            i,
+                          ) {
+                            final process = _selectedProcesses[i];
+                            final isTemplate = _processTemplates.contains(
+                              process,
+                            );
+                            return Chip(
+                              avatar: CircleAvatar(
+                                radius: 12,
+                                backgroundColor: const Color(0xFFFF8F00),
+                                child: Text(
+                                  '${i + 1}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              label: Text(
+                                process,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              deleteIcon: const Icon(Icons.close, size: 16),
+                              onDeleted: () {
+                                setState(() => _selectedProcesses.removeAt(i));
+                              },
+                              backgroundColor: isTemplate
+                                  ? const Color(0xFFFFF3E0)
+                                  : const Color(0xFFE3F2FD),
+                              side: BorderSide.none,
+                              visualDensity: VisualDensity.compact,
+                            );
+                          }),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (_selectedProcesses.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Selecciona al menos un proceso',
+                      style: TextStyle(color: Colors.red[400], fontSize: 12),
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
         // Resumen final
         Container(
           padding: const EdgeInsets.all(20),
@@ -2014,6 +2212,11 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                     ? 'Adelanto ${Helpers.formatCurrency(_advanceAmount)} + crédito $_advanceCreditDays días'
                     : 'Crédito $_creditDays días${_installments > 1 ? ' ($_installments cuotas)' : ''}',
               ),
+              if (_createProductionOrder && _selectedProcesses.isNotEmpty)
+                _buildFinalSummaryRow(
+                  'Producción',
+                  _selectedProcesses.join(' → '),
+                ),
               const Divider(height: 24),
               _buildFinalSummaryRow(
                 'Materiales',
@@ -2756,6 +2959,18 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       return;
     }
 
+    if (_createProductionOrder && _selectedProcesses.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Selecciona al menos un proceso de producción o desactiva la orden',
+          ),
+          backgroundColor: Color(0xFFF9A825),
+        ),
+      );
+      return;
+    }
+
     final customer = _customers.firstWhere(
       (c) => c['id'] == _selectedCustomerId,
       orElse: () => <String, dynamic>{'name': 'Sin cliente', 'ruc': ''},
@@ -3014,6 +3229,25 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   ),
                 ],
               ),
+              if (_createProductionOrder && _selectedProcesses.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.precision_manufacturing,
+                      color: Color(0xFFFF8F00),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Se creará orden de producción: ${_selectedProcesses.join(' → ')}',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -3136,7 +3370,32 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         );
       }
 
-      // 4. Refrescar providers
+      // 4. Crear orden de producción si está habilitada
+      if (_createProductionOrder && _selectedProcesses.isNotEmpty) {
+        try {
+          final chain = _selectedProcesses
+              .map((p) => ProcessChainItem(processName: p))
+              .toList();
+
+          final op = await ProductionOrdersDataSource.createFromSale(
+            invoice: invoice,
+            items: invoice.items,
+            processChain: chain,
+          );
+
+          if (op != null) {
+            AppLogger.info(
+              '🏭 Orden de producción ${op.code} creada para ${invoice.fullNumber}',
+            );
+            ref.read(productionOrdersProvider.notifier).loadOrders();
+          }
+        } catch (e) {
+          // No bloquear la venta si falla la OP
+          AppLogger.error('⚠️ Error creando OP automática: $e');
+        }
+      }
+
+      // 5. Refrescar providers
       ref.read(invoicesProvider.notifier).refresh();
       ref.read(productsProvider.notifier).loadProducts();
       ref.read(inventoryProvider.notifier).loadMaterials();

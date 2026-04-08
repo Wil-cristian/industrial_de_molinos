@@ -548,7 +548,7 @@ void main() {
   group('Material entity integración con inventario', () {
     final now = DateTime.now();
 
-    mat.Material _makeMaterial({
+    mat.Material makeMaterial({
       String id = 'mat-1',
       String code = 'TUB-001',
       String name = 'Tubo SCH 40 2"',
@@ -571,7 +571,7 @@ void main() {
     }
 
     test('toJson genera campos correctos para insert a Supabase', () {
-      final material = _makeMaterial();
+      final material = makeMaterial();
       final json = material.toJson();
 
       expect(json['code'], 'TUB-001');
@@ -614,15 +614,15 @@ void main() {
     });
 
     test('isLowStock detecta stock bajo correctamente', () {
-      final low = _makeMaterial(stock: 5).copyWith(minStock: 10);
-      final ok = _makeMaterial(stock: 20).copyWith(minStock: 10);
+      final low = makeMaterial(stock: 5).copyWith(minStock: 10);
+      final ok = makeMaterial(stock: 20).copyWith(minStock: 10);
 
       expect(low.isLowStock, true);
       expect(ok.isLowStock, false);
     });
 
     test('simulación: actualizar stock tras recibir factura', () {
-      final material = _makeMaterial(stock: 100);
+      final material = makeMaterial(stock: 100);
       final receivedQty = 25.0;
       final newStock = computeNewStock(material.stock, receivedQty);
 
@@ -680,7 +680,7 @@ void main() {
     });
 
     test('simulación: movement audit trail para material existente', () {
-      final material = _makeMaterial(stock: 50, unit: 'KG');
+      final material = makeMaterial(stock: 50, unit: 'KG');
       final receivedQty = 15.0;
       final newStock = computeNewStock(material.stock, receivedQty);
 

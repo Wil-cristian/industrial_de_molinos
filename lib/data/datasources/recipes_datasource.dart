@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/product.dart';
+import 'audit_log_datasource.dart';
 
 /// Datasource para operaciones de recetas en Supabase
 class RecipeDataSource {
@@ -59,6 +60,13 @@ class RecipeDataSource {
         });
       }
 
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'recipes',
+        recordId: productId,
+        description: 'Receta creada: $title',
+      );
+
       return Product(
         id: productId,
         code: code,
@@ -88,21 +96,23 @@ class RecipeDataSource {
           .eq('is_recipe', true);
 
       return (response as List)
-          .map((e) => Product(
-                id: e['id'],
-                code: e['code'],
-                name: e['name'],
-                description: e['description'],
-                unitPrice: (e['unit_price'] ?? 0).toDouble(),
-                costPrice: (e['cost_price'] ?? 0).toDouble(),
-                unit: e['unit'] ?? 'UND',
-                isRecipe: true,
-                recipeDescription: e['recipe_description'],
-                totalWeight: (e['total_weight'] ?? 0).toDouble(),
-                totalCost: (e['total_cost'] ?? 0).toDouble(),
-                createdAt: DateTime.parse(e['created_at']),
-                updatedAt: DateTime.parse(e['updated_at']),
-              ))
+          .map(
+            (e) => Product(
+              id: e['id'],
+              code: e['code'],
+              name: e['name'],
+              description: e['description'],
+              unitPrice: (e['unit_price'] ?? 0).toDouble(),
+              costPrice: (e['cost_price'] ?? 0).toDouble(),
+              unit: e['unit'] ?? 'UND',
+              isRecipe: true,
+              recipeDescription: e['recipe_description'],
+              totalWeight: (e['total_weight'] ?? 0).toDouble(),
+              totalCost: (e['total_cost'] ?? 0).toDouble(),
+              createdAt: DateTime.parse(e['created_at']),
+              updatedAt: DateTime.parse(e['updated_at']),
+            ),
+          )
           .toList();
     } catch (e) {
       throw Exception('Error al obtener recetas: $e');
@@ -110,7 +120,9 @@ class RecipeDataSource {
   }
 
   /// Obtener componentes de una receta
-  static Future<List<RecipeComponentData>> getRecipeComponents(String productId) async {
+  static Future<List<RecipeComponentData>> getRecipeComponents(
+    String productId,
+  ) async {
     try {
       final response = await _supabase
           .from('product_components')
@@ -119,21 +131,23 @@ class RecipeDataSource {
           .order('sort_order', ascending: true);
 
       return (response as List)
-          .map((e) => RecipeComponentData(
-                id: e['id'],
-                productId: e['product_id'],
-                materialId: e['material_id'],
-                name: e['name'],
-                description: e['description'],
-                quantity: (e['quantity'] ?? 0).toDouble(),
-                unit: e['unit'] ?? 'KG',
-                outerDiameter: e['outer_diameter']?.toDouble(),
-                thickness: e['thickness']?.toDouble(),
-                length: e['length']?.toDouble(),
-                calculatedWeight: (e['calculated_weight'] ?? 0).toDouble(),
-                unitCost: (e['unit_cost'] ?? 0).toDouble(),
-                totalCost: (e['total_cost'] ?? 0).toDouble(),
-              ))
+          .map(
+            (e) => RecipeComponentData(
+              id: e['id'],
+              productId: e['product_id'],
+              materialId: e['material_id'],
+              name: e['name'],
+              description: e['description'],
+              quantity: (e['quantity'] ?? 0).toDouble(),
+              unit: e['unit'] ?? 'KG',
+              outerDiameter: e['outer_diameter']?.toDouble(),
+              thickness: e['thickness']?.toDouble(),
+              length: e['length']?.toDouble(),
+              calculatedWeight: (e['calculated_weight'] ?? 0).toDouble(),
+              unitCost: (e['unit_cost'] ?? 0).toDouble(),
+              totalCost: (e['total_cost'] ?? 0).toDouble(),
+            ),
+          )
           .toList();
     } catch (e) {
       throw Exception('Error al obtener componentes: $e');
@@ -152,19 +166,25 @@ class RecipeDataSource {
   }) async {
     try {
       // Actualizar producto
-      await _supabase.from('products').update({
-        'name': title,
-        'description': description,
-        'recipe_description': description,
-        'unit_price': unitPrice,
-        'cost_price': totalCost,
-        'total_weight': totalWeight,
-        'total_cost': totalCost,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', productId);
+      await _supabase
+          .from('products')
+          .update({
+            'name': title,
+            'description': description,
+            'recipe_description': description,
+            'unit_price': unitPrice,
+            'cost_price': totalCost,
+            'total_weight': totalWeight,
+            'total_cost': totalCost,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', productId);
 
       // Eliminar componentes anteriores
-      await _supabase.from('product_components').delete().eq('product_id', productId);
+      await _supabase
+          .from('product_components')
+          .delete()
+          .eq('product_id', productId);
 
       // Insertar nuevos componentes
       for (int i = 0; i < components.length; i++) {
@@ -185,6 +205,12 @@ class RecipeDataSource {
           'sort_order': i + 1,
         });
       }
+      AuditLogDatasource.log(
+        action: 'update',
+        module: 'recipes',
+        recordId: productId,
+        description: 'Receta actualizada: $title',
+      );
     } catch (e) {
       throw Exception('Error al actualizar receta: $e');
     }
@@ -194,10 +220,19 @@ class RecipeDataSource {
   static Future<void> deleteRecipe(String productId) async {
     try {
       // Eliminar componentes primero
-      await _supabase.from('product_components').delete().eq('product_id', productId);
+      await _supabase
+          .from('product_components')
+          .delete()
+          .eq('product_id', productId);
 
       // Eliminar producto
       await _supabase.from('products').delete().eq('id', productId);
+      AuditLogDatasource.log(
+        action: 'delete',
+        module: 'recipes',
+        recordId: productId,
+        description: 'Receta eliminada',
+      );
     } catch (e) {
       throw Exception('Error al eliminar receta: $e');
     }

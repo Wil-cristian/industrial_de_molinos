@@ -22,7 +22,7 @@ class AccountsDataSource {
       query = query.eq('is_active', true);
     }
 
-    final response = await query.order('name');
+    final response = await query.order('name', ascending: false);
     return response.map<Account>((json) => _accountFromJson(json)).toList();
   }
 
@@ -52,7 +52,14 @@ class AccountsDataSource {
         .insert(data)
         .select()
         .single();
-    return _accountFromJson(response);
+    final created = _accountFromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'cash',
+      recordId: created.id,
+      description: 'Cuenta creada: ${created.name}',
+    );
+    return created;
   }
 
   /// Actualizar cuenta
@@ -68,6 +75,12 @@ class AccountsDataSource {
         .eq('id', account.id)
         .select()
         .single();
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'cash',
+      recordId: account.id,
+      description: 'Cuenta actualizada: ${account.name}',
+    );
     return _accountFromJson(response);
   }
 
@@ -91,6 +104,12 @@ class AccountsDataSource {
         .from(_accountsTable)
         .update({'is_active': false})
         .eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'cash',
+      recordId: id,
+      description: 'Cuenta desactivada',
+    );
   }
 
   // ===================== MOVIMIENTOS =====================
@@ -256,6 +275,19 @@ class AccountsDataSource {
         _client.from(_movementsTable).select().eq('id', inId).single(),
       ]);
 
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'cash',
+        recordId: outId,
+        description:
+            'Traslado entre cuentas: $description por \$${amount.toStringAsFixed(0)}',
+        details: {
+          'from_account': fromAccountId,
+          'to_account': toAccountId,
+          'amount': amount,
+        },
+      );
+
       return [_movementFromJson(responses[0]), _movementFromJson(responses[1])];
     } catch (e) {
       // Fallback: si la RPC no existe aún, usar el método clásico
@@ -272,6 +304,8 @@ class AccountsDataSource {
       }
       rethrow;
     }
+    // Note: audit is logged in createMovement for legacy path,
+    // and here for the atomic RPC path
   }
 
   /// Fallback legacy para transferencias (read-then-write)
@@ -377,7 +411,20 @@ class AccountsDataSource {
           .select()
           .eq('id', movementId)
           .single();
-      return _movementFromJson(response);
+      final created = _movementFromJson(response);
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'cash',
+        recordId: movementId,
+        description:
+            'Movimiento de caja: ${movement.description} por \$${movement.amount.toStringAsFixed(0)}',
+        details: {
+          'type': movement.type.name,
+          'amount': movement.amount,
+          'description': movement.description,
+        },
+      );
+      return created;
     } catch (e) {
       // Fallback si la RPC no existe aún
       if (e.toString().contains('function') &&
@@ -418,6 +465,12 @@ class AccountsDataSource {
         .eq('id', movement.id)
         .select()
         .single();
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'cash',
+      recordId: movement.id,
+      description: 'Movimiento actualizado: ${movement.description}',
+    );
     return _movementFromJson(response);
   }
 
@@ -462,6 +515,13 @@ class AccountsDataSource {
 
     // Eliminar el movimiento
     await _client.from(_movementsTable).delete().eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'cash',
+      recordId: id,
+      description:
+          'Movimiento eliminado: ${movement.description} por \$${movement.amount.toStringAsFixed(0)}',
+    );
   }
 
   // ===================== REPORTES =====================

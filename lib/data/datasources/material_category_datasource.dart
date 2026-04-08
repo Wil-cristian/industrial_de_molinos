@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/material_category.dart';
+import 'audit_log_datasource.dart';
 import 'supabase_datasource.dart';
 
 /// DataSource para la tabla 'material_categories'
@@ -16,7 +17,9 @@ class MaterialCategoryDatasource {
       query = query.eq('is_active', true);
     }
 
-    final response = await query.order('sort_order').order('name');
+    final response = await query
+        .order('sort_order')
+        .order('name', ascending: false);
     return response
         .map<MaterialCategory>((json) => MaterialCategory.fromJson(json))
         .toList();
@@ -54,7 +57,14 @@ class MaterialCategoryDatasource {
   static Future<MaterialCategory> create(MaterialCategory category) async {
     final data = category.toJson();
     final response = await _client.from(_table).insert(data).select().single();
-    return MaterialCategory.fromJson(response);
+    final created = MaterialCategory.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'material_categories',
+      recordId: created.id,
+      description: 'Categoría material creada: ${created.name}',
+    );
+    return created;
   }
 
   /// Actualizar categoría
@@ -66,6 +76,12 @@ class MaterialCategoryDatasource {
         .eq('id', category.id)
         .select()
         .single();
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'material_categories',
+      recordId: category.id,
+      description: 'Categoría material actualizada: ${category.name}',
+    );
     return MaterialCategory.fromJson(response);
   }
 
@@ -92,6 +108,12 @@ class MaterialCategoryDatasource {
     }
 
     await _client.from(_table).delete().eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'material_categories',
+      recordId: id,
+      description: 'Categoría material eliminada',
+    );
     return true;
   }
 

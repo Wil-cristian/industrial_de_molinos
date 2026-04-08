@@ -384,7 +384,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
       );
       final expenseByCategory = <String, double>{};
       for (final m in movements.where((m) => m.type == MovementType.expense)) {
-        final key = m.category.name;
+        final key = m.categoryLabel;
         expenseByCategory[key] = (expenseByCategory[key] ?? 0) + m.amount;
       }
 
@@ -2935,8 +2935,33 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         data.isNotEmpty &&
         data.any((d) => d.revenue > 0 || d.creditExtended > 0);
 
+    // Calcular escalas para eje dual
+    // Eje izquierdo: crédito, ingresos, ganancia
+    double primaryMax = 0;
+    for (final d in data) {
+      final vals = [d.creditExtended, d.revenue, d.estimatedProfit];
+      for (final v in vals) {
+        if (v > primaryMax) primaryMax = v;
+      }
+    }
+
+    // Eje derecho: Salud de inventario (0-100%)
+    // Normalizar porcentaje de salud al rango del eje primario
+    List<FlSpot> normalizeStockHealth() {
+      return data.asMap().entries.map((e) {
+        final ratio = e.value.stockHealthPct / 100.0;
+        return FlSpot(e.key.toDouble(), ratio * primaryMax);
+      }).toList();
+    }
+
+    // Convertir valor normalizado de vuelta a porcentaje real para tooltip
+    double denormalize(double normalizedVal) {
+      if (primaryMax == 0) return 0;
+      return (normalizedVal / primaryMax) * 100.0;
+    }
+
     return Container(
-      height: 400,
+      height: 420,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -2966,7 +2991,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Crédito vs Ganancia vs Inventario',
+                    'Crédito vs Ganancia vs Salud Inventario',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -2974,7 +2999,10 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
               _buildLegendDot('Crédito Otorgado', const Color(0xFFC62828)),
               _buildLegendDot('Ingresos', const Color(0xFF2E7D32)),
               _buildLegendDot('Ganancia Est.', const Color(0xFF1565C0)),
-              _buildLegendDot('Inventario', const Color(0xFFF9A825)),
+              _buildLegendDot(
+                'Salud Inventario (eje der.)',
+                const Color(0xFFF9A825),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -2995,9 +3023,12 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                 ),
                 const SizedBox(width: 16),
                 _buildMiniMetric(
-                  'Inventario',
-                  state.healthSnapshot!.totalInventoryValue,
+                  'Productos Críticos',
+                  (state.healthSnapshot!.lowStockProducts +
+                          state.healthSnapshot!.outOfStockProducts)
+                      .toDouble(),
                   const Color(0xFFF9A825),
+                  isCurrency: false,
                 ),
                 const SizedBox(width: 16),
                 _buildMiniMetric(
@@ -3035,6 +3066,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   )
                 : LineChart(
                     LineChartData(
+                      minY: 0,
                       gridData: FlGridData(
                         show: true,
                         drawVerticalLine: false,
@@ -3087,8 +3119,25 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                             },
                           ),
                         ),
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
+                        rightTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 45,
+                            getTitlesWidget: (value, meta) {
+                              if (value == meta.max || value == meta.min) {
+                                return const SizedBox();
+                              }
+                              final pct = denormalize(value);
+                              return Text(
+                                '${pct.toStringAsFixed(0)}%',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  color: Color(0xFFF9A825),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              );
+                            },
+                          ),
                         ),
                         topTitles: const AxisTitles(
                           sideTitles: SideTitles(showTitles: false),
@@ -3152,27 +3201,27 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                           dashArray: [5, 5],
                           dotData: const FlDotData(show: false),
                         ),
-                        // Línea: Inventario (naranja)
+                        // Línea: Salud Inventario (naranja) - normalizado al eje derecho
                         LineChartBarData(
-                          spots: data
-                              .asMap()
-                              .entries
-                              .map(
-                                (e) => FlSpot(
-                                  e.key.toDouble(),
-                                  e.value.inventoryValue,
-                                ),
-                              )
-                              .toList(),
+                          spots: normalizeStockHealth(),
                           isCurved: true,
                           color: const Color(0xFFF9A825),
-                          barWidth: 2,
-                          dotData: const FlDotData(show: false),
+                          barWidth: 3,
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) =>
+                                FlDotCirclePainter(
+                                  radius: 3,
+                                  color: const Color(0xFFF9A825),
+                                  strokeWidth: 1,
+                                  strokeColor: Colors.white,
+                                ),
+                          ),
                           belowBarData: BarAreaData(
                             show: true,
                             color: const Color(
                               0xFFF9A825,
-                            ).withValues(alpha: 0.05),
+                            ).withValues(alpha: 0.10),
                           ),
                         ),
                       ],
@@ -3184,7 +3233,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 'Crédito',
                                 'Ingresos',
                                 'Ganancia',
-                                'Inventario',
+                                'Salud Inv.',
                               ];
                               final colors = [
                                 const Color(0xFFC62828),
@@ -3192,8 +3241,15 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 const Color(0xFF1565C0),
                                 const Color(0xFFF9A825),
                               ];
+                              // Para salud inventario mostrar porcentaje, no valor normalizado
+                              final displayValue = spot.barIndex == 3
+                                  ? denormalize(spot.y)
+                                  : spot.y;
+                              final displayText = spot.barIndex == 3
+                                  ? '${labels[spot.barIndex]}: ${displayValue.toStringAsFixed(1)}%'
+                                  : '${labels[spot.barIndex]}: ${Helpers.formatCurrency(displayValue)}';
                               return LineTooltipItem(
-                                '${labels[spot.barIndex]}: ${Helpers.formatCurrency(spot.y)}',
+                                displayText,
                                 TextStyle(
                                   color: colors[spot.barIndex],
                                   fontSize: 11,
@@ -3211,7 +3267,12 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
     );
   }
 
-  Widget _buildMiniMetric(String label, double value, Color color) {
+  Widget _buildMiniMetric(
+    String label,
+    double value,
+    Color color, {
+    bool isCurrency = true,
+  }) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3224,7 +3285,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
             ),
           ),
           Text(
-            Helpers.formatCurrency(value),
+            isCurrency
+                ? Helpers.formatCurrency(value)
+                : value.toInt().toString(),
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -5516,82 +5579,50 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
     }
   }
 
-  Map<MovementCategory, double> _groupByCategory(MovementType type) {
-    final result = <MovementCategory, double>{};
+  Map<String, double> _groupByCategory(MovementType type) {
+    final result = <String, double>{};
     for (final m in _movements.where((m) => m.type == type)) {
-      result[m.category] = (result[m.category] ?? 0) + m.amount;
+      final key = m.categoryLabel;
+      result[key] = (result[key] ?? 0) + m.amount;
     }
     return result;
   }
 
-  String _catLabel(MovementCategory c) {
-    switch (c) {
-      case MovementCategory.sale:
-        return 'Venta';
-      case MovementCategory.collection:
-        return 'Cobranza';
-      case MovementCategory.pago_prestamo:
-        return 'Pago Préstamo';
-      case MovementCategory.otherIncome:
-        return 'Otros Ingresos';
-      case MovementCategory.cuidado_personal:
-        return 'Cuidado Personal';
-      case MovementCategory.servicios_publicos:
-        return 'Servicios Públicos';
-      case MovementCategory.papeleria:
-        return 'Papelería';
-      case MovementCategory.nomina:
-        return 'Nómina';
-      case MovementCategory.impuestos:
-        return 'Impuestos';
-      case MovementCategory.consumibles:
-        return 'Consumibles';
-      case MovementCategory.transporte:
-        return 'Transporte';
-      case MovementCategory.gastos_reducibles:
-        return 'Gastos Reducibles';
-      case MovementCategory.transferOut:
-        return 'Traslado Salida';
-      case MovementCategory.transferIn:
-        return 'Traslado Entrada';
-      case MovementCategory.custom:
-        return 'Otro';
-    }
-  }
+  // _catLabel ya no es necesario: las claves del Map son los labels directos
 
-  Color _catColor(MovementCategory c) {
-    switch (c) {
-      case MovementCategory.sale:
-        return const Color(0xFF2E7D32);
-      case MovementCategory.collection:
-        return const Color(0xFF009688);
-      case MovementCategory.pago_prestamo:
-        return Colors.lightGreen;
-      case MovementCategory.otherIncome:
-        return const Color(0xFF81C784);
-      case MovementCategory.cuidado_personal:
-        return const Color(0xFFE91E63);
-      case MovementCategory.servicios_publicos:
-        return const Color(0xFF7B1FA2);
-      case MovementCategory.papeleria:
-        return const Color(0xFF3F51B5);
-      case MovementCategory.nomina:
-        return const Color(0xFFFF5722);
-      case MovementCategory.impuestos:
-        return const Color(0xFFC62828);
-      case MovementCategory.consumibles:
-        return const Color(0xFFC62828);
-      case MovementCategory.transporte:
-        return const Color(0xFF1565C0);
-      case MovementCategory.gastos_reducibles:
-        return const Color(0xFF9E9E9E);
-      case MovementCategory.transferOut:
-        return const Color(0xFFFFB74D);
-      case MovementCategory.transferIn:
-        return const Color(0xFFF57C00);
-      case MovementCategory.custom:
-        return const Color(0xFF607D8B);
-    }
+  static const _catColorMap = <String, Color>{
+    'Venta': Color(0xFF2E7D32),
+    'Cobranza': Color(0xFF009688),
+    'Pago Préstamo': Color(0xFF81C784),
+    'Otros Ingresos': Color(0xFF81C784),
+    'Cuidado Personal': Color(0xFFE91E63),
+    'Servicios Públicos': Color(0xFF7B1FA2),
+    'Papelería': Color(0xFF3F51B5),
+    'Nómina': Color(0xFFFF5722),
+    'Impuestos': Color(0xFFC62828),
+    'Consumibles': Color(0xFF5C6BC0),
+    'Transporte': Color(0xFFFFA726),
+    'Gastos Reducibles': Color(0xFF78909C),
+    'Traslado Salida': Color(0xFFF9A825),
+    'Traslado Entrada': Color(0xFF29B6F6),
+  };
+
+  static const _extraColors = [
+    Color(0xFF8D6E63),
+    Color(0xFF26A69A),
+    Color(0xFFAB47BC),
+    Color(0xFFEC407A),
+    Color(0xFF66BB6A),
+    Color(0xFF42A5F5),
+    Color(0xFFEF5350),
+    Color(0xFF7E57C2),
+  ];
+
+  Color _catColor(String label) {
+    if (_catColorMap.containsKey(label)) return _catColorMap[label]!;
+    // Categorías custom: asignar color por hash
+    final idx = label.hashCode.abs() % _extraColors.length;
+    return _extraColors[idx];
   }
 
   @override
@@ -5814,7 +5845,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    _catLabel(e.key),
+                                    e.key,
                                     style: const TextStyle(fontSize: 13),
                                   ),
                                 ),
@@ -5936,7 +5967,7 @@ class _CashFlowTabContentState extends ConsumerState<_CashFlowTabContent> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    _catLabel(e.key),
+                                    e.key,
                                     style: const TextStyle(fontSize: 13),
                                   ),
                                 ),

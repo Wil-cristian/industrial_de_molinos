@@ -314,7 +314,7 @@ class PurchaseOrdersNotifier extends Notifier<PurchaseOrdersState> {
 
   Future<bool> deleteItem(String itemId, String orderId) async {
     try {
-      await PurchaseOrdersDataSource.deleteItem(itemId);
+      await PurchaseOrdersDataSource.deleteItem(itemId, orderId);
       await _refreshOrder(orderId);
       return true;
     } catch (e) {

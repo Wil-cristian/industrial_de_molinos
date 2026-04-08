@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,8 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/entities/employee.dart';
+import '../../data/providers/auth_provider.dart';
+import '../../data/providers/role_provider.dart';
 import '../../data/datasources/user_profile_datasource.dart';
 import '../../data/datasources/employees_datasource.dart';
 import '../../data/datasources/supabase_datasource.dart';
@@ -19,14 +23,26 @@ class UserManagementPage extends ConsumerStatefulWidget {
   ConsumerState<UserManagementPage> createState() => _UserManagementPageState();
 }
 
-class _UserManagementPageState extends ConsumerState<UserManagementPage> {
+class _UserManagementPageState extends ConsumerState<UserManagementPage>
+    with SingleTickerProviderStateMixin {
   List<UserProfile> _accounts = [];
+  List<Map<String, dynamic>> _activeSessions = [];
   bool _isLoading = true;
+  bool _isLoadingSessions = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadAccounts();
+    _loadActiveSessions();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAccounts() async {
@@ -36,6 +52,16 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> {
     setState(() {
       _accounts = accounts;
       _isLoading = false;
+    });
+  }
+
+  Future<void> _loadActiveSessions() async {
+    setState(() => _isLoadingSessions = true);
+    final sessions = await UserProfileDatasource.listActiveSessions();
+    if (!mounted) return;
+    setState(() {
+      _activeSessions = sessions;
+      _isLoadingSessions = false;
     });
   }
 
@@ -76,8 +102,27 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestión de Usuarios'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.people),
+              text: 'Cuentas (${_accounts.length})',
+            ),
+            Tab(
+              icon: const Icon(Icons.devices),
+              text: 'Dispositivos activos (${_activeSessions.length})',
+            ),
+          ],
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAccounts),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              _loadAccounts();
+              _loadActiveSessions();
+            },
+          ),
           const SizedBox(width: 8),
           FilledButton.icon(
             onPressed: _confirmSignOut,
@@ -97,38 +142,403 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage> {
         icon: const Icon(Icons.person_add),
         label: const Text('Crear cuenta'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _accounts.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 64,
-                    color: cs.onSurfaceVariant,
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Tab 1: Cuentas de usuario
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _accounts.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.people_outline,
+                        size: 64,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: AppSpacing.base),
+                      Text('No hay cuentas registradas', style: tt.bodyLarge),
+                    ],
                   ),
-                  const SizedBox(height: AppSpacing.base),
-                  Text('No hay cuentas registradas', style: tt.bodyLarge),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(AppSpacing.base),
+                  itemCount: _accounts.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return _ActiveSessionBanner();
+                    }
+                    final account = _accounts[index - 1];
+                    return _AccountCard(
+                      account: account,
+                      onToggle: () => _toggleAccount(account),
+                      onViewCredentials: () => _viewCredentials(account),
+                      onResetPassword: () => _resetPassword(account),
+                      onChangeRole: () => _changeRole(account),
+                    );
+                  },
+                ),
+          // Tab 2: Dispositivos activos
+          _buildActiveDevicesTab(cs, tt),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveDevicesTab(ColorScheme cs, TextTheme tt) {
+    if (_isLoadingSessions) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_activeSessions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.devices_other, size: 64, color: cs.onSurfaceVariant),
+            const SizedBox(height: AppSpacing.base),
+            Text('No hay dispositivos activos', style: tt.bodyLarge),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Los dispositivos aparecerán aquí cuando los usuarios inicien sesión',
+              style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'es_CO');
+    final onlineCount = _activeSessions
+        .where((s) => s['is_online'] == true)
+        .length;
+
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      children: [
+        // Resumen
+        Card(
+          color: cs.primaryContainer.withOpacity(0.3),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.wifi, color: Colors.green, size: 28),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$onlineCount en línea · ${_activeSessions.length} sesiones',
+                        style: tt.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Dispositivos conectados en las últimas 24 horas',
+                        style: tt.labelSmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _loadActiveSessions,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+
+        // Lista de sesiones
+        ..._activeSessions.map((session) {
+          final isOnline = session['is_online'] == true;
+          final platform = session['platform'] as String? ?? 'unknown';
+          final deviceName = session['device_name'] as String? ?? 'Desconocido';
+          final displayName =
+              session['display_name'] as String? ?? 'Sin nombre';
+          final email = session['email'] as String? ?? '';
+          final role = session['user_role'] as String? ?? 'unknown';
+          final appVersion = session['app_version'] as String? ?? '';
+          final employeeName = session['employee_name'] as String?;
+          final employeePosition = session['employee_position'] as String?;
+          final startedAt = session['started_at'] != null
+              ? DateTime.tryParse(session['started_at'] as String)
+              : null;
+          final lastHeartbeat = session['last_heartbeat'] != null
+              ? DateTime.tryParse(session['last_heartbeat'] as String)
+              : null;
+
+          // Icono y color por plataforma
+          IconData platformIcon;
+          Color platformColor;
+          switch (platform) {
+            case 'windows':
+              platformIcon = Icons.desktop_windows;
+              platformColor = Colors.blue;
+            case 'web':
+              platformIcon = Icons.language;
+              platformColor = Colors.orange;
+            case 'android':
+              platformIcon = Icons.phone_android;
+              platformColor = Colors.green;
+            case 'ios':
+              platformIcon = Icons.phone_iphone;
+              platformColor = Colors.grey;
+            default:
+              platformIcon = Icons.devices_other;
+              platformColor = cs.onSurfaceVariant;
+          }
+
+          // Label de rol
+          final roleLabel = switch (role) {
+            'admin' => 'Admin',
+            'dueno' => 'Dueño',
+            'tecnico' => 'Técnico',
+            'employee' => 'Empleado',
+            _ => role,
+          };
+          final roleColor = switch (role) {
+            'admin' => cs.primary,
+            'dueno' => Colors.purple,
+            'tecnico' => Colors.amber.shade800,
+            'employee' => cs.tertiary,
+            _ => cs.onSurfaceVariant,
+          };
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: isOnline
+                  ? BorderSide(color: Colors.green.withOpacity(0.5), width: 1.5)
+                  : BorderSide.none,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icono de plataforma con indicador online
+                  Stack(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: platformColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          platformIcon,
+                          color: platformColor,
+                          size: 28,
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: isOnline ? Colors.green : Colors.grey,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: cs.surface, width: 2),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Nombre + badge online + rol
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                displayName,
+                                style: tt.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: roleColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                roleLabel,
+                                style: tt.labelSmall?.copyWith(
+                                  color: roleColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            if (isOnline)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'En línea',
+                                  style: tt.labelSmall?.copyWith(
+                                    color: Colors.green.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              )
+                            else
+                              Text(
+                                'Inactivo',
+                                style: tt.labelSmall?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        // Email
+                        Text(
+                          email,
+                          style: tt.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                        // Empleado
+                        if (employeeName != null)
+                          Text(
+                            'Empleado: $employeeName${employeePosition != null ? " ($employeePosition)" : ""}',
+                            style: tt.labelSmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        const SizedBox(height: 6),
+                        // Dispositivo + versión
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 4,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  platformIcon,
+                                  size: 14,
+                                  color: cs.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  deviceName,
+                                  style: tt.labelSmall?.copyWith(
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (appVersion.isNotEmpty)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    size: 14,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'v$appVersion',
+                                    style: tt.labelSmall?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            if (startedAt != null)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.login,
+                                    size: 14,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Desde: ${dateFormat.format(startedAt.toLocal())}',
+                                    style: tt.labelSmall?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            if (lastHeartbeat != null)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.access_time,
+                                    size: 14,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Último ping: ${_timeAgo(lastHeartbeat)}',
+                                    style: tt.labelSmall?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(AppSpacing.base),
-              itemCount: _accounts.length,
-              itemBuilder: (context, index) {
-                final account = _accounts[index];
-                return _AccountCard(
-                  account: account,
-                  onToggle: () => _toggleAccount(account),
-                  onViewCredentials: () => _viewCredentials(account),
-                  onResetPassword: () => _resetPassword(account),
-                  onChangeRole: () => _changeRole(account),
-                );
-              },
             ),
+          );
+        }),
+      ],
     );
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt.toLocal());
+    if (diff.inSeconds < 60) return 'Ahora';
+    if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'Hace ${diff.inHours}h';
+    return 'Hace ${diff.inDays}d';
   }
 
   Future<void> _changeRole(UserProfile account) async {
@@ -812,6 +1222,260 @@ class _CreateAccountDialogState extends ConsumerState<_CreateAccountDialog> {
                 )
               : const Icon(Icons.person_add),
           label: const Text('Crear cuenta'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Banner que muestra la sesión activa actual con datos del usuario y empleado
+class _ActiveSessionBanner extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final roleState = ref.watch(roleProvider);
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'es_CO');
+
+    final user = authState.user;
+    final profile = roleState.profile;
+
+    if (user == null) return const SizedBox.shrink();
+
+    // Determinar plataforma
+    String platformName;
+    IconData platformIcon;
+    if (kIsWeb) {
+      platformName = 'Web';
+      platformIcon = Icons.language;
+    } else if (Platform.isWindows) {
+      platformName = 'Windows';
+      platformIcon = Icons.desktop_windows;
+    } else if (Platform.isAndroid) {
+      platformName = 'Android';
+      platformIcon = Icons.phone_android;
+    } else if (Platform.isIOS) {
+      platformName = 'iOS';
+      platformIcon = Icons.phone_iphone;
+    } else {
+      platformName = 'Desconocida';
+      platformIcon = Icons.devices;
+    }
+
+    // Color del rol
+    final roleColor = switch (profile?.role) {
+      'admin' => cs.primary,
+      'dueno' => Colors.purple,
+      'tecnico' => Colors.amber.shade800,
+      _ => cs.tertiary,
+    };
+    final roleLabel = switch (profile?.role) {
+      'admin' => 'Administrador',
+      'dueno' => 'Dueño',
+      'tecnico' => 'Técnico',
+      'employee' => 'Empleado',
+      _ => profile?.role ?? 'Sin rol',
+    };
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      color: cs.primaryContainer.withOpacity(0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: cs.primary.withOpacity(0.3), width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.verified_user,
+                    color: Colors.green,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Sesión Activa',
+                        style: tt.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                      Text(
+                        'Esta es la cuenta con la que se registran los movimientos',
+                        style: tt.labelSmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Indicador de plataforma
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(platformIcon, size: 16, color: cs.onSurfaceVariant),
+                      const SizedBox(width: 4),
+                      Text(
+                        platformName,
+                        style: tt.labelSmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+
+            // Datos de la cuenta
+            _buildInfoRow(
+              context,
+              Icons.email_outlined,
+              'Email',
+              user.email ?? 'Sin email',
+            ),
+            const SizedBox(height: 8),
+            _buildInfoRow(
+              context,
+              Icons.person_outline,
+              'Nombre',
+              profile?.displayName ?? user.email ?? 'Sin nombre',
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.shield_outlined,
+                  size: 18,
+                  color: cs.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Rol: ',
+                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: roleColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    roleLabel,
+                    style: tt.labelMedium?.copyWith(
+                      color: roleColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // Empleado asociado
+            if (profile?.employeeName != null) ...[
+              const SizedBox(height: 8),
+              _buildInfoRow(
+                context,
+                Icons.badge_outlined,
+                'Empleado',
+                profile!.employeeName!,
+              ),
+            ],
+            if (profile?.employeePosition != null) ...[
+              const SizedBox(height: 8),
+              _buildInfoRow(
+                context,
+                Icons.work_outline,
+                'Cargo',
+                profile!.employeePosition!,
+              ),
+            ],
+            if (profile?.employeeDepartment != null) ...[
+              const SizedBox(height: 8),
+              _buildInfoRow(
+                context,
+                Icons.business_outlined,
+                'Departamento',
+                profile!.employeeDepartment!,
+              ),
+            ],
+
+            // ID de usuario y último acceso
+            const SizedBox(height: 8),
+            _buildInfoRow(
+              context,
+              Icons.fingerprint,
+              'ID Sesión',
+              user.id.substring(0, 8).toUpperCase(),
+            ),
+            if (user.lastSignInAt != null) ...[
+              const SizedBox(height: 8),
+              _buildInfoRow(
+                context,
+                Icons.access_time,
+                'Último login',
+                dateFormat.format(DateTime.parse(user.lastSignInAt!)),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: cs.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+        ),
+        Flexible(
+          child: Text(
+            value,
+            style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

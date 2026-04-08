@@ -7,6 +7,9 @@ class AuditLog {
   final String? userEmail;
   final String? userDisplayName;
   final String? userRole;
+  final String? employeeName;
+  final String? employeePosition;
+  final String? employeeDepartment;
   final String action;
   final String module;
   final String? recordId;
@@ -20,6 +23,9 @@ class AuditLog {
     this.userEmail,
     this.userDisplayName,
     this.userRole,
+    this.employeeName,
+    this.employeePosition,
+    this.employeeDepartment,
     required this.action,
     required this.module,
     this.recordId,
@@ -35,6 +41,9 @@ class AuditLog {
       userEmail: json['user_email'] as String?,
       userDisplayName: json['user_display_name'] as String?,
       userRole: json['user_role'] as String?,
+      employeeName: json['employee_name'] as String?,
+      employeePosition: json['employee_position'] as String?,
+      employeeDepartment: json['employee_department'] as String?,
       action: json['action'] as String,
       module: json['module'] as String,
       recordId: json['record_id'] as String?,
@@ -101,6 +110,24 @@ class AuditLog {
         return 'Autenticación';
       case 'users':
         return 'Usuarios';
+      case 'suppliers':
+        return 'Proveedores';
+      case 'products':
+        return 'Productos';
+      case 'activities':
+        return 'Actividades';
+      case 'iva':
+        return 'IVA';
+      case 'settings':
+        return 'Configuración';
+      case 'composite_products':
+        return 'Prod. Compuestos';
+      case 'supplier_materials':
+        return 'Prov-Materiales';
+      case 'material_categories':
+        return 'Cat. Materiales';
+      case 'recipes':
+        return 'Recetas';
       default:
         return module;
     }

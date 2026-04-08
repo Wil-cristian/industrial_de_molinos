@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/company_settings.dart';
 import '../../domain/entities/material_price.dart';
 import '../../domain/entities/storage_location.dart';
+import 'audit_log_datasource.dart';
 import 'supabase_datasource.dart';
 
 class SettingsDataSource {
@@ -49,6 +50,12 @@ class SettingsDataSource {
           .eq('id', existing[0]['id'])
           .select()
           .single();
+      AuditLogDatasource.log(
+        action: 'update',
+        module: 'settings',
+        recordId: existing[0]['id'].toString(),
+        description: 'Configuración de empresa actualizada',
+      );
       return CompanySettings.fromJson(response);
     } else {
       final response = await _client
@@ -56,6 +63,11 @@ class SettingsDataSource {
           .insert(data)
           .select()
           .single();
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'settings',
+        description: 'Configuración de empresa creada',
+      );
       return CompanySettings.fromJson(response);
     }
   }
@@ -95,6 +107,11 @@ class SettingsDataSource {
     } else {
       await _client.from('operational_costs').insert(data);
     }
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'settings',
+      description: 'Costos operativos actualizados',
+    );
   }
 
   // =====================================================
@@ -104,7 +121,10 @@ class SettingsDataSource {
   /// Obtener todas las categorías
   static Future<List<ProductCategory>> getCategories() async {
     try {
-      final response = await _client.from('categories').select().order('name');
+      final response = await _client
+          .from('categories')
+          .select()
+          .order('name', ascending: false);
       return response
           .map<ProductCategory>((json) => ProductCategory.fromJson(json))
           .toList();
@@ -123,7 +143,14 @@ class SettingsDataSource {
         .insert(data)
         .select()
         .single();
-    return ProductCategory.fromJson(response);
+    final created = ProductCategory.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'settings',
+      recordId: created.id,
+      description: 'Categoría creada: ${created.name}',
+    );
+    return created;
   }
 
   /// Actualizar categoría
@@ -137,12 +164,24 @@ class SettingsDataSource {
         .eq('id', category.id)
         .select()
         .single();
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'settings',
+      recordId: category.id,
+      description: 'Categoría actualizada: ${category.name}',
+    );
     return ProductCategory.fromJson(response);
   }
 
   /// Eliminar categoría (soft delete)
   static Future<void> deleteCategory(String id) async {
     await _client.from('categories').update({'is_active': false}).eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'settings',
+      recordId: id,
+      description: 'Categoría desactivada',
+    );
   }
 
   // =====================================================
@@ -156,7 +195,7 @@ class SettingsDataSource {
           .from('payroll_concepts')
           .select()
           .order('type')
-          .order('name');
+          .order('name', ascending: false);
       return response
           .map<PayrollConcept>((json) => PayrollConcept.fromJson(json))
           .toList();
@@ -175,7 +214,7 @@ class SettingsDataSource {
           .select()
           .eq('type', type)
           .eq('is_active', true)
-          .order('name');
+          .order('name', ascending: false);
       return response
           .map<PayrollConcept>((json) => PayrollConcept.fromJson(json))
           .toList();
@@ -194,7 +233,14 @@ class SettingsDataSource {
         .insert(data)
         .select()
         .single();
-    return PayrollConcept.fromJson(response);
+    final created = PayrollConcept.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'settings',
+      recordId: created.id,
+      description: 'Concepto nómina creado: ${created.name}',
+    );
+    return created;
   }
 
   /// Actualizar concepto de nómina
@@ -208,6 +254,12 @@ class SettingsDataSource {
         .eq('id', concept.id)
         .select()
         .single();
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'settings',
+      recordId: concept.id,
+      description: 'Concepto nómina actualizado: ${concept.name}',
+    );
     return PayrollConcept.fromJson(response);
   }
 
@@ -217,6 +269,12 @@ class SettingsDataSource {
         .from('payroll_concepts')
         .update({'is_active': false})
         .eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'settings',
+      recordId: id,
+      description: 'Concepto nómina desactivado',
+    );
   }
 
   // =====================================================
@@ -230,7 +288,7 @@ class SettingsDataSource {
           .from('storage_locations')
           .select()
           .eq('is_active', true)
-          .order('name');
+          .order('name', ascending: false);
       return response
           .map<StorageLocation>((json) => StorageLocation.fromJson(json))
           .toList();
@@ -249,7 +307,14 @@ class SettingsDataSource {
         .insert({'name': name, 'description': description})
         .select()
         .single();
-    return StorageLocation.fromJson(response);
+    final created = StorageLocation.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'settings',
+      recordId: created.id,
+      description: 'Ubicación creada: $name',
+    );
+    return created;
   }
 
   /// Actualizar ubicación
@@ -268,6 +333,12 @@ class SettingsDataSource {
         .eq('id', id)
         .select()
         .single();
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'settings',
+      recordId: id,
+      description: 'Ubicación actualizada: $name',
+    );
     return StorageLocation.fromJson(response);
   }
 
@@ -277,6 +348,12 @@ class SettingsDataSource {
         .from('storage_locations')
         .update({'is_active': false})
         .eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'settings',
+      recordId: id,
+      description: 'Ubicación desactivada',
+    );
   }
 
   // =====================================================

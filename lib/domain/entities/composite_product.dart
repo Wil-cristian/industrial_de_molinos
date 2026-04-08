@@ -21,6 +21,7 @@ class ProductComponent {
   final double weightPerUnit; // Peso calculado por unidad (kg)
   final double pricePerUnit; // Precio VENTA por unidad (peso × price_per_kg)
   final double costPricePerUnit; // Precio COMPRA por unidad (peso × cost_price)
+  final String? label; // Título de la pieza (ej: "tapa lateral")
   final String? notes; // Notas adicionales
 
   ProductComponent({
@@ -39,6 +40,7 @@ class ProductComponent {
     this.weightPerUnit = 0,
     this.pricePerUnit = 0,
     this.costPricePerUnit = 0,
+    this.label,
     this.notes,
   });
 
@@ -92,6 +94,7 @@ class ProductComponent {
     double? weightPerUnit,
     double? pricePerUnit,
     double? costPricePerUnit,
+    String? label,
     String? notes,
   }) {
     return ProductComponent(
@@ -110,6 +113,7 @@ class ProductComponent {
       weightPerUnit: weightPerUnit ?? this.weightPerUnit,
       pricePerUnit: pricePerUnit ?? this.pricePerUnit,
       costPricePerUnit: costPricePerUnit ?? this.costPricePerUnit,
+      label: label ?? this.label,
       notes: notes ?? this.notes,
     );
   }
@@ -130,6 +134,7 @@ class ProductComponent {
     'weight_per_unit': weightPerUnit,
     'price_per_unit': pricePerUnit,
     'cost_price_per_unit': costPricePerUnit,
+    'label': label,
     'notes': notes,
   };
 
@@ -160,6 +165,7 @@ class ProductComponent {
     pricePerUnit: (json['price_per_unit'] ?? json['unit_cost'] ?? 0).toDouble(),
     costPricePerUnit: (json['cost_price_per_unit'] ?? json['live_cost'] ?? 0)
         .toDouble(),
+    label: json['label'],
     notes: json['notes'] ?? json['description'],
   );
 
@@ -191,6 +197,7 @@ class ProductComponent {
     pricePerUnit: (json['price_per_unit'] ?? json['unit_cost'] ?? 0).toDouble(),
     costPricePerUnit: (json['cost_price_per_unit'] ?? json['live_cost'] ?? 0)
         .toDouble(),
+    label: json['label'],
     notes: json['description'],
   );
 
@@ -212,6 +219,7 @@ class ProductComponent {
     'unit_cost': pricePerUnit,
     'total_cost': totalPrice,
     'sort_order': sortOrder,
+    'label': label,
   };
 
   /// Incluye info extra (shape, materialCode) en la descripción
@@ -243,6 +251,7 @@ class CompositeProduct {
   final double laborRate; // Tarifa por hora
   final double indirectCosts; // Costos indirectos (energía, etc.)
   final double profitMargin; // Margen de ganancia (%)
+  final double? customPrice; // Precio de venta final (definido por el usuario)
 
   // Estado
   final bool isActive;
@@ -260,6 +269,7 @@ class CompositeProduct {
     this.laborRate = 25,
     this.indirectCosts = 0,
     this.profitMargin = 20,
+    this.customPrice,
     this.isActive = true,
     required this.createdAt,
     required this.updatedAt,
@@ -281,9 +291,12 @@ class CompositeProduct {
   double get materialsProfit => materialsCost - materialsCostPrice;
 
   // Margen de ganancia real = (Venta - Compra) / Compra × 100
-  double get realProfitMargin => materialsCostPrice > 0
-      ? ((materialsCost - materialsCostPrice) / materialsCostPrice * 100)
-      : 0;
+  double get realProfitMargin {
+    final sellPrice = customPrice ?? materialsCost;
+    return materialsCostPrice > 0
+        ? ((sellPrice - materialsCostPrice) / materialsCostPrice * 100)
+        : 0;
+  }
 
   // Costo de mano de obra
   double get laborCost => laborHours * laborRate;
@@ -337,6 +350,7 @@ class CompositeProduct {
     double? laborRate,
     double? indirectCosts,
     double? profitMargin,
+    double? customPrice,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -352,6 +366,7 @@ class CompositeProduct {
       laborRate: laborRate ?? this.laborRate,
       indirectCosts: indirectCosts ?? this.indirectCosts,
       profitMargin: profitMargin ?? this.profitMargin,
+      customPrice: customPrice ?? this.customPrice,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -369,6 +384,7 @@ class CompositeProduct {
     'labor_rate': laborRate,
     'indirect_costs': indirectCosts,
     'profit_margin': profitMargin,
+    'custom_price': customPrice,
     'is_active': isActive,
     'created_at': createdAt.toIso8601String(),
     'updated_at': updatedAt.toIso8601String(),
@@ -390,6 +406,7 @@ class CompositeProduct {
         laborRate: (json['labor_rate'] ?? 25).toDouble(),
         indirectCosts: (json['indirect_costs'] ?? 0).toDouble(),
         profitMargin: (json['profit_margin'] ?? 20).toDouble(),
+        customPrice: json['custom_price']?.toDouble(),
         isActive: json['is_active'] ?? true,
         createdAt: DateTime.parse(json['created_at']),
         updatedAt: DateTime.parse(json['updated_at']),
@@ -425,6 +442,7 @@ class CompositeProduct {
       laborRate: (json['labor_rate'] ?? 0).toDouble(),
       indirectCosts: (json['indirect_costs'] ?? 0).toDouble(),
       profitMargin: (json['profit_margin'] ?? 0).toDouble(),
+      customPrice: json['custom_price']?.toDouble(),
       isActive: json['is_active'] ?? true,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
@@ -447,6 +465,7 @@ class CompositeProduct {
     'total_cost': materialsCostPrice,
     'unit_price': totalPrice,
     'cost_price': materialsCostPrice,
+    'custom_price': customPrice,
   };
 
   /// Construye la descripción incluyendo la categoría

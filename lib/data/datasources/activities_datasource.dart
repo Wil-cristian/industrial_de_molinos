@@ -1,6 +1,7 @@
 import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/activity.dart';
+import 'audit_log_datasource.dart';
 
 class ActivitiesDatasource {
   static final _client = Supabase.instance.client;
@@ -122,7 +123,14 @@ class ActivitiesDatasource {
           .single();
 
       AppLogger.success('? Actividad creada: ${response['id']}');
-      return Activity.fromJson(response);
+      final created = Activity.fromJson(response);
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'activities',
+        recordId: created.id,
+        description: 'Creó actividad: ${created.title}',
+      );
+      return created;
     } catch (e) {
       AppLogger.error('? Error creando actividad: $e');
       return null;
@@ -151,6 +159,12 @@ class ActivitiesDatasource {
           .eq('id', activity.id);
 
       AppLogger.success('? Actividad actualizada: ${activity.id}');
+      AuditLogDatasource.log(
+        action: 'update',
+        module: 'activities',
+        recordId: activity.id,
+        description: 'Actualizó actividad: ${activity.title}',
+      );
       return true;
     } catch (e) {
       AppLogger.error('? Error actualizando actividad: $e');
@@ -163,6 +177,12 @@ class ActivitiesDatasource {
     try {
       await _client.from('activities').delete().eq('id', id);
       AppLogger.success('? Actividad eliminada: $id');
+      AuditLogDatasource.log(
+        action: 'delete',
+        module: 'activities',
+        recordId: id,
+        description: 'Eliminó actividad',
+      );
       return true;
     } catch (e) {
       AppLogger.error('? Error eliminando actividad: $e');
@@ -177,6 +197,12 @@ class ActivitiesDatasource {
           .from('activities')
           .update({'status': 'completed'})
           .eq('id', id);
+      AuditLogDatasource.log(
+        action: 'update',
+        module: 'activities',
+        recordId: id,
+        description: 'Completó actividad',
+      );
       return true;
     } catch (e) {
       AppLogger.error('? Error completando actividad: $e');

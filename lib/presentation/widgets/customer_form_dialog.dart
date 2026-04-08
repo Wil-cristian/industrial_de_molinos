@@ -48,21 +48,25 @@ class CustomerFormDialog extends ConsumerStatefulWidget {
     String? suggestedAddress,
     bool showScanBanner = false,
   }) {
-    return showDialog<Customer?>(
-      context: context,
-      builder: (_) => CustomerFormDialog(
-        initial: initial,
-        suggestedName: suggestedName,
-        suggestedDocNumber: suggestedDocNumber,
-        suggestedDocType: suggestedDocType,
-        suggestedType: suggestedType,
-        suggestedTradeName: suggestedTradeName,
-        suggestedPhone: suggestedPhone,
-        suggestedEmail: suggestedEmail,
-        suggestedAddress: suggestedAddress,
-        showScanBanner: showScanBanner,
-      ),
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final widget = CustomerFormDialog(
+      initial: initial,
+      suggestedName: suggestedName,
+      suggestedDocNumber: suggestedDocNumber,
+      suggestedDocType: suggestedDocType,
+      suggestedType: suggestedType,
+      suggestedTradeName: suggestedTradeName,
+      suggestedPhone: suggestedPhone,
+      suggestedEmail: suggestedEmail,
+      suggestedAddress: suggestedAddress,
+      showScanBanner: showScanBanner,
     );
+    if (isMobile) {
+      return Navigator.of(context, rootNavigator: true).push<Customer?>(
+        MaterialPageRoute(fullscreenDialog: true, builder: (_) => widget),
+      );
+    }
+    return showDialog<Customer?>(context: context, builder: (_) => widget);
   }
 
   @override
@@ -147,241 +151,393 @@ class _CustomerFormDialogState extends ConsumerState<CustomerFormDialog> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
+    final formContent = Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        padding: isMobile ? const EdgeInsets.all(16) : EdgeInsets.zero,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (widget.showScanBanner) ...[
+              Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      size: 16,
+                      color: Color(0xFFF57C00),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Datos pre-llenados desde la factura escaneada.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFFE65100),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            // Tipo de cliente + Tipo documento
+            if (isMobile) ...[
+              DropdownButtonFormField<CustomerType>(
+                value: selectedType,
+                decoration: const InputDecoration(
+                  labelText: 'Tipo de Cliente',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: CustomerType.values
+                    .map(
+                      (type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(
+                          type == CustomerType.business ? 'Empresa' : 'Persona',
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedType = value!;
+                    selectedDocType = value == CustomerType.business
+                        ? DocumentType.nit
+                        : DocumentType.cc;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<DocumentType>(
+                value: selectedDocType,
+                decoration: const InputDecoration(
+                  labelText: 'Tipo Documento',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: _colombianDocTypes
+                    .map(
+                      (type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(type.displayName),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setState(() => selectedDocType = value!),
+              ),
+            ] else
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<CustomerType>(
+                      value: selectedType,
+                      decoration: const InputDecoration(
+                        labelText: 'Tipo de Cliente',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: CustomerType.values
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(
+                                type == CustomerType.business
+                                    ? 'Empresa'
+                                    : 'Persona',
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedType = value!;
+                          selectedDocType = value == CustomerType.business
+                              ? DocumentType.nit
+                              : DocumentType.cc;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<DocumentType>(
+                      value: selectedDocType,
+                      decoration: const InputDecoration(
+                        labelText: 'Tipo Documento',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: _colombianDocTypes
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type.displayName),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) =>
+                          setState(() => selectedDocType = value!),
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 12),
+            // Nro documento + Nombre
+            if (isMobile) ...[
+              TextFormField(
+                controller: docNumberCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Nro. Documento',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value?.isEmpty ?? true) return 'Requerido';
+                  if (value == '0') return 'No puede ser 0';
+                  if (int.tryParse(value!) == null) {
+                    return 'Número inválido';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: nameCtrl,
+                decoration: InputDecoration(
+                  labelText: selectedType == CustomerType.business
+                      ? 'Razón Social'
+                      : 'Nombre Completo',
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (value) =>
+                    value?.isEmpty ?? true ? 'Campo requerido' : null,
+              ),
+            ] else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 180,
+                    child: TextFormField(
+                      controller: docNumberCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Nro. Documento',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return 'Requerido';
+                        if (value == '0') return 'No puede ser 0';
+                        if (int.tryParse(value!) == null) {
+                          return 'Número inválido';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: nameCtrl,
+                      decoration: InputDecoration(
+                        labelText: selectedType == CustomerType.business
+                            ? 'Razón Social'
+                            : 'Nombre Completo',
+                        border: const OutlineInputBorder(),
+                      ),
+                      validator: (value) =>
+                          value?.isEmpty ?? true ? 'Campo requerido' : null,
+                    ),
+                  ),
+                ],
+              ),
+            // Nombre Comercial solo para Empresa
+            if (selectedType == CustomerType.business) ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: tradeNameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre Comercial',
+                  border: OutlineInputBorder(),
+                  hintText: 'Opcional',
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            if (isMobile) ...[
+              TextFormField(
+                controller: phoneCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Teléfono',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: emailCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ] else
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: phoneCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Teléfono',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: emailCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: addressCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Dirección',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 16),
+            const Text(
+              'Límite de Crédito y Deuda',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            if (isMobile) ...[
+              TextFormField(
+                controller: creditLimitCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Límite de Crédito',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.attach_money),
+                ),
+                validator: (value) {
+                  if (value?.isEmpty ?? true) return 'Campo requerido';
+                  if (double.tryParse(value!) == null) {
+                    return 'Valor inválido';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: currentBalanceCtrl,
+                keyboardType: TextInputType.number,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Deuda Actual',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.money_off),
+                  helperText: 'Calculado desde facturas',
+                  filled: true,
+                  fillColor: Color(0xFFF5F5F5),
+                ),
+              ),
+            ] else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: creditLimitCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Límite de Crédito',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.attach_money),
+                        helperText: ' ',
+                      ),
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return 'Campo requerido';
+                        if (double.tryParse(value!) == null) {
+                          return 'Valor inválido';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: currentBalanceCtrl,
+                      keyboardType: TextInputType.number,
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Deuda Actual',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.money_off),
+                        helperText: 'Calculado desde facturas',
+                        filled: true,
+                        fillColor: Color(0xFFF5F5F5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            if (isMobile) const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+
+    if (isMobile) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            isEditing ? 'Editar Cliente' : 'Nuevo Cliente',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilledButton(
+                onPressed: _onSave,
+                child: Text(isEditing ? 'Actualizar' : 'Guardar'),
+              ),
+            ),
+          ],
+        ),
+        body: SafeArea(child: formContent),
+      );
+    }
+
     return AlertDialog(
       title: Text(
         isEditing ? 'Editar Cliente' : 'Nuevo Cliente',
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
-      content: SizedBox(
-        width: isMobile ? double.maxFinite : 500,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (widget.showScanBanner) ...[
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3E0),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.auto_awesome,
-                          size: 16,
-                          color: Color(0xFFF57C00),
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Datos pre-llenados desde la factura escaneada.',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFFE65100),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                // Tipo de cliente + Tipo documento
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<CustomerType>(
-                        value: selectedType,
-                        decoration: const InputDecoration(
-                          labelText: 'Tipo de Cliente',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        items: CustomerType.values
-                            .map(
-                              (type) => DropdownMenuItem(
-                                value: type,
-                                child: Text(
-                                  type == CustomerType.business
-                                      ? 'Empresa'
-                                      : 'Persona',
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedType = value!;
-                            selectedDocType = value == CustomerType.business
-                                ? DocumentType.nit
-                                : DocumentType.cc;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<DocumentType>(
-                        value: selectedDocType,
-                        decoration: const InputDecoration(
-                          labelText: 'Tipo Documento',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        items: _colombianDocTypes
-                            .map(
-                              (type) => DropdownMenuItem(
-                                value: type,
-                                child: Text(type.displayName),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) =>
-                            setState(() => selectedDocType = value!),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Nro documento + Nombre en fila
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 180,
-                      child: TextFormField(
-                        controller: docNumberCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Nro. Documento',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) return 'Requerido';
-                          if (value == '0') return 'No puede ser 0';
-                          if (int.tryParse(value!) == null) {
-                            return 'Número inválido';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: nameCtrl,
-                        decoration: InputDecoration(
-                          labelText: selectedType == CustomerType.business
-                              ? 'Razón Social'
-                              : 'Nombre Completo',
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) =>
-                            value?.isEmpty ?? true ? 'Campo requerido' : null,
-                      ),
-                    ),
-                  ],
-                ),
-                // Nombre Comercial solo para Empresa
-                if (selectedType == CustomerType.business) ...[
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: tradeNameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre Comercial',
-                      border: OutlineInputBorder(),
-                      hintText: 'Opcional',
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: phoneCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Teléfono',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: emailCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: addressCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Dirección',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 12),
-                const Divider(height: 16),
-                const Text(
-                  'Límite de Crédito y Deuda',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: creditLimitCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Límite de Crédito',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.attach_money),
-                          helperText: ' ',
-                        ),
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) return 'Campo requerido';
-                          if (double.tryParse(value!) == null) {
-                            return 'Valor inválido';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextFormField(
-                        controller: currentBalanceCtrl,
-                        keyboardType: TextInputType.number,
-                        readOnly: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Deuda Actual',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.money_off),
-                          helperText: 'Calculado desde facturas',
-                          filled: true,
-                          fillColor: Color(0xFFF5F5F5),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      content: SizedBox(width: 500, child: formContent),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),

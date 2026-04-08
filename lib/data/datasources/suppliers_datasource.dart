@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/supplier.dart';
 import 'supabase_datasource.dart';
+import 'audit_log_datasource.dart';
 
 class SuppliersDataSource {
   static const String _table = 'proveedores';
@@ -10,19 +11,23 @@ class SuppliersDataSource {
   /// Obtener todos los proveedores
   static Future<List<Supplier>> getAll({bool activeOnly = true}) async {
     var query = _client.from(_table).select();
-    
+
     if (activeOnly) {
       query = query.eq('is_active', true);
     }
-    
-    final response = await query.order('name');
+
+    final response = await query.order('name', ascending: true);
     return response.map<Supplier>((json) => Supplier.fromJson(json)).toList();
   }
 
   /// Obtener proveedor por ID
   static Future<Supplier?> getById(String id) async {
     try {
-      final response = await _client.from(_table).select().eq('id', id).single();
+      final response = await _client
+          .from(_table)
+          .select()
+          .eq('id', id)
+          .single();
       return Supplier.fromJson(response);
     } catch (e) {
       return null;
@@ -34,8 +39,10 @@ class SuppliersDataSource {
     final response = await _client
         .from(_table)
         .select()
-        .or('name.ilike.%$query%,document_number.ilike.%$query%,trade_name.ilike.%$query%')
-        .order('name');
+        .or(
+          'name.ilike.%$query%,document_number.ilike.%$query%,trade_name.ilike.%$query%',
+        )
+        .order('name', ascending: false);
     return response.map<Supplier>((json) => Supplier.fromJson(json)).toList();
   }
 
@@ -45,9 +52,16 @@ class SuppliersDataSource {
     data.remove('id');
     data.remove('created_at');
     data.remove('updated_at');
-    
+
     final response = await _client.from(_table).insert(data).select().single();
-    return Supplier.fromJson(response);
+    final created = Supplier.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'suppliers',
+      recordId: created.id,
+      description: 'Creó proveedor: ${created.name}',
+    );
+    return created;
   }
 
   /// Crear proveedor rápido (solo nombre y documento)
@@ -64,9 +78,16 @@ class SuppliersDataSource {
       'type': type.name,
       'is_active': true,
     };
-    
+
     final response = await _client.from(_table).insert(data).select().single();
-    return Supplier.fromJson(response);
+    final created = Supplier.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'suppliers',
+      recordId: created.id,
+      description: 'Creó proveedor rápido: ${created.name}',
+    );
+    return created;
   }
 
   /// Actualizar proveedor
@@ -75,19 +96,32 @@ class SuppliersDataSource {
     data.remove('id');
     data.remove('created_at');
     data['updated_at'] = DateTime.now().toIso8601String();
-    
+
     final response = await _client
         .from(_table)
         .update(data)
         .eq('id', supplier.id)
         .select()
         .single();
-    return Supplier.fromJson(response);
+    final updated = Supplier.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'suppliers',
+      recordId: updated.id,
+      description: 'Actualizó proveedor: ${updated.name}',
+    );
+    return updated;
   }
 
   /// Eliminar (desactivar) proveedor
   static Future<void> delete(String id) async {
     await _client.from(_table).update({'is_active': false}).eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'suppliers',
+      recordId: id,
+      description: 'Desactivó proveedor',
+    );
   }
 
   /// Actualizar deuda del proveedor

@@ -2,6 +2,7 @@ import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/product.dart';
 import 'supabase_datasource.dart';
+import 'audit_log_datasource.dart';
 
 class ProductsDataSource {
   static const String _table = 'products';
@@ -17,7 +18,7 @@ class ProductsDataSource {
       query = query.eq('is_active', true);
     }
 
-    final response = await query.order('name');
+    final response = await query.order('name', ascending: false);
     return response.map<Product>((json) => _fromJson(json)).toList();
   }
 
@@ -43,7 +44,7 @@ class ProductsDataSource {
         .or(
           'name.ilike.%$query%,code.ilike.%$query%,description.ilike.%$query%',
         )
-        .order('name');
+        .order('name', ascending: false);
     return response.map<Product>((json) => _fromJson(json)).toList();
   }
 
@@ -55,7 +56,14 @@ class ProductsDataSource {
     data.remove('updated_at');
 
     final response = await _client.from(_table).insert(data).select().single();
-    return _fromJson(response);
+    final created = _fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'products',
+      recordId: created.id,
+      description: 'Creó producto: ${created.name}',
+    );
+    return created;
   }
 
   /// Actualizar producto
@@ -71,20 +79,37 @@ class ProductsDataSource {
         .eq('id', product.id)
         .select()
         .single();
-    return _fromJson(response);
+    final updated = _fromJson(response);
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'products',
+      recordId: updated.id,
+      description: 'Actualizó producto: ${updated.name}',
+    );
+    return updated;
   }
 
   /// Eliminar producto (hard delete - elimina completamente)
   static Future<void> delete(String id) async {
-    // Primero eliminar componentes relacionados (si es receta)
     await _client.from('product_components').delete().eq('product_id', id);
-    // Luego eliminar el producto
     await _client.from(_table).delete().eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'products',
+      recordId: id,
+      description: 'Eliminó producto',
+    );
   }
 
   /// Desactivar producto (soft delete - solo marca como inactivo)
   static Future<void> deactivate(String id) async {
     await _client.from(_table).update({'is_active': false}).eq('id', id);
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'products',
+      recordId: id,
+      description: 'Desactivó producto',
+    );
   }
 
   /// Productos con stock bajo
@@ -167,7 +192,7 @@ class ProductsDataSource {
     final response = await _client
         .from(_categoriesTable)
         .select()
-        .order('name');
+        .order('name', ascending: false);
     return response
         .map<Category>(
           (json) => Category(

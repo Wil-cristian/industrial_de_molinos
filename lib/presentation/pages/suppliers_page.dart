@@ -166,13 +166,12 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
               Row(
                 children: [
                   Expanded(
-                    flex: 2,
                     child: TextField(
                       onChanged: (value) => ref
                           .read(suppliersProvider.notifier)
                           .setSearchQuery(value),
                       decoration: InputDecoration(
-                        hintText: 'Buscar por nombre, documento o email...',
+                        hintText: 'Buscar...',
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -190,12 +189,13 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                         fillColor: Theme.of(
                           context,
                         ).colorScheme.surfaceContainerLowest,
+                        isDense: true,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: Theme.of(context).colorScheme.outlineVariant,
@@ -208,6 +208,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _selectedFilter,
+                        isDense: true,
                         items:
                             [
                                   'Todos',
@@ -219,7 +220,10 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                                 .map(
                                   (f) => DropdownMenuItem(
                                     value: f,
-                                    child: Text(f),
+                                    child: Text(
+                                      f,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
                                   ),
                                 )
                                 .toList(),
@@ -228,16 +232,19 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 8),
                   OutlinedButton.icon(
                     onPressed: () =>
                         ref.read(suppliersProvider.notifier).loadSuppliers(),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Actualizar'),
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text(
+                      'Actualizar',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
+                        horizontal: 12,
+                        vertical: 12,
                       ),
                     ),
                   ),
@@ -355,6 +362,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
         borderRadius: BorderRadius.circular(3),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: color, size: 14),
           const SizedBox(width: 2),
@@ -364,17 +372,18 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -443,69 +452,66 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 4),
-          Wrap(
-            spacing: 12,
-            runSpacing: 4,
+          Row(
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.badge,
-                    size: 14,
+              Icon(
+                Icons.badge,
+                size: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  '${supplier.documentType}: ${supplier.documentNumber}',
+                  style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${supplier.documentType}: ${supplier.documentNumber}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (supplier.phone != null && supplier.phone!.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.phone,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    supplier.phone!,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
-              if (supplier.phone != null && supplier.phone!.isNotEmpty)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.phone,
-                      size: 14,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      supplier.phone!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
                 ),
-              if (supplier.email != null && supplier.email!.isNotEmpty)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.email,
-                      size: 14,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      supplier.email!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontSize: 12,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+              ],
             ],
           ),
+          if (supplier.email != null && supplier.email!.isNotEmpty)
+            Row(
+              children: [
+                Icon(
+                  Icons.email,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    supplier.email!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           if (debt > 0) ...[
             const SizedBox(height: 8),
             Row(

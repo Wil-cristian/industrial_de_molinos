@@ -530,8 +530,8 @@ class ReportsDataSource {
           .from('materials')
           .select()
           .eq('is_active', true)
-          .order('category')
-          .order('name');
+          .order('category', ascending: false)
+          .order('name', ascending: false);
 
       for (var material in materialsResponse) {
         final stock = (material['stock'] ?? 0).toDouble();

@@ -112,6 +112,15 @@ class IvaSaleScanDialog extends StatefulWidget {
   State<IvaSaleScanDialog> createState() => _IvaSaleScanDialogState();
 
   static Future<String?> show(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    if (isMobile) {
+      return Navigator.of(context, rootNavigator: true).push<String>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => const IvaSaleScanDialog(),
+        ),
+      );
+    }
     return showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -145,6 +154,22 @@ class _IvaSaleScanDialogState extends State<IvaSaleScanDialog> {
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.of(context).size.width;
+    final isMobile = sw < 600;
+
+    if (isMobile) {
+      return Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(child: _buildContent()),
+              _buildActions(),
+            ],
+          ),
+        ),
+      );
+    }
+
     final w = sw > 1200 ? 920.0 : sw * 0.9;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -166,6 +191,7 @@ class _IvaSaleScanDialogState extends State<IvaSaleScanDialog> {
   // ─── Header ────────────────────────────────────────────────────
   Widget _buildHeader() {
     final theme = Theme.of(context);
+    final compact = MediaQuery.of(context).size.width < 600;
     const titles = {
       _SaleScanStep.selectImage: 'Escanear Facturas de Venta (IVA)',
       _SaleScanStep.scanning: 'Analizando facturas...',
@@ -195,10 +221,19 @@ class _IvaSaleScanDialogState extends State<IvaSaleScanDialog> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: const Color(0xFF2E7D32), // verde para distinguir de compras
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: compact
+            ? BorderRadius.zero
+            : const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Row(
         children: [
+          if (compact) ...[
+            IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+            ),
+            const SizedBox(width: 4),
+          ],
           Icon(icons[_step], color: Colors.white, size: 28),
           const SizedBox(width: 12),
           Expanded(
@@ -228,7 +263,9 @@ class _IvaSaleScanDialogState extends State<IvaSaleScanDialog> {
           ),
           _buildStepDots(),
           const SizedBox(width: 8),
-          if (_step != _SaleScanStep.saving && _step != _SaleScanStep.scanning)
+          if (!compact &&
+              _step != _SaleScanStep.saving &&
+              _step != _SaleScanStep.scanning)
             IconButton(
               onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.close, color: Colors.white),

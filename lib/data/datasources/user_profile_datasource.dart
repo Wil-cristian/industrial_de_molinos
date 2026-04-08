@@ -1,7 +1,11 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/user_profile.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/utils/logger.dart';
 import 'supabase_datasource.dart';
+import 'audit_log_datasource.dart';
 
 class UserProfileDatasource {
   static SupabaseClient get _client => SupabaseDataSource.client;
@@ -30,7 +34,16 @@ class UserProfileDatasource {
         'create_employee_account',
         params: {'p_employee_id': employeeId, 'p_role': role},
       );
-      return Map<String, dynamic>.from(result as Map);
+      final data = Map<String, dynamic>.from(result as Map);
+      if (data['success'] == true) {
+        AuditLogDatasource.log(
+          action: 'create',
+          module: 'users',
+          description:
+              'Creó cuenta para ${data['employee_name'] ?? 'empleado'} con rol $role',
+        );
+      }
+      return data;
     } catch (e) {
       AppLogger.error('Error creando cuenta de empleado', e);
       return {
@@ -66,7 +79,17 @@ class UserProfileDatasource {
         'reset_employee_password',
         params: {'p_profile_id': profileId},
       );
-      return Map<String, dynamic>.from(result as Map);
+      final data = Map<String, dynamic>.from(result as Map);
+      if (data['success'] == true) {
+        AuditLogDatasource.log(
+          action: 'update',
+          module: 'users',
+          recordId: profileId,
+          description:
+              'Resetó contraseña de ${data['display_name'] ?? 'usuario'}',
+        );
+      }
+      return data;
     } catch (e) {
       AppLogger.error('Error reseteando contraseña', e);
       return {'success': false, 'error': 'RPC_ERROR', 'message': '$e'};
@@ -98,7 +121,17 @@ class UserProfileDatasource {
         'update_user_role',
         params: {'p_profile_id': profileId, 'p_new_role': newRole},
       );
-      return Map<String, dynamic>.from(result as Map);
+      final data = Map<String, dynamic>.from(result as Map);
+      if (data['success'] == true) {
+        AuditLogDatasource.log(
+          action: 'update',
+          module: 'users',
+          recordId: profileId,
+          description:
+              'Cambió rol de ${data['display_name'] ?? 'usuario'} a $newRole',
+        );
+      }
+      return data;
     } catch (e) {
       AppLogger.error('Error actualizando rol', e);
       return {'success': false, 'error': 'RPC_ERROR', 'message': '$e'};
@@ -113,10 +146,111 @@ class UserProfileDatasource {
         params: {'p_profile_id': profileId, 'p_active': active},
       );
       final data = Map<String, dynamic>.from(result as Map);
+      if (data['success'] == true) {
+        AuditLogDatasource.log(
+          action: 'update',
+          module: 'users',
+          recordId: profileId,
+          description: active
+              ? 'Activó cuenta de usuario'
+              : 'Desactivó cuenta de usuario',
+        );
+      }
       return data['success'] == true;
     } catch (e) {
       AppLogger.error('Error toggling cuenta', e);
       return false;
+    }
+  }
+
+  // ─── Session / Device Tracking ────────────────────────────
+
+  static String get _currentPlatform {
+    if (kIsWeb) return 'web';
+    if (Platform.isWindows) return 'windows';
+    if (Platform.isAndroid) return 'android';
+    if (Platform.isIOS) return 'ios';
+    if (Platform.isMacOS) return 'macos';
+    if (Platform.isLinux) return 'linux';
+    return 'unknown';
+  }
+
+  static String get _deviceName {
+    if (kIsWeb) return 'Navegador Web';
+    if (Platform.isWindows) return 'Windows Desktop';
+    if (Platform.isAndroid) return 'Android';
+    if (Platform.isIOS) return 'iPhone / iPad';
+    if (Platform.isMacOS) return 'macOS';
+    if (Platform.isLinux) return 'Linux';
+    return 'Dispositivo desconocido';
+  }
+
+  /// ID de sesión local (se guarda mientras la app esté abierta)
+  static String? _currentSessionId;
+
+  /// Registrar sesión activa o actualizar heartbeat
+  static Future<String?> registerSession() async {
+    try {
+      final result = await _client.rpc(
+        'register_session',
+        params: {
+          'p_platform': _currentPlatform,
+          'p_device_name': _deviceName,
+          'p_app_version': AppConstants.appFullVersion,
+        },
+      );
+      if (result != null) {
+        _currentSessionId = result as String;
+        AppLogger.debug('Sesión registrada: $_currentSessionId');
+      }
+      return _currentSessionId;
+    } catch (e) {
+      AppLogger.error('Error registrando sesión', e);
+      return null;
+    }
+  }
+
+  /// Enviar heartbeat (llamar periódicamente)
+  static Future<void> heartbeat() async {
+    try {
+      await _client.rpc(
+        'register_session',
+        params: {
+          'p_platform': _currentPlatform,
+          'p_device_name': _deviceName,
+          'p_app_version': AppConstants.appFullVersion,
+        },
+      );
+    } catch (e) {
+      // Silencioso — no interrumpir el flujo
+    }
+  }
+
+  /// Cerrar sesión del dispositivo actual
+  static Future<void> closeSession() async {
+    if (_currentSessionId == null) return;
+    try {
+      await _client.rpc(
+        'close_session',
+        params: {'p_session_id': _currentSessionId},
+      );
+      _currentSessionId = null;
+    } catch (e) {
+      AppLogger.error('Error cerrando sesión de dispositivo', e);
+    }
+  }
+
+  /// Listar sesiones activas (admin ve todas)
+  static Future<List<Map<String, dynamic>>> listActiveSessions() async {
+    try {
+      final result = await _client.rpc('list_active_sessions');
+      if (result == null) return [];
+      return List<Map<String, dynamic>>.from(
+        (result as List).map((e) => Map<String, dynamic>.from(e as Map)),
+      );
+    } catch (e) {
+      AppLogger.error('Error listando sesiones activas', e);
+      return [];
     }
   }
 }

@@ -108,8 +108,8 @@ class CustomerMetrics {
       firstPurchaseDate: json['first_purchase_date'] != null
           ? DateTime.tryParse(json['first_purchase_date'])
           : null,
-      daysSinceLastPurchase:
-          (json['days_since_last_purchase'] as num?)?.toInt(),
+      daysSinceLastPurchase: (json['days_since_last_purchase'] as num?)
+          ?.toInt(),
     );
   }
 
@@ -440,6 +440,7 @@ class RelatedProduct {
     );
   }
 }
+
 /// DSO (Days Sales Outstanding) mensual para tendencia
 class DSOMonthly {
   final int year;
@@ -468,9 +469,22 @@ class DSOMonthly {
       collectionRate: (json['collection_rate'] as num?)?.toDouble() ?? 0,
     );
   }
-  
+
   String get monthName {
-    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const months = [
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
     return months[(month - 1).clamp(0, 11)];
   }
 }
@@ -512,7 +526,7 @@ class CollectionKPIs {
       totalInvoices: (json['total_invoices'] as num?)?.toInt() ?? 0,
     );
   }
-  
+
   // Estado del CEI
   String get ceiStatus {
     if (cei >= 90) return 'Excelente';
@@ -520,7 +534,7 @@ class CollectionKPIs {
     if (cei >= 70) return 'Regular';
     return 'Crítico';
   }
-  
+
   // Color del CEI
   String get ceiColor {
     if (cei >= 90) return 'green';
@@ -544,6 +558,13 @@ class BusinessHealthMonthly {
   final double materialInventory;
   final double creditToRevenueRatio;
   final double collectionRatio;
+  final int totalProducts;
+  final int criticalProducts;
+  final int outOfStockProducts;
+  final int lowStockProducts;
+  final int totalMaterials;
+  final int criticalMaterials;
+  final double stockHealthPct;
 
   BusinessHealthMonthly({
     required this.month,
@@ -558,11 +579,19 @@ class BusinessHealthMonthly {
     this.materialInventory = 0,
     this.creditToRevenueRatio = 0,
     this.collectionRatio = 0,
+    this.totalProducts = 0,
+    this.criticalProducts = 0,
+    this.outOfStockProducts = 0,
+    this.lowStockProducts = 0,
+    this.totalMaterials = 0,
+    this.criticalMaterials = 0,
+    this.stockHealthPct = 100,
   });
 
   factory BusinessHealthMonthly.fromJson(Map<String, dynamic> json) {
     return BusinessHealthMonthly(
-      month: DateTime.tryParse(json['month']?.toString() ?? '') ?? DateTime.now(),
+      month:
+          DateTime.tryParse(json['month']?.toString() ?? '') ?? DateTime.now(),
       year: (json['year'] as num?)?.toInt() ?? DateTime.now().year,
       monthNum: (json['month_num'] as num?)?.toInt() ?? 1,
       creditExtended: (json['credit_extended'] as num?)?.toDouble() ?? 0,
@@ -572,13 +601,34 @@ class BusinessHealthMonthly {
       inventoryValue: (json['inventory_value'] as num?)?.toDouble() ?? 0,
       productInventory: (json['product_inventory'] as num?)?.toDouble() ?? 0,
       materialInventory: (json['material_inventory'] as num?)?.toDouble() ?? 0,
-      creditToRevenueRatio: (json['credit_to_revenue_ratio'] as num?)?.toDouble() ?? 0,
+      creditToRevenueRatio:
+          (json['credit_to_revenue_ratio'] as num?)?.toDouble() ?? 0,
       collectionRatio: (json['collection_ratio'] as num?)?.toDouble() ?? 0,
+      totalProducts: (json['total_products'] as num?)?.toInt() ?? 0,
+      criticalProducts: (json['critical_products'] as num?)?.toInt() ?? 0,
+      outOfStockProducts: (json['out_of_stock_products'] as num?)?.toInt() ?? 0,
+      lowStockProducts: (json['low_stock_products'] as num?)?.toInt() ?? 0,
+      totalMaterials: (json['total_materials'] as num?)?.toInt() ?? 0,
+      criticalMaterials: (json['critical_materials'] as num?)?.toInt() ?? 0,
+      stockHealthPct: (json['stock_health_pct'] as num?)?.toDouble() ?? 100,
     );
   }
 
   String get monthName {
-    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const months = [
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
     return months[(monthNum - 1).clamp(0, 11)];
   }
 }
@@ -649,22 +699,29 @@ class BusinessHealthSnapshot {
       overdueCount: (json['overdue_count'] as num?)?.toInt() ?? 0,
       avgInvoiceValue: (json['avg_invoice_value'] as num?)?.toDouble() ?? 0,
       totalProducts: (json['total_products'] as num?)?.toInt() ?? 0,
-      productInventoryValue: (json['product_inventory_value'] as num?)?.toDouble() ?? 0,
+      productInventoryValue:
+          (json['product_inventory_value'] as num?)?.toDouble() ?? 0,
       lowStockProducts: (json['low_stock_products'] as num?)?.toInt() ?? 0,
       outOfStockProducts: (json['out_of_stock_products'] as num?)?.toInt() ?? 0,
       totalMaterials: (json['total_materials'] as num?)?.toInt() ?? 0,
-      materialInventoryValue: (json['material_inventory_value'] as num?)?.toDouble() ?? 0,
+      materialInventoryValue:
+          (json['material_inventory_value'] as num?)?.toDouble() ?? 0,
       lowStockMaterials: (json['low_stock_materials'] as num?)?.toInt() ?? 0,
-      outOfStockMaterials: (json['out_of_stock_materials'] as num?)?.toInt() ?? 0,
-      totalInventoryValue: (json['total_inventory_value'] as num?)?.toDouble() ?? 0,
+      outOfStockMaterials:
+          (json['out_of_stock_materials'] as num?)?.toInt() ?? 0,
+      totalInventoryValue:
+          (json['total_inventory_value'] as num?)?.toDouble() ?? 0,
       totalCreditLimit: (json['total_credit_limit'] as num?)?.toDouble() ?? 0,
       totalCreditUsed: (json['total_credit_used'] as num?)?.toDouble() ?? 0,
-      creditUtilizationPct: (json['credit_utilization_pct'] as num?)?.toDouble() ?? 0,
+      creditUtilizationPct:
+          (json['credit_utilization_pct'] as num?)?.toDouble() ?? 0,
       revenueLast30d: (json['revenue_last_30d'] as num?)?.toDouble() ?? 0,
       collectedLast30d: (json['collected_last_30d'] as num?)?.toDouble() ?? 0,
       invoicesLast30d: (json['invoices_30d'] as num?)?.toInt() ?? 0,
-      receivablesToRevenuePct: (json['receivables_to_revenue_pct'] as num?)?.toDouble() ?? 0,
-      inventoryToRevenuePct: (json['inventory_to_revenue_pct'] as num?)?.toDouble() ?? 0,
+      receivablesToRevenuePct:
+          (json['receivables_to_revenue_pct'] as num?)?.toDouble() ?? 0,
+      inventoryToRevenuePct:
+          (json['inventory_to_revenue_pct'] as num?)?.toDouble() ?? 0,
       healthScore: (json['health_score'] as num?)?.toInt() ?? 0,
     );
   }
@@ -722,7 +779,8 @@ class InventoryTurnover {
       stockValue: (json['stock_value'] as num?)?.toDouble() ?? 0,
       qtySold90Days: (json['qty_sold_90_days'] as num?)?.toDouble() ?? 0,
       revenue90Days: (json['revenue_90_days'] as num?)?.toDouble() ?? 0,
-      annualTurnoverRate: (json['annual_turnover_rate'] as num?)?.toDouble() ?? 0,
+      annualTurnoverRate:
+          (json['annual_turnover_rate'] as num?)?.toDouble() ?? 0,
       daysOfInventory: (json['days_of_inventory'] as num?)?.toInt() ?? 999,
       inventoryStatus: json['inventory_status'] ?? 'NORMAL',
     );
@@ -776,8 +834,10 @@ class MaterialEfficiency {
       consumed90Days: (json['consumed_90_days'] as num?)?.toDouble() ?? 0,
       received90Days: (json['received_90_days'] as num?)?.toDouble() ?? 0,
       movements90Days: (json['movements_90_days'] as num?)?.toInt() ?? 0,
-      dailyConsumptionRate: (json['daily_consumption_rate'] as num?)?.toDouble() ?? 0,
-      daysOfStockRemaining: (json['days_of_stock_remaining'] as num?)?.toInt() ?? 999,
+      dailyConsumptionRate:
+          (json['daily_consumption_rate'] as num?)?.toDouble() ?? 0,
+      daysOfStockRemaining:
+          (json['days_of_stock_remaining'] as num?)?.toInt() ?? 999,
       reorderStatus: json['reorder_status'] ?? 'NORMAL',
     );
   }
@@ -805,7 +865,11 @@ class ProductABC {
     this.totalQuantity = 0,
   });
 
-  factory ProductABC.fromTopSellingProduct(TopSellingProduct product, double cumRevenue, double total) {
+  factory ProductABC.fromTopSellingProduct(
+    TopSellingProduct product,
+    double cumRevenue,
+    double total,
+  ) {
     final cumPct = total > 0 ? (cumRevenue / total * 100) : 0.0;
     String category;
     if (cumPct <= 80) {
@@ -815,7 +879,7 @@ class ProductABC {
     } else {
       category = 'C';
     }
-    
+
     return ProductABC(
       productName: product.productName ?? 'Sin nombre',
       productCode: product.productCode,

@@ -17,7 +17,7 @@ class CustomersDataSource {
       query = query.eq('is_active', true);
     }
 
-    final response = await query.order('name');
+    final response = await query.order('name', ascending: true);
     return response.map<Customer>((json) => _fromJson(json)).toList();
   }
 
@@ -43,7 +43,7 @@ class CustomersDataSource {
         .or(
           'name.ilike.%$query%,document_number.ilike.%$query%,trade_name.ilike.%$query%',
         )
-        .order('name');
+        .order('name', ascending: true);
     return response.map<Customer>((json) => _fromJson(json)).toList();
   }
 

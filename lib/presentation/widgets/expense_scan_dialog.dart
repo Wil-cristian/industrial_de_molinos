@@ -1,12 +1,19 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/expense_scanner_service.dart';
+import '../../data/datasources/supabase_datasource.dart';
+import '../../data/datasources/suppliers_datasource.dart';
 import '../../domain/entities/account.dart';
-import '../../domain/entities/cash_movement.dart'; // ═══════════════════════════════════════════════════════════════
+import '../../domain/entities/cash_movement.dart';
+import '../../domain/entities/supplier.dart'; // ═══════════════════════════════════════════════════════════════
 //  EXPENSE SCAN DIALOG
 // ═══════════════════════════════════════════════════════════════
 // Flujo:
@@ -21,6 +28,15 @@ class ExpenseScanDialog extends StatefulWidget {
 
   /// Muestra el diálogo y retorna `true` si se registró un gasto
   static Future<bool?> show(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    if (isMobile) {
+      return Navigator.of(context, rootNavigator: true).push<bool>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => const ExpenseScanDialog(),
+        ),
+      );
+    }
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -49,25 +65,69 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
   final _referenceController = TextEditingController();
   final _personController = TextEditingController();
   MovementCategory _selectedCategory = MovementCategory.gastos_reducibles;
+  String? _selectedCustomName;
   String? _selectedAccountId;
   String _categoryReason = '';
 
   // Accounts
   List<Account> _accounts = [];
+  List<Map<String, dynamic>> _customCategories = [];
+
+  // Suppliers
+  List<Supplier> _suppliers = [];
+  Supplier? _selectedSupplier;
+
+  // Formatter for amount
+  static final _currencyFormat = NumberFormat('#,###', 'es_CO');
 
   @override
   void initState() {
     super.initState();
     _loadAccounts();
+    _loadCustomCategories();
+    _loadSuppliers();
+    _amountController.addListener(_onAmountChanged);
   }
 
   @override
   void dispose() {
+    _amountController.removeListener(_onAmountChanged);
     _descriptionController.dispose();
     _amountController.dispose();
     _referenceController.dispose();
     _personController.dispose();
     super.dispose();
+  }
+
+  // ─── Amount formatting ───────────────────────────────────
+  bool _isFormattingAmount = false;
+
+  void _onAmountChanged() {
+    if (_isFormattingAmount) return;
+    _isFormattingAmount = true;
+
+    final text = _amountController.text
+        .replaceAll('.', '')
+        .replaceAll(',', '')
+        .replaceAll(' ', '');
+    final number = int.tryParse(text);
+    if (number != null && text.isNotEmpty) {
+      final formatted = _currencyFormat.format(number);
+      _amountController.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+
+    _isFormattingAmount = false;
+  }
+
+  double? _parseAmount() {
+    final text = _amountController.text
+        .replaceAll('.', '')
+        .replaceAll(',', '')
+        .replaceAll(' ', '');
+    return double.tryParse(text);
   }
 
   Future<void> _loadAccounts() async {
@@ -83,7 +143,119 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
     } catch (_) {}
   }
 
-  // ─── Step 0: Pick File ───────────────────────────────────
+  Future<void> _loadSuppliers() async {
+    try {
+      final all = await SuppliersDataSource.getAll();
+      if (!mounted) return;
+      setState(() => _suppliers = all);
+    } catch (_) {}
+  }
+
+  Future<void> _loadCustomCategories() async {
+    try {
+      final data = await SupabaseDataSource.client
+          .from('custom_categories')
+          .select()
+          .eq('type', 'expense')
+          .order('name');
+      if (mounted) {
+        setState(() {
+          _customCategories = List<Map<String, dynamic>>.from(data);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _addCustomCategory() async {
+    final nameController = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nueva Categoría'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            labelText: 'Nombre de la categoría',
+            border: OutlineInputBorder(),
+            hintText: 'Ej: Mantenimiento',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) Navigator.pop(ctx, name);
+            },
+            child: const Text('Crear'),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.isNotEmpty) {
+      try {
+        await SupabaseDataSource.client.from('custom_categories').insert({
+          'name': result,
+          'type': 'expense',
+        });
+        await _loadCustomCategories();
+        if (mounted) {
+          setState(() {
+            _selectedCategory = MovementCategory.custom;
+            _selectedCustomName = result;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                e.toString().contains('idx_custom_categories_name_type')
+                    ? 'Ya existe una categoría con ese nombre'
+                    : 'Error al crear categoría',
+              ),
+              backgroundColor: const Color(0xFFC62828),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  // ─── Step 0: Pick File / Take Photo ──────────────────────
+
+  Future<void> _takePhoto() async {
+    final picker = ImagePicker();
+    final photo = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+      maxWidth: 2000,
+      maxHeight: 2000,
+    );
+    if (photo == null) return;
+
+    final bytes = await photo.readAsBytes();
+    final fileName = 'gasto_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    final file = PlatformFile(
+      name: fileName,
+      size: bytes.length,
+      bytes: Uint8List.fromList(bytes),
+    );
+
+    setState(() {
+      _fileName = fileName;
+      _step = 1;
+      _error = null;
+    });
+
+    _scanExpense(file);
+  }
 
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(
@@ -124,9 +296,29 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
           _selectedCategory = data.category;
           _categoryReason = data.categoryReason;
           _descriptionController.text = data.description;
+          _isFormattingAmount = true;
           _amountController.text = data.total > 0
-              ? data.total.toStringAsFixed(0)
+              ? _currencyFormat.format(data.total.toInt())
               : '';
+          _isFormattingAmount = false;
+          // Try to match supplier by name
+          if (data.supplier.name != null && data.supplier.name!.isNotEmpty) {
+            final match = _suppliers
+                .where(
+                  (s) =>
+                      s.displayName.toLowerCase().contains(
+                        data.supplier.name!.toLowerCase(),
+                      ) ||
+                      data.supplier.name!.toLowerCase().contains(
+                        s.displayName.toLowerCase(),
+                      ),
+                )
+                .toList();
+            if (match.isNotEmpty) {
+              _selectedSupplier = match.first;
+              _personController.text = match.first.displayName;
+            }
+          }
           _referenceController.text = data.reference ?? '';
           _personController.text = data.supplier.name ?? '';
           _step = 2;
@@ -150,7 +342,6 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
 
   Future<void> _saveExpense() async {
     final description = _descriptionController.text.trim();
-    final amountText = _amountController.text.trim();
     final reference = _referenceController.text.trim();
     final person = _personController.text.trim();
 
@@ -158,7 +349,7 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
       _showSnack('Ingresa una descripción');
       return;
     }
-    final amount = double.tryParse(amountText.replaceAll(',', '.'));
+    final amount = _parseAmount();
     if (amount == null || amount <= 0) {
       _showSnack('Ingresa un monto válido');
       return;
@@ -176,6 +367,7 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
         accountId: _selectedAccountId!,
         type: MovementType.expense,
         category: _selectedCategory,
+        customCategoryName: _selectedCustomName,
         amount: amount,
         description: description,
         personName: person.isNotEmpty ? person : null,
@@ -217,13 +409,27 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final dialogWidth = width > 700 ? 560.0 : width * 0.92;
+    final isMobile = width < 600;
 
+    if (isMobile) {
+      return Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildDialogHeader(),
+              Expanded(child: _buildStepContent()),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final dialogWidth = width > 700 ? 580.0 : width * 0.92;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: dialogWidth,
-        constraints: const BoxConstraints(maxHeight: 680),
+        constraints: const BoxConstraints(maxHeight: 720),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -236,6 +442,7 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
   }
 
   Widget _buildDialogHeader() {
+    final compact = MediaQuery.of(context).size.width < 600;
     final titles = [
       'Seleccionar imagen',
       'Escaneando gasto...',
@@ -255,10 +462,20 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.deepPurple.withValues(alpha: 0.08),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: compact
+            ? BorderRadius.zero
+            : const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Row(
         children: [
+          if (compact) ...[
+            IconButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(_step == 4 ? true : null),
+              icon: const Icon(Icons.arrow_back),
+            ),
+            const SizedBox(width: 4),
+          ],
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -293,7 +510,7 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
               ],
             ),
           ),
-          if (_step != 1 && _step != 3)
+          if (!compact && _step != 1 && _step != 3)
             IconButton(
               onPressed: () =>
                   Navigator.of(context).pop(_step == 4 ? true : null),
@@ -383,14 +600,28 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
+          if (!kIsWeb) ...[
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _takePhoto,
+                icon: const Icon(Icons.camera_alt, size: 20),
+                label: const Text('Tomar Foto'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
+            child: OutlinedButton.icon(
               onPressed: _pickFile,
               icon: const Icon(Icons.upload_file, size: 20),
               label: const Text('Seleccionar archivo'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
+              style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
@@ -556,38 +787,95 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
           // Category dropdown
           _buildLabel('Categoría del gasto'),
           const SizedBox(height: 4),
-          DropdownButtonFormField<MovementCategory>(
-            value: _selectedCategory,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
-            ),
-            items: _expenseCategories.map((cat) {
-              return DropdownMenuItem(
-                value: cat,
-                child: Row(
-                  children: [
-                    Icon(
-                      _categoryIcons[cat],
-                      size: 18,
-                      color: _categoryColors[cat],
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _selectedCategory == MovementCategory.custom
+                      ? 'custom_${_selectedCustomName ?? ''}'
+                      : _selectedCategory.name,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _categoryLabel(cat),
-                      style: const TextStyle(fontSize: 14),
-                    ),
+                  ),
+                  items: [
+                    ..._expenseCategories.map((cat) {
+                      return DropdownMenuItem<String>(
+                        value: cat.name,
+                        child: Row(
+                          children: [
+                            Icon(
+                              _categoryIcons[cat],
+                              size: 18,
+                              color: _categoryColors[cat],
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _categoryLabel(cat),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    if (_customCategories.isNotEmpty)
+                      const DropdownMenuItem<String>(
+                        enabled: false,
+                        value: '__divider__',
+                        child: Divider(),
+                      ),
+                    ..._customCategories.map((c) {
+                      final name = c['name'] as String;
+                      return DropdownMenuItem<String>(
+                        value: 'custom_$name',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.label_outline,
+                              size: 18,
+                              color: const Color(0xFF757575),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(name, style: const TextStyle(fontSize: 14)),
+                          ],
+                        ),
+                      );
+                    }),
                   ],
+                  onChanged: (value) {
+                    if (value == null || value == '__divider__') return;
+                    setState(() {
+                      if (value.startsWith('custom_')) {
+                        _selectedCategory = MovementCategory.custom;
+                        _selectedCustomName = value.substring(7);
+                      } else {
+                        _selectedCategory = MovementCategory.values.firstWhere(
+                          (c) => c.name == value,
+                          orElse: () => MovementCategory.gastos_reducibles,
+                        );
+                        _selectedCustomName = null;
+                      }
+                    });
+                  },
                 ),
-              );
-            }).toList(),
-            onChanged: (v) {
-              if (v != null) setState(() => _selectedCategory = v);
-            },
+              ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                onPressed: _addCustomCategory,
+                icon: const Icon(Icons.add),
+                tooltip: 'Crear categoría',
+                style: IconButton.styleFrom(
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer,
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
 
@@ -636,14 +924,31 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
           const SizedBox(height: 4),
           TextField(
             controller: _amountController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+            decoration: InputDecoration(
               isDense: true,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
               ),
               prefixText: '\$ ',
+              prefixStyle: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              hintText: '0',
+              hintStyle: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w300,
+                color: Colors.grey[400],
+              ),
             ),
           ),
           const SizedBox(height: 14),
@@ -665,51 +970,71 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
           ),
           const SizedBox(height: 14),
 
-          // Row: Reference + Person
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // Reference
+          _buildLabel('Referencia'),
+          const SizedBox(height: 4),
+          TextField(
+            controller: _referenceController,
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              hintText: 'N° factura/recibo',
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Supplier
+          _buildLabel('Proveedor'),
+          const SizedBox(height: 4),
+          InkWell(
+            onTap: _openSupplierSelector,
+            borderRadius: BorderRadius.circular(8),
+            child: InputDecorator(
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildLabel('Referencia'),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: _referenceController,
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        hintText: 'N° factura/recibo',
+                    if (_selectedSupplier != null ||
+                        _personController.text.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          setState(() {
+                            _selectedSupplier = null;
+                            _personController.clear();
+                          });
+                        },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
-                    ),
+                    const Icon(Icons.arrow_drop_down),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildLabel('Proveedor'),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: _personController,
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        hintText: 'Nombre',
-                      ),
-                    ),
-                  ],
+              child: Text(
+                _selectedSupplier?.displayName ??
+                    (_personController.text.isNotEmpty
+                        ? _personController.text
+                        : 'Seleccionar proveedor'),
+                style: TextStyle(
+                  fontSize: 14,
+                  color:
+                      (_selectedSupplier != null ||
+                          _personController.text.isNotEmpty)
+                      ? null
+                      : Theme.of(context).hintColor,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 20),
 
@@ -767,8 +1092,7 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
   // ─── Step 4: Success ─────────────────────────────────────
 
   Widget _buildSuccessStep() {
-    final amount =
-        double.tryParse(_amountController.text.replaceAll(',', '.')) ?? 0;
+    final amount = _parseAmount() ?? 0;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -795,16 +1119,24 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _categoryIcons[_selectedCategory],
+                _selectedCategory == MovementCategory.custom
+                    ? Icons.label_outline
+                    : _categoryIcons[_selectedCategory],
                 size: 16,
-                color: _categoryColors[_selectedCategory],
+                color: _selectedCategory == MovementCategory.custom
+                    ? const Color(0xFF757575)
+                    : _categoryColors[_selectedCategory],
               ),
               const SizedBox(width: 6),
               Text(
-                _categoryLabel(_selectedCategory),
+                _selectedCategory == MovementCategory.custom
+                    ? (_selectedCustomName ?? 'Personalizada')
+                    : _categoryLabel(_selectedCategory),
                 style: TextStyle(
                   fontSize: 13,
-                  color: _categoryColors[_selectedCategory],
+                  color: _selectedCategory == MovementCategory.custom
+                      ? const Color(0xFF757575)
+                      : _categoryColors[_selectedCategory],
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -827,6 +1159,7 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
                     _personController.clear();
                     _categoryReason = '';
                     _selectedCategory = MovementCategory.gastos_reducibles;
+                    _selectedCustomName = null;
                   });
                 },
                 icon: const Icon(Icons.add, size: 18),
@@ -842,6 +1175,39 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
         ],
       ),
     );
+  }
+
+  // ─── Supplier Selector ────────────────────────────────────
+
+  Future<void> _openSupplierSelector() async {
+    final result = await Navigator.of(context, rootNavigator: true)
+        .push<dynamic>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (_) => _SupplierSelectorPage(
+              suppliers: _suppliers,
+              currentText: _personController.text,
+              onRefresh: () async {
+                await _loadSuppliers();
+                return _suppliers;
+              },
+            ),
+          ),
+        );
+
+    if (!mounted || result == null) return;
+
+    if (result is Supplier) {
+      setState(() {
+        _selectedSupplier = result;
+        _personController.text = result.displayName;
+      });
+    } else if (result is String) {
+      setState(() {
+        _selectedSupplier = null;
+        _personController.text = result;
+      });
+    }
   }
 
   // ─── Helpers ─────────────────────────────────────────────
@@ -912,5 +1278,335 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
       default:
         return cat.name;
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SUPPLIER SELECTOR PAGE (Full Screen)
+// ═══════════════════════════════════════════════════════════════
+
+class _SupplierSelectorPage extends StatefulWidget {
+  final List<Supplier> suppliers;
+  final String currentText;
+  final Future<List<Supplier>> Function() onRefresh;
+
+  const _SupplierSelectorPage({
+    required this.suppliers,
+    required this.currentText,
+    required this.onRefresh,
+  });
+
+  @override
+  State<_SupplierSelectorPage> createState() => _SupplierSelectorPageState();
+}
+
+class _SupplierSelectorPageState extends State<_SupplierSelectorPage> {
+  final _searchController = TextEditingController();
+  final _newNameController = TextEditingController();
+  late List<Supplier> _allSuppliers;
+  List<Supplier> _filtered = [];
+  bool _showCreateForm = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _allSuppliers = List.from(widget.suppliers);
+    _filtered = _allSuppliers;
+    if (widget.currentText.isNotEmpty) {
+      _searchController.text = widget.currentText;
+      _filterList(widget.currentText);
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _newNameController.dispose();
+    super.dispose();
+  }
+
+  void _filterList(String query) {
+    if (query.isEmpty) {
+      setState(() => _filtered = _allSuppliers);
+      return;
+    }
+    final q = query.toLowerCase();
+    setState(() {
+      _filtered = _allSuppliers.where((s) {
+        return s.displayName.toLowerCase().contains(q) ||
+            s.name.toLowerCase().contains(q) ||
+            s.documentNumber.toLowerCase().contains(q) ||
+            (s.tradeName?.toLowerCase().contains(q) ?? false);
+      }).toList();
+    });
+  }
+
+  Future<void> _createSupplier() async {
+    final name = _newNameController.text.trim();
+    if (name.isEmpty) return;
+
+    try {
+      final supplier = Supplier(
+        id: '',
+        type: SupplierType.business,
+        documentType: 'NIT',
+        documentNumber: '',
+        name: name,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      final created = await SuppliersDataSource.create(supplier);
+      if (mounted) {
+        Navigator.of(context).pop(created);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al crear proveedor: $e'),
+            backgroundColor: const Color(0xFFC62828),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Seleccionar Proveedor'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Actualizar lista',
+            onPressed: () async {
+              final updated = await widget.onRefresh();
+              setState(() {
+                _allSuppliers = updated;
+                _filterList(_searchController.text);
+              });
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'Buscar proveedor por nombre o NIT...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _filterList('');
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
+              ),
+              onChanged: _filterList,
+            ),
+          ),
+
+          // Create new supplier toggle
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: InkWell(
+              onTap: () => setState(() => _showCreateForm = !_showCreateForm),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.deepPurple.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _showCreateForm
+                          ? Icons.remove_circle_outline
+                          : Icons.add_circle_outline,
+                      size: 20,
+                      color: Colors.deepPurple,
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Crear nuevo proveedor',
+                        style: TextStyle(
+                          color: Colors.deepPurple,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      _showCreateForm
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: Colors.deepPurple,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Create form
+          if (_showCreateForm)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _newNameController,
+                      autofocus: true,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: 'Nombre del proveedor',
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: _createSupplier,
+                    icon: const Icon(Icons.save, size: 18),
+                    label: const Text('Crear'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 8),
+
+          // Use typed text as-is option
+          if (_searchController.text.isNotEmpty && _filtered.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Card(
+                color: const Color(0xFFFFF8E1),
+                child: ListTile(
+                  leading: const Icon(Icons.edit, color: Color(0xFFF9A825)),
+                  title: Text(
+                    'Usar "${_searchController.text}" como proveedor',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: const Text(
+                    'Sin registrar en el sistema',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  onTap: () =>
+                      Navigator.of(context).pop(_searchController.text),
+                ),
+              ),
+            ),
+
+          // Supplier list
+          Expanded(
+            child: _filtered.isEmpty && _searchController.text.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.business, size: 48, color: Colors.grey[300]),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No hay proveedores registrados',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    itemCount: _filtered.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final s = _filtered[index];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.deepPurple.withOpacity(0.1),
+                          child: Text(
+                            s.displayName.isNotEmpty
+                                ? s.displayName[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                              color: Colors.deepPurple,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          s.displayName,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Row(
+                          children: [
+                            if (s.documentNumber.isNotEmpty) ...[
+                              Text(
+                                '${s.documentType}: ${s.documentNumber}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            if (s.hasDebt)
+                              Text(
+                                'Deuda: ${Formatters.currency(s.currentDebt)}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.danger,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.of(context).pop(s),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 }

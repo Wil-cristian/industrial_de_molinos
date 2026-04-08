@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/material.dart';
+import 'audit_log_datasource.dart';
 import 'supabase_datasource.dart';
 
 /// DataSource para la tabla 'materials' (inventario de materia prima)
@@ -25,7 +26,9 @@ class InventoryDataSource {
       query = query.eq('is_active', true);
     }
 
-    final response = await query.order('category').order('name');
+    final response = await query
+        .order('category', ascending: false)
+        .order('name', ascending: false);
     return response.map<Material>((json) => Material.fromJson(json)).toList();
   }
 
@@ -36,7 +39,7 @@ class InventoryDataSource {
         .select()
         .eq('category', category)
         .eq('is_active', true)
-        .order('name');
+        .order('name', ascending: false);
     return response.map<Material>((json) => Material.fromJson(json)).toList();
   }
 
@@ -70,11 +73,40 @@ class InventoryDataSource {
     return categories.toList()..sort();
   }
 
+  /// Obtener el siguiente número secuencial para un prefijo de código.
+  /// Busca materiales cuyo código empiece con [prefix] y retorna max+1.
+  static Future<int> getNextSequential(String prefix) async {
+    final response = await _client
+        .from(_table)
+        .select('code')
+        .ilike('code', '$prefix-%');
+
+    int maxSeq = 0;
+    for (final row in response) {
+      final code = row['code'] as String? ?? '';
+      // El secuencial es la última parte después del último guión
+      final lastDash = code.lastIndexOf('-');
+      if (lastDash >= 0 && lastDash < code.length - 1) {
+        final seqStr = code.substring(lastDash + 1);
+        final seq = int.tryParse(seqStr) ?? 0;
+        if (seq > maxSeq) maxSeq = seq;
+      }
+    }
+    return maxSeq + 1;
+  }
+
   /// Crear material
   static Future<Material> createMaterial(Material material) async {
     final data = material.toJson();
     final response = await _client.from(_table).insert(data).select().single();
-    return Material.fromJson(response);
+    final created = Material.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'inventory',
+      recordId: created.id,
+      description: 'Material creado: ${created.name}',
+    );
+    return created;
   }
 
   /// Actualizar material
@@ -86,12 +118,24 @@ class InventoryDataSource {
         .eq('id', material.id)
         .select()
         .single();
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'inventory',
+      recordId: material.id,
+      description: 'Material actualizado: ${material.name}',
+    );
     return Material.fromJson(response);
   }
 
   /// Eliminar material (soft delete)
   static Future<void> deleteMaterial(String id) async {
     await _client.from(_table).update({'is_active': false}).eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'inventory',
+      recordId: id,
+      description: 'Material desactivado',
+    );
   }
 
   /// Actualizar stock de material
@@ -126,6 +170,13 @@ class InventoryDataSource {
         );
       }
       await updateStock(id, newStock);
+      AuditLogDatasource.log(
+        action: 'update',
+        module: 'inventory',
+        recordId: id,
+        description:
+            'Stock ajustado: ${material.name} ${adjustment >= 0 ? "+" : ""}${adjustment.toStringAsFixed(2)} → ${newStock.toStringAsFixed(2)}',
+      );
     }
   }
 

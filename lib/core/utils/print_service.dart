@@ -1428,10 +1428,14 @@ class PrintService {
     double total,
   ) {
     final rows = <List<String>>[];
-    for (final entry in labels.entries) {
-      final amount = expenseByCategory[entry.key] ?? 0;
+    // Incluir todas las categorías que tengan monto (incluye custom)
+    final sorted = expenseByCategory.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    for (final entry in sorted) {
+      final amount = entry.value;
+      if (amount == 0) continue;
       final pct = total > 0 ? (amount / total * 100).toStringAsFixed(1) : '0.0';
-      rows.add([entry.value, _formatCurrency(amount), '$pct%']);
+      rows.add([entry.key, _formatCurrency(amount), '$pct%']);
     }
     rows.add(['TOTAL', _formatCurrency(total), '100%']);
 
@@ -1938,6 +1942,308 @@ class PrintService {
       },
       oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // RECIBO DE GASTO / TRANSFERENCIA
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Imprime un recibo para un movimiento de caja.
+  static Future<void> printExpenseReceipt({
+    required double amount,
+    required String personName,
+    required String description,
+    required String category,
+    required DateTime date,
+    String? reference,
+    String? accountName,
+  }) async {
+    final pdf = await _buildExpenseReceiptPdf(
+      amount: amount,
+      personName: personName,
+      description: description,
+      category: category,
+      date: date,
+      reference: reference,
+      accountName: accountName,
+    );
+    await Printing.layoutPdf(
+      onLayout: (_) => pdf.save(),
+      name: 'Recibo_${DateFormat('yyyyMMdd_HHmm').format(date)}',
+    );
+  }
+
+  /// Genera PDF de recibo y lo comparte / guarda.
+  static Future<void> shareExpenseReceipt({
+    required double amount,
+    required String personName,
+    required String description,
+    required String category,
+    required DateTime date,
+    String? reference,
+    String? accountName,
+  }) async {
+    final pdf = await _buildExpenseReceiptPdf(
+      amount: amount,
+      personName: personName,
+      description: description,
+      category: category,
+      date: date,
+      reference: reference,
+      accountName: accountName,
+    );
+    await Printing.sharePdf(
+      bytes: await pdf.save(),
+      filename: 'Recibo_${DateFormat('yyyyMMdd_HHmm').format(date)}.pdf',
+    );
+  }
+
+  static Future<pw.Document> _buildExpenseReceiptPdf({
+    required double amount,
+    required String personName,
+    required String description,
+    required String category,
+    required DateTime date,
+    String? reference,
+    String? accountName,
+  }) async {
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: await _loadFont('Helvetica'),
+        bold: await _loadFont('Helvetica-Bold'),
+      ),
+    );
+
+    final logo = await _loadLogo();
+    final dateStr = DateFormat('dd/MM/yyyy').format(date);
+    final timeStr = DateFormat('hh:mm a').format(date);
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.letter,
+        margin: const pw.EdgeInsets.all(40),
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // ── Header: logo + empresa ──
+              _buildPdfHeader(logo, 'RECIBO DE EGRESO', reference ?? 'S/N'),
+              pw.SizedBox(height: 24),
+
+              // ── Fecha y hora ──
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  borderRadius: pw.BorderRadius.circular(6),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Row(
+                      children: [
+                        pw.Text(
+                          'Fecha: ',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                        pw.Text(
+                          dateStr,
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
+                      ],
+                    ),
+                    pw.Row(
+                      children: [
+                        pw.Text(
+                          'Hora: ',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                        pw.Text(
+                          timeStr,
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 20),
+
+              // ── Monto principal ──
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.all(20),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.blue50,
+                  borderRadius: pw.BorderRadius.circular(8),
+                  border: pw.Border.all(color: PdfColors.blue800, width: 2),
+                ),
+                child: pw.Column(
+                  children: [
+                    pw.Text(
+                      'VALOR',
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue900,
+                      ),
+                    ),
+                    pw.SizedBox(height: 6),
+                    pw.Text(
+                      _formatCurrency(amount),
+                      style: pw.TextStyle(
+                        fontSize: 28,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 24),
+
+              // ── Datos del recibo ──
+              _buildReceiptRow('Recibido por', personName),
+              _buildReceiptRow('Concepto', description),
+              _buildReceiptRow('Categoría', category),
+              if (accountName != null) _buildReceiptRow('Cuenta', accountName),
+              if (reference != null && reference.isNotEmpty)
+                _buildReceiptRow('Referencia', reference),
+              pw.SizedBox(height: 40),
+
+              // ── Firma ──
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                      pw.Container(
+                        width: 200,
+                        decoration: const pw.BoxDecoration(
+                          border: pw.Border(
+                            bottom: pw.BorderSide(
+                              color: PdfColors.black,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: pw.SizedBox(height: 60),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        'Firma de quien recibe',
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                      pw.Text(
+                        personName,
+                        style: pw.TextStyle(
+                          fontSize: 9,
+                          color: PdfColors.grey600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                      pw.Container(
+                        width: 200,
+                        decoration: const pw.BoxDecoration(
+                          border: pw.Border(
+                            bottom: pw.BorderSide(
+                              color: PdfColors.black,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: pw.SizedBox(height: 60),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        'Firma autorizada',
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                      pw.Text(
+                        companyName,
+                        style: pw.TextStyle(
+                          fontSize: 9,
+                          color: PdfColors.grey600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 30),
+
+              // ── Nota legal ──
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.all(10),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey50,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text(
+                  'Este recibo es un comprobante de egreso emitido por $companyName. '
+                  '$companyNit - $companyAddress',
+                  style: pw.TextStyle(
+                    fontSize: 8,
+                    color: PdfColors.grey600,
+                    fontStyle: pw.FontStyle.italic,
+                  ),
+                  textAlign: pw.TextAlign.center,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    return pdf;
+  }
+
+  /// Fila de dato clave-valor para el recibo.
+  static pw.Widget _buildReceiptRow(String label, String value) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(
+          bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+        ),
+      ),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(
+            width: 120,
+            child: pw.Text(
+              label,
+              style: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 11,
+                color: PdfColors.grey800,
+              ),
+            ),
+          ),
+          pw.Expanded(
+            child: pw.Text(value, style: const pw.TextStyle(fontSize: 11)),
+          ),
+        ],
+      ),
     );
   }
 }

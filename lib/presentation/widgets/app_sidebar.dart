@@ -62,8 +62,8 @@ class _AppSidebarState extends State<AppSidebar> {
     NavItemData(icon: Icons.receipt_long, label: 'Ventas', route: '/invoices'),
     NavItemData(
       icon: Icons.local_shipping,
-      label: 'Entregas',
-      route: '/pending-deliveries',
+      label: 'Remisiones',
+      route: '/shipments',
     ),
     NavItemData(
       icon: Icons.request_quote,

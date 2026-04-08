@@ -151,6 +151,33 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
       _isActive = false;
     }
 
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+
+    if (isMobile) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+        body: SafeArea(
+          child: _isLoading
+              ? Column(
+                  children: [
+                    _buildHeader(),
+                    const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ],
+                )
+              : NestedScrollView(
+                  headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                    SliverToBoxAdapter(child: _buildHeader()),
+                    SliverToBoxAdapter(child: _buildCategoryCards()),
+                    SliverToBoxAdapter(child: _buildTabBar()),
+                  ],
+                  body: _buildTabContent(),
+                ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       body: SafeArea(
@@ -215,16 +242,50 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      _dateRange != null
-                          ? '${Formatters.date(_dateRange!.start)} — ${Formatters.date(_dateRange!.end)}'
-                          : 'Todos los registros',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        if (_dateRange == null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            margin: const EdgeInsets.only(right: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: Colors.orange.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Text(
+                              'HISTÓRICO',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        Flexible(
+                          child: Text(
+                            _dateRange != null
+                                ? '${Formatters.date(_dateRange!.start)} — ${Formatters.date(_dateRange!.end)}'
+                                : 'Todos los registros — Usa "Filtrar fechas" para acotar',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _dateRange != null
+                                  ? Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant
+                                  : Colors.orange.shade700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -253,7 +314,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Total Gastos',
+                      _dateRange != null ? 'Total Período' : 'Total Gastos',
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.danger.withValues(alpha: 0.8),

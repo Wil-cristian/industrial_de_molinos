@@ -575,13 +575,51 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    'ID: #TK-${task.id.substring(0, 4).toUpperCase()}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: textMuted,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'ID: #TK-${task.id.substring(0, 4).toUpperCase()}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: textMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (task.productionOrderId != null) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF1B4F72,
+                            ).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.precision_manufacturing,
+                                size: 10,
+                                color: const Color(0xFF1B4F72),
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                'OP',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1B4F72),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -1222,7 +1260,24 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
       selectedEmployeeIds = [task!.employeeId];
     }
     TaskPriority selectedPriority = task?.priority ?? TaskPriority.media;
+    // Normalizar categoría: las tareas de producción se guardan como 'produccion'
+    final validCategories = [
+      'General',
+      'Produccion',
+      'Mantenimiento',
+      'Limpieza',
+      'Logistica',
+      'Administrativo',
+      'Reportes',
+    ];
     String selectedCategory = task?.category ?? 'General';
+    // Si la categoría no coincide exactamente, buscar case-insensitive
+    if (!validCategories.contains(selectedCategory)) {
+      final match = validCategories.where(
+        (c) => c.toLowerCase() == selectedCategory.toLowerCase(),
+      );
+      selectedCategory = match.isNotEmpty ? match.first : 'General';
+    }
     DateTime selectedDate = task?.assignedDate ?? DateTime.now();
     DateTime? dueDate = task?.dueDate;
 

@@ -443,6 +443,15 @@ class EmployeeLoan {
 
   int get remainingInstallments => installments - paidInstallments;
   double get progress => totalAmount > 0 ? paidAmount / totalAmount : 0;
+
+  /// Monto real de la próxima cuota, considerando abonos parciales.
+  /// Si hubo un abono, remainingAmount puede ser menor que installmentAmount.
+  double get nextInstallmentAmount {
+    if (remainingAmount <= 0) return 0;
+    return remainingAmount < installmentAmount
+        ? remainingAmount
+        : installmentAmount;
+  }
 }
 
 /// Datasource para sistema de nómina
@@ -459,7 +468,9 @@ class PayrollDatasource {
       query = query.eq('type', type);
     }
 
-    final response = await query.order('category').order('name');
+    final response = await query
+        .order('category', ascending: false)
+        .order('name', ascending: false);
     return (response as List).map((e) => PayrollConcept.fromJson(e)).toList();
   }
 

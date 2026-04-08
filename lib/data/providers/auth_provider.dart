@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../datasources/supabase_datasource.dart';
 import '../datasources/audit_log_datasource.dart';
+import '../datasources/user_profile_datasource.dart';
 import '../../core/utils/logger.dart';
 import 'role_provider.dart';
 
@@ -32,12 +34,16 @@ class AuthState {
 
 /// Notifier de autenticación
 class AuthNotifier extends Notifier<AuthState> {
+  Timer? _heartbeatTimer;
+
   @override
   AuthState build() {
     // Verificar si ya hay sesión activa
     final currentUser = SupabaseDataSource.currentUser;
     if (currentUser != null) {
       AppLogger.success('Sesión activa encontrada: ${currentUser.email}');
+      // Registrar sesión y arrancar heartbeat
+      _registerAndStartHeartbeat();
     }
 
     // Escuchar cambios de auth
@@ -47,14 +53,38 @@ class AuthNotifier extends Notifier<AuthState> {
 
       if (event == AuthChangeEvent.signedIn) {
         state = state.copyWith(user: data.session?.user, clearError: true);
+        _registerAndStartHeartbeat();
       } else if (event == AuthChangeEvent.signedOut) {
+        _stopHeartbeat();
         state = state.copyWith(clearUser: true, clearError: true);
       } else if (event == AuthChangeEvent.tokenRefreshed) {
         state = state.copyWith(user: data.session?.user);
       }
     });
 
+    ref.onDispose(() {
+      _stopHeartbeat();
+    });
+
     return AuthState(user: currentUser);
+  }
+
+  void _registerAndStartHeartbeat() {
+    // Registrar sesión de dispositivo
+    UserProfileDatasource.registerSession();
+    // Heartbeat cada 2 minutos
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(
+      const Duration(minutes: 2),
+      (_) => UserProfileDatasource.heartbeat(),
+    );
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+    // Cerrar sesión del dispositivo
+    UserProfileDatasource.closeSession();
   }
 
   /// Iniciar sesión con email y contraseña

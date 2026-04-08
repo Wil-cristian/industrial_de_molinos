@@ -23,7 +23,7 @@ import 'presentation/pages/calendar_page.dart';
 import 'presentation/pages/assets_page.dart';
 import 'presentation/pages/employees_page.dart';
 import 'presentation/pages/production_orders_page.dart';
-import 'presentation/pages/pending_deliveries_page.dart';
+import 'presentation/pages/shipments_page.dart';
 import 'presentation/pages/login_page.dart';
 import 'presentation/pages/accounting_page.dart';
 import 'presentation/pages/iva_control_page.dart';
@@ -291,13 +291,13 @@ final GoRouter router = GoRouter(
             ),
           ],
         ),
-        // Branch 15: Entregas Pendientes
+        // Branch 15: Remisiones y Entregas
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/pending-deliveries',
+              path: '/shipments',
               pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: PendingDeliveriesPage()),
+                  const NoTransitionPage(child: ShipmentsPage()),
             ),
           ],
         ),

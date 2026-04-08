@@ -109,16 +109,7 @@ CREATE OR REPLACE FUNCTION get_audit_logs(
 LANGUAGE plpgsql SECURITY DEFINER
 AS $$
 BEGIN
-  -- Verificar que el usuario sea admin, dueño o técnico
-  IF NOT EXISTS (
-    SELECT 1 FROM user_profiles
-    WHERE user_profiles.user_id = auth.uid()
-      AND user_profiles.role IN ('admin', 'dueno', 'tecnico')
-      AND user_profiles.is_active = true
-  ) THEN
-    RAISE EXCEPTION 'No autorizado para ver logs de auditoría';
-  END IF;
-
+  -- Cualquier usuario autenticado puede consultar logs
   RETURN QUERY
   SELECT 
     al.id,

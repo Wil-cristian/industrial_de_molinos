@@ -305,7 +305,7 @@ class SaleInvoiceScanDialog extends ConsumerStatefulWidget {
   /// Abre la página fullscreen de escaneo de facturas de venta.
   /// Retorna true si se guardaron facturas, false/null si se canceló.
   static Future<bool?> show(BuildContext context) {
-    return Navigator.of(context).push<bool>(
+    return Navigator.of(context, rootNavigator: true).push<bool>(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (context) => const SaleInvoiceScanDialog(),

@@ -362,6 +362,15 @@ class InvoiceScanDialog extends ConsumerStatefulWidget {
   @override
   ConsumerState<InvoiceScanDialog> createState() => _InvoiceScanDialogState();
   static Future<String?> show(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    if (isMobile) {
+      return Navigator.of(context, rootNavigator: true).push<String>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => const InvoiceScanDialog(),
+        ),
+      );
+    }
     return showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -412,19 +421,28 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
-    final dialogWidth = screenWidth > 1200
-        ? 960.0
-        : (isMobile ? screenWidth : screenWidth * 0.9);
+
+    if (isMobile) {
+      return Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(child: _buildContent()),
+              _buildActions(),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final dialogWidth = screenWidth > 1200 ? 960.0 : screenWidth * 0.9;
     return Dialog(
-      insetPadding: isMobile
-          ? const EdgeInsets.symmetric(horizontal: 4, vertical: 8)
-          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: dialogWidth,
-        constraints: BoxConstraints(
-          maxHeight: isMobile ? MediaQuery.of(context).size.height * 0.92 : 840,
-        ),
+        constraints: const BoxConstraints(maxHeight: 840),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -475,10 +493,21 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
       ),
       decoration: BoxDecoration(
         color: theme.colorScheme.primary,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: compact
+            ? BorderRadius.zero
+            : const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Row(
         children: [
+          if (compact) ...[
+            IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+            const SizedBox(width: 4),
+          ],
           Icon(icons[_step], color: Colors.white, size: compact ? 22 : 28),
           SizedBox(width: compact ? 8 : 12),
           Expanded(
@@ -508,13 +537,15 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
           ),
           _buildStepIndicator(),
           SizedBox(width: compact ? 4 : 8),
-          if (_step != _ScanStep.saving && _step != _ScanStep.scanning)
+          if (!compact &&
+              _step != _ScanStep.saving &&
+              _step != _ScanStep.scanning)
             IconButton(
               onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.close, color: Colors.white),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              iconSize: compact ? 20 : 24,
+              iconSize: 24,
             ),
         ],
       ),

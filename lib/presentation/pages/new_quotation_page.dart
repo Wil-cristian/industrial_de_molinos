@@ -6357,7 +6357,7 @@ class _AddMaterialFromInventoryDialogState
 
   List<String> get _categories {
     final cats = widget.materials.map((m) => m.category).toSet().toList();
-    cats.sort();
+    cats.sort((a, b) => b.compareTo(a));
     return cats;
   }
 

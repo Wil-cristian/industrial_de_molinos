@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/employee.dart';
+import '../../data/providers/assets_provider.dart';
 import '../../data/providers/employees_provider.dart';
 import '../../data/providers/payroll_provider.dart';
 import '../../data/providers/activities_provider.dart';
@@ -8,6 +9,7 @@ import 'employees/employees_main_tab.dart';
 import 'employees/employees_tasks_tab.dart';
 import 'employees/employees_payroll_tab.dart';
 import 'employees/employees_loans_tab.dart';
+import 'employees/employees_assets_tab.dart';
 import 'employees/employees_incapacities_tab.dart';
 
 class EmployeesPage extends ConsumerStatefulWidget {
@@ -35,11 +37,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
   final _payrollTabKey = GlobalKey<EmployeesPayrollTabState>();
   final _loansTabKey = GlobalKey<EmployeesLoansTabState>();
   final _incapacitiesTabKey = GlobalKey<EmployeesIncapacitiesTabState>();
+  final _assetsTabKey = GlobalKey<EmployeesAssetsTabState>();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -48,6 +51,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
       ref.read(employeesProvider.notifier).loadPendingTasks();
       ref.read(payrollProvider.notifier).loadAll();
       ref.read(activitiesProvider.notifier).loadActivities();
+      ref.read(assetsProvider.notifier).loadAssets();
 
       if (widget.openNewDialog && !_dialogOpened) {
         _dialogOpened = true;
@@ -132,6 +136,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                         Tab(text: 'Nómina'),
                         Tab(text: 'Préstamos'),
                         Tab(text: 'Incapacidades'),
+                        Tab(text: 'Activos'),
                       ],
                     ),
                   ),
@@ -172,6 +177,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   EmployeesPayrollTab(key: _payrollTabKey),
                   EmployeesLoansTab(key: _loansTabKey),
                   EmployeesIncapacitiesTab(key: _incapacitiesTabKey),
+                  EmployeesAssetsTab(key: _assetsTabKey),
                 ],
               ),
             ),
@@ -218,14 +224,18 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
   }
 
   Widget _buildHeaderActionButton() {
-    final labels = ['+Emp', '+Tar', '+Nóm', '+Prés', '+Inc'];
+    final labels = ['+Emp', '+Tar', '+Nóm', '+Prés', '+Inc', ''];
     final icons = [
       Icons.person_add,
       Icons.add_task,
       Icons.payments,
       Icons.attach_money,
       Icons.medical_services,
+      Icons.precision_manufacturing,
     ];
+
+    // Tab de activos no tiene botón de acción (solo lectura)
+    if (_tabController.index == 5) return const SizedBox.shrink();
 
     return FilledButton.icon(
       onPressed: () {

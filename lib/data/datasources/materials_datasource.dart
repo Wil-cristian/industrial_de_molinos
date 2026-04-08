@@ -17,7 +17,9 @@ class MaterialsDataSource {
       query = query.eq('is_active', true);
     }
 
-    final response = await query.order('category').order('name');
+    final response = await query
+        .order('category', ascending: false)
+        .order('name', ascending: false);
     return response.map<MaterialPrice>((json) => _fromJson(json)).toList();
   }
 
@@ -28,7 +30,7 @@ class MaterialsDataSource {
         .select()
         .eq('category', category)
         .eq('is_active', true)
-        .order('name');
+        .order('name', ascending: false);
     return response.map<MaterialPrice>((json) => _fromJson(json)).toList();
   }
 
@@ -69,7 +71,7 @@ class MaterialsDataSource {
 
     final response = await _client.from(_table).insert(data).select().single();
     final created = _fromJson(response);
-    AuditLogDatasource.log(
+    await AuditLogDatasource.log(
       action: 'create',
       module: 'materials',
       recordId: created.id,
@@ -96,7 +98,7 @@ class MaterialsDataSource {
         .eq('id', material.id)
         .select()
         .single();
-    AuditLogDatasource.log(
+    await AuditLogDatasource.log(
       action: 'update',
       module: 'materials',
       recordId: material.id,
@@ -109,7 +111,7 @@ class MaterialsDataSource {
   /// Eliminar material (soft delete)
   static Future<void> delete(String id) async {
     await _client.from(_table).update({'is_active': false}).eq('id', id);
-    AuditLogDatasource.log(
+    await AuditLogDatasource.log(
       action: 'delete',
       module: 'materials',
       recordId: id,
@@ -120,6 +122,13 @@ class MaterialsDataSource {
   /// Actualizar precio de material
   static Future<void> updatePrice(String id, double newPrice) async {
     await _client.from(_table).update({'price_per_kg': newPrice}).eq('id', id);
+    await AuditLogDatasource.log(
+      action: 'update',
+      module: 'materials',
+      recordId: id,
+      description: 'Modificó precio a: \$${newPrice.toStringAsFixed(2)}/kg',
+      details: {'new_price': newPrice},
+    );
   }
 
   /// Obtener costos operativos

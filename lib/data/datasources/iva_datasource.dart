@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'audit_log_datasource.dart';
 import 'supabase_datasource.dart';
 
 /// Datasource para control de IVA: facturas, liquidaciones, configuración
@@ -31,11 +32,21 @@ class IvaDataSource {
         .insert(data)
         .select()
         .single();
-    return IvaInvoice.fromJson(response);
+    final created = IvaInvoice.fromJson(response);
+    AuditLogDatasource.log(
+      action: 'create',
+      module: 'iva',
+      recordId: created.id ?? '',
+      description:
+          'Factura IVA creada: ${created.invoiceNumber} (${created.invoiceType})',
+    );
+    return created;
   }
 
   /// Buscar facturas existentes por número de factura
-  static Future<List<IvaInvoice>> findByInvoiceNumber(String invoiceNumber) async {
+  static Future<List<IvaInvoice>> findByInvoiceNumber(
+    String invoiceNumber,
+  ) async {
     final trimmed = invoiceNumber.trim();
     if (trimmed.isEmpty) return [];
     final response = await _client
@@ -55,12 +66,24 @@ class IvaDataSource {
         .eq('id', invoice.id!)
         .select()
         .single();
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'iva',
+      recordId: invoice.id!,
+      description: 'Factura IVA actualizada: ${invoice.invoiceNumber}',
+    );
     return IvaInvoice.fromJson(response);
   }
 
   /// Eliminar factura IVA
   static Future<void> deleteInvoice(String id) async {
     await _client.from('iva_invoices').delete().eq('id', id);
+    AuditLogDatasource.log(
+      action: 'delete',
+      module: 'iva',
+      recordId: id,
+      description: 'Factura IVA eliminada',
+    );
   }
 
   // ─────────────────────────────────────────────────────────
@@ -100,6 +123,12 @@ class IvaDataSource {
           'settled_at': DateTime.now().toIso8601String(),
         })
         .eq('bimonthly_period', period);
+    AuditLogDatasource.log(
+      action: 'update',
+      module: 'iva',
+      recordId: period,
+      description: 'Liquidación IVA declarada: $period',
+    );
   }
 
   // ─────────────────────────────────────────────────────────

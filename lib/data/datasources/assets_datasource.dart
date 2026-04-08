@@ -1,6 +1,7 @@
 import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/asset.dart';
+import 'audit_log_datasource.dart';
 
 /// Datasource para gestión de activos fijos
 class AssetsDatasource {
@@ -78,7 +79,14 @@ class AssetsDatasource {
           .single();
 
       AppLogger.success('? Activo creado exitosamente');
-      return Asset.fromJson(response);
+      final created = Asset.fromJson(response);
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'assets',
+        recordId: created.id,
+        description: 'Creó activo: ${created.name}',
+      );
+      return created;
     } catch (e) {
       AppLogger.error('? Error creando activo: $e');
       return null;
@@ -91,6 +99,12 @@ class AssetsDatasource {
       await _client.from('assets').update(asset.toJson()).eq('id', asset.id);
 
       AppLogger.success('? Activo actualizado');
+      AuditLogDatasource.log(
+        action: 'update',
+        module: 'assets',
+        recordId: asset.id,
+        description: 'Actualizó activo: ${asset.name}',
+      );
       return true;
     } catch (e) {
       AppLogger.error('? Error actualizando activo: $e');
@@ -103,6 +117,12 @@ class AssetsDatasource {
     try {
       await _client.from('assets').delete().eq('id', id);
       AppLogger.success('? Activo eliminado');
+      AuditLogDatasource.log(
+        action: 'delete',
+        module: 'assets',
+        recordId: id,
+        description: 'Eliminó activo',
+      );
       return true;
     } catch (e) {
       AppLogger.error('? Error eliminando activo: $e');
@@ -116,6 +136,12 @@ class AssetsDatasource {
       await _client.from('assets').update({'status': status}).eq('id', id);
 
       AppLogger.success('? Estado actualizado a: $status');
+      AuditLogDatasource.log(
+        action: 'update',
+        module: 'assets',
+        recordId: id,
+        description: 'Cambió estado de activo a: $status',
+      );
       return true;
     } catch (e) {
       AppLogger.error('? Error actualizando estado: $e');
@@ -167,7 +193,15 @@ class AssetsDatasource {
       }
 
       AppLogger.success('? Mantenimiento registrado');
-      return AssetMaintenance.fromJson(response);
+      final created = AssetMaintenance.fromJson(response);
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'assets',
+        recordId: created.id,
+        description:
+            'Registró mantenimiento ${maintenance.maintenanceType} para activo',
+      );
+      return created;
     } catch (e) {
       AppLogger.error('? Error registrando mantenimiento: $e');
       return null;

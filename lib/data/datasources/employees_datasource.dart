@@ -1,6 +1,7 @@
 import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/employee.dart';
+import 'audit_log_datasource.dart';
 
 class EmployeesDatasource {
   static final _client = Supabase.instance.client;
@@ -15,7 +16,7 @@ class EmployeesDatasource {
         query = query.eq('is_active', true);
       }
 
-      final response = await query.order('first_name', ascending: true);
+      final response = await query.order('first_name', ascending: false);
 
       final employees = (response as List)
           .map((json) => Employee.fromJson(json))
@@ -56,7 +57,14 @@ class EmployeesDatasource {
           .single();
 
       AppLogger.success('? Empleado creado exitosamente');
-      return Employee.fromJson(response);
+      final created = Employee.fromJson(response);
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'employees',
+        recordId: created.id,
+        description: 'Creó empleado: ${created.fullName} (${created.position})',
+      );
+      return created;
     } catch (e) {
       AppLogger.error('? Error creando empleado: $e');
       return null;
@@ -72,6 +80,12 @@ class EmployeesDatasource {
           .eq('id', employee.id);
 
       AppLogger.success('? Empleado actualizado: ${employee.fullName}');
+      AuditLogDatasource.log(
+        action: 'update',
+        module: 'employees',
+        recordId: employee.id,
+        description: 'Actualizó empleado: ${employee.fullName}',
+      );
       return true;
     } catch (e) {
       AppLogger.error('? Error actualizando empleado: $e');
@@ -84,6 +98,12 @@ class EmployeesDatasource {
     try {
       await _client.from('employees').delete().eq('id', id);
       AppLogger.success('? Empleado eliminado');
+      AuditLogDatasource.log(
+        action: 'delete',
+        module: 'employees',
+        recordId: id,
+        description: 'Eliminó empleado',
+      );
       return true;
     } catch (e) {
       AppLogger.error('? Error eliminando empleado: $e');
@@ -161,7 +181,14 @@ class EmployeesDatasource {
           .single();
 
       AppLogger.success('? Tarea creada exitosamente');
-      return EmployeeTask.fromJson(response);
+      final created = EmployeeTask.fromJson(response);
+      AuditLogDatasource.log(
+        action: 'create',
+        module: 'employees',
+        recordId: created.id,
+        description: 'Creó tarea: ${created.title}',
+      );
+      return created;
     } catch (e) {
       AppLogger.error('? Error creando tarea: $e');
       return null;
@@ -196,6 +223,12 @@ class EmployeesDatasource {
           .eq('id', taskId);
 
       AppLogger.success('? Tarea completada');
+      AuditLogDatasource.log(
+        action: 'update',
+        module: 'employees',
+        recordId: taskId,
+        description: 'Completó tarea',
+      );
       return true;
     } catch (e) {
       AppLogger.error('? Error completando tarea: $e');
@@ -743,7 +776,7 @@ class EmployeesDatasource {
             'id, first_name, last_name, position, department, photo_url, nfc_card_id',
           )
           .eq('is_active', true)
-          .order('first_name');
+          .order('first_name', ascending: false);
 
       final withEntries = Map.fromEntries(
         (response as List).map((e) => MapEntry(e['id'] as String, e)),
