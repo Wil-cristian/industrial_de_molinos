@@ -5,6 +5,19 @@ Todos los cambios notables en esta aplicacion seran documentados en este archivo
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.0.8] - 2026-04-08
+
+### Mejorado
+- Limpieza masiva de código muerto: ~55 warnings eliminados (~1000+ líneas de código no utilizado)
+- Mano de Obra en ventas: toggle entre porcentaje (%) y valor fijo ($), visible en recibo y detalle
+- Analítica de inventario: línea histórica con score (salud) basado en stock real por mes
+- Triggers automáticos para rastrear cambios de stock en productos y materiales
+
+### Corregido
+- Import incorrecto en production_orders_datasource (package:supabase interno → supabase_flutter)
+- Dead code en quotations_datasource (operador ?? innecesario en customerName)
+- Backfill de movimientos históricos de stock desde invoice_items
+
 ## [1.0.7] - 2026-04-08
 
 ### Nuevo

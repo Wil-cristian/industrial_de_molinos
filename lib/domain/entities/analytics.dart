@@ -565,6 +565,7 @@ class BusinessHealthMonthly {
   final int totalMaterials;
   final int criticalMaterials;
   final double stockHealthPct;
+  final int stockHealthScore;
 
   BusinessHealthMonthly({
     required this.month,
@@ -586,6 +587,7 @@ class BusinessHealthMonthly {
     this.totalMaterials = 0,
     this.criticalMaterials = 0,
     this.stockHealthPct = 100,
+    this.stockHealthScore = 0,
   });
 
   factory BusinessHealthMonthly.fromJson(Map<String, dynamic> json) {
@@ -611,6 +613,7 @@ class BusinessHealthMonthly {
       totalMaterials: (json['total_materials'] as num?)?.toInt() ?? 0,
       criticalMaterials: (json['critical_materials'] as num?)?.toInt() ?? 0,
       stockHealthPct: (json['stock_health_pct'] as num?)?.toDouble() ?? 100,
+      stockHealthScore: (json['stock_health_score'] as num?)?.toInt() ?? 0,
     );
   }
 

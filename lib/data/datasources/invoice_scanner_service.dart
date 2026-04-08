@@ -488,51 +488,6 @@ class InvoiceScannerService {
     }
   }
 
-  /// Subir imagen al bucket de Storage
-  static Future<String> _uploadImage(PlatformFile file) async {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final safeName = file.name
-        .replaceAll(RegExp(r'[^\w\-.]'), '_')
-        .replaceAll(RegExp(r'_+'), '_');
-    final storagePath = 'invoices/scan_${timestamp}_$safeName';
-
-    Uint8List fileBytes;
-    if (file.bytes != null) {
-      fileBytes = file.bytes!;
-    } else if (file.path != null) {
-      fileBytes = await File(file.path!).readAsBytes();
-    } else {
-      throw Exception('No se pudo leer el archivo: ${file.name}');
-    }
-
-    // Detectar MIME type
-    final ext = file.extension?.toLowerCase() ?? 'jpg';
-    String mimeType;
-    switch (ext) {
-      case 'png':
-        mimeType = 'image/png';
-        break;
-      case 'webp':
-        mimeType = 'image/webp';
-        break;
-      case 'pdf':
-        mimeType = 'application/pdf';
-        break;
-      default:
-        mimeType = 'image/jpeg';
-    }
-
-    await _client.storage
-        .from(_bucket)
-        .uploadBinary(
-          storagePath,
-          fileBytes,
-          fileOptions: FileOptions(contentType: mimeType, upsert: true),
-        );
-
-    return storagePath;
-  }
-
   /// Llamar a la Edge Function scan-invoice
   static Future<Map<String, dynamic>?> _callScanFunction(
     String imageData, {

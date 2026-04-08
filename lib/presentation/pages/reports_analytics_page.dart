@@ -2945,19 +2945,40 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
       }
     }
 
-    // Eje derecho: Salud de inventario (0-100%)
-    // Normalizar porcentaje de salud al rango del eje primario
+    // Eje derecho: Score de salud inventario (buenos - críticos)
+    // Calcular max/min del score para normalizar
+    int scoreMax = 0;
+    int scoreMin = 0;
+    for (final d in data) {
+      if (d.stockHealthScore > scoreMax) scoreMax = d.stockHealthScore;
+      if (d.stockHealthScore < scoreMin) scoreMin = d.stockHealthScore;
+    }
+    final scoreAbsMax = [
+      scoreMax.abs(),
+      scoreMin.abs(),
+    ].reduce((a, b) => a > b ? a : b);
+
+    // Normalizar score al rango del eje primario
     List<FlSpot> normalizeStockHealth() {
+      if (scoreAbsMax == 0) {
+        return data.asMap().entries.map((e) {
+          return FlSpot(e.key.toDouble(), primaryMax * 0.5);
+        }).toList();
+      }
       return data.asMap().entries.map((e) {
-        final ratio = e.value.stockHealthPct / 100.0;
-        return FlSpot(e.key.toDouble(), ratio * primaryMax);
+        // Mapear score de [-scoreAbsMax, +scoreAbsMax] a [0, primaryMax]
+        final normalized =
+            ((e.value.stockHealthScore + scoreAbsMax) / (scoreAbsMax * 2)) *
+            primaryMax;
+        return FlSpot(e.key.toDouble(), normalized);
       }).toList();
     }
 
-    // Convertir valor normalizado de vuelta a porcentaje real para tooltip
-    double denormalize(double normalizedVal) {
-      if (primaryMax == 0) return 0;
-      return (normalizedVal / primaryMax) * 100.0;
+    // Convertir valor normalizado de vuelta a score real para tooltip
+    int denormalizeScore(double normalizedVal) {
+      if (primaryMax == 0 || scoreAbsMax == 0) return 0;
+      return ((normalizedVal / primaryMax) * (scoreAbsMax * 2) - scoreAbsMax)
+          .round();
     }
 
     return Container(
@@ -3127,9 +3148,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                               if (value == meta.max || value == meta.min) {
                                 return const SizedBox();
                               }
-                              final pct = denormalize(value);
+                              final score = denormalizeScore(value);
                               return Text(
-                                '${pct.toStringAsFixed(0)}%',
+                                '${score > 0 ? "+" : ""}$score',
                                 style: const TextStyle(
                                   fontSize: 9,
                                   color: Color(0xFFF9A825),
@@ -3241,13 +3262,22 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                                 const Color(0xFF1565C0),
                                 const Color(0xFFF9A825),
                               ];
-                              // Para salud inventario mostrar porcentaje, no valor normalizado
-                              final displayValue = spot.barIndex == 3
-                                  ? denormalize(spot.y)
-                                  : spot.y;
-                              final displayText = spot.barIndex == 3
-                                  ? '${labels[spot.barIndex]}: ${displayValue.toStringAsFixed(1)}%'
-                                  : '${labels[spot.barIndex]}: ${Helpers.formatCurrency(displayValue)}';
+                              // Para salud inventario mostrar score, no valor normalizado
+                              if (spot.barIndex == 3) {
+                                final score = denormalizeScore(spot.y);
+                                final displayText =
+                                    '${labels[spot.barIndex]}: ${score > 0 ? "+" : ""}$score';
+                                return LineTooltipItem(
+                                  displayText,
+                                  TextStyle(
+                                    color: colors[spot.barIndex],
+                                    fontSize: 11,
+                                  ),
+                                );
+                              }
+                              final displayValue = spot.y;
+                              final displayText =
+                                  '${labels[spot.barIndex]}: ${Helpers.formatCurrency(displayValue)}';
                               return LineTooltipItem(
                                 displayText,
                                 TextStyle(
@@ -5513,28 +5543,6 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         );
       }
     }
-  }
-
-  // Función auxiliar para leyendas
-  Widget _buildLegendItem(String label, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
-        ),
-      ],
-    );
   }
 
   // ============================================================

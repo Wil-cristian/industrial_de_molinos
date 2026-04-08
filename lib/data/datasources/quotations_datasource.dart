@@ -142,8 +142,7 @@ class QuotationsDataSource {
         action: 'create',
         module: 'quotations',
         recordId: newId,
-        description:
-            'Creó cotización $number para ${quotation.customerName ?? "cliente"}',
+        description: 'Creó cotización $number para ${quotation.customerName}',
         details: {
           'number': number,
           'customer': quotation.customerName,

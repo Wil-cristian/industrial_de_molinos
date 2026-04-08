@@ -463,41 +463,6 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
     );
   }
 
-  Widget _buildFilterButton(
-    String label,
-    Color textColor,
-    Color borderColor,
-    Color bgColor,
-  ) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: () {},
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: borderColor),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: textColor,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(Icons.expand_more, size: 18, color: textColor),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildTableHeader(
     String text,
     Color color, {
@@ -515,21 +480,6 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
           color: color,
           letterSpacing: 0.5,
         ),
-      ),
-    );
-  }
-
-  Widget _buildPaginationButton(IconData icon, Color borderColor) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: () {},
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: borderColor),
-        ),
-        child: Icon(icon, size: 18, color: const Color(0xFF9E9E9E)),
       ),
     );
   }
@@ -973,185 +923,6 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
     );
   }
 
-  Widget _buildComplexityBars(
-    TaskPriority priority,
-    Color textColor,
-    Color primaryColor,
-  ) {
-    int filled;
-    String label;
-    Color barColor;
-
-    switch (priority) {
-      case TaskPriority.baja:
-        filled = 1;
-        label = 'Baja';
-        barColor = primaryColor.withValues(alpha: 0.4);
-        break;
-      case TaskPriority.media:
-        filled = 3;
-        label = 'Media';
-        barColor = primaryColor.withValues(alpha: 0.6);
-        break;
-      case TaskPriority.alta:
-        filled = 4;
-        label = 'Alta';
-        barColor = primaryColor;
-        break;
-      case TaskPriority.urgente:
-        filled = 5;
-        label = 'Urgente';
-        barColor = const Color(0xFFC62828);
-        break;
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: textColor,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Row(
-          children: List.generate(5, (i) {
-            return Container(
-              width: 5,
-              height: 16,
-              margin: const EdgeInsets.only(left: 2),
-              decoration: BoxDecoration(
-                color: i < filled
-                    ? barColor
-                    : const Color(0xFF9E9E9E).withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            );
-          }),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTaskCard(ThemeData theme, EmployeeTask task) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: task.priorityColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            _getTaskCategoryIcon(task.category),
-            color: task.priorityColor,
-          ),
-        ),
-        title: Text(
-          task.title,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            decoration: task.status == TaskStatus.completada
-                ? TextDecoration.lineThrough
-                : null,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(Icons.person, size: 14, color: const Color(0xFF9E9E9E)),
-                const SizedBox(width: 4),
-                Text(task.employeeName ?? 'Sin asignar'),
-                const SizedBox(width: 16),
-                Icon(Icons.schedule, size: 14, color: const Color(0xFF9E9E9E)),
-                const SizedBox(width: 4),
-                Text(_formatDate(task.assignedDate)),
-              ],
-            ),
-            if (task.description != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                task.description!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: task.statusColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                task.statusLabel,
-                style: TextStyle(
-                  color: task.statusColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            if (task.status != TaskStatus.completada &&
-                task.status != TaskStatus.cancelada) ...[
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.check_circle, color: Color(0xFF2E7D32)),
-                onPressed: () => _completeTask(task),
-                tooltip: 'Completar',
-              ),
-            ],
-            PopupMenuButton<String>(
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                const PopupMenuItem(value: 'delete', child: Text('Eliminar')),
-              ],
-              onSelected: (value) {
-                if (value == 'edit') {
-                  _showTaskDialog(task: task);
-                } else if (value == 'delete') {
-                  _confirmDeleteTask(task);
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _getTaskCategoryIcon(String? category) {
-    switch (category?.toLowerCase()) {
-      case 'produccion':
-        return Icons.precision_manufacturing;
-      case 'mantenimiento':
-        return Icons.build;
-      case 'limpieza':
-        return Icons.cleaning_services;
-      case 'logistica':
-        return Icons.local_shipping;
-      case 'administrativo':
-        return Icons.description;
-      default:
-        return Icons.task;
-    }
-  }
-
   Widget _buildEmptyState({
     required IconData icon,
     required String title,
@@ -1235,18 +1006,6 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
       }
       return true;
     }).toList();
-  }
-
-  void _completeTask(EmployeeTask task) async {
-    await ref.read(employeesProvider.notifier).completeTask(task.id);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tarea completada'),
-          backgroundColor: Color(0xFF2E7D32),
-        ),
-      );
-    }
   }
 
   void _showTaskDialog({EmployeeTask? task}) {
@@ -1719,9 +1478,5 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }

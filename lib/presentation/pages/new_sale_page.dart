@@ -42,6 +42,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
 
   // Costos adicionales
   final _laborPercentController = TextEditingController(text: '15');
+  final _laborFixedController = TextEditingController(text: '0');
+  bool _laborIsPercent = true; // true = %, false = valor fijo
   final _indirectCostsController = TextEditingController(text: '0');
   final _profitMarginController = TextEditingController(text: '20');
   final _discountController = TextEditingController(text: '0');
@@ -115,8 +117,12 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
     (sum, item) => sum + (item['totalWeight'] as double? ?? 0),
   );
   double get _laborCost {
-    final percent = double.tryParse(_laborPercentController.text) ?? 0;
-    return _materialsCost * (percent / 100);
+    if (_laborIsPercent) {
+      final percent = double.tryParse(_laborPercentController.text) ?? 0;
+      return _materialsCost * (percent / 100);
+    } else {
+      return double.tryParse(_laborFixedController.text) ?? 0;
+    }
   }
 
   double get _indirectCosts =>
@@ -206,6 +212,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
   @override
   void dispose() {
     _laborPercentController.dispose();
+    _laborFixedController.dispose();
     _indirectCostsController.dispose();
     _profitMarginController.dispose();
     _discountController.dispose();
@@ -1610,60 +1617,111 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFEEEEEE)),
           ),
-          child: Row(
+          child: Column(
             children: [
-              const Icon(Icons.engineering, color: _saleThemeColor),
-              const SizedBox(width: 8),
-              const Text(
-                'Mano de Obra',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(width: 16),
-              SizedBox(
-                width: 100,
-                child: TextFormField(
-                  controller: _laborPercentController,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                    suffixText: '%',
-                    hintText: '15',
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+              Row(
+                children: [
+                  const Icon(Icons.engineering, color: _saleThemeColor),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Mano de Obra',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(width: 16),
+                  // Toggle: Porcentaje vs Valor fijo
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _LaborModeButton(
+                          label: '%',
+                          selected: _laborIsPercent,
+                          onTap: () => setState(() => _laborIsPercent = true),
+                        ),
+                        _LaborModeButton(
+                          label: '\$',
+                          selected: !_laborIsPercent,
+                          onTap: () => setState(() => _laborIsPercent = false),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      Helpers.formatCurrency(_laborCost),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Color(0xFF388E3C),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (_laborIsPercent)
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 100,
+                      child: TextFormField(
+                        controller: _laborPercentController,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          suffixText: '%',
+                          hintText: '15',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'del costo de materiales',
+                      style: TextStyle(
+                        color: const Color(0xFF757575),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                TextFormField(
+                  controller: _laborFixedController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Valor fijo de mano de obra',
+                    prefixText: '\$ ',
+                    prefixIcon: const Icon(Icons.attach_money),
+                    hintText: '10000',
+                    isDense: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'del costo de materiales',
-                style: TextStyle(color: const Color(0xFF757575), fontSize: 13),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  Helpers.formatCurrency(_laborCost),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: const Color(0xFF388E3C),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -3311,6 +3369,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         salePaymentType: _paymentType,
         taxRate: 0,
         discount: _discountAmount,
+        laborCost: _laborCost,
         items: _items.map((item) {
           final qty = (item['quantity'] as num?)?.toDouble() ?? 1;
           final itemSaleTotal =
@@ -4890,6 +4949,41 @@ class _SaleAddMaterialDialogState extends State<_SaleAddMaterialDialog> {
       'isRecipe': false,
     });
     Navigator.pop(context);
+  }
+}
+
+class _LaborModeButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _LaborModeButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? _saleThemeColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: selected ? Colors.white : const Color(0xFF757575),
+          ),
+        ),
+      ),
+    );
   }
 }
 

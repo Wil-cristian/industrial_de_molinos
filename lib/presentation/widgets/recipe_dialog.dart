@@ -1718,28 +1718,6 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
     );
   }
 
-  Widget _buildPriceSuggestion(String label, double price, Color color) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 9,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        Text(
-          Helpers.formatCurrency(price),
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildFooter() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -1808,21 +1786,6 @@ class _RecipeDialogState extends ConsumerState<RecipeDialog> {
         _selectedCalculationType = null;
       });
     }
-  }
-
-  void _selectMaterialOld(mat.Material material) {
-    setState(() {
-      _selectedMaterial = material;
-      // Limpiar campos
-      _largoController.clear();
-      _anchoController.clear();
-      _espesorController.clear();
-      _diametroExtController.clear();
-      _espesorParedController.clear();
-      _diametroController.clear();
-      _cantidadController.text = '1';
-      _calculatedWeight = 0;
-    });
   }
 
   void _calculateWeight() {

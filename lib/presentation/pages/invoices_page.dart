@@ -56,6 +56,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             'status': _mapStatus(inv.status),
             'paymentMethod': inv.paymentMethod?.name,
             'salePaymentType': inv.salePaymentType,
+            'laborCost': inv.laborCost,
             'notes': inv.notes,
             'products': inv.items
                 .map(
@@ -1023,69 +1024,6 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
     );
   }
 
-  Widget _buildStatusBadge(String status) {
-    Color statusColor;
-    switch (status) {
-      case 'Pagada':
-        statusColor = const Color(0xFF2E7D32);
-        break;
-      case 'Pendiente':
-        statusColor = const Color(0xFFF9A825);
-        break;
-      case 'Parcial':
-        statusColor = const Color(0xFF1565C0);
-        break;
-      case 'Vencida':
-        statusColor = const Color(0xFFC62828);
-        break;
-      default:
-        statusColor = const Color(0xFF9E9E9E);
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(color: statusColor, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-
-  Widget _buildAmountRow(
-    String label,
-    double amount, {
-    bool isTotal = false,
-    Color? color,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            fontSize: isTotal ? 16 : 14,
-          ),
-        ),
-        Text(
-          Formatters.currency(amount),
-          style: TextStyle(
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-            fontSize: isTotal ? 18 : 14,
-            color:
-                color ??
-                (isTotal
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurface),
-          ),
-        ),
-      ],
-    );
-  }
-
   void _showPaymentDialog(Map<String, dynamic> invoice) {
     final total = invoice['total'] as double;
     final paid = invoice['paid'] as double;
@@ -1818,14 +1756,20 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFEBEE),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.danger.withOpacity(0.5)),
+                    border: Border.all(
+                      color: AppColors.danger.withOpacity(0.5),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.payments, color: AppColors.danger, size: 22),
+                          Icon(
+                            Icons.payments,
+                            color: AppColors.danger,
+                            size: 22,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -1873,7 +1817,10 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                       child: Text(
                         'Esta acción anulará la factura $invoiceNumber de forma permanente '
                         'y se registrará en el historial de auditoría.',
-                        style: TextStyle(color: AppColors.warning, fontSize: 13),
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -1937,7 +1884,8 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                           Text(
                             'Factura ${result['invoice_number']} anulada correctamente ✓',
                           ),
-                          if (result['payments_reverted'] != null && (result['payments_reverted'] as num) > 0)
+                          if (result['payments_reverted'] != null &&
+                              (result['payments_reverted'] as num) > 0)
                             Text(
                               '✓ ${result['payments_reverted']} pago(s) revertido(s) por \$${result['payment_total_reverted']}',
                               style: const TextStyle(fontSize: 11),
@@ -1977,19 +1925,6 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
             style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showReceiptPreview(
-    Map<String, dynamic> invoice, {
-    required bool isClientVersion,
-  }) {
-    showDialog(
-      context: context,
-      builder: (context) => _InvoicePreviewDialog(
-        invoice: invoice,
-        initialTab: isClientVersion ? 0 : 1,
       ),
     );
   }
@@ -2478,6 +2413,7 @@ class _InvoiceFullDetailDialogState
     final subtotal = (inv['subtotal'] as num?)?.toDouble() ?? 0;
     final tax = (inv['tax'] as num?)?.toDouble() ?? 0;
     final discount = (inv['discount'] as num?)?.toDouble() ?? 0;
+    final laborCostDetail = (inv['laborCost'] as num?)?.toDouble() ?? 0;
     final products = inv['products'] as List<dynamic>? ?? [];
     final paymentProgress = total > 0 ? (paid / total).clamp(0.0, 1.0) : 0.0;
     final isDraft = inv['status'] == 'Borrador';
@@ -2965,6 +2901,13 @@ class _InvoiceFullDetailDialogState
                           child: Column(
                             children: [
                               _buildSummaryRow('Subtotal', subtotal),
+                              if (laborCostDetail > 0) ...[
+                                const SizedBox(height: 4),
+                                _buildSummaryRow(
+                                  'Mano de Obra',
+                                  laborCostDetail,
+                                ),
+                              ],
                               if (discount > 0) ...[
                                 const SizedBox(height: 4),
                                 _buildSummaryRow(
@@ -3745,6 +3688,7 @@ class _InvoiceFullDetailDialogState
     final subtotal = (inv['subtotal'] as num?)?.toDouble() ?? 0;
     final tax = (inv['tax'] as num?)?.toDouble() ?? 0;
     final discount = (inv['discount'] as num?)?.toDouble() ?? 0;
+    final laborCost = (inv['laborCost'] as num?)?.toDouble() ?? 0;
 
     return RepaintBoundary(
       key: _receiptKey,
@@ -4135,6 +4079,10 @@ class _InvoiceFullDetailDialogState
                               child: Column(
                                 children: [
                                   _buildSummaryRow('Subtotal', subtotal),
+                                  if (laborCost > 0) ...[
+                                    const SizedBox(height: 4),
+                                    _buildSummaryRow('Mano de Obra', laborCost),
+                                  ],
                                   if (discount > 0) ...[
                                     const SizedBox(height: 4),
                                     _buildSummaryRow(
@@ -5400,9 +5348,8 @@ class _ItemActionButton extends StatelessWidget {
 // ============================================
 class _InvoicePreviewDialog extends StatefulWidget {
   final Map<String, dynamic> invoice;
-  final int initialTab;
 
-  const _InvoicePreviewDialog({required this.invoice, this.initialTab = 0});
+  const _InvoicePreviewDialog({required this.invoice});
 
   @override
   State<_InvoicePreviewDialog> createState() => _InvoicePreviewDialogState();
@@ -5415,11 +5362,7 @@ class _InvoicePreviewDialogState extends State<_InvoicePreviewDialog>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(
-      length: 2,
-      vsync: this,
-      initialIndex: widget.initialTab,
-    );
+    _tabController = TabController(length: 2, vsync: this, initialIndex: 0);
   }
 
   @override

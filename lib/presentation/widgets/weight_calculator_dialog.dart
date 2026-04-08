@@ -175,16 +175,6 @@ class _WeightCalculatorDialogState extends State<WeightCalculatorDialog> {
     });
   }
 
-  void _clearFields() {
-    _outerDiameterCtrl.text = '1';
-    _thicknessCtrl.text = '1/4';
-    _lengthCmCtrl.clear();
-    _widthCtrl.clear();
-    _heightCtrl.clear();
-    _calculatedWeight = 0;
-    _totalCost = 0;
-  }
-
   /// Campo de texto para dimensiones en pulgadas (el usuario escribe directamente)
   Widget _buildInchField({
     required String label,

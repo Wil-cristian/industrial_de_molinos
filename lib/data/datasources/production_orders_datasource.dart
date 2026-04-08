@@ -1,4 +1,4 @@
-import 'package:supabase/src/supabase_client.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/utils/logger.dart';
 import '../../domain/entities/production_order.dart';

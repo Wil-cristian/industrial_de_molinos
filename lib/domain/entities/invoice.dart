@@ -28,6 +28,7 @@ class Invoice {
   final double materialCostPending;
   final DateTime? deliveryDate;
   final String salePaymentType; // cash, credit, advance
+  final double laborCost;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -54,6 +55,7 @@ class Invoice {
     this.materialCostPending = 0,
     this.deliveryDate,
     this.salePaymentType = 'cash',
+    this.laborCost = 0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -97,6 +99,7 @@ class Invoice {
     double? materialCostPending,
     DateTime? deliveryDate,
     String? salePaymentType,
+    double? laborCost,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -123,6 +126,7 @@ class Invoice {
       materialCostPending: materialCostPending ?? this.materialCostPending,
       deliveryDate: deliveryDate ?? this.deliveryDate,
       salePaymentType: salePaymentType ?? this.salePaymentType,
+      laborCost: laborCost ?? this.laborCost,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -168,6 +172,7 @@ class Invoice {
           ? DateTime.parse(json['delivery_date'])
           : null,
       salePaymentType: json['sale_payment_type'] ?? 'cash',
+      laborCost: (json['labor_cost'] as num?)?.toDouble() ?? 0,
       createdAt: DateTime.parse(
         json['created_at'] ?? DateTime.now().toIso8601String(),
       ),
@@ -200,6 +205,7 @@ class Invoice {
       'material_cost_pending': materialCostPending,
       'delivery_date': deliveryDate?.toIso8601String().split('T')[0],
       'sale_payment_type': salePaymentType,
+      'labor_cost': laborCost,
     };
   }
 

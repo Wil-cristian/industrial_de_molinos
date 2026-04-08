@@ -89,7 +89,6 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
   // Auto-code generation
   bool _autoCodeEnabled = true;
   bool _isGeneratingCode = false;
-  String _codePreview = '';
 
   @override
   void initState() {
@@ -199,7 +198,6 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
     final name = nameCtrl.text.trim();
     if (name.isEmpty) {
       setState(() {
-        _codePreview = '';
         codeCtrl.text = '';
       });
       return;
@@ -232,7 +230,6 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
     // Show preview immediately
     if (mounted) {
       setState(() {
-        _codePreview = '$prefix-...';
         _isGeneratingCode = true;
       });
     }
@@ -249,7 +246,6 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
       );
       setState(() {
         codeCtrl.text = code;
-        _codePreview = code;
         _isGeneratingCode = false;
       });
     } catch (_) {
@@ -259,7 +255,6 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
       final code = '$prefix-${fallbackSeq.toString().padLeft(4, '0')}';
       setState(() {
         codeCtrl.text = code;
-        _codePreview = code;
         _isGeneratingCode = false;
       });
     }

@@ -297,6 +297,7 @@ class InvoicesDataSource {
     required double subtotal,
     double taxRate = 0.0,
     double discount = 0.0,
+    double laborCost = 0.0,
     String? quotationId,
     String? notes,
   }) async {
@@ -328,6 +329,7 @@ class InvoicesDataSource {
       'notes': notes,
       'delivery_date': deliveryDate?.toIso8601String().split('T')[0],
       'sale_payment_type': salePaymentType,
+      'labor_cost': laborCost,
     };
 
     final response = await _client
@@ -366,6 +368,7 @@ class InvoicesDataSource {
     required List<InvoiceItem> items,
     double taxRate = 0.0,
     double discount = 0.0,
+    double laborCost = 0.0,
     String? quotationId,
     String? notes,
   }) async {
@@ -387,6 +390,7 @@ class InvoicesDataSource {
       subtotal: subtotal,
       taxRate: taxRate,
       discount: discount,
+      laborCost: laborCost,
       quotationId: quotationId,
       notes: notes,
     );
