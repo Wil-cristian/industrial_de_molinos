@@ -5,6 +5,20 @@ Todos los cambios notables en esta aplicacion seran documentados en este archivo
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.0.7] - 2026-04-08
+
+### Nuevo
+- Órdenes de producción: números de orden (#1, #2...) en cada tarjeta
+- Botones rápidos pausar/reanudar y eliminar en lista de órdenes
+- Drag-to-reorder: arrastrar para reorganizar órdenes (mobile y desktop)
+- Auto-código de materiales por categoría (formato XX-NN-SUBCAT-####)
+- Campo sort_order en production_orders (migración 079)
+- Campo code_prefix en material_categories (migración 078)
+
+### Corregido
+- Precios Compra/Venta separados correctamente en productos compuestos
+- Preview de componentes usa effectiveCostPrice para Compra y effectivePrice para Venta
+
 ## [1.0.6] - 2026-03-31
 
 ### Mejorado
