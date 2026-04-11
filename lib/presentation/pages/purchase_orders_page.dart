@@ -9,6 +9,7 @@ import '../../data/providers/providers.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
 import '../../domain/entities/purchase_order.dart';
+import '../../core/utils/colombia_time.dart';
 
 class PurchaseOrdersPage extends ConsumerStatefulWidget {
   const PurchaseOrdersPage({super.key});
@@ -454,11 +455,11 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
                       onPressed: () async {
                         final picked = await showDatePicker(
                           context: ctx,
-                          initialDate: DateTime.now().add(
+                          initialDate: ColombiaTime.now().add(
                             const Duration(days: 7),
                           ),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(
+                          firstDate: ColombiaTime.now(),
+                          lastDate: ColombiaTime.now().add(
                             const Duration(days: 365),
                           ),
                         );
@@ -493,8 +494,8 @@ class _PurchaseOrdersPageState extends ConsumerState<PurchaseOrdersPage> {
                             supplierId: selectedSupplierId!,
                             notes: notes,
                             expectedDate: expectedDate,
-                            createdAt: DateTime.now(),
-                            updatedAt: DateTime.now(),
+                            createdAt: ColombiaTime.now(),
+                            updatedAt: ColombiaTime.now(),
                           );
 
                           final created = await ref
@@ -1380,8 +1381,8 @@ class _OrderDetailDialogState extends ConsumerState<_OrderDetailDialog> {
                             unit: unit,
                             unitPrice: price,
                             subtotal: qty * price,
-                            createdAt: DateTime.now(),
-                            updatedAt: DateTime.now(),
+                            createdAt: ColombiaTime.now(),
+                            updatedAt: ColombiaTime.now(),
                           );
 
                           await ref

@@ -5,6 +5,23 @@ Todos los cambios notables en esta aplicacion seran documentados en este archivo
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.0.9] - 2026-04-10
+
+### Mejorado
+- Cotizaciones responsive: página de nueva cotización completamente adaptada para móvil (~360dp)
+  - Sidebar oculto en móvil, accesible via FAB con bottom sheet
+  - Header, stepper, componentes y costos con layout compacto
+  - Diálogo de selección de producto: lista a pantalla completa + detalle en bottom sheet
+  - Preview de cotización: fullscreen con tabs (Cliente/Empresa)
+  - Diálogos de agregar componente/material/producto redimensionados
+- Mano de Obra en cotizaciones: toggle entre porcentaje (%) y valor fijo ($), igual que en ventas
+- Ventas responsive: correcciones adicionales de overflow en página de nueva venta
+
+### Corregido
+- Overflow en diálogo de selección de producto en móvil (ListTile con trailing aplastado)
+- DropdownButtonFormField con isExpanded en todos los dropdowns de cotización
+- Múltiples overflows de Row en paneles estrechos de cotización
+
 ## [1.0.8] - 2026-04-08
 
 ### Mejorado

@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import '../../core/utils/colombia_time.dart';
+import '../../data/datasources/customers_datasource.dart';
+import '../../data/datasources/drivers_datasource.dart';
+import '../../data/datasources/invoices_datasource.dart';
+import '../../domain/entities/customer.dart';
+import '../../domain/entities/driver.dart';
+import '../../domain/entities/invoice.dart';
 import '../../domain/entities/shipment_order.dart';
+import 'shipment_print_preview.dart';
 
 /// Dialog para crear o editar una remisión / orden de envío.
 class ShipmentFormDialog extends StatefulWidget {
@@ -31,9 +40,19 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
   final _formKey = GlobalKey<FormState>();
   bool _isSaving = false;
 
+  // Clientes
+  List<Customer> _customers = [];
+  String? _selectedCustomerId;
+
+  // Conductores
+  List<Driver> _allDrivers = [];
+  bool _loadingDrivers = true;
+
   // Cliente
   late TextEditingController _customerNameCtrl;
   late TextEditingController _customerAddressCtrl;
+  late TextEditingController _customerDocCtrl;
+  late TextEditingController _customerPhoneCtrl;
 
   // Transporte
   late TextEditingController _carrierNameCtrl;
@@ -64,12 +83,15 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
     super.initState();
     final s = widget.existingShipment;
 
+    _selectedCustomerId = s?.customerId;
     _customerNameCtrl = TextEditingController(
       text: s?.customerName ?? widget.initialCustomerName ?? '',
     );
     _customerAddressCtrl = TextEditingController(
       text: s?.customerAddress ?? '',
     );
+    _customerDocCtrl = TextEditingController();
+    _customerPhoneCtrl = TextEditingController();
     _carrierNameCtrl = TextEditingController(text: s?.carrierName ?? '');
     _carrierDocCtrl = TextEditingController(text: s?.carrierDocument ?? '');
     _vehiclePlateCtrl = TextEditingController(text: s?.vehiclePlate ?? '');
@@ -79,7 +101,7 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
     _internalNotesCtrl = TextEditingController(text: s?.internalNotes ?? '');
     _preparedByCtrl = TextEditingController(text: s?.preparedBy ?? '');
     _approvedByCtrl = TextEditingController(text: s?.approvedBy ?? '');
-    _dispatchDate = s?.dispatchDate ?? DateTime.now();
+    _dispatchDate = s?.dispatchDate ?? ColombiaTime.now();
     _deliveryDate = s?.deliveryDate;
 
     if (s != null && s.items.isNotEmpty) {
@@ -89,12 +111,61 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
           .map((i) => _ItemEntry.fromShipmentItem(i))
           .toList();
     }
+
+    _loadCustomers();
+    _loadDrivers();
+  }
+
+  Future<void> _loadCustomers() async {
+    try {
+      final customers = await CustomersDataSource.getAll();
+      if (mounted) {
+        setState(() {
+          _customers = customers;
+        });
+        // Si ya hay customerId, rellenar doc y phone
+        if (_selectedCustomerId != null) {
+          final match = customers.where((c) => c.id == _selectedCustomerId);
+          if (match.isNotEmpty) {
+            final c = match.first;
+            _customerDocCtrl.text =
+                '${c.documentType.displayName}: ${c.documentNumber}';
+            _customerPhoneCtrl.text = c.phone ?? '';
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadDrivers() async {
+    try {
+      final drivers = await DriversDataSource.getAll();
+      if (mounted) {
+        setState(() {
+          _allDrivers = drivers;
+          _loadingDrivers = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingDrivers = false);
+    }
+  }
+
+  void _onDriverSelected(Driver d) {
+    setState(() {
+      _driverNameCtrl.text = d.name;
+      _driverDocCtrl.text = d.document;
+      _vehiclePlateCtrl.text = d.vehiclePlate ?? '';
+      _carrierNameCtrl.text = d.carrierCompany ?? '';
+    });
   }
 
   @override
   void dispose() {
     _customerNameCtrl.dispose();
     _customerAddressCtrl.dispose();
+    _customerDocCtrl.dispose();
+    _customerPhoneCtrl.dispose();
     _carrierNameCtrl.dispose();
     _carrierDocCtrl.dispose();
     _vehiclePlateCtrl.dispose();
@@ -166,7 +237,97 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // — Cliente —
+                      // — Ítems (PRIMERO) —
+                      Row(
+                        children: [
+                          _sectionTitle('Ítems del Envío'),
+                          if (_items.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _items.every((i) => i.checked)
+                                    ? const Color(0xFF43A047).withOpacity(0.15)
+                                    : Colors.orange.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${_items.where((i) => i.checked).length}/${_items.length}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _items.every((i) => i.checked)
+                                      ? const Color(0xFF43A047)
+                                      : Colors.orange[800],
+                                ),
+                              ),
+                            ),
+                          ],
+                          const Spacer(),
+                          if (isCompact) ...[
+                            IconButton(
+                              onPressed: _loadFromInvoices,
+                              icon: const Icon(Icons.receipt_long, size: 20),
+                              tooltip: 'Cargar desde Factura',
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                            IconButton(
+                              onPressed: _addItem,
+                              icon: const Icon(Icons.add_circle, size: 20),
+                              tooltip: 'Agregar ítem',
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                          ] else ...[
+                            TextButton.icon(
+                              onPressed: _loadFromInvoices,
+                              icon: const Icon(Icons.receipt_long, size: 18),
+                              label: const Text('Cargar desde Factura'),
+                            ),
+                            const SizedBox(width: 4),
+                            TextButton.icon(
+                              onPressed: _addItem,
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Agregar'),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ..._items.asMap().entries.map(
+                        (entry) => _buildItemRow(entry.key, entry.value),
+                      ),
+                      if (_items.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.grey[300]!,
+                              style: BorderStyle.solid,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Sin ítems. Presiona "Cargar desde Factura" o "Agregar".',
+                              style: TextStyle(color: Colors.grey[500]),
+                            ),
+                          ),
+                        ),
+
+                      const SizedBox(height: 20),
+                      // — Cliente (auto-llenado desde factura) —
                       _sectionTitle('Datos del Destinatario'),
                       const SizedBox(height: 8),
                       _buildTextField(
@@ -176,6 +337,43 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
                             ? 'Requerido'
                             : null,
                       ),
+                      const SizedBox(height: 10),
+                      if (isCompact)
+                        Column(
+                          children: [
+                            _buildTextField(
+                              _customerDocCtrl,
+                              'NIT / CC del Cliente',
+                              readOnly: true,
+                            ),
+                            const SizedBox(height: 10),
+                            _buildTextField(
+                              _customerPhoneCtrl,
+                              'Teléfono del Cliente',
+                              readOnly: true,
+                            ),
+                          ],
+                        )
+                      else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                _customerDocCtrl,
+                                'NIT / CC del Cliente',
+                                readOnly: true,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildTextField(
+                                _customerPhoneCtrl,
+                                'Teléfono del Cliente',
+                                readOnly: true,
+                              ),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 10),
                       _buildTextField(
                         _customerAddressCtrl,
@@ -208,6 +406,162 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
                       // — Transporte —
                       _sectionTitle('Datos de Transporte'),
                       const SizedBox(height: 8),
+                      // Selector de conductor con búsqueda
+                      _loadingDrivers
+                          ? const LinearProgressIndicator()
+                          : _allDrivers.isEmpty
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey[300]!),
+                                borderRadius: BorderRadius.circular(4),
+                                color: Colors.grey[50],
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    size: 18,
+                                    color: Colors.grey[500],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'No hay conductores guardados. Agrega conductores en Clientes → Conductores.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Autocomplete<Driver>(
+                              optionsBuilder: (textEditingValue) {
+                                if (textEditingValue.text.isEmpty) {
+                                  return _allDrivers;
+                                }
+                                final q = textEditingValue.text.toLowerCase();
+                                return _allDrivers.where(
+                                  (d) =>
+                                      d.name.toLowerCase().contains(q) ||
+                                      d.document.contains(q) ||
+                                      (d.vehiclePlate?.toLowerCase().contains(
+                                            q,
+                                          ) ??
+                                          false) ||
+                                      (d.carrierCompany?.toLowerCase().contains(
+                                            q,
+                                          ) ??
+                                          false),
+                                );
+                              },
+                              displayStringForOption: (d) =>
+                                  '${d.name} - CC: ${d.document}',
+                              onSelected: _onDriverSelected,
+                              fieldViewBuilder:
+                                  (
+                                    context,
+                                    controller,
+                                    focusNode,
+                                    onFieldSubmitted,
+                                  ) {
+                                    return TextField(
+                                      controller: controller,
+                                      focusNode: focusNode,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Buscar conductor guardado',
+                                        prefixIcon: Icon(
+                                          Icons.search,
+                                          size: 20,
+                                        ),
+                                        suffixIcon: Icon(
+                                          Icons.directions_car,
+                                          size: 20,
+                                        ),
+                                        border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 10,
+                                        ),
+                                        isDense: true,
+                                        hintText: 'Nombre, CC o placa...',
+                                      ),
+                                      style: const TextStyle(fontSize: 13),
+                                    );
+                                  },
+                              optionsViewBuilder:
+                                  (context, onSelected, options) {
+                                    return Align(
+                                      alignment: Alignment.topLeft,
+                                      child: Material(
+                                        elevation: 4,
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxHeight: 220,
+                                            maxWidth: 500,
+                                          ),
+                                          child: ListView.builder(
+                                            padding: EdgeInsets.zero,
+                                            shrinkWrap: true,
+                                            itemCount: options.length,
+                                            itemBuilder: (ctx, i) {
+                                              final d = options.elementAt(i);
+                                              return ListTile(
+                                                dense: true,
+                                                leading: const CircleAvatar(
+                                                  radius: 16,
+                                                  backgroundColor: Color(
+                                                    0x181565C0,
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.person,
+                                                    size: 18,
+                                                    color: Color(0xFF1565C0),
+                                                  ),
+                                                ),
+                                                title: Text(
+                                                  d.name,
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                subtitle: Text(
+                                                  [
+                                                    'CC: ${d.document}',
+                                                    if (d.vehiclePlate !=
+                                                            null &&
+                                                        d
+                                                            .vehiclePlate!
+                                                            .isNotEmpty)
+                                                      'Placa: ${d.vehiclePlate}',
+                                                    if (d.carrierCompany !=
+                                                            null &&
+                                                        d
+                                                            .carrierCompany!
+                                                            .isNotEmpty)
+                                                      d.carrierCompany!,
+                                                  ].join('  •  '),
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
+                                                onTap: () => onSelected(d),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                            ),
+                      if (_allDrivers.isNotEmpty) const SizedBox(height: 10),
                       if (isCompact)
                         Column(
                           children: [
@@ -282,42 +636,6 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
                         ),
 
                       const SizedBox(height: 20),
-                      // — Ítems —
-                      Row(
-                        children: [
-                          _sectionTitle('Ítems del Envío'),
-                          const Spacer(),
-                          TextButton.icon(
-                            onPressed: _addItem,
-                            icon: const Icon(Icons.add, size: 18),
-                            label: const Text('Agregar'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      ..._items.asMap().entries.map(
-                        (entry) => _buildItemRow(entry.key, entry.value),
-                      ),
-                      if (_items.isEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.grey[300]!,
-                              style: BorderStyle.solid,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Sin ítems. Presiona "Agregar" para añadir elementos.',
-                              style: TextStyle(color: Colors.grey[500]),
-                            ),
-                          ),
-                        ),
-
-                      const SizedBox(height: 20),
                       // — Notas y Firmas —
                       _sectionTitle('Notas y Firmas'),
                       const SizedBox(height: 8),
@@ -373,6 +691,23 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
                     child: const Text('Cancelar'),
                   ),
                   const SizedBox(width: 8),
+                  if (isCompact)
+                    IconButton(
+                      onPressed: _isSaving
+                          ? null
+                          : () => _save(printAfter: true),
+                      icon: const Icon(Icons.print, size: 20),
+                      tooltip: 'Guardar e Imprimir',
+                    )
+                  else
+                    OutlinedButton.icon(
+                      onPressed: _isSaving
+                          ? null
+                          : () => _save(printAfter: true),
+                      icon: const Icon(Icons.print, size: 18),
+                      label: const Text('Guardar e Imprimir'),
+                    ),
+                  const SizedBox(width: 8),
                   FilledButton.icon(
                     onPressed: _isSaving ? null : _save,
                     icon: _isSaving
@@ -412,11 +747,13 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
     String label, {
     String? Function(String?)? validator,
     int maxLines = 1,
+    bool readOnly = false,
   }) {
     return TextFormField(
       controller: controller,
       validator: validator,
       maxLines: maxLines,
+      readOnly: readOnly,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
@@ -425,6 +762,8 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
           vertical: 10,
         ),
         isDense: true,
+        filled: readOnly,
+        fillColor: readOnly ? Colors.grey[100] : null,
       ),
       style: const TextStyle(fontSize: 13),
     );
@@ -440,7 +779,7 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
       onTap: () async {
         final picked = await showDatePicker(
           context: context,
-          initialDate: value ?? DateTime.now(),
+          initialDate: value ?? ColombiaTime.now(),
           firstDate: DateTime(2024),
           lastDate: DateTime(2030),
           locale: const Locale('es', 'CO'),
@@ -473,6 +812,113 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
     );
   }
 
+  // ── Cargar desde Facturas ──
+  Future<void> _loadFromInvoices() async {
+    // Step 1: Fetch invoices
+    List<Invoice>? invoices;
+    try {
+      invoices = await InvoicesDataSource.getAll();
+      // Filter only issued/paid/partial (not cancelled/draft)
+      invoices = invoices
+          .where(
+            (inv) =>
+                inv.status != InvoiceStatus.cancelled &&
+                inv.status != InvoiceStatus.draft &&
+                inv.items.isNotEmpty,
+          )
+          .toList();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error cargando facturas: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (invoices.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No hay facturas con ítems disponibles'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Step 2: Show invoice selection dialog
+    final selectedInvoices = await showDialog<List<Invoice>>(
+      context: context,
+      builder: (ctx) => _InvoiceSelectionDialog(invoices: invoices!),
+    );
+
+    if (selectedInvoices == null || selectedInvoices.isEmpty) return;
+    if (!mounted) return;
+
+    // Step 3: Collect items from selected invoices
+    final allItems = <_InvoiceItemEntry>[];
+    for (final inv in selectedInvoices) {
+      for (final item in inv.items) {
+        allItems.add(_InvoiceItemEntry(invoice: inv, item: item));
+      }
+    }
+
+    // Step 4: Show item selection dialog
+    final selectedItems = await showDialog<List<_InvoiceItemEntry>>(
+      context: context,
+      builder: (ctx) => _InvoiceItemSelectionDialog(items: allItems),
+    );
+
+    if (selectedItems == null || selectedItems.isEmpty) return;
+
+    // Step 5: Auto-fill customer from first selected invoice
+    final firstInvoice = selectedInvoices.first;
+    if (_customerNameCtrl.text.trim().isEmpty) {
+      // Find matching customer to get full data
+      final match = _customers.where(
+        (c) => c.name == firstInvoice.customerName,
+      );
+      if (match.isNotEmpty) {
+        final c = match.first;
+        _selectedCustomerId = c.id;
+        _customerNameCtrl.text = c.name;
+        _customerAddressCtrl.text = c.address ?? '';
+        _customerDocCtrl.text =
+            '${c.documentType.displayName}: ${c.documentNumber}';
+        _customerPhoneCtrl.text = c.phone ?? '';
+      } else {
+        _customerNameCtrl.text = firstInvoice.customerName;
+        _customerDocCtrl.text = firstInvoice.customerDocument;
+      }
+    }
+
+    // Step 6: Convert to _ItemEntry and add
+    setState(() {
+      for (final entry in selectedItems) {
+        final inv = entry.item;
+        _items.add(
+          _ItemEntry(
+            type: inv.materialId != null
+                ? ShipmentItemType.material
+                : ShipmentItemType.producto,
+            desc: inv.productName,
+            qty: inv.quantity.toStringAsFixed(
+              inv.quantity == inv.quantity.roundToDouble() ? 0 : 2,
+            ),
+            unit: inv.unit,
+          ),
+        );
+      }
+    });
+  }
+
   // ── Ítems ──
   void _addItem() {
     setState(() {
@@ -487,30 +933,54 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: item.checked
+            ? const Color(0xFF43A047).withOpacity(0.06)
+            : Colors.grey[50],
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(
+          color: item.checked
+              ? const Color(0xFF43A047).withOpacity(0.4)
+              : Colors.grey[300]!,
+        ),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              Container(
+              SizedBox(
                 width: 28,
                 height: 28,
+                child: Checkbox(
+                  value: item.checked,
+                  onChanged: (v) {
+                    setState(() => item.checked = v ?? false);
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  activeColor: const Color(0xFF43A047),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Container(
+                width: 24,
+                height: 24,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0),
+                  color: item.checked
+                      ? const Color(0xFF43A047)
+                      : const Color(0xFF1565C0),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
+                child: item.checked
+                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    : Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
               ),
               const SizedBox(width: 8),
               // Tipo
@@ -744,7 +1214,7 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
     }
   }
 
-  Future<void> _save() async {
+  Future<void> _save({bool printAfter = false}) async {
     if (!_formKey.currentState!.validate()) return;
     if (_items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -784,6 +1254,7 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
       productionOrderId:
           widget.existingShipment?.productionOrderId ??
           widget.initialProductionOrderId,
+      customerId: _selectedCustomerId,
       customerName: _customerNameCtrl.text.trim(),
       customerAddress: _customerAddressCtrl.text.trim().isEmpty
           ? null
@@ -816,13 +1287,16 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
           ? null
           : _approvedByCtrl.text.trim(),
       items: shipmentItems,
-      createdAt: widget.existingShipment?.createdAt ?? DateTime.now(),
-      updatedAt: DateTime.now(),
+      createdAt: widget.existingShipment?.createdAt ?? ColombiaTime.now(),
+      updatedAt: ColombiaTime.now(),
     );
 
     try {
       await widget.onSave(order);
       if (mounted) Navigator.pop(context);
+      if (printAfter) {
+        ShipmentPrintService.printShipment(order);
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -832,6 +1306,7 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
 /// Modelo auxiliar para un ítem en el formulario
 class _ItemEntry {
   ShipmentItemType type;
+  bool checked = false;
   final TextEditingController descCtrl;
   final TextEditingController qtyCtrl;
   final TextEditingController unitCtrl;
@@ -870,5 +1345,356 @@ class _ItemEntry {
     unitCtrl.dispose();
     weightCtrl.dispose();
     dimensionsCtrl.dispose();
+  }
+}
+
+/// Wrapper to track invoice item + its parent invoice
+class _InvoiceItemEntry {
+  final Invoice invoice;
+  final InvoiceItem item;
+  const _InvoiceItemEntry({required this.invoice, required this.item});
+}
+
+// ─────────────────────────────────────────────────────────
+//  Dialog: Selección de Facturas (multi-select)
+// ─────────────────────────────────────────────────────────
+class _InvoiceSelectionDialog extends StatefulWidget {
+  final List<Invoice> invoices;
+  const _InvoiceSelectionDialog({required this.invoices});
+
+  @override
+  State<_InvoiceSelectionDialog> createState() =>
+      _InvoiceSelectionDialogState();
+}
+
+class _InvoiceSelectionDialogState extends State<_InvoiceSelectionDialog> {
+  final Set<String> _selected = {};
+  String _search = '';
+
+  List<Invoice> get _filtered {
+    if (_search.isEmpty) return widget.invoices;
+    final q = _search.toLowerCase();
+    return widget.invoices.where((inv) {
+      return inv.customerName.toLowerCase().contains(q) ||
+          '${inv.series}-${inv.number}'.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isCompact = width < 700;
+    final fmt = NumberFormat('#,##0.00', 'es_CO');
+
+    return Dialog(
+      insetPadding: const EdgeInsets.all(16),
+      child: Container(
+        width: isCompact ? width * 0.95 : 600,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1565C0),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.receipt_long, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Seleccionar Facturas',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+            // Search
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+              child: TextField(
+                onChanged: (v) => setState(() => _search = v),
+                decoration: const InputDecoration(
+                  hintText: 'Buscar por cliente o número...',
+                  prefixIcon: Icon(Icons.search, size: 18),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            // List
+            Expanded(
+              child: _filtered.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No se encontraron facturas',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _filtered.length,
+                      itemBuilder: (ctx, i) {
+                        final inv = _filtered[i];
+                        final checked = _selected.contains(inv.id);
+                        final dateStr =
+                            '${inv.issueDate.day.toString().padLeft(2, '0')}/${inv.issueDate.month.toString().padLeft(2, '0')}/${inv.issueDate.year}';
+                        return CheckboxListTile(
+                          dense: true,
+                          value: checked,
+                          onChanged: (v) {
+                            setState(() {
+                              if (v == true) {
+                                _selected.add(inv.id);
+                              } else {
+                                _selected.remove(inv.id);
+                              }
+                            });
+                          },
+                          title: Text(
+                            '${inv.series}-${inv.number}  •  ${inv.customerName}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            '$dateStr  •  \$${fmt.format(inv.total)}  •  ${inv.items.length} ítems',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            // Footer
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.grey[300]!)),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '${_selected.length} seleccionada(s)',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancelar'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _selected.isEmpty
+                        ? null
+                        : () {
+                            final result = widget.invoices
+                                .where((inv) => _selected.contains(inv.id))
+                                .toList();
+                            Navigator.pop(context, result);
+                          },
+                    child: const Text('Continuar'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  Dialog: Selección de Ítems de Facturas (multi-select)
+// ─────────────────────────────────────────────────────────
+class _InvoiceItemSelectionDialog extends StatefulWidget {
+  final List<_InvoiceItemEntry> items;
+  const _InvoiceItemSelectionDialog({required this.items});
+
+  @override
+  State<_InvoiceItemSelectionDialog> createState() =>
+      _InvoiceItemSelectionDialogState();
+}
+
+class _InvoiceItemSelectionDialogState
+    extends State<_InvoiceItemSelectionDialog> {
+  late final Set<int> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    // All selected by default
+    _selected = Set<int>.from(List.generate(widget.items.length, (i) => i));
+  }
+
+  void _toggleAll(bool? value) {
+    setState(() {
+      if (value == true) {
+        _selected.addAll(List.generate(widget.items.length, (i) => i));
+      } else {
+        _selected.clear();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isCompact = width < 700;
+    final fmt = NumberFormat('#,##0.00', 'es_CO');
+
+    return Dialog(
+      insetPadding: const EdgeInsets.all(16),
+      child: Container(
+        width: isCompact ? width * 0.95 : 650,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1565C0),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.checklist, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Seleccionar Ítems',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+            // Select All
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 12, 0),
+              child: CheckboxListTile(
+                dense: true,
+                title: Text(
+                  'Seleccionar todos (${widget.items.length})',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                value: _selected.length == widget.items.length,
+                tristate: true,
+                onChanged: _toggleAll,
+              ),
+            ),
+            const Divider(height: 1),
+            // Items list
+            Expanded(
+              child: ListView.builder(
+                itemCount: widget.items.length,
+                itemBuilder: (ctx, i) {
+                  final entry = widget.items[i];
+                  final inv = entry.invoice;
+                  final item = entry.item;
+                  final checked = _selected.contains(i);
+
+                  return CheckboxListTile(
+                    dense: true,
+                    value: checked,
+                    onChanged: (v) {
+                      setState(() {
+                        if (v == true) {
+                          _selected.add(i);
+                        } else {
+                          _selected.remove(i);
+                        }
+                      });
+                    },
+                    title: Text(
+                      item.productName,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      'Cant: ${item.quantity}  •  ${item.unit}  •  \$${fmt.format(item.unitPrice)}  •  Fact: ${inv.series}-${inv.number}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  );
+                },
+              ),
+            ),
+            // Footer
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.grey[300]!)),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '${_selected.length} de ${widget.items.length} ítems',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancelar'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _selected.isEmpty
+                        ? null
+                        : () {
+                            final result = _selected
+                                .map((i) => widget.items[i])
+                                .toList();
+                            Navigator.pop(context, result);
+                          },
+                    child: const Text('Agregar Ítems'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

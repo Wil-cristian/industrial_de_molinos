@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/nfc_reader_service.dart';
 import '../../core/utils/logger.dart';
 import '../datasources/employees_datasource.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Resultado de un registro NFC
 class NfcAttendanceResult {
@@ -198,7 +199,7 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
 
       // Cooldown por empleado para evitar re-registros accidentales
       if (result.employeeId != null) {
-        _employeeCooldowns[scan.cardId] = DateTime.now();
+        _employeeCooldowns[scan.cardId] = ColombiaTime.now();
       }
 
       state = state.copyWith(
@@ -218,7 +219,7 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
   bool _isEmployeeOnCooldown(String cardId) {
     final lastScan = _employeeCooldowns[cardId];
     if (lastScan == null) return false;
-    return DateTime.now().difference(lastScan).inSeconds <
+    return ColombiaTime.now().difference(lastScan).inSeconds <
         _employeeCooldownSeconds;
   }
 

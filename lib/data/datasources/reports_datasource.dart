@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_datasource.dart';
@@ -163,8 +164,8 @@ class ReportsDataSource {
       final currentResponse = await _client
           .from('invoices')
           .select('total, paid_amount, status')
-          .gte('issue_date', startDate.toIso8601String())
-          .lte('issue_date', endDate.toIso8601String())
+          .gte('issue_date', ColombiaTime.dateString(startDate))
+          .lte('issue_date', ColombiaTime.dateString(endDate))
           .neq('status', 'cancelled');
 
       double totalSales = 0;
@@ -186,8 +187,8 @@ class ReportsDataSource {
       final prevResponse = await _client
           .from('invoices')
           .select('total')
-          .gte('issue_date', prevStartDate.toIso8601String())
-          .lte('issue_date', prevEndDate.toIso8601String())
+          .gte('issue_date', ColombiaTime.dateString(prevStartDate))
+          .lte('issue_date', ColombiaTime.dateString(prevEndDate))
           .neq('status', 'cancelled');
 
       double previousPeriodSales = 0;
@@ -245,8 +246,8 @@ class ReportsDataSource {
           .select(
             'quantity, unit_price, invoice_id, invoices!inner(issue_date, status)',
           )
-          .gte('invoices.issue_date', startDate.toIso8601String())
-          .lte('invoices.issue_date', endDate.toIso8601String())
+          .gte('invoices.issue_date', ColombiaTime.dateString(startDate))
+          .lte('invoices.issue_date', ColombiaTime.dateString(endDate))
           .neq('invoices.status', 'cancelled');
 
       // ignore: unused_local_variable - Reservado para cálculo futuro de margen real
@@ -300,8 +301,8 @@ class ReportsDataSource {
         final currentResponse = await _client
             .from('invoices')
             .select('total')
-            .gte('issue_date', startDate.toIso8601String())
-            .lte('issue_date', endDate.toIso8601String())
+            .gte('issue_date', ColombiaTime.dateString(startDate))
+            .lte('issue_date', ColombiaTime.dateString(endDate))
             .neq('status', 'cancelled');
 
         double currentValue = 0;
@@ -313,8 +314,8 @@ class ReportsDataSource {
         final prevResponse = await _client
             .from('invoices')
             .select('total')
-            .gte('issue_date', prevStartDate.toIso8601String())
-            .lte('issue_date', prevEndDate.toIso8601String())
+            .gte('issue_date', ColombiaTime.dateString(prevStartDate))
+            .lte('issue_date', ColombiaTime.dateString(prevEndDate))
             .neq('status', 'cancelled');
 
         double previousValue = 0;
@@ -357,8 +358,8 @@ class ReportsDataSource {
             invoice_id,
             invoices!inner(issue_date, status)
           ''')
-          .gte('invoices.issue_date', startDate.toIso8601String())
-          .lte('invoices.issue_date', endDate.toIso8601String())
+          .gte('invoices.issue_date', ColombiaTime.dateString(startDate))
+          .lte('invoices.issue_date', ColombiaTime.dateString(endDate))
           .neq('invoices.status', 'cancelled');
 
       AppLogger.debug(
@@ -430,8 +431,8 @@ class ReportsDataSource {
             paid_amount,
             customers(id, name)
           ''')
-          .gte('issue_date', startDate.toIso8601String())
-          .lte('issue_date', endDate.toIso8601String())
+          .gte('issue_date', ColombiaTime.dateString(startDate))
+          .lte('issue_date', ColombiaTime.dateString(endDate))
           .neq('status', 'cancelled');
 
       // Agrupar por cliente
@@ -644,7 +645,7 @@ class ReportsDataSource {
   /// Obtener cuentas por cobrar (antigüedad de saldos)
   static Future<List<ReceivableReport>> getReceivablesReport() async {
     try {
-      final now = DateTime.now();
+      final now = ColombiaTime.now();
 
       final response = await _client
           .from('invoices')
@@ -671,7 +672,7 @@ class ReportsDataSource {
           final paid = (invoice['paid_amount'] ?? 0).toDouble();
           final pending = total - paid;
           final dueDate = DateTime.parse(
-            invoice['due_date'] ?? now.toIso8601String(),
+            invoice['due_date'] ?? ColombiaTime.toIso8601(now),
           );
           final daysOverdue = now.difference(dueDate).inDays;
 

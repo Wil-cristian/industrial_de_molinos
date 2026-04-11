@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/material.dart';
@@ -143,10 +144,7 @@ class InventoryDataSource {
     try {
       await _client
           .from(_table)
-          .update({
-            'stock': newStock,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
+          .update({'stock': newStock, 'updated_at': ColombiaTime.nowIso8601()})
           .eq('id', id);
     } catch (e) {
       if (e.toString().contains('Stock insuficiente') ||

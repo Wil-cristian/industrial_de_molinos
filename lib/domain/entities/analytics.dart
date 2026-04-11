@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 // Entidades para Analytics y Reportes
 
 /// Historial de compra individual de un cliente
@@ -179,7 +180,7 @@ class MaterialConsumption {
 
   factory MaterialConsumption.fromJson(Map<String, dynamic> json) {
     return MaterialConsumption(
-      month: DateTime.tryParse(json['month'] ?? '') ?? DateTime.now(),
+      month: DateTime.tryParse(json['month'] ?? '') ?? ColombiaTime.now(),
       materialId: json['material_id'] ?? '',
       materialName: json['material_name'] ?? '',
       materialCode: json['material_code'],
@@ -221,10 +222,10 @@ class SalesByPeriod {
 
   factory SalesByPeriod.fromJson(Map<String, dynamic> json) {
     return SalesByPeriod(
-      day: DateTime.tryParse(json['day'] ?? '') ?? DateTime.now(),
-      week: DateTime.tryParse(json['week'] ?? '') ?? DateTime.now(),
-      month: DateTime.tryParse(json['month'] ?? '') ?? DateTime.now(),
-      year: DateTime.tryParse(json['year'] ?? '') ?? DateTime.now(),
+      day: DateTime.tryParse(json['day'] ?? '') ?? ColombiaTime.now(),
+      week: DateTime.tryParse(json['week'] ?? '') ?? ColombiaTime.now(),
+      month: DateTime.tryParse(json['month'] ?? '') ?? ColombiaTime.now(),
+      year: DateTime.tryParse(json['year'] ?? '') ?? ColombiaTime.now(),
       numInvoices: (json['num_invoices'] as num?)?.toInt() ?? 0,
       subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
       tax: (json['tax'] as num?)?.toDouble() ?? 0,
@@ -256,8 +257,8 @@ class ProfitLossMonthly {
 
   factory ProfitLossMonthly.fromJson(Map<String, dynamic> json) {
     return ProfitLossMonthly(
-      year: (json['year'] as num?)?.toInt() ?? DateTime.now().year,
-      month: (json['month'] as num?)?.toInt() ?? DateTime.now().month,
+      year: (json['year'] as num?)?.toInt() ?? ColombiaTime.now().year,
+      month: (json['month'] as num?)?.toInt() ?? ColombiaTime.now().month,
       revenue: (json['revenue'] as num?)?.toDouble() ?? 0,
       fixedExpenses: (json['fixed_expenses'] as num?)?.toDouble() ?? 0,
       variableExpenses: (json['variable_expenses'] as num?)?.toDouble() ?? 0,
@@ -461,7 +462,7 @@ class DSOMonthly {
 
   factory DSOMonthly.fromJson(Map<String, dynamic> json) {
     return DSOMonthly(
-      year: (json['year'] as num?)?.toInt() ?? DateTime.now().year,
+      year: (json['year'] as num?)?.toInt() ?? ColombiaTime.now().year,
       month: (json['month'] as num?)?.toInt() ?? 1,
       dso: (json['dso'] as num?)?.toDouble() ?? 0,
       totalReceivables: (json['total_receivables'] as num?)?.toDouble() ?? 0,
@@ -593,8 +594,8 @@ class BusinessHealthMonthly {
   factory BusinessHealthMonthly.fromJson(Map<String, dynamic> json) {
     return BusinessHealthMonthly(
       month:
-          DateTime.tryParse(json['month']?.toString() ?? '') ?? DateTime.now(),
-      year: (json['year'] as num?)?.toInt() ?? DateTime.now().year,
+          DateTime.tryParse(json['month']?.toString() ?? '') ?? ColombiaTime.now(),
+      year: (json['year'] as num?)?.toInt() ?? ColombiaTime.now().year,
       monthNum: (json['month_num'] as num?)?.toInt() ?? 1,
       creditExtended: (json['credit_extended'] as num?)?.toDouble() ?? 0,
       revenue: (json['revenue'] as num?)?.toDouble() ?? 0,

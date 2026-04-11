@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/material_price.dart';
 import 'supabase_datasource.dart';
@@ -192,7 +193,7 @@ class MaterialsDataSource {
       'density': material.density,
       'unit': material.unit,
       'is_active': material.isActive,
-      'updated_at': material.updatedAt.toIso8601String(),
+      'updated_at': ColombiaTime.toIso8601(material.updatedAt),
     };
   }
 }

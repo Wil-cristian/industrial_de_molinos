@@ -4,6 +4,7 @@ import '../../../core/utils/helpers.dart';
 import '../../../data/datasources/payroll_datasource.dart';
 import '../../../data/providers/employees_provider.dart';
 import '../../../data/providers/payroll_provider.dart';
+import '../../../core/utils/colombia_time.dart';
 
 /// Tab de incapacidades y permisos de empleados.
 class EmployeesIncapacitiesTab extends ConsumerStatefulWidget {
@@ -41,7 +42,7 @@ class EmployeesIncapacitiesTabState
         .where((i) => i.status != 'activa')
         .toList();
 
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
 
     int diasRestantesIncap = 0;
     for (final inc in activeIncapacidades) {
@@ -313,7 +314,7 @@ class EmployeesIncapacitiesTabState
         : const Color(0xFF7B1FA2);
     final activeIcon = isPermiso ? Icons.event_busy : Icons.local_hospital;
 
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final daysRemaining = incapacity.endDate.difference(now).inDays + 1;
     final daysElapsed = now.difference(incapacity.startDate).inDays;
 
@@ -524,8 +525,8 @@ class EmployeesIncapacitiesTabState
     String? selectedEmployeeId;
     bool isPermiso = false;
     String selectedType = 'enfermedad';
-    DateTime startDate = DateTime.now();
-    DateTime endDate = DateTime.now();
+    DateTime startDate = ColombiaTime.now();
+    DateTime endDate = ColombiaTime.now();
     final reasonController = TextEditingController();
 
     showDialog(
@@ -641,10 +642,10 @@ class EmployeesIncapacitiesTabState
                               final date = await showDatePicker(
                                 context: ctx,
                                 initialDate: startDate,
-                                firstDate: DateTime.now().subtract(
+                                firstDate: ColombiaTime.now().subtract(
                                   const Duration(days: 30),
                                 ),
-                                lastDate: DateTime.now().add(
+                                lastDate: ColombiaTime.now().add(
                                   const Duration(days: 365),
                                 ),
                               );
@@ -677,7 +678,7 @@ class EmployeesIncapacitiesTabState
                                 context: ctx,
                                 initialDate: endDate,
                                 firstDate: startDate,
-                                lastDate: DateTime.now().add(
+                                lastDate: ColombiaTime.now().add(
                                   const Duration(days: 365),
                                 ),
                               );

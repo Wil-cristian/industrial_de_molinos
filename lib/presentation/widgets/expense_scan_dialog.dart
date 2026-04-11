@@ -14,6 +14,7 @@ import '../../data/datasources/suppliers_datasource.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
 import '../../domain/entities/supplier.dart'; // ═══════════════════════════════════════════════════════════════
+import '../../core/utils/colombia_time.dart';
 //  EXPENSE SCAN DIALOG
 // ═══════════════════════════════════════════════════════════════
 // Flujo:
@@ -240,7 +241,7 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
     if (photo == null) return;
 
     final bytes = await photo.readAsBytes();
-    final fileName = 'gasto_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final fileName = 'gasto_${ColombiaTime.now().millisecondsSinceEpoch}.jpg';
 
     final file = PlatformFile(
       name: fileName,
@@ -372,7 +373,7 @@ class _ExpenseScanDialogState extends State<ExpenseScanDialog> {
         description: description,
         personName: person.isNotEmpty ? person : null,
         reference: reference.isNotEmpty ? reference : null,
-        date: DateTime.now(),
+        date: ColombiaTime.now(),
       );
 
       final created = await AccountsDataSource.createMovementWithBalanceUpdate(
@@ -1352,8 +1353,8 @@ class _SupplierSelectorPageState extends State<_SupplierSelectorPage> {
         documentType: 'NIT',
         documentNumber: '',
         name: name,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        createdAt: ColombiaTime.now(),
+        updatedAt: ColombiaTime.now(),
       );
       final created = await SuppliersDataSource.create(supplier);
       if (mounted) {

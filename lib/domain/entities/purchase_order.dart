@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 // Entidad: Orden de Compra
 
 enum PurchaseOrderStatus {
@@ -122,7 +123,7 @@ class PurchaseOrder {
       supplierInvoiceNumber != null && supplierInvoiceNumber!.isNotEmpty;
   bool get hasAttachments => attachments.isNotEmpty;
   bool get isOverdue =>
-      dueDate != null && DateTime.now().isAfter(dueDate!) && !isFullyPaid;
+      dueDate != null && ColombiaTime.now().isAfter(dueDate!) && !isFullyPaid;
 
   PurchaseOrder copyWith({
     String? id,
@@ -274,14 +275,15 @@ class PurchaseOrder {
       'discount_amount': discountAmount,
       'amount_paid': amountPaid,
       'notes': notes,
-      'expected_date': expectedDate?.toIso8601String().split('T').first,
+      'expected_date': expectedDate != null
+          ? ColombiaTime.dateString(expectedDate!)
+          : null,
       'created_by': createdBy,
       // Campos de factura (migración 053)
       'supplier_invoice_number': supplierInvoiceNumber,
-      'supplier_invoice_date': supplierInvoiceDate
-          ?.toIso8601String()
-          .split('T')
-          .first,
+      'supplier_invoice_date': supplierInvoiceDate != null
+          ? ColombiaTime.dateString(supplierInvoiceDate!)
+          : null,
       'cufe': cufe,
       'tax_rate': taxRate,
       'retention_rte_fte': retentionRteFte,
@@ -291,7 +293,7 @@ class PurchaseOrder {
       'attachments': attachments,
       'iva_invoice_id': ivaInvoiceId,
       'credit_days': creditDays,
-      'due_date': dueDate?.toIso8601String().split('T').first,
+      'due_date': dueDate != null ? ColombiaTime.dateString(dueDate!) : null,
     };
   }
 }

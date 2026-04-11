@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/datasources/products_datasource.dart';
 import '../../domain/entities/product.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Diálogo reutilizable para crear un Producto rápidamente.
 /// Acepta valores sugeridos para pre-llenar campos.
@@ -72,7 +73,7 @@ class _QuickProductDialogState extends State<QuickProductDialog> {
     codeCtrl = TextEditingController(
       text:
           widget.suggestedCode ??
-          'PROD-${DateTime.now().millisecondsSinceEpoch % 100000}',
+          'PROD-${ColombiaTime.now().millisecondsSinceEpoch % 100000}',
     );
     nameCtrl = TextEditingController(text: widget.suggestedName ?? '');
     descCtrl = TextEditingController(
@@ -322,8 +323,8 @@ class _QuickProductDialogState extends State<QuickProductDialog> {
           minStock: 0,
           unit: unitCtrl.text.trim().isNotEmpty ? unitCtrl.text.trim() : 'UND',
           isActive: true,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+          createdAt: ColombiaTime.now(),
+          updatedAt: ColombiaTime.now(),
         ),
       );
 

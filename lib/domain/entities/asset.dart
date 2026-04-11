@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Entidad de Activo Fijo
 class Asset {
@@ -22,6 +23,7 @@ class Asset {
   final String? assignedTo;
   final String? imageUrl;
   final String? notes;
+  final int quantity;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -46,6 +48,7 @@ class Asset {
     this.assignedTo,
     this.imageUrl,
     this.notes,
+    this.quantity = 1,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -133,7 +136,7 @@ class Asset {
 
   /// Calcular depreciación acumulada
   double get accumulatedDepreciation {
-    final yearsOwned = DateTime.now().difference(purchaseDate).inDays / 365;
+    final yearsOwned = ColombiaTime.now().difference(purchaseDate).inDays / 365;
     final depreciation = purchasePrice * (depreciationRate / 100) * yearsOwned;
     return depreciation > purchasePrice ? purchasePrice : depreciation;
   }
@@ -141,7 +144,7 @@ class Asset {
   /// Verificar si la garantía está vigente
   bool get isWarrantyValid {
     if (warrantyExpiry == null) return false;
-    return warrantyExpiry!.isAfter(DateTime.now());
+    return warrantyExpiry!.isAfter(ColombiaTime.now());
   }
 
   factory Asset.fromJson(Map<String, dynamic> json) {
@@ -168,6 +171,7 @@ class Asset {
       assignedTo: json['assigned_to'] as String?,
       imageUrl: json['image_url'] as String?,
       notes: json['notes'] as String?,
+      quantity: (json['quantity'] as num?)?.toInt() ?? 1,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -179,8 +183,10 @@ class Asset {
       'name': name,
       'description': description,
       'category': category,
-      'purchase_date': purchaseDate.toIso8601String().split('T')[0],
-      'warranty_expiry': warrantyExpiry?.toIso8601String().split('T')[0],
+      'purchase_date': ColombiaTime.dateString(purchaseDate),
+      'warranty_expiry': (warrantyExpiry != null
+          ? ColombiaTime.dateString(warrantyExpiry!)
+          : null),
       'purchase_price': purchasePrice,
       'current_value': currentValue,
       'depreciation_rate': depreciationRate,
@@ -195,6 +201,7 @@ class Asset {
       'assigned_to': assignedTo,
       'image_url': imageUrl,
       'notes': notes,
+      'quantity': quantity,
     };
   }
 
@@ -219,6 +226,7 @@ class Asset {
     String? assignedTo,
     String? imageUrl,
     String? notes,
+    int? quantity,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -243,6 +251,7 @@ class Asset {
       assignedTo: assignedTo ?? this.assignedTo,
       imageUrl: imageUrl ?? this.imageUrl,
       notes: notes ?? this.notes,
+      quantity: quantity ?? this.quantity,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -322,12 +331,14 @@ class AssetMaintenance {
     return {
       if (id.isNotEmpty) 'id': id,
       'asset_id': assetId,
-      'maintenance_date': maintenanceDate.toIso8601String().split('T')[0],
+      'maintenance_date': ColombiaTime.dateString(maintenanceDate),
       'maintenance_type': maintenanceType,
       'description': description,
       'cost': cost,
       'performed_by': performedBy,
-      'next_maintenance_date': nextMaintenanceDate?.toIso8601String().split('T')[0],
+      'next_maintenance_date': (nextMaintenanceDate != null
+          ? ColombiaTime.dateString(nextMaintenanceDate!)
+          : null),
       'notes': notes,
     };
   }

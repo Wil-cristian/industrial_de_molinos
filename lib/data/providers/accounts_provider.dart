@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/utils/colombia_time.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
 import '../datasources/accounts_datasource.dart';
@@ -19,7 +20,7 @@ class DailyCashState {
     this.selectedAccountId,
     this.isLoading = false,
     this.error,
-  }) : selectedDate = selectedDate ?? DateTime.now();
+  }) : selectedDate = selectedDate ?? ColombiaTime.now();
 
   DailyCashState copyWith({
     List<Account>? accounts,

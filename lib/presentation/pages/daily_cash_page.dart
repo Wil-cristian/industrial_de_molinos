@@ -14,6 +14,7 @@ import '../../data/datasources/supabase_datasource.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/cash_movement.dart';
 import '../../core/utils/print_service.dart';
+import '../../core/utils/colombia_time.dart';
 
 String _categoryLabel(MovementCategory category, [String? customName]) {
   switch (category) {
@@ -85,7 +86,22 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
       _isActive = false;
     }
 
+    // Usar < 900 para incluir teléfonos grandes y tablets
+    final isMobile = MediaQuery.of(context).size.width < 900;
+
     return Scaffold(
+      floatingActionButton: isMobile
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 80),
+              child: FloatingActionButton(
+                heroTag: 'dailyCash',
+                onPressed: () => _showAddMovementDialog(context),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                child: const Icon(Icons.add),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Stack(
           children: [
@@ -98,9 +114,9 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                       children: [
                         // Header section compacto
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 16 : 24,
+                            vertical: isMobile ? 8 : 12,
                           ),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
@@ -147,174 +163,285 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                             ),
-                                            Text(
-                                              'Control de ingresos, gastos y traslados',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    color: const Color(
-                                                      0xFF757575,
+                                            if (!isMobile)
+                                              Text(
+                                                'Control de ingresos, gastos y traslados',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      color: const Color(
+                                                        0xFF757575,
+                                                      ),
                                                     ),
-                                                  ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (isMobile) ...[
+                                        IconButton(
+                                          onPressed: () =>
+                                              _showHistoryRangeDialog(context),
+                                          icon: const Icon(Icons.history),
+                                          tooltip: 'Historial',
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFFF5F5F5,
+                                            ),
+                                            foregroundColor: const Color(
+                                              0xFF616161,
+                                            ),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          onPressed: () =>
+                                              _showTransferDialog(context),
+                                          icon: const Icon(Icons.swap_horiz),
+                                          tooltip: 'Traslado',
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFFF9A825,
+                                            ).withOpacity(0.1),
+                                            foregroundColor: const Color(
+                                              0xFFF9A825,
+                                            ),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          onPressed: () => ref
+                                              .read(dailyCashProvider.notifier)
+                                              .load(),
+                                          icon: const Icon(Icons.refresh),
+                                          tooltip: 'Recargar',
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFFF5F5F5,
+                                            ),
+                                            foregroundColor: const Color(
+                                              0xFF616161,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  if (isMobile)
+                                    // Mobile: date picker full width + compact action row
+                                    InkWell(
+                                      onTap: () => _selectDate(context),
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                              .withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withOpacity(0.3),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_today,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                Formatters.dateLong(
+                                                  state.selectedDate,
+                                                ),
+                                                style: TextStyle(
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                            Icon(
+                                              Icons.arrow_drop_down,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                              size: 20,
                                             ),
                                           ],
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      ConstrainedBox(
-                                        constraints: BoxConstraints(
-                                          maxWidth: isNarrow
-                                              ? constraints.maxWidth
-                                              : 360,
-                                        ),
-                                        child: InkWell(
-                                          onTap: () => _selectDate(context),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
+                                    )
+                                  else
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                            maxWidth: isNarrow
+                                                ? constraints.maxWidth
+                                                : 360,
                                           ),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 8,
+                                          child: InkWell(
+                                            onTap: () => _selectDate(context),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
                                             ),
-                                            decoration: BoxDecoration(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                                  .withOpacity(0.1),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              border: Border.all(
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 8,
+                                                  ),
+                                              decoration: BoxDecoration(
                                                 color: Theme.of(context)
                                                     .colorScheme
                                                     .primary
-                                                    .withOpacity(0.3),
+                                                    .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary
+                                                      .withOpacity(0.3),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.calendar_today,
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
+                                                    size: 16,
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Flexible(
+                                                    child: Text(
+                                                      isNarrow
+                                                          ? Formatters.date(
+                                                              state
+                                                                  .selectedDate,
+                                                            )
+                                                          : Formatters.dateLong(
+                                                              state
+                                                                  .selectedDate,
+                                                            ),
+                                                      style: TextStyle(
+                                                        color: Theme.of(
+                                                          context,
+                                                        ).colorScheme.primary,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        fontSize: 13,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 2),
+                                                  Icon(
+                                                    Icons.arrow_drop_down,
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
+                                                    size: 20,
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.calendar_today,
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).colorScheme.primary,
-                                                  size: 16,
-                                                ),
-                                                const SizedBox(width: 6),
-                                                Flexible(
-                                                  child: Text(
-                                                    isNarrow
-                                                        ? Formatters.date(
-                                                            state.selectedDate,
-                                                          )
-                                                        : Formatters.dateLong(
-                                                            state.selectedDate,
-                                                          ),
-                                                    style: TextStyle(
-                                                      color: Theme.of(
-                                                        context,
-                                                      ).colorScheme.primary,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      fontSize: 13,
-                                                    ),
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 2),
-                                                Icon(
-                                                  Icons.arrow_drop_down,
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).colorScheme.primary,
-                                                  size: 20,
-                                                ),
-                                              ],
+                                          ),
+                                        ),
+                                        OutlinedButton.icon(
+                                          onPressed: () =>
+                                              _showHistoryRangeDialog(context),
+                                          icon: const Icon(
+                                            Icons.history,
+                                            size: 18,
+                                          ),
+                                          label: const Text('Ver Historial'),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: const Color(
+                                              0xFF616161,
+                                            ),
+                                            side: BorderSide(
+                                              color: const Color(0xFFE0E0E0),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 10,
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      OutlinedButton.icon(
-                                        onPressed: () =>
-                                            _showHistoryRangeDialog(context),
-                                        icon: const Icon(
-                                          Icons.history,
-                                          size: 18,
-                                        ),
-                                        label: const Text('Ver Historial'),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: const Color(
-                                            0xFF616161,
+                                        ElevatedButton.icon(
+                                          onPressed: () =>
+                                              _showAddMovementDialog(context),
+                                          icon: const Icon(Icons.add, size: 18),
+                                          label: Text(
+                                            isNarrow
+                                                ? 'Nuevo'
+                                                : 'Nuevo Movimiento',
                                           ),
-                                          side: BorderSide(
-                                            color: const Color(0xFFE0E0E0),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
-                                          ),
-                                        ),
-                                      ),
-                                      ElevatedButton.icon(
-                                        onPressed: () =>
-                                            _showAddMovementDialog(context),
-                                        icon: const Icon(Icons.add, size: 18),
-                                        label: Text(
-                                          isNarrow
-                                              ? 'Nuevo'
-                                              : 'Nuevo Movimiento',
-                                        ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 10,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 10,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      ElevatedButton.icon(
-                                        onPressed: () =>
-                                            _showTransferDialog(context),
-                                        icon: const Icon(
-                                          Icons.swap_horiz,
-                                          size: 18,
-                                        ),
-                                        label: const Text('Traslado'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(
-                                            0xFFF9A825,
+                                        ElevatedButton.icon(
+                                          onPressed: () =>
+                                              _showTransferDialog(context),
+                                          icon: const Icon(
+                                            Icons.swap_horiz,
+                                            size: 18,
                                           ),
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 10,
+                                          label: const Text('Traslado'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFFF9A825,
+                                            ),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 10,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      IconButton(
-                                        onPressed: () => ref
-                                            .read(dailyCashProvider.notifier)
-                                            .load(),
-                                        icon: const Icon(Icons.refresh),
-                                        tooltip: 'Recargar datos',
-                                      ),
-                                    ],
-                                  ),
+                                        IconButton(
+                                          onPressed: () => ref
+                                              .read(dailyCashProvider.notifier)
+                                              .load(),
+                                          icon: const Icon(Icons.refresh),
+                                          tooltip: 'Recargar datos',
+                                        ),
+                                      ],
+                                    ),
                                 ],
                               );
                             },
@@ -323,28 +450,51 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                         // Contenido
                         Expanded(
                           child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(4),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Cards de cuentas
-                                _buildAccountCards(context, state),
-                                const SizedBox(height: 4),
-
-                                // Resumen del día
-                                _buildDaySummary(context, state),
-                                const SizedBox(height: 4),
-
-                                // Desglose por categoría
-                                if (state.movements.isNotEmpty)
-                                  _buildCategoryBreakdown(context, state),
-                                if (state.movements.isNotEmpty)
-                                  const SizedBox(height: 4),
-
-                                // Lista de movimientos
-                                _buildMovementsList(context, state),
-                              ],
+                            padding: EdgeInsets.fromLTRB(
+                              isMobile ? 12 : 16,
+                              8,
+                              isMobile ? 12 : 16,
+                              isMobile ? 100 : 16,
                             ),
+                            child: isMobile
+                                ? Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // 1. RESUMEN DEL DÍA - Lo más importante (~20%)
+                                      _buildMobileDaySummary(context, state),
+                                      const SizedBox(height: 10),
+
+                                      // 2. CUENTAS COMPACTAS (~10%)
+                                      _buildMobileAccountStrip(context, state),
+                                      const SizedBox(height: 10),
+
+                                      // 3. Desglose por categoría
+                                      if (state.movements.isNotEmpty)
+                                        _buildCategoryBreakdown(context, state),
+                                      if (state.movements.isNotEmpty)
+                                        const SizedBox(height: 10),
+
+                                      // 4. Lista de movimientos
+                                      _buildMovementsList(context, state),
+                                    ],
+                                  )
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Desktop: orden original
+                                      _buildAccountCards(context, state),
+                                      const SizedBox(height: 16),
+                                      _buildDaySummary(context, state),
+                                      const SizedBox(height: 16),
+                                      if (state.movements.isNotEmpty)
+                                        _buildCategoryBreakdown(context, state),
+                                      if (state.movements.isNotEmpty)
+                                        const SizedBox(height: 16),
+                                      _buildMovementsList(context, state),
+                                    ],
+                                  ),
                           ),
                         ),
                       ],
@@ -405,7 +555,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
             final isNarrow = constraints.maxWidth < 900;
             if (isNarrow) {
               final columns = constraints.maxWidth < 620 ? 1 : 2;
-              final spacing = 6.0;
+              final spacing = 8.0;
               final cardWidth = columns == 1
                   ? constraints.maxWidth
                   : (constraints.maxWidth - spacing) / 2;
@@ -455,34 +605,34 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
 
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(12),
           color: Colors.white,
           border: Border.all(color: const Color(0xFFEEEEEE)),
         ),
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: accountColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(3),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     account.type == AccountType.cash
                         ? Icons.account_balance_wallet
                         : Icons.account_balance,
                     color: accountColor,
-                    size: 16,
+                    size: 18,
                   ),
                 ),
-                const SizedBox(width: 3),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -513,21 +663,21 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 8),
             Text(
               Formatters.currency(account.balance),
               style: TextStyle(
                 color: accountColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 18,
+                fontSize: 20,
               ),
             ),
-            const SizedBox(height: 1),
+            const SizedBox(height: 2),
             Text(
               'Saldo actual',
-              style: TextStyle(color: const Color(0xFF9E9E9E), fontSize: 10),
+              style: TextStyle(color: const Color(0xFF9E9E9E), fontSize: 11),
             ),
-            const Divider(height: 4),
+            const Divider(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -569,10 +719,332 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     );
   }
 
+  // ===================== MOBILE: RESUMEN DEL DÍA PROMINENTE =====================
+  Widget _buildMobileDaySummary(BuildContext context, DailyCashState state) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.primary.withOpacity(0.85),
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.today, color: Colors.white70, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  'Resumen del Día',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${state.movementCount} mov.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            // Ingresos y Gastos lado a lado
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4CAF50).withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Icon(
+                              Icons.arrow_downward,
+                              color: const Color(0xFF81C784),
+                              size: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Ingresos',
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        Formatters.currency(state.dayIncome),
+                        style: TextStyle(
+                          color: const Color(0xFF81C784),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 40, color: Colors.white24),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEF5350).withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Icon(
+                                Icons.arrow_upward,
+                                color: const Color(0xFFEF9A9A),
+                                size: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Gastos',
+                              style: TextStyle(
+                                color: Colors.white60,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          Formatters.currency(state.dayExpense),
+                          style: TextStyle(
+                            color: const Color(0xFFEF9A9A),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // Balance neto
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Balance Neto',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    '${state.dayNet >= 0 ? '+' : ''}${Formatters.currency(state.dayNet)}',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 17,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ===================== MOBILE: CUENTAS COMPACTAS =====================
+  Widget _buildMobileAccountStrip(BuildContext context, DailyCashState state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
+          child: Row(
+            children: [
+              Text(
+                'Cuentas',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: const Color(0xFF424242),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Total: ${Formatters.currency(state.totalBalance)}',
+                  style: TextStyle(
+                    color: AppColors.success,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 56,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: state.accounts.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final account = state.accounts[index];
+              final accountColor = account.color != null
+                  ? Color(int.parse(account.color!.replaceFirst('#', '0xFF')))
+                  : Theme.of(context).colorScheme.primary;
+              final incomeToday = state.incomeByAccount[account.id] ?? 0.0;
+              final expenseToday = state.expenseByAccount[account.id] ?? 0.0;
+
+              return GestureDetector(
+                onTap: () => _showAccountOptions(context, account),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: accountColor.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: accountColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(
+                          account.type == AccountType.cash
+                              ? Icons.account_balance_wallet
+                              : Icons.account_balance,
+                          color: accountColor,
+                          size: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            account.name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              color: const Color(0xFF424242),
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            Formatters.currency(account.balance),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: accountColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (incomeToday > 0 || expenseToday > 0) ...[
+                        const SizedBox(width: 8),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (incomeToday > 0)
+                              Text(
+                                '+${Formatters.compactCurrency(incomeToday)}',
+                                style: TextStyle(
+                                  color: const Color(0xFF2E7D32),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            if (expenseToday > 0)
+                              Text(
+                                '-${Formatters.compactCurrency(expenseToday)}',
+                                style: TextStyle(
+                                  color: const Color(0xFFC62828),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDaySummary(BuildContext context, DailyCashState state) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -582,9 +1054,10 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                 context,
               ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 12),
             LayoutBuilder(
               builder: (context, constraints) {
+                final isMobileLayout = constraints.maxWidth < 600;
                 final items = [
                   _buildSummaryItem(
                     context,
@@ -592,6 +1065,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     label: 'Total Ingresos',
                     value: state.dayIncome,
                     color: AppColors.success,
+                    compact: isMobileLayout,
                   ),
                   _buildSummaryItem(
                     context,
@@ -599,6 +1073,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     label: 'Total Gastos',
                     value: state.dayExpense,
                     color: AppColors.danger,
+                    compact: isMobileLayout,
                   ),
                   _buildSummaryItem(
                     context,
@@ -609,6 +1084,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                         ? AppColors.success
                         : AppColors.danger,
                     showSign: true,
+                    compact: isMobileLayout,
                   ),
                   _buildSummaryItem(
                     context,
@@ -616,8 +1092,14 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                     label: 'Movimientos',
                     valueText: '${state.movementCount}',
                     color: AppColors.info,
+                    compact: isMobileLayout,
                   ),
                 ];
+
+                if (isMobileLayout) {
+                  // Mobile: vertical list of compact rows
+                  return Column(children: items);
+                }
 
                 if (constraints.maxWidth < 860) {
                   return Wrap(
@@ -673,6 +1155,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     String? valueText,
     required Color color,
     bool showSign = false,
+    bool compact = false,
   }) {
     String displayValue = valueText ?? '';
     if (value != null) {
@@ -681,6 +1164,40 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
       } else {
         displayValue = Formatters.currency(value);
       }
+    }
+
+    if (compact) {
+      // Mobile compact layout - horizontal row
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 16),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(color: const Color(0xFF757575), fontSize: 12),
+              ),
+            ),
+            Text(
+              displayValue,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return Padding(
@@ -728,7 +1245,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -918,90 +1435,101 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
   }
 
   Widget _buildMovementsList(BuildContext context, DailyCashState state) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final filter = DropdownButton<String?>(
-                  value: state.selectedAccountId,
-                  hint: const Text('Todas las cuentas'),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('Todas las cuentas'),
-                    ),
-                    ...state.accounts.map((account) {
-                      return DropdownMenuItem<String?>(
-                        value: account.id,
-                        child: Text(
-                          account.name,
-                          overflow: TextOverflow.ellipsis,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobileList = constraints.maxWidth < 600;
+        return Card(
+          child: Padding(
+            padding: EdgeInsets.all(isMobileList ? 12 : 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Builder(
+                  builder: (context) {
+                    final filter = DropdownButton<String?>(
+                      value: state.selectedAccountId,
+                      hint: const Text('Todas las cuentas'),
+                      isExpanded: isMobileList,
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Todas las cuentas'),
                         ),
+                        ...state.accounts.map((account) {
+                          return DropdownMenuItem<String?>(
+                            value: account.id,
+                            child: Text(
+                              account.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        ref
+                            .read(dailyCashProvider.notifier)
+                            .selectAccount(value);
+                      },
+                    );
+
+                    if (isMobileList) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Movimientos del Día',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          filter,
+                        ],
                       );
-                    }),
-                  ],
-                  onChanged: (value) {
-                    ref.read(dailyCashProvider.notifier).selectAccount(value);
+                    }
+
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Movimientos del Día',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        filter,
+                      ],
+                    );
                   },
-                );
-
-                if (constraints.maxWidth < 760) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Movimientos del Día',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      filter,
-                    ],
-                  );
-                }
-
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Movimientos del Día',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                ),
+                const SizedBox(height: 16),
+                if (state.filteredMovements.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(isMobileList ? 24 : 40),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.inbox,
+                            size: isMobileList ? 48 : 64,
+                            color: Color(0xFF9E9E9E),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            'No hay movimientos para esta fecha',
+                            style: TextStyle(color: Color(0xFF9E9E9E)),
+                          ),
+                        ],
                       ),
                     ),
-                    filter,
-                  ],
-                );
-              },
+                  )
+                else
+                  ...state.filteredMovements.map((movement) {
+                    return _buildMovementRow(context, movement, state);
+                  }),
+              ],
             ),
-            const SizedBox(height: 16),
-            if (state.filteredMovements.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(40),
-                  child: Column(
-                    children: [
-                      Icon(Icons.inbox, size: 64, color: Color(0xFF9E9E9E)),
-                      SizedBox(height: 16),
-                      Text(
-                        'No hay movimientos para esta fecha',
-                        style: TextStyle(color: Color(0xFF9E9E9E)),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              ...state.filteredMovements.map((movement) {
-                return _buildMovementRow(context, movement, state);
-              }),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -1030,8 +1558,8 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(12),
@@ -1184,34 +1712,45 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: iconColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(icon, color: iconColor, size: 24),
+                      child: Icon(icon, color: iconColor, size: 20),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            movement.description,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  movement.description,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              amountBlock,
+                            ],
                           ),
                           const SizedBox(height: 4),
-                          metaRow,
+                          Row(
+                            children: [
+                              Expanded(child: metaRow),
+                              menu,
+                            ],
+                          ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Row(children: [amountBlock, const Spacer(), menu]),
               ],
             );
           }
@@ -1259,7 +1798,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
       context: context,
       initialDate: state.selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      lastDate: ColombiaTime.now(),
     );
 
     if (picked != null) {
@@ -1279,8 +1818,8 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
   }
 
   void _showHistoryRangeDialog(BuildContext context) {
-    DateTime startDate = DateTime.now().subtract(const Duration(days: 30));
-    DateTime endDate = DateTime.now();
+    DateTime startDate = ColombiaTime.now().subtract(const Duration(days: 30));
+    DateTime endDate = ColombiaTime.now();
     String? selectedAccountId;
 
     showDialog(
@@ -1352,7 +1891,7 @@ class _DailyCashPageState extends ConsumerState<DailyCashPage> {
                       context: context,
                       initialDate: endDate,
                       firstDate: startDate,
-                      lastDate: DateTime.now(),
+                      lastDate: ColombiaTime.now(),
                     );
                     if (picked != null) {
                       setState(() => endDate = picked);
@@ -2179,7 +2718,8 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
 
                 // Cuenta
                 DropdownButtonFormField<String>(
-                  initialValue: _selectedAccountId,
+                  value: _selectedAccountId,
+                  isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Cuenta *',
                     border: OutlineInputBorder(),
@@ -2188,7 +2728,10 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                   items: state.accounts.map((account) {
                     return DropdownMenuItem<String>(
                       value: account.id,
-                      child: Text(account.name),
+                      child: Text(
+                        account.name,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     );
                   }).toList(),
                   onChanged: (value) {
@@ -2211,6 +2754,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                                   ? 'custom_${_selectedCustomName ?? ''}'
                                   : _selectedCategory!.name)
                             : null,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Categoría *',
                           border: OutlineInputBorder(),
@@ -2422,6 +2966,7 @@ class _AddMovementDialogState extends ConsumerState<_AddMovementDialog> {
                     );
                   },
                 ),
+                const SizedBox(height: 16),
 
                 // Referencia (opcional)
                 TextFormField(

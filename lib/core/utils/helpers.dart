@@ -11,6 +11,17 @@ class Formatters {
     return formatter.format(amount);
   }
 
+  // Formato compacto de moneda (1.2M, 350K, 5.0K)
+  static String compactCurrency(double amount, {String symbol = '\$'}) {
+    final abs = amount.abs();
+    if (abs >= 1000000) {
+      return '$symbol${(amount / 1000000).toStringAsFixed(1)}M';
+    } else if (abs >= 1000) {
+      return '$symbol${(amount / 1000).toStringAsFixed(0)}K';
+    }
+    return '$symbol${amount.toStringAsFixed(0)}';
+  }
+
   // Formato de número
   static String number(double value, {int decimals = 2}) {
     final formatter = NumberFormat.decimalPattern('es_PE');

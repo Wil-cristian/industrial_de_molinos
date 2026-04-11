@@ -14,6 +14,7 @@ import '../../domain/entities/employee.dart';
 import '../../domain/entities/material.dart' as mat;
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/production_order.dart';
+import '../../core/utils/colombia_time.dart';
 
 class ProductionOrdersPage extends ConsumerStatefulWidget {
   const ProductionOrdersPage({super.key});
@@ -1023,12 +1024,12 @@ class _ProductionOrdersPageState extends ConsumerState<ProductionOrdersPage> {
 
   void _showDelayDialog(ProductionOrder order) async {
     final currentDue =
-        order.dueDate ?? DateTime.now().add(const Duration(days: 7));
+        order.dueDate ?? ColombiaTime.now().add(const Duration(days: 7));
     final picked = await showDatePicker(
       context: context,
       initialDate: currentDue.add(const Duration(days: 7)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      firstDate: ColombiaTime.now(),
+      lastDate: ColombiaTime.now().add(const Duration(days: 365)),
       helpText: 'Nueva fecha de entrega',
       confirmText: 'Guardar',
       cancelText: 'Cancelar',
@@ -1991,7 +1992,7 @@ class _CreateProductionOrderDialogState
   }
 
   Future<void> _pickDueDate() async {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final selected = await showDatePicker(
       context: context,
       firstDate: now.subtract(const Duration(days: 1)),

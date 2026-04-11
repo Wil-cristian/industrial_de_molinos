@@ -9,6 +9,7 @@ import '../../data/datasources/inventory_datasource.dart';
 import '../../domain/entities/material.dart' as mat;
 import '../../domain/entities/material_category.dart';
 import '../../core/utils/material_code_generator.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Diálogo reutilizable para crear o editar un Material.
 /// Se puede invocar desde cualquier parte de la app (materials_page, scan dialog, etc.)
@@ -251,7 +252,7 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
     } catch (_) {
       // Fallback: use timestamp-based sequential
       if (!mounted || !_autoCodeEnabled) return;
-      final fallbackSeq = DateTime.now().millisecondsSinceEpoch % 10000;
+      final fallbackSeq = ColombiaTime.now().millisecondsSinceEpoch % 10000;
       final code = '$prefix-${fallbackSeq.toString().padLeft(4, '0')}';
       setState(() {
         codeCtrl.text = code;
@@ -1243,7 +1244,7 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
       // Generate auto-code on save if still empty
       await _generateAutoCode();
       if (codeCtrl.text.isEmpty) {
-        codeCtrl.text = 'MAT-${DateTime.now().millisecondsSinceEpoch % 100000}';
+        codeCtrl.text = 'MAT-${ColombiaTime.now().millisecondsSinceEpoch % 100000}';
       }
     }
     if (nameCtrl.text.isEmpty) {
@@ -1273,8 +1274,8 @@ class _MaterialFormDialogState extends ConsumerState<MaterialFormDialog> {
       width: ((double.tryParse(widthCtrl.text) ?? 0) / 100),
       supplier: supplierCtrl.text.isEmpty ? null : supplierCtrl.text,
       location: locationCtrl.text.isEmpty ? null : locationCtrl.text,
-      createdAt: widget.initial?.createdAt ?? DateTime.now(),
-      updatedAt: DateTime.now(),
+      createdAt: widget.initial?.createdAt ?? ColombiaTime.now(),
+      updatedAt: ColombiaTime.now(),
     );
 
     try {

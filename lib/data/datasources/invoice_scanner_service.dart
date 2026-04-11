@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -306,8 +307,8 @@ class InvoiceScanResult {
       total: total,
       amountPaid: 0,
       notes: notes,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+      createdAt: ColombiaTime.now(),
+      updatedAt: ColombiaTime.now(),
       supplierInvoiceNumber: invoiceNumber,
       supplierInvoiceDate: invoiceDate,
       cufe: cufe,
@@ -341,8 +342,8 @@ class InvoiceScanResult {
         unit: item.unit,
         unitPrice: item.unitPrice,
         subtotal: item.subtotal,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        createdAt: ColombiaTime.now(),
+        updatedAt: ColombiaTime.now(),
         taxRate: item.taxRate,
         taxAmount: item.taxAmount,
         discount: item.discount,
@@ -451,7 +452,7 @@ class InvoiceScannerService {
 
       // 1. Subir a Storage
       final storagePath =
-          'invoices/scan_${DateTime.now().millisecondsSinceEpoch}_$fileName';
+          'invoices/scan_${ColombiaTime.now().millisecondsSinceEpoch}_$fileName';
 
       await _client.storage
           .from(_bucket)

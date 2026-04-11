@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/invoice.dart';
@@ -61,7 +62,7 @@ class InvoicesDataSource {
 
   /// Obtiene facturas de venta vencidas (excluye compras CMP)
   static Future<List<Invoice>> getOverdue() async {
-    final today = DateTime.now().toIso8601String().split('T')[0];
+    final today = ColombiaTime.todayString();
     final response = await _client
         .from('invoices')
         .select('*, invoice_items(*)')
@@ -250,8 +251,8 @@ class InvoicesDataSource {
         .select('*, invoice_items(*)')
         .eq('customer_id', customerId)
         .neq('status', 'cancelled')
-        .gte('issue_date', dateFrom.toIso8601String().split('T')[0])
-        .lte('issue_date', dateTo.toIso8601String().split('T')[0])
+        .gte('issue_date', ColombiaTime.dateString(dateFrom))
+        .lte('issue_date', ColombiaTime.dateString(dateTo))
         .order('created_at', ascending: false);
 
     final invoices = (response as List)
@@ -300,6 +301,9 @@ class InvoicesDataSource {
     double laborCost = 0.0,
     String? quotationId,
     String? notes,
+    String? sellerId,
+    bool hasCommission = false,
+    double commissionPercentage = 0,
   }) async {
     // Generar número
     final number = await generateNumber(series);
@@ -307,6 +311,9 @@ class InvoicesDataSource {
     // Calcular montos
     final taxAmount = (subtotal - discount) * (taxRate / 100);
     final total = subtotal - discount + taxAmount;
+    final commissionAmount = hasCommission
+        ? total * (commissionPercentage / 100)
+        : 0.0;
 
     final data = {
       'type': type,
@@ -316,8 +323,8 @@ class InvoicesDataSource {
       'customer_name': customer.name,
       'customer_document': customer.documentNumber,
       'customer_address': customer.address,
-      'issue_date': issueDate.toIso8601String().split('T')[0],
-      'due_date': dueDate?.toIso8601String().split('T')[0],
+      'issue_date': ColombiaTime.dateString(issueDate),
+      'due_date': dueDate != null ? ColombiaTime.dateString(dueDate) : null,
       'subtotal': subtotal,
       'tax_rate': taxRate,
       'tax_amount': taxAmount,
@@ -327,9 +334,15 @@ class InvoicesDataSource {
       'status': 'draft',
       'quotation_id': quotationId,
       'notes': notes,
-      'delivery_date': deliveryDate?.toIso8601String().split('T')[0],
+      'delivery_date': deliveryDate != null
+          ? ColombiaTime.dateString(deliveryDate)
+          : null,
       'sale_payment_type': salePaymentType,
       'labor_cost': laborCost,
+      'seller_id': sellerId,
+      'has_commission': hasCommission,
+      'commission_percentage': commissionPercentage,
+      'commission_amount': commissionAmount,
     };
 
     final response = await _client
@@ -371,6 +384,9 @@ class InvoicesDataSource {
     double laborCost = 0.0,
     String? quotationId,
     String? notes,
+    String? sellerId,
+    bool hasCommission = false,
+    double commissionPercentage = 0,
   }) async {
     // Calcular subtotal de items
     double subtotal = 0;
@@ -393,6 +409,9 @@ class InvoicesDataSource {
       laborCost: laborCost,
       quotationId: quotationId,
       notes: notes,
+      sellerId: sellerId,
+      hasCommission: hasCommission,
+      commissionPercentage: commissionPercentage,
     );
 
     AppLogger.debug('?? Creada factura: ${invoice.number}');
@@ -592,7 +611,7 @@ class InvoicesDataSource {
                 'Reversión por anulación - ${invoice.series}-${invoice.number}',
             reference: 'ANULACION-${invoice.series}-${invoice.number}',
             personName: invoice.customerName,
-            date: DateTime.now(),
+            date: ColombiaTime.now(),
           );
 
           await AccountsDataSource.createMovementWithBalanceUpdate(
@@ -687,7 +706,7 @@ class InvoicesDataSource {
         'invoice_id': invoiceId,
         'amount': amount,
         'method': method,
-        'payment_date': DateTime.now().toIso8601String().split('T')[0],
+        'payment_date': ColombiaTime.todayString(),
       };
 
       // Agregar campos opcionales si tienen valor
@@ -734,7 +753,7 @@ class InvoicesDataSource {
           description: 'Cobro recibo ${invoice.series}-${invoice.number}',
           reference: '${invoice.series}-${invoice.number}',
           personName: invoice.customerName,
-          date: DateTime.now(),
+          date: ColombiaTime.now(),
         );
 
         await AccountsDataSource.createMovementWithBalanceUpdate(movement);
@@ -819,8 +838,12 @@ class InvoicesDataSource {
       final response = await _client.rpc(
         'get_sales_summary',
         params: {
-          'p_start_date': startDate?.toIso8601String().split('T')[0],
-          'p_end_date': endDate?.toIso8601String().split('T')[0],
+          'p_start_date': startDate != null
+              ? ColombiaTime.dateString(startDate)
+              : null,
+          'p_end_date': endDate != null
+              ? ColombiaTime.dateString(endDate)
+              : null,
         },
       );
       if (response != null && response is List && response.isNotEmpty) {
@@ -935,9 +958,9 @@ class InvoicesDataSource {
 
   /// Obtiene estadísticas de ventas del mes actual
   static Future<Map<String, dynamic>> getMonthlyStats() async {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
-    final startDate = firstDayOfMonth.toIso8601String().split('T')[0];
+    final startDate = ColombiaTime.dateString(firstDayOfMonth);
 
     final response = await _client
         .from('invoices')

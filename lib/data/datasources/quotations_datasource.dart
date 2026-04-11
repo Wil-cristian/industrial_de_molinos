@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/quotation.dart';
@@ -412,8 +413,8 @@ class QuotationsDataSource {
     return {
       'id': quotation.id,
       'number': quotation.number,
-      'date': quotation.date.toIso8601String().split('T')[0],
-      'valid_until': quotation.validUntil.toIso8601String().split('T')[0],
+      'date': ColombiaTime.dateString(quotation.date),
+      'valid_until': ColombiaTime.dateString(quotation.validUntil),
       'customer_id': quotation.customerId.isNotEmpty
           ? quotation.customerId
           : null,
@@ -431,8 +432,8 @@ class QuotationsDataSource {
       'total': quotation.total,
       'total_weight': quotation.totalWeight,
       'notes': quotation.notes,
-      'created_at': quotation.createdAt.toIso8601String(),
-      'updated_at': quotation.updatedAt?.toIso8601String(),
+      'created_at': ColombiaTime.toIso8601(quotation.createdAt),
+      'updated_at': (quotation.updatedAt != null ? ColombiaTime.toIso8601(quotation.updatedAt!) : null),
     };
   }
 

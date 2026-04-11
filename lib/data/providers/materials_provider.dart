@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/material_price.dart';
 import '../datasources/materials_datasource.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Estado para materiales
 class MaterialsState {
@@ -105,7 +106,7 @@ class MaterialsNotifier extends Notifier<MaterialsState> {
     try {
       await MaterialsDataSource.updatePrice(id, newPrice);
       final materials = state.materials.map((m) =>
-        m.id == id ? m.copyWith(pricePerKg: newPrice, updatedAt: DateTime.now()) : m
+        m.id == id ? m.copyWith(pricePerKg: newPrice, updatedAt: ColombiaTime.now()) : m
       ).toList();
       state = state.copyWith(materials: materials);
       return true;

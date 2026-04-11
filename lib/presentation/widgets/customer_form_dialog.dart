@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/providers/customers_provider.dart';
 import '../../domain/entities/customer.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Diálogo reutilizable para crear o editar un Cliente.
 /// Retorna el Customer creado/editado, o null si se canceló.
@@ -571,7 +572,7 @@ class _CustomerFormDialogState extends ConsumerState<CustomerFormDialog> {
         creditLimit: creditLimit,
         currentBalance: currentBalance,
         createdAt: widget.initial!.createdAt,
-        updatedAt: DateTime.now(),
+        updatedAt: ColombiaTime.now(),
       );
 
       final result = await ref
@@ -599,8 +600,8 @@ class _CustomerFormDialogState extends ConsumerState<CustomerFormDialog> {
         address: addressCtrl.text.isNotEmpty ? addressCtrl.text : null,
         creditLimit: creditLimit,
         currentBalance: currentBalance,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        createdAt: ColombiaTime.now(),
+        updatedAt: ColombiaTime.now(),
       );
 
       final result = await ref

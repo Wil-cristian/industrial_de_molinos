@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/utils/helpers.dart';
@@ -9,7 +9,10 @@ import '../../../data/datasources/payroll_datasource.dart';
 import '../../../data/providers/accounts_provider.dart';
 import '../../../data/providers/employees_provider.dart';
 import '../../../data/providers/payroll_provider.dart';
+import '../../../data/datasources/commissions_datasource.dart';
 import '../../../domain/entities/employee.dart';
+import '../../../domain/entities/sales_commission.dart';
+import '../../../core/utils/colombia_time.dart';
 
 /// Tab de nómina de empleados.
 class EmployeesPayrollTab extends ConsumerStatefulWidget {
@@ -56,7 +59,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
     final startPeriod = startQ == 1 ? (startMonth * 2 - 1) : (startMonth * 2);
 
     // Periodo actual
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final currentPeriod = now.day <= 15 ? (now.month * 2 - 1) : (now.month * 2);
     final currentYear = now.year;
 
@@ -1057,7 +1060,12 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
               borderRadius: BorderRadius.circular(16),
             ),
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 600, minWidth: 200),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width < 500
+                    ? MediaQuery.of(context).size.width * 0.95
+                    : 600,
+                minWidth: 200,
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: SingleChildScrollView(
@@ -1423,7 +1431,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
     var currentPayrollState = ref.read(payrollProvider);
 
     // Generar lista de quincenas disponibles (últimas 6 quincenas)
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     const meses = [
       '',
       'Ene',
@@ -1544,6 +1552,9 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
     bool?
     bonoManualOverride; // null = automático, true = forzar bono, false = quitar bono
     bool includeActiveLoans = true;
+    bool includeCommissions = true;
+    List<SalesCommission> pendingCommissions = [];
+    double totalPendingCommissions = 0;
     bool isLoadingHours = false;
     Set<String> absentDates = {}; // Fechas con ausencia/permiso/incapacidad
 
@@ -1726,8 +1737,9 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
           // Fecha de corte efectiva
           final effectiveCutDate =
               customEndDate ??
-              ((selectedQ['isCurrent'] == true && DateTime.now().isBefore(qEnd))
-                  ? DateTime.now()
+              ((selectedQ['isCurrent'] == true &&
+                      ColombiaTime.now().isBefore(qEnd))
+                  ? ColombiaTime.now()
                   : qEnd);
           final bool isPartialQuincena =
               effectiveCutDate.isBefore(qEnd) ||
@@ -1841,12 +1853,36 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
             );
           }
 
+          // Cargar comisiones pendientes del empleado
+          if (selectedEmployeeId != null && pendingCommissions.isEmpty) {
+            CommissionsDatasource.getPendingByEmployee(
+              selectedEmployeeId!,
+            ).then((comms) {
+              if (context.mounted) {
+                setState(() {
+                  pendingCommissions = comms;
+                  totalPendingCommissions = comms.fold(
+                    0.0,
+                    (sum, c) => sum + c.commissionAmount,
+                  );
+                });
+              }
+            });
+          }
+          final commissionTotal = includeCommissions
+              ? totalPendingCommissions
+              : 0.0;
+
           final extraBonusTotal = extraBonuses.fold(
             0.0,
             (sum, b) => sum + (b['monto'] as double),
           );
           final totalEarnings =
-              fortnightSalary + overtimePay + bonoAsistencia + extraBonusTotal;
+              fortnightSalary +
+              overtimePay +
+              bonoAsistencia +
+              extraBonusTotal +
+              commissionTotal;
           final totalDeductions = underHoursDiscount + loanDeduction;
           final netPay = totalEarnings - totalDeductions;
 
@@ -1862,7 +1898,12 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
               ],
             ),
             content: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 500, minWidth: 200),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width < 500
+                    ? MediaQuery.of(context).size.width * 0.9
+                    : 500,
+                minWidth: 200,
+              ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -2188,6 +2229,9 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                               manualOvertimeHours = null;
                               showOvertimeEditor = false;
                               overtimeController.clear();
+                              // Resetear comisiones al cambiar empleado
+                              pendingCommissions = [];
+                              totalPendingCommissions = 0;
                             });
 
                             // Cargar asistencia real de la quincena seleccionada
@@ -2298,11 +2342,11 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                                 (isComplemento
                                     ? selectedQ['endDate'] as DateTime
                                     : ((selectedQ['isCurrent'] == true &&
-                                              DateTime.now().isBefore(
+                                              ColombiaTime.now().isBefore(
                                                 selectedQ['endDate']
                                                     as DateTime,
                                               ))
-                                          ? DateTime.now()
+                                          ? ColombiaTime.now()
                                           : selectedQ['endDate'] as DateTime));
                             final data = await loadEmployeeAttendance(
                               value,
@@ -2364,19 +2408,31 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Cargo: ${selectedEmployee!.position}'),
-                                Text(
-                                  'Depto: ${selectedEmployee!.department ?? "N/A"}',
+                                Flexible(
+                                  child: Text(
+                                    'Cargo: ${selectedEmployee!.position}',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    'Depto: ${selectedEmployee!.department ?? "N/A"}',
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.end,
+                                  ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 4),
                             if (isDailyPay) ...[
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              Wrap(
+                                alignment: WrapAlignment.spaceBetween,
+                                spacing: 8,
+                                runSpacing: 4,
                                 children: [
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.symmetric(
@@ -2416,9 +2472,10 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                                 ],
                               ),
                             ] else ...[
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              Wrap(
+                                alignment: WrapAlignment.spaceBetween,
+                                spacing: 8,
+                                runSpacing: 4,
                                 children: [
                                   Text(
                                     'Salario Mensual: ${Helpers.formatCurrency(baseSalary)}',
@@ -2476,277 +2533,302 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                             ),
                             const SizedBox(height: 8),
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (isComplemento)
-                                      GestureDetector(
-                                        onTap: () async {
-                                          // firstDate = primer día no pagado (complementStartDate)
-                                          // NO usar qOriginalStart para evitar cobrar días ya pagados
-                                          final dpFirstDate =
-                                              complementStartDate ??
-                                              qOriginalStart;
-                                          final dpLastDate =
-                                              effectiveCutDate.isBefore(
-                                                dpFirstDate,
-                                              )
-                                              ? qEnd
-                                              : effectiveCutDate;
-                                          // Clamp initialDate dentro del rango
-                                          var dpInitial = qStart;
-                                          if (dpInitial.isBefore(dpFirstDate)) {
-                                            dpInitial = dpFirstDate;
-                                          }
-                                          if (dpInitial.isAfter(dpLastDate)) {
-                                            dpInitial = dpLastDate;
-                                          }
-                                          final picked = await showDatePicker(
-                                            context: context,
-                                            initialDate: dpInitial,
-                                            firstDate: dpFirstDate,
-                                            lastDate: dpLastDate,
-                                            helpText: 'Desde qué día pagar',
-                                          );
-                                          if (picked != null &&
-                                              selectedEmployeeId != null) {
-                                            setState(() {
-                                              complementStartDate = picked;
-                                              isLoadingHours = true;
-                                            });
-                                            final data =
-                                                await loadEmployeeAttendance(
-                                                  selectedEmployeeId!,
-                                                  picked,
-                                                  effectiveCutDate,
-                                                );
-                                            final fullCal =
-                                                qEnd.difference(picked).inDays +
-                                                1;
-                                            setState(() {
-                                              isLoadingHours = false;
-                                              totalHoursWorked =
-                                                  (data['workedHours']
-                                                      as double);
-                                              baseHoursQuincena =
-                                                  (data['baseHours'] as double);
-                                              totalWorkdays =
-                                                  data['totalWorkdays'] as int;
-                                              daysWorked =
-                                                  data['daysWorked'] as int;
-                                              calendarDays =
-                                                  data['calendarDays'] as int;
-                                              fullCalendarDays = fullCal;
-                                              ausenciaDays =
-                                                  data['ausenciaDays'] as int;
-                                              permisoDays =
-                                                  data['permisoDays'] as int;
-                                              incapacidadDays =
-                                                  data['incapacidadDays']
-                                                      as int;
-                                              domingoDeductions =
-                                                  data['domingoDeductions']
-                                                      as int;
-                                              pierdeBono =
-                                                  data['pierdeBono'] as bool;
-                                              absentDates =
-                                                  (data['absentDates']
-                                                      as Set<String>?) ??
-                                                  {};
-                                              daysAbsent =
-                                                  ausenciaDays +
-                                                  permisoDays +
-                                                  incapacidadDays;
-                                              // Usar horas extra directamente de los ajustes (no comparación neta)
-                                              overtimeHours =
-                                                  (data['overtimeHours']
-                                                      as double? ??
-                                                  0.0);
-                                              final netWorkedWithoutOT =
-                                                  totalHoursWorked -
-                                                  overtimeHours;
-                                              underHours =
-                                                  (baseHoursQuincena -
-                                                          netWorkedWithoutOT)
-                                                      .clamp(
-                                                        0.0,
-                                                        double.infinity,
-                                                      );
-                                            });
-                                          }
-                                        },
-                                        child: Row(
-                                          children: [
-                                            Text(
-                                              'Desde: ${qStart.day}/${qStart.month.toString().padLeft(2, '0')}/${qStart.year}',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: const Color(0xFF1976D2),
-                                                decoration:
-                                                    TextDecoration.underline,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Icon(
-                                              Icons.edit_calendar,
-                                              size: 14,
-                                              color: const Color(0xFF1976D2),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    else
-                                      GestureDetector(
-                                        onTap: () async {
-                                          final dpFirstDate = qOriginalStart;
-                                          final dpLastDate = effectiveCutDate;
-                                          var dpInitial = qStart;
-                                          if (dpInitial.isBefore(dpFirstDate)) {
-                                            dpInitial = dpFirstDate;
-                                          }
-                                          if (dpInitial.isAfter(dpLastDate)) {
-                                            dpInitial = dpLastDate;
-                                          }
-                                          final picked = await showDatePicker(
-                                            context: context,
-                                            initialDate: dpInitial,
-                                            firstDate: dpFirstDate,
-                                            lastDate: dpLastDate,
-                                            helpText:
-                                                'Fecha de inicio (ej: ingreso del empleado)',
-                                          );
-                                          if (picked != null &&
-                                              selectedEmployeeId != null) {
-                                            setState(() {
-                                              customStartDate = picked;
-                                              isLoadingHours = true;
-                                            });
-                                            print(
-                                              '📅 START DATE CHANGED: picked=$picked, effectiveCutDate=$effectiveCutDate',
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (isComplemento)
+                                        GestureDetector(
+                                          onTap: () async {
+                                            // firstDate = primer día no pagado (complementStartDate)
+                                            // NO usar qOriginalStart para evitar cobrar días ya pagados
+                                            final dpFirstDate =
+                                                complementStartDate ??
+                                                qOriginalStart;
+                                            final dpLastDate =
+                                                effectiveCutDate.isBefore(
+                                                  dpFirstDate,
+                                                )
+                                                ? qEnd
+                                                : effectiveCutDate;
+                                            // Clamp initialDate dentro del rango
+                                            var dpInitial = qStart;
+                                            if (dpInitial.isBefore(
+                                              dpFirstDate,
+                                            )) {
+                                              dpInitial = dpFirstDate;
+                                            }
+                                            if (dpInitial.isAfter(dpLastDate)) {
+                                              dpInitial = dpLastDate;
+                                            }
+                                            final picked = await showDatePicker(
+                                              context: context,
+                                              initialDate: dpInitial,
+                                              firstDate: dpFirstDate,
+                                              lastDate: dpLastDate,
+                                              helpText: 'Desde qué día pagar',
                                             );
-                                            final data =
-                                                await loadEmployeeAttendance(
-                                                  selectedEmployeeId!,
-                                                  picked,
-                                                  effectiveCutDate,
-                                                );
-                                            print(
-                                              '📅 ATTENDANCE RESULT: calendarDays=${data['calendarDays']}, daysWorked=${data['daysWorked']}, baseHours=${data['baseHours']}',
-                                            );
-                                            final fullCal =
-                                                qEnd
-                                                    .difference(qOriginalStart)
-                                                    .inDays +
-                                                1;
-                                            setState(() {
-                                              isLoadingHours = false;
-                                              totalHoursWorked =
-                                                  (data['workedHours']
-                                                      as double);
-                                              baseHoursQuincena =
-                                                  (data['baseHours'] as double);
-                                              totalWorkdays =
-                                                  data['totalWorkdays'] as int;
-                                              daysWorked =
-                                                  data['daysWorked'] as int;
-                                              calendarDays =
-                                                  data['calendarDays'] as int;
-                                              fullCalendarDays = fullCal;
-                                              ausenciaDays =
-                                                  data['ausenciaDays'] as int;
-                                              permisoDays =
-                                                  data['permisoDays'] as int;
-                                              incapacidadDays =
-                                                  data['incapacidadDays']
-                                                      as int;
-                                              domingoDeductions =
-                                                  data['domingoDeductions']
-                                                      as int;
-                                              pierdeBono =
-                                                  data['pierdeBono'] as bool;
-                                              absentDates =
-                                                  (data['absentDates']
-                                                      as Set<String>?) ??
-                                                  {};
-                                              daysAbsent =
-                                                  ausenciaDays +
-                                                  permisoDays +
-                                                  incapacidadDays;
-                                              overtimeHours =
-                                                  (data['overtimeHours']
-                                                      as double? ??
-                                                  0.0);
-                                              final netWorkedWithoutOT =
-                                                  totalHoursWorked -
-                                                  overtimeHours;
-                                              underHours =
-                                                  (baseHoursQuincena -
-                                                          netWorkedWithoutOT)
-                                                      .clamp(
-                                                        0.0,
-                                                        double.infinity,
-                                                      );
-                                            });
-                                          }
-                                        },
-                                        child: Row(
-                                          children: [
-                                            Text(
-                                              'Desde: ${qStart.day}/${qStart.month.toString().padLeft(2, '0')}/${qStart.year}',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: const Color(0xFF1976D2),
-                                                decoration:
-                                                    TextDecoration.underline,
+                                            if (picked != null &&
+                                                selectedEmployeeId != null) {
+                                              setState(() {
+                                                complementStartDate = picked;
+                                                isLoadingHours = true;
+                                              });
+                                              final data =
+                                                  await loadEmployeeAttendance(
+                                                    selectedEmployeeId!,
+                                                    picked,
+                                                    effectiveCutDate,
+                                                  );
+                                              final fullCal =
+                                                  qEnd
+                                                      .difference(picked)
+                                                      .inDays +
+                                                  1;
+                                              setState(() {
+                                                isLoadingHours = false;
+                                                totalHoursWorked =
+                                                    (data['workedHours']
+                                                        as double);
+                                                baseHoursQuincena =
+                                                    (data['baseHours']
+                                                        as double);
+                                                totalWorkdays =
+                                                    data['totalWorkdays']
+                                                        as int;
+                                                daysWorked =
+                                                    data['daysWorked'] as int;
+                                                calendarDays =
+                                                    data['calendarDays'] as int;
+                                                fullCalendarDays = fullCal;
+                                                ausenciaDays =
+                                                    data['ausenciaDays'] as int;
+                                                permisoDays =
+                                                    data['permisoDays'] as int;
+                                                incapacidadDays =
+                                                    data['incapacidadDays']
+                                                        as int;
+                                                domingoDeductions =
+                                                    data['domingoDeductions']
+                                                        as int;
+                                                pierdeBono =
+                                                    data['pierdeBono'] as bool;
+                                                absentDates =
+                                                    (data['absentDates']
+                                                        as Set<String>?) ??
+                                                    {};
+                                                daysAbsent =
+                                                    ausenciaDays +
+                                                    permisoDays +
+                                                    incapacidadDays;
+                                                // Usar horas extra directamente de los ajustes (no comparación neta)
+                                                overtimeHours =
+                                                    (data['overtimeHours']
+                                                        as double? ??
+                                                    0.0);
+                                                final netWorkedWithoutOT =
+                                                    totalHoursWorked -
+                                                    overtimeHours;
+                                                underHours =
+                                                    (baseHoursQuincena -
+                                                            netWorkedWithoutOT)
+                                                        .clamp(
+                                                          0.0,
+                                                          double.infinity,
+                                                        );
+                                              });
+                                            }
+                                          },
+                                          child: Row(
+                                            children: [
+                                              Text(
+                                                'Desde: ${qStart.day}/${qStart.month.toString().padLeft(2, '0')}/${qStart.year}',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: const Color(
+                                                    0xFF1976D2,
+                                                  ),
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Icon(
-                                              Icons.edit_calendar,
-                                              size: 14,
-                                              color: const Color(0xFF1976D2),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          'Hasta: ${effectiveCutDate.day}/${effectiveCutDate.month.toString().padLeft(2, '0')}/${effectiveCutDate.year}',
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
+                                              const SizedBox(width: 4),
+                                              Icon(
+                                                Icons.edit_calendar,
+                                                size: 14,
+                                                color: const Color(0xFF1976D2),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      else
+                                        GestureDetector(
+                                          onTap: () async {
+                                            final dpFirstDate = qOriginalStart;
+                                            final dpLastDate = effectiveCutDate;
+                                            var dpInitial = qStart;
+                                            if (dpInitial.isBefore(
+                                              dpFirstDate,
+                                            )) {
+                                              dpInitial = dpFirstDate;
+                                            }
+                                            if (dpInitial.isAfter(dpLastDate)) {
+                                              dpInitial = dpLastDate;
+                                            }
+                                            final picked = await showDatePicker(
+                                              context: context,
+                                              initialDate: dpInitial,
+                                              firstDate: dpFirstDate,
+                                              lastDate: dpLastDate,
+                                              helpText:
+                                                  'Fecha de inicio (ej: ingreso del empleado)',
+                                            );
+                                            if (picked != null &&
+                                                selectedEmployeeId != null) {
+                                              setState(() {
+                                                customStartDate = picked;
+                                                isLoadingHours = true;
+                                              });
+                                              print(
+                                                '📅 START DATE CHANGED: picked=$picked, effectiveCutDate=$effectiveCutDate',
+                                              );
+                                              final data =
+                                                  await loadEmployeeAttendance(
+                                                    selectedEmployeeId!,
+                                                    picked,
+                                                    effectiveCutDate,
+                                                  );
+                                              print(
+                                                '📅 ATTENDANCE RESULT: calendarDays=${data['calendarDays']}, daysWorked=${data['daysWorked']}, baseHours=${data['baseHours']}',
+                                              );
+                                              final fullCal =
+                                                  qEnd
+                                                      .difference(
+                                                        qOriginalStart,
+                                                      )
+                                                      .inDays +
+                                                  1;
+                                              setState(() {
+                                                isLoadingHours = false;
+                                                totalHoursWorked =
+                                                    (data['workedHours']
+                                                        as double);
+                                                baseHoursQuincena =
+                                                    (data['baseHours']
+                                                        as double);
+                                                totalWorkdays =
+                                                    data['totalWorkdays']
+                                                        as int;
+                                                daysWorked =
+                                                    data['daysWorked'] as int;
+                                                calendarDays =
+                                                    data['calendarDays'] as int;
+                                                fullCalendarDays = fullCal;
+                                                ausenciaDays =
+                                                    data['ausenciaDays'] as int;
+                                                permisoDays =
+                                                    data['permisoDays'] as int;
+                                                incapacidadDays =
+                                                    data['incapacidadDays']
+                                                        as int;
+                                                domingoDeductions =
+                                                    data['domingoDeductions']
+                                                        as int;
+                                                pierdeBono =
+                                                    data['pierdeBono'] as bool;
+                                                absentDates =
+                                                    (data['absentDates']
+                                                        as Set<String>?) ??
+                                                    {};
+                                                daysAbsent =
+                                                    ausenciaDays +
+                                                    permisoDays +
+                                                    incapacidadDays;
+                                                overtimeHours =
+                                                    (data['overtimeHours']
+                                                        as double? ??
+                                                    0.0);
+                                                final netWorkedWithoutOT =
+                                                    totalHoursWorked -
+                                                    overtimeHours;
+                                                underHours =
+                                                    (baseHoursQuincena -
+                                                            netWorkedWithoutOT)
+                                                        .clamp(
+                                                          0.0,
+                                                          double.infinity,
+                                                        );
+                                              });
+                                            }
+                                          },
+                                          child: Row(
+                                            children: [
+                                              Text(
+                                                'Desde: ${qStart.day}/${qStart.month.toString().padLeft(2, '0')}/${qStart.year}',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: const Color(
+                                                    0xFF1976D2,
+                                                  ),
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Icon(
+                                                Icons.edit_calendar,
+                                                size: 14,
+                                                color: const Color(0xFF1976D2),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        if (isPartialQuincena)
-                                          Container(
-                                            margin: const EdgeInsets.only(
-                                              left: 8,
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFFFE0B2),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Flexible(
                                             child: Text(
-                                              '$calendarDays de $fullCalendarDays días',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                color: const Color(0xFFEF6C00),
+                                              'Hasta: ${effectiveCutDate.day}/${effectiveCutDate.month.toString().padLeft(2, '0')}/${effectiveCutDate.year}',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                           ),
-                                      ],
-                                    ),
-                                  ],
+                                          if (isPartialQuincena)
+                                            Container(
+                                              margin: const EdgeInsets.only(
+                                                left: 8,
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFFE0B2),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                '$calendarDays de $fullCalendarDays días',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: const Color(
+                                                    0xFFEF6C00,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                                const SizedBox(width: 8),
                                 OutlinedButton.icon(
                                   onPressed: () async {
                                     final qStartDate = qStart;
@@ -3634,6 +3716,125 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                       const SizedBox(height: 8),
                     ],
 
+                    // Comisiones de ventas pendientes
+                    if (pendingCommissions.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(
+                              0xFF4CAF50,
+                            ).withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.trending_up,
+                                  color: const Color(0xFF2E7D32),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Comisiones Ventas (${pendingCommissions.length})',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF2E7D32),
+                                  ),
+                                ),
+                                const Spacer(),
+                                Switch(
+                                  value: includeCommissions,
+                                  onChanged: (v) =>
+                                      setState(() => includeCommissions = v),
+                                  activeColor: const Color(0xFF4CAF50),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Comisiones pendientes por ventas realizadas (se suman al pago)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: const Color(0xFF757575),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ...pendingCommissions.map(
+                              (comm) => Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Factura ${comm.invoiceNumber}',
+                                            style: TextStyle(
+                                              color: const Color(0xFF616161),
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${comm.customerName} - ${comm.commissionPercentage.toStringAsFixed(2)}%',
+                                            style: TextStyle(
+                                              color: const Color(0xFF9E9E9E),
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Text(
+                                      '+ ${Helpers.formatCurrency(comm.commissionAmount)}',
+                                      style: TextStyle(
+                                        color: const Color(0xFF2E7D32),
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (pendingCommissions.length > 1) ...[
+                              const Divider(height: 12),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Total Comisiones',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF424242),
+                                    ),
+                                  ),
+                                  Text(
+                                    '+ ${Helpers.formatCurrency(totalPendingCommissions)}',
+                                    style: TextStyle(
+                                      color: const Color(0xFF2E7D32),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
                     if (selectedEmployee != null) ...[
                       const Divider(height: 24),
 
@@ -3860,6 +4061,12 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                               _buildPayrollSummaryRow(
                                 'Horas Extra (${(manualOvertimeHours ?? overtimeHours).toStringAsFixed(1)}h ${getOvertimeLabel(overtimeType)})',
                                 overtimePay,
+                                false,
+                              ),
+                            if (commissionTotal > 0)
+                              _buildPayrollSummaryRow(
+                                'Comisiones Ventas (${pendingCommissions.length})',
+                                commissionTotal,
                                 false,
                               ),
                             const Divider(height: 16),
@@ -4198,6 +4405,33 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                               );
                             }
 
+                            // Agregar comisiones de ventas como ingreso
+                            if (includeCommissions &&
+                                pendingCommissions.isNotEmpty) {
+                              print(
+                                '💰 Pagando ${pendingCommissions.length} comisión(es) por total: $commissionTotal',
+                              );
+                              await PayrollDatasource.addPayrollDetailDirect(
+                                payrollId: payroll.id,
+                                conceptCode: 'COMISION_VENTAS',
+                                conceptName: 'Comisiones por Ventas',
+                                type: 'ingreso',
+                                amount: commissionTotal,
+                                notes:
+                                    'Comisiones de ${pendingCommissions.length} venta(s)',
+                              );
+                              // Marcar comisiones como pagadas
+                              await CommissionsDatasource.markAsPaid(
+                                commissionIds: pendingCommissions
+                                    .map((c) => c.id)
+                                    .toList(),
+                                payrollId: payroll.id,
+                              );
+                              print(
+                                '✅ ${pendingCommissions.length} comisión(es) marcadas como pagadas',
+                              );
+                            }
+
                             // Agregar bonos extras manuales
                             for (final b in extraBonuses) {
                               await PayrollDatasource.addPayrollDetailDirect(
@@ -4480,7 +4714,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
       return;
     }
 
-    DateTime paymentDate = DateTime.now();
+    DateTime paymentDate = ColombiaTime.now();
     String? selectedAccountId = accountsData[0]['id'];
     double selectedAccountBalance = (accountsData[0]['balance'] ?? 0)
         .toDouble();
@@ -4500,7 +4734,12 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
             ],
           ),
           content: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 450, minWidth: 200),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width < 500
+                  ? MediaQuery.of(context).size.width * 0.9
+                  : 450,
+              minWidth: 200,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -4657,10 +4896,12 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                     final date = await showDatePicker(
                       context: context,
                       initialDate: paymentDate,
-                      firstDate: DateTime.now().subtract(
+                      firstDate: ColombiaTime.now().subtract(
                         const Duration(days: 30),
                       ),
-                      lastDate: DateTime.now().add(const Duration(days: 30)),
+                      lastDate: ColombiaTime.now().add(
+                        const Duration(days: 30),
+                      ),
                     );
                     if (date != null) {
                       setState(() => paymentDate = date);
@@ -5375,7 +5616,7 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
 
     if (!mounted) return;
 
-    DateTime paymentDate = DateTime.now();
+    DateTime paymentDate = ColombiaTime.now();
     String? selectedAccountId = accountsData[0]['id'];
     double selectedAccountBalance = (accountsData[0]['balance'] ?? 0)
         .toDouble();
@@ -5392,7 +5633,12 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
             ],
           ),
           content: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 500, minWidth: 200),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width < 500
+                  ? MediaQuery.of(context).size.width * 0.9
+                  : 500,
+              minWidth: 200,
+            ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -5661,10 +5907,12 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
                       final date = await showDatePicker(
                         context: context,
                         initialDate: paymentDate,
-                        firstDate: DateTime.now().subtract(
+                        firstDate: ColombiaTime.now().subtract(
                           const Duration(days: 30),
                         ),
-                        lastDate: DateTime.now().add(const Duration(days: 30)),
+                        lastDate: ColombiaTime.now().add(
+                          const Duration(days: 30),
+                        ),
                       );
                       if (date != null) {
                         setState(() => paymentDate = date);

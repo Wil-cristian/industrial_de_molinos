@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../domain/entities/employee.dart';
 import '../../data/providers/assets_provider.dart';
 import '../../data/providers/employees_provider.dart';
@@ -11,6 +12,7 @@ import 'employees/employees_payroll_tab.dart';
 import 'employees/employees_loans_tab.dart';
 import 'employees/employees_assets_tab.dart';
 import 'employees/employees_incapacities_tab.dart';
+import 'employees/employees_commissions_tab.dart';
 
 class EmployeesPage extends ConsumerStatefulWidget {
   final bool openNewDialog;
@@ -38,11 +40,12 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
   final _loansTabKey = GlobalKey<EmployeesLoansTabState>();
   final _incapacitiesTabKey = GlobalKey<EmployeesIncapacitiesTabState>();
   final _assetsTabKey = GlobalKey<EmployeesAssetsTabState>();
+  final _commissionsTabKey = GlobalKey<EmployeesCommissionsTabState>();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -81,90 +84,160 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
     final borderColor = isDark
         ? const Color(0xFF334155)
         : const Color(0xFFEEEEEE);
+    final isMobile = ResponsiveHelper.isMobile(context);
 
     return Scaffold(
+      floatingActionButton:
+          isMobile && _tabController.index != 5 && _tabController.index != 6
+          ? FloatingActionButton.small(
+              heroTag: 'employees',
+              onPressed: () {
+                switch (_tabController.index) {
+                  case 0:
+                    _mainTabKey.currentState?.showEmployeeDialog();
+                    break;
+                  case 1:
+                    _tasksTabKey.currentState?.showTaskDialog();
+                    break;
+                  case 2:
+                    _payrollTabKey.currentState?.showCreatePayrollDialog();
+                    break;
+                  case 3:
+                    _loansTabKey.currentState?.showLoanDialog();
+                    break;
+                  case 4:
+                    _commissionsTabKey.currentState;
+                    break;
+                  case 5:
+                    _incapacitiesTabKey.currentState?.showNewIncapacityDialog();
+                    break;
+                }
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [
             // Header compacto con tabs inline
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 0 : 4,
+                vertical: 2,
+              ),
               decoration: BoxDecoration(
                 color: theme.scaffoldBackgroundColor,
                 border: Border(bottom: BorderSide(color: borderColor)),
               ),
-              child: Row(
-                children: [
-                  // Stats compactos
-                  _buildCompactStat(
-                    Icons.people,
-                    '${state.employees.length}',
-                    'Emp',
-                    const Color(0xFF1565C0),
-                    isDark,
-                  ),
-                  const SizedBox(width: 4),
-                  _buildCompactStat(
-                    Icons.check_circle,
-                    '${state.activeEmployees.length}',
-                    'Act',
-                    const Color(0xFF2E7D32),
-                    isDark,
-                  ),
-                  const SizedBox(width: 4),
-                  _buildCompactStat(
-                    Icons.pending_actions,
-                    '${state.tasks.where((t) => t.status == TaskStatus.pendiente || t.status == TaskStatus.enProgreso).length}',
-                    'Tar',
-                    const Color(0xFFF9A825),
-                    isDark,
-                  ),
-                  const SizedBox(width: 8),
-                  // Tabs
-                  Expanded(
-                    child: TabBar(
-                      controller: _tabController,
-                      labelColor: theme.colorScheme.primary,
-                      unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-                      indicatorColor: theme.colorScheme.primary,
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.start,
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 8),
-                      tabs: const [
-                        Tab(text: 'Empleados'),
-                        Tab(text: 'Tareas'),
-                        Tab(text: 'Nómina'),
-                        Tab(text: 'Préstamos'),
-                        Tab(text: 'Incapacidades'),
-                        Tab(text: 'Activos'),
+              child: isMobile
+                  ? Column(
+                      children: [
+                        // Mobile: tabs full width
+                        TabBar(
+                          controller: _tabController,
+                          labelColor: theme.colorScheme.primary,
+                          unselectedLabelColor:
+                              theme.colorScheme.onSurfaceVariant,
+                          indicatorColor: theme.colorScheme.primary,
+                          isScrollable: true,
+                          tabAlignment: TabAlignment.start,
+                          labelPadding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                          ),
+                          labelStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          tabs: const [
+                            Tab(text: 'Empleados', height: 36),
+                            Tab(text: 'Tareas', height: 36),
+                            Tab(text: 'Nómina', height: 36),
+                            Tab(text: 'Préstamos', height: 36),
+                            Tab(text: 'Comisiones', height: 36),
+                            Tab(text: 'Incapacidades', height: 36),
+                            Tab(text: 'Activos', height: 36),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        // Stats compactos
+                        _buildCompactStat(
+                          Icons.people,
+                          '${state.employees.length}',
+                          'Emp',
+                          const Color(0xFF1565C0),
+                          isDark,
+                        ),
+                        const SizedBox(width: 4),
+                        _buildCompactStat(
+                          Icons.check_circle,
+                          '${state.activeEmployees.length}',
+                          'Act',
+                          const Color(0xFF2E7D32),
+                          isDark,
+                        ),
+                        const SizedBox(width: 4),
+                        _buildCompactStat(
+                          Icons.pending_actions,
+                          '${state.tasks.where((t) => t.status == TaskStatus.pendiente || t.status == TaskStatus.enProgreso).length}',
+                          'Tar',
+                          const Color(0xFFF9A825),
+                          isDark,
+                        ),
+                        const SizedBox(width: 8),
+                        // Tabs
+                        Expanded(
+                          child: TabBar(
+                            controller: _tabController,
+                            labelColor: theme.colorScheme.primary,
+                            unselectedLabelColor:
+                                theme.colorScheme.onSurfaceVariant,
+                            indicatorColor: theme.colorScheme.primary,
+                            isScrollable: true,
+                            tabAlignment: TabAlignment.start,
+                            labelPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                            ),
+                            tabs: const [
+                              Tab(text: 'Empleados'),
+                              Tab(text: 'Tareas'),
+                              Tab(text: 'Nómina'),
+                              Tab(text: 'Préstamos'),
+                              Tab(text: 'Comisiones'),
+                              Tab(text: 'Incapacidades'),
+                              Tab(text: 'Activos'),
+                            ],
+                          ),
+                        ),
+                        // Periodo
+                        if (payrollState.currentPeriod != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.1,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              payrollState.currentPeriod!.displayName,
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        // Botón de acción
+                        _buildHeaderActionButton(),
                       ],
                     ),
-                  ),
-                  // Periodo
-                  if (payrollState.currentPeriod != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        payrollState.currentPeriod!.displayName,
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  // Botón de acción
-                  _buildHeaderActionButton(),
-                ],
-              ),
             ),
 
             // Contenido
@@ -176,6 +249,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
                   EmployeesTasksTab(key: _tasksTabKey),
                   EmployeesPayrollTab(key: _payrollTabKey),
                   EmployeesLoansTab(key: _loansTabKey),
+                  EmployeesCommissionsTab(key: _commissionsTabKey),
                   EmployeesIncapacitiesTab(key: _incapacitiesTabKey),
                   EmployeesAssetsTab(key: _assetsTabKey),
                 ],

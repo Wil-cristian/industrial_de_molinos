@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/helpers.dart';
@@ -9,6 +10,7 @@ import '../../data/providers/providers.dart';
 import '../../data/providers/activities_provider.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/activity.dart';
+import '../../core/utils/colombia_time.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -18,7 +20,7 @@ class DashboardPage extends ConsumerStatefulWidget {
 }
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = ColombiaTime.now();
 
   @override
   void initState() {
@@ -57,9 +59,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.base,
-              vertical: AppSpacing.md,
+            padding: EdgeInsets.symmetric(
+              horizontal: ResponsiveHelper.isMobile(context)
+                  ? AppSpacing.sm
+                  : AppSpacing.base,
+              vertical: ResponsiveHelper.isMobile(context)
+                  ? AppSpacing.sm
+                  : AppSpacing.md,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,8 +157,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     isNarrow
-                        ? Formatters.date(DateTime.now())
-                        : Formatters.dateLong(DateTime.now()),
+                        ? Formatters.date(ColombiaTime.now())
+                        : Formatters.dateLong(ColombiaTime.now()),
                     style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ],
@@ -301,7 +307,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final notifications = <_NotificationItem>[];
 
     // Actividades pendientes para hoy y próximos días
-    final today = DateTime.now();
+    final today = ColombiaTime.now();
     final todayActivities = activitiesState.activities
         .where((a) {
           final activityDate = a.dueDate ?? a.startDate;
@@ -388,7 +394,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               (i.status != InvoiceStatus.paid &&
                   i.status != InvoiceStatus.cancelled &&
                   i.dueDate != null &&
-                  i.dueDate!.isBefore(DateTime.now())),
+                  i.dueDate!.isBefore(ColombiaTime.now())),
         )
         .take(3)
         .toList();
@@ -571,7 +577,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     ColorScheme cs,
     TextTheme tt,
   ) {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final firstWeekday = firstDayOfMonth.weekday;

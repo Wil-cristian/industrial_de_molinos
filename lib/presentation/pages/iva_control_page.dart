@@ -7,6 +7,7 @@ import '../../data/providers/iva_provider.dart';
 import '../../data/datasources/iva_datasource.dart';
 import '../widgets/invoice_scan_dialog.dart';
 import '../widgets/iva_sale_scan_dialog.dart';
+import '../../core/utils/colombia_time.dart';
 
 class IvaControlPage extends ConsumerStatefulWidget {
   const IvaControlPage({super.key});
@@ -693,7 +694,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
 
   Widget _buildLiquidacionActions(IvaState state) {
     final period = state.selectedPeriod.isEmpty
-        ? getBimonthlyPeriod(DateTime.now())
+        ? getBimonthlyPeriod(ColombiaTime.now())
         : state.selectedPeriod;
     final parts = period.split('-');
     final bimName = parts.length == 2
@@ -1053,7 +1054,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
     final notesCtrl = TextEditingController(text: existing?.notes ?? '');
 
     String type = existing?.invoiceType ?? 'COMPRA';
-    DateTime date = existing?.invoiceDate ?? DateTime.now();
+    DateTime date = existing?.invoiceDate ?? ColombiaTime.now();
     bool hasReteiva = existing?.hasReteiva ?? false;
     final ivaRate = ref.read(ivaProvider).config?.ivaRate ?? 0.19;
 
@@ -1512,7 +1513,7 @@ class _IvaControlPageState extends ConsumerState<IvaControlPage>
   // ─── Helpers ───
 
   List<String> _generatePeriods() {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final periods = <String>[];
     for (int y = now.year; y >= now.year - 1; y--) {
       for (int b = 6; b >= 1; b--) {
@@ -1810,7 +1811,7 @@ class _ConfigPanelState extends State<_ConfigPanel> {
   late TextEditingController _notesCtrl;
   int _grupoRst = 2;
   double _tarifaSimple = 0.02;
-  int _year = DateTime.now().year;
+  int _year = ColombiaTime.now().year;
 
   static const _tarifasPorGrupo = {1: 0.016, 2: 0.02, 3: 0.035, 4: 0.045};
 
@@ -1834,7 +1835,7 @@ class _ConfigPanelState extends State<_ConfigPanel> {
     _notesCtrl = TextEditingController(text: c?.notes ?? '');
     _grupoRst = c?.grupoRst ?? 2;
     _tarifaSimple = c?.tarifaSimple ?? 0.02;
-    _year = c?.year ?? DateTime.now().year;
+    _year = c?.year ?? ColombiaTime.now().year;
   }
 
   @override
@@ -1903,7 +1904,7 @@ class _ConfigPanelState extends State<_ConfigPanel> {
                       labelText: 'Año fiscal',
                       border: OutlineInputBorder(),
                     ),
-                    items: List.generate(5, (i) => DateTime.now().year - 2 + i)
+                    items: List.generate(5, (i) => ColombiaTime.now().year - 2 + i)
                         .map(
                           (y) => DropdownMenuItem(
                             value: y,

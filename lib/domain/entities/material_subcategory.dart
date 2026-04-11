@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 /// Entidad: Subcategoría de Material
 /// Permite clasificar materiales dentro de una categoría principal
 /// Ejemplo: Categoría "Rodamientos" → Subcategorías "6313", "6205", "6308"
@@ -58,10 +59,10 @@ class MaterialSubcategory {
       isActive: json['is_active'] ?? true,
       sortOrder: json['sort_order'] ?? 0,
       createdAt: DateTime.parse(
-        json['created_at'] ?? DateTime.now().toIso8601String(),
+        json['created_at'] ?? ColombiaTime.nowIso8601(),
       ),
       updatedAt: DateTime.parse(
-        json['updated_at'] ?? DateTime.now().toIso8601String(),
+        json['updated_at'] ?? ColombiaTime.nowIso8601(),
       ),
     );
   }

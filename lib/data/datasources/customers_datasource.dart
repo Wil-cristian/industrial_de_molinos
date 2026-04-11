@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/customer.dart';
@@ -86,7 +87,7 @@ class CustomersDataSource {
     data.remove('id');
     data.remove('created_at');
     // Mantener updated_at para que se actualice en la BD
-    data['updated_at'] = DateTime.now().toIso8601String();
+    data['updated_at'] = ColombiaTime.nowIso8601();
 
     final response = await _client
         .from(_table)
@@ -355,8 +356,8 @@ class CustomersDataSource {
       'credit_limit': customer.creditLimit,
       'current_balance': customer.currentBalance,
       'is_active': customer.isActive,
-      'created_at': customer.createdAt.toIso8601String(),
-      'updated_at': customer.updatedAt.toIso8601String(),
+      'created_at': ColombiaTime.toIso8601(customer.createdAt),
+      'updated_at': ColombiaTime.toIso8601(customer.updatedAt),
     };
   }
 }

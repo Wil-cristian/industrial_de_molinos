@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_datasource.dart';
@@ -121,7 +122,7 @@ class AnalyticsDataSource {
           // Calcular días desde última compra
           int? daysSinceLastPurchase;
           if (lastPurchase != null) {
-            daysSinceLastPurchase = DateTime.now()
+            daysSinceLastPurchase = ColombiaTime.now()
                 .difference(lastPurchase)
                 .inDays;
           }
@@ -239,7 +240,7 @@ class AnalyticsDataSource {
       var query = _client.from('v_material_consumption_monthly').select();
 
       if (fromMonth != null) {
-        query = query.gte('month', fromMonth.toIso8601String());
+        query = query.gte('month', ColombiaTime.toIso8601(fromMonth));
       }
 
       final response = await query
@@ -288,7 +289,7 @@ class AnalyticsDataSource {
       var query = _client.from('v_sales_by_period').select();
 
       if (fromDate != null) {
-        query = query.gte('day', fromDate.toIso8601String());
+        query = query.gte('day', ColombiaTime.toIso8601(fromDate));
       }
 
       final response = await query.order('day', ascending: false).limit(limit);
@@ -305,15 +306,15 @@ class AnalyticsDataSource {
   /// Obtener ventas agrupadas por mes
   static Future<Map<String, double>> getMonthlySales({int year = 0}) async {
     try {
-      final targetYear = year == 0 ? DateTime.now().year : year;
+      final targetYear = year == 0 ? ColombiaTime.now().year : year;
       final startDate = DateTime(targetYear, 1, 1);
       final endDate = DateTime(targetYear, 12, 31);
 
       final response = await _client
           .from('v_sales_by_period')
           .select('month, total')
-          .gte('day', startDate.toIso8601String())
-          .lte('day', endDate.toIso8601String());
+          .gte('day', ColombiaTime.toIso8601(startDate))
+          .lte('day', ColombiaTime.toIso8601(endDate));
 
       Map<String, double> monthlySales = {};
       for (var row in response) {
@@ -479,14 +480,14 @@ class AnalyticsDataSource {
   static Future<Map<String, dynamic>> getDashboardSummary() async {
     try {
       // Ventas del mes actual
-      final now = DateTime.now();
+      final now = ColombiaTime.now();
       final startOfMonth = DateTime(now.year, now.month, 1);
 
       // Ejecutar consultas en paralelo
       final invoicesMonth = await _client
           .from('invoices')
           .select('total')
-          .gte('issue_date', startOfMonth.toIso8601String())
+          .gte('issue_date', ColombiaTime.dateString(startOfMonth))
           .neq('status', 'cancelled');
 
       final invoicesPending = await _client
@@ -573,7 +574,7 @@ class AnalyticsDataSource {
   /// Fallback N+1 para DSO trend
   static Future<List<DSOMonthly>> _getDSOTrendLegacy({int months = 12}) async {
     try {
-      final now = DateTime.now();
+      final now = ColombiaTime.now();
       List<DSOMonthly> dsoList = [];
 
       for (int i = 0; i < months; i++) {
@@ -583,8 +584,8 @@ class AnalyticsDataSource {
         final salesResponse = await _client
             .from('invoices')
             .select('total, paid_amount')
-            .gte('issue_date', targetDate.toIso8601String())
-            .lte('issue_date', endOfMonth.toIso8601String())
+            .gte('issue_date', ColombiaTime.dateString(targetDate))
+            .lte('issue_date', ColombiaTime.dateString(endOfMonth))
             .neq('status', 'anulada');
 
         double totalSales = 0;
@@ -624,14 +625,14 @@ class AnalyticsDataSource {
   /// Calcular KPIs completos de cobranzas
   static Future<CollectionKPIs> getCollectionKPIs() async {
     try {
-      final now = DateTime.now();
+      final now = ColombiaTime.now();
       final last12Months = DateTime(now.year, now.month - 12, 1);
 
       // Todas las facturas de los últimos 12 meses - sin paid_date
       final allInvoices = await _client
           .from('invoices')
           .select('id, total, paid_amount, issue_date, due_date, status')
-          .gte('issue_date', last12Months.toIso8601String())
+          .gte('issue_date', ColombiaTime.dateString(last12Months))
           .neq('status', 'cancelled');
 
       double totalSales = 0;

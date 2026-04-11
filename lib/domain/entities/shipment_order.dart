@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 // Entidades: Remisión / Orden de Envío
 
 enum ShipmentStatus { borrador, despachada, enTransito, entregada, anulada }
@@ -181,7 +182,7 @@ class ShipmentOrder {
       driverDocument: json['driver_document']?.toString(),
       dispatchDate: json['dispatch_date'] != null
           ? DateTime.parse(json['dispatch_date'].toString())
-          : DateTime.now(),
+          : ColombiaTime.now(),
       deliveryDate: json['delivery_date'] != null
           ? DateTime.parse(json['delivery_date'].toString())
           : null,
@@ -196,10 +197,10 @@ class ShipmentOrder {
       receivedBy: json['received_by']?.toString(),
       items: items,
       createdAt: DateTime.parse(
-        json['created_at'] ?? DateTime.now().toIso8601String(),
+        json['created_at'] ?? ColombiaTime.nowIso8601(),
       ),
       updatedAt: DateTime.parse(
-        json['updated_at'] ?? DateTime.now().toIso8601String(),
+        json['updated_at'] ?? ColombiaTime.nowIso8601(),
       ),
       invoiceFullNumber: invoiceNumber,
       productionOrderCode: po?['code']?.toString(),
@@ -219,9 +220,9 @@ class ShipmentOrder {
       'vehicle_plate': vehiclePlate,
       'driver_name': driverName,
       'driver_document': driverDocument,
-      'dispatch_date': dispatchDate.toIso8601String().split('T')[0],
-      'delivery_date': deliveryDate?.toIso8601String().split('T')[0],
-      'delivered_at': deliveredAt?.toIso8601String(),
+      'dispatch_date': ColombiaTime.dateString(dispatchDate),
+      'delivery_date': (deliveryDate != null ? ColombiaTime.dateString(deliveryDate!) : null),
+      'delivered_at': (deliveredAt != null ? ColombiaTime.toIso8601(deliveredAt!) : null),
       'status': statusToString(status),
       'notes': notes,
       'internal_notes': internalNotes,
@@ -450,7 +451,7 @@ class FutureDelivery {
 
   bool get isOverdue =>
       deliveryDate != null &&
-      deliveryDate!.isBefore(DateTime.now()) &&
+      deliveryDate!.isBefore(ColombiaTime.now()) &&
       !isCompleted;
 
   String get currentStageName {

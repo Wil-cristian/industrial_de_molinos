@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../datasources/activities_datasource.dart';
 import '../../domain/entities/activity.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Modelo de deuda con intereses
 class DebtWithInterest {
@@ -137,11 +138,11 @@ class DebtManagementNotifier extends Notifier<DebtManagementState> {
             customers(name, trade_name)
           ''')
           .inFilter('status', ['draft', 'issued', 'partial', 'overdue'])
-          .lt('due_date', DateTime.now().toIso8601String())
+          .lt('due_date', ColombiaTime.nowIso8601())
           .order('due_date', ascending: true);
 
       final List<DebtWithInterest> debts = [];
-      final today = DateTime.now();
+      final today = ColombiaTime.now();
 
       for (var invoice in response) {
         final total = (invoice['total'] ?? 0).toDouble();
@@ -215,7 +216,7 @@ class DebtManagementNotifier extends Notifier<DebtManagementState> {
         'interest_amount': debt.interestAmount,
         'total_amount': debt.totalWithInterest,
         'days_overdue': debt.daysOverdue,
-        'applied_at': DateTime.now().toIso8601String(),
+        'applied_at': ColombiaTime.nowIso8601(),
       });
 
       // Actualizar el total de la factura
@@ -258,7 +259,7 @@ class DebtManagementNotifier extends Notifier<DebtManagementState> {
   Future<bool> _sendOverdueNotification(DebtWithInterest debt) async {
     try {
       // Crear actividad/notificación en el sistema
-      final now = DateTime.now();
+      final now = ColombiaTime.now();
       final activity = Activity(
         id: '',
         title: '⚠️ Deuda vencida: ${debt.customerName}',
@@ -297,7 +298,7 @@ class DebtManagementNotifier extends Notifier<DebtManagementState> {
   /// Enviar recordatorio manual de mora
   Future<bool> sendManualReminder(DebtWithInterest debt) async {
     try {
-      final now = DateTime.now();
+      final now = ColombiaTime.now();
       final activity = Activity(
         id: '',
         title: '📨 Recordatorio de pago enviado',

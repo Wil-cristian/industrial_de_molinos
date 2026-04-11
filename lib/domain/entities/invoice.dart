@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 // Entidad: Factura/Comprobante
 enum InvoiceType { invoice, receipt, creditNote, debitNote }
 
@@ -29,6 +30,11 @@ class Invoice {
   final DateTime? deliveryDate;
   final String salePaymentType; // cash, credit, advance
   final double laborCost;
+  final String? sellerId;
+  final String? sellerName;
+  final bool hasCommission;
+  final double commissionPercentage;
+  final double commissionAmount;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -56,6 +62,11 @@ class Invoice {
     this.deliveryDate,
     this.salePaymentType = 'cash',
     this.laborCost = 0,
+    this.sellerId,
+    this.sellerName,
+    this.hasCommission = false,
+    this.commissionPercentage = 0,
+    this.commissionAmount = 0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -69,7 +80,7 @@ class Invoice {
   // Está vencida
   bool get isOverdue =>
       dueDate != null &&
-      dueDate!.isBefore(DateTime.now()) &&
+      dueDate!.isBefore(ColombiaTime.now()) &&
       status != InvoiceStatus.paid &&
       status != InvoiceStatus.cancelled;
 
@@ -100,6 +111,11 @@ class Invoice {
     DateTime? deliveryDate,
     String? salePaymentType,
     double? laborCost,
+    String? sellerId,
+    String? sellerName,
+    bool? hasCommission,
+    double? commissionPercentage,
+    double? commissionAmount,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -127,6 +143,11 @@ class Invoice {
       deliveryDate: deliveryDate ?? this.deliveryDate,
       salePaymentType: salePaymentType ?? this.salePaymentType,
       laborCost: laborCost ?? this.laborCost,
+      sellerId: sellerId ?? this.sellerId,
+      sellerName: sellerName ?? this.sellerName,
+      hasCommission: hasCommission ?? this.hasCommission,
+      commissionPercentage: commissionPercentage ?? this.commissionPercentage,
+      commissionAmount: commissionAmount ?? this.commissionAmount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -173,11 +194,17 @@ class Invoice {
           : null,
       salePaymentType: json['sale_payment_type'] ?? 'cash',
       laborCost: (json['labor_cost'] as num?)?.toDouble() ?? 0,
+      sellerId: json['seller_id'],
+      sellerName: json['seller_name'],
+      hasCommission: json['has_commission'] ?? false,
+      commissionPercentage:
+          (json['commission_percentage'] as num?)?.toDouble() ?? 0,
+      commissionAmount: (json['commission_amount'] as num?)?.toDouble() ?? 0,
       createdAt: DateTime.parse(
-        json['created_at'] ?? DateTime.now().toIso8601String(),
+        json['created_at'] ?? ColombiaTime.nowIso8601(),
       ),
       updatedAt: DateTime.parse(
-        json['updated_at'] ?? DateTime.now().toIso8601String(),
+        json['updated_at'] ?? ColombiaTime.nowIso8601(),
       ),
     );
   }
@@ -191,8 +218,8 @@ class Invoice {
       'customer_id': customerId,
       'customer_name': customerName,
       'customer_document': customerDocument,
-      'issue_date': issueDate.toIso8601String().split('T')[0],
-      'due_date': dueDate?.toIso8601String().split('T')[0],
+      'issue_date': ColombiaTime.dateString(issueDate),
+      'due_date': (dueDate != null ? ColombiaTime.dateString(dueDate!) : null),
       'subtotal': subtotal,
       'tax_amount': taxAmount,
       'discount': discount,
@@ -203,9 +230,13 @@ class Invoice {
       'notes': notes,
       'material_cost_total': materialCostTotal,
       'material_cost_pending': materialCostPending,
-      'delivery_date': deliveryDate?.toIso8601String().split('T')[0],
+      'delivery_date': (deliveryDate != null ? ColombiaTime.dateString(deliveryDate!) : null),
       'sale_payment_type': salePaymentType,
       'labor_cost': laborCost,
+      'seller_id': sellerId,
+      'has_commission': hasCommission,
+      'commission_percentage': commissionPercentage,
+      'commission_amount': commissionAmount,
     };
   }
 

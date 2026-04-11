@@ -1,4 +1,5 @@
 import 'inventory_material.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Componente de un producto compuesto
 /// Representa un material específico con sus dimensiones dentro de un producto
@@ -386,8 +387,8 @@ class CompositeProduct {
     'profit_margin': profitMargin,
     'custom_price': customPrice,
     'is_active': isActive,
-    'created_at': createdAt.toIso8601String(),
-    'updated_at': updatedAt.toIso8601String(),
+    'created_at': ColombiaTime.toIso8601(createdAt),
+    'updated_at': ColombiaTime.toIso8601(updatedAt),
   };
 
   factory CompositeProduct.fromJson(Map<String, dynamic> json) =>
@@ -446,10 +447,10 @@ class CompositeProduct {
       isActive: json['is_active'] ?? true,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
+          : ColombiaTime.now(),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
-          : DateTime.now(),
+          : ColombiaTime.now(),
     );
   }
 

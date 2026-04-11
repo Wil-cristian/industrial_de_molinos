@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_datasource.dart';
 
@@ -19,10 +20,10 @@ class AccountingDataSource {
   }) async {
     final params = <String, dynamic>{'p_limit': limit};
     if (startDate != null) {
-      params['p_start_date'] = startDate.toIso8601String().substring(0, 10);
+      params['p_start_date'] = ColombiaTime.dateString(startDate);
     }
     if (endDate != null) {
-      params['p_end_date'] = endDate.toIso8601String().substring(0, 10);
+      params['p_end_date'] = ColombiaTime.dateString(endDate);
     }
     if (accountCode != null) params['p_account_code'] = accountCode;
     if (referenceType != null) params['p_reference_type'] = referenceType;
@@ -44,7 +45,7 @@ class AccountingDataSource {
   }) async {
     final params = <String, dynamic>{};
     if (hastaFecha != null) {
-      params['p_hasta_fecha'] = hastaFecha.toIso8601String().substring(0, 10);
+      params['p_hasta_fecha'] = ColombiaTime.dateString(hastaFecha);
     }
 
     try {
@@ -79,10 +80,10 @@ class AccountingDataSource {
   }) async {
     final params = <String, dynamic>{};
     if (desde != null) {
-      params['p_desde'] = desde.toIso8601String().substring(0, 10);
+      params['p_desde'] = ColombiaTime.dateString(desde);
     }
     if (hasta != null) {
-      params['p_hasta'] = hasta.toIso8601String().substring(0, 10);
+      params['p_hasta'] = ColombiaTime.dateString(hasta);
     }
 
     final response = await _client.rpc('get_estado_resultados', params: params);
@@ -232,7 +233,7 @@ class JournalEntry {
       entryNumber: json['entry_number'] ?? '',
       entryDate:
           DateTime.tryParse(json['entry_date']?.toString() ?? '') ??
-          DateTime.now(),
+          ColombiaTime.now(),
       description: json['description'] ?? '',
       referenceType: json['reference_type'],
       referenceId: json['reference_id']?.toString(),
@@ -242,7 +243,7 @@ class JournalEntry {
       status: json['status'] ?? 'posted',
       createdAt:
           DateTime.tryParse(json['created_at']?.toString() ?? '') ??
-          DateTime.now(),
+          ColombiaTime.now(),
       lines: linesJson
           .map((l) => JournalEntryLine.fromJson(l as Map<String, dynamic>))
           .toList(),
@@ -385,7 +386,7 @@ class LedgerItem {
       codigo: json['codigo'] ?? '',
       cuenta: json['cuenta'] ?? '',
       fecha:
-          DateTime.tryParse(json['fecha']?.toString() ?? '') ?? DateTime.now(),
+          DateTime.tryParse(json['fecha']?.toString() ?? '') ?? ColombiaTime.now(),
       asiento: json['asiento'] ?? '',
       descripcion: json['descripcion'] ?? '',
       debe: (json['debe'] as num?)?.toDouble() ?? 0,
@@ -466,7 +467,7 @@ class MonthlyPL {
 
   factory MonthlyPL.fromJson(Map<String, dynamic> json) {
     return MonthlyPL(
-      mes: DateTime.tryParse(json['mes']?.toString() ?? '') ?? DateTime.now(),
+      mes: DateTime.tryParse(json['mes']?.toString() ?? '') ?? ColombiaTime.now(),
       ingresos: (json['ingresos'] as num?)?.toDouble() ?? 0,
       gastos: (json['gastos'] as num?)?.toDouble() ?? 0,
       utilidadNeta: (json['utilidad_neta'] as num?)?.toDouble() ?? 0,

@@ -7,6 +7,7 @@ import '../../data/providers/shipments_provider.dart';
 import '../../domain/entities/shipment_order.dart';
 import '../widgets/shipment_form_dialog.dart';
 import '../widgets/shipment_print_preview.dart';
+import '../../core/utils/colombia_time.dart';
 
 class ShipmentsPage extends ConsumerStatefulWidget {
   const ShipmentsPage({super.key});
@@ -57,9 +58,9 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
                   : TabBarView(
                       controller: _tabController,
                       children: [
-                        _buildFutureDeliveriesTab(state),
+                        _buildFutureDeliveriesTab(state, isCompact),
                         _buildRemisionesTab(state, isCompact),
-                        _buildHistoryTab(state),
+                        _buildHistoryTab(state, isCompact),
                       ],
                     ),
             ),
@@ -93,18 +94,18 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(isCompact ? 8 : 10),
             decoration: BoxDecoration(
               color: const Color(0xFFE3F2FD),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(isCompact ? 10 : 12),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.local_shipping,
-              color: Color(0xFF1565C0),
-              size: 28,
+              color: const Color(0xFF1565C0),
+              size: isCompact ? 22 : 28,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,22 +113,24 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
                 Text(
                   'Remisiones y Entregas',
                   style: TextStyle(
-                    fontSize: isCompact ? 18 : 22,
+                    fontSize: isCompact ? 16 : 22,
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFF1B2838),
                   ),
                 ),
-                Text(
-                  'Envíos, remisiones y seguimiento de entregas',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                ),
+                if (!isCompact)
+                  Text(
+                    'Envíos, remisiones y seguimiento de entregas',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  ),
               ],
             ),
           ),
           IconButton(
             onPressed: () => ref.read(shipmentsProvider.notifier).loadAll(),
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, size: 20),
             tooltip: 'Actualizar',
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),
@@ -142,54 +145,100 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
         .where((d) => d.isOverdue)
         .length;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        isCompact ? 16 : 24,
-        16,
-        isCompact ? 16 : 24,
-        8,
+    final cards = <_SummaryData>[
+      _SummaryData(
+        'En Producción',
+        '${state.futureInProduction}',
+        Icons.factory,
+        const Color(0xFFFF9800),
       ),
+      _SummaryData(
+        'Listas Envío',
+        '${state.futureReady}',
+        Icons.check_circle,
+        const Color(0xFF4CAF50),
+      ),
+      if (overdueCount > 0)
+        _SummaryData(
+          'Atrasadas',
+          '$overdueCount',
+          Icons.warning_amber_rounded,
+          const Color(0xFFC62828),
+        ),
+      _SummaryData(
+        'En Ruta',
+        '${(state.summaryCounts['despachada'] ?? 0) + (state.summaryCounts['en_transito'] ?? 0)}',
+        Icons.local_shipping,
+        const Color(0xFF2196F3),
+      ),
+      _SummaryData(
+        'Remisiones',
+        '${state.summaryCounts['total'] ?? 0}',
+        Icons.description,
+        const Color(0xFF9C27B0),
+      ),
+    ];
+
+    if (isCompact) {
+      // Mobile: horizontal scrollable compact chips
+      return SizedBox(
+        height: 60,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          itemCount: cards.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final c = cards[index];
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: c.color.withValues(alpha: 0.25)),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(c.icon, color: c.color, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        c.value,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: c.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    c.label,
+                    style: TextStyle(fontSize: 9, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       child: Wrap(
         spacing: 12,
         runSpacing: 12,
-        children: [
-          _buildSummaryCard(
-            'En Producción',
-            '${state.futureInProduction}',
-            Icons.factory,
-            const Color(0xFFFF9800),
-            isCompact,
-          ),
-          _buildSummaryCard(
-            'Listas para Envío',
-            '${state.futureReady}',
-            Icons.check_circle,
-            const Color(0xFF4CAF50),
-            isCompact,
-          ),
-          if (overdueCount > 0)
-            _buildSummaryCard(
-              'Atrasadas',
-              '$overdueCount',
-              Icons.warning_amber_rounded,
-              const Color(0xFFC62828),
-              isCompact,
-            ),
-          _buildSummaryCard(
-            'En Ruta',
-            '${(state.summaryCounts['despachada'] ?? 0) + (state.summaryCounts['en_transito'] ?? 0)}',
-            Icons.local_shipping,
-            const Color(0xFF2196F3),
-            isCompact,
-          ),
-          _buildSummaryCard(
-            'Remisiones',
-            '${state.summaryCounts['total'] ?? 0}',
-            Icons.description,
-            const Color(0xFF9C27B0),
-            isCompact,
-          ),
-        ],
+        children: cards
+            .map(
+              (c) =>
+                  _buildSummaryCard(c.label, c.value, c.icon, c.color, false),
+            )
+            .toList(),
       ),
     );
   }
@@ -201,10 +250,13 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
     Color color,
     bool isCompact,
   ) {
-    final width = isCompact ? 140.0 : 170.0;
     return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      width: isCompact ? null : 170.0,
+      constraints: isCompact ? const BoxConstraints(minWidth: 100) : null,
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 10 : 14,
+        vertical: isCompact ? 8 : 12,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -311,7 +363,7 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
   // ═══════════════════════════════════════════════════════════
   // TAB 1: ENTREGAS FUTURAS
   // ═══════════════════════════════════════════════════════════
-  Widget _buildFutureDeliveriesTab(ShipmentsState state) {
+  Widget _buildFutureDeliveriesTab(ShipmentsState state, bool isCompact) {
     final deliveries = state.futureDeliveries;
     if (deliveries.isEmpty) {
       return _buildEmptyState(
@@ -323,7 +375,12 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+      padding: EdgeInsets.fromLTRB(
+        isCompact ? 12 : 24,
+        12,
+        isCompact ? 12 : 24,
+        24,
+      ),
       itemCount: deliveries.length,
       itemBuilder: (context, index) =>
           _buildFutureDeliveryCard(deliveries[index]),
@@ -543,7 +600,7 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            '${DateTime.now().difference(delivery.deliveryDate!).inDays}d atraso',
+                            '${ColombiaTime.now().difference(delivery.deliveryDate!).inDays}d atraso',
                             style: const TextStyle(
                               fontSize: 10,
                               color: Colors.white,
@@ -594,87 +651,190 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
       children: [
         // Toolbar
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
-          child: Row(
-            children: [
-              FilledButton.icon(
-                onPressed: () => _openCreateShipment(),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Nueva Remisión'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Filtro
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE0E0E0)),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: state.filterStatus,
-                    isDense: true,
-                    style: const TextStyle(fontSize: 13, color: Colors.black87),
-                    items: const [
-                      DropdownMenuItem(value: 'todos', child: Text('Todos')),
-                      DropdownMenuItem(
-                        value: 'borrador',
-                        child: Text('Borrador'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'despachada',
-                        child: Text('Despachada'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'entregada',
-                        child: Text('Entregada'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'anulada',
-                        child: Text('Anulada'),
-                      ),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) {
-                        ref.read(shipmentsProvider.notifier).setFilter(v);
-                      }
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Búsqueda
-              Expanded(
-                child: SizedBox(
-                  height: 36,
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Buscar...',
-                      hintStyle: const TextStyle(fontSize: 13),
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 0,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    style: const TextStyle(fontSize: 13),
-                    onChanged: (v) =>
-                        ref.read(shipmentsProvider.notifier).setSearch(v),
-                  ),
-                ),
-              ),
-            ],
+          padding: EdgeInsets.fromLTRB(
+            isCompact ? 12 : 24,
+            12,
+            isCompact ? 12 : 24,
+            8,
           ),
+          child: isCompact
+              ? Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 36,
+                            child: TextField(
+                              decoration: InputDecoration(
+                                hintText: 'Buscar...',
+                                hintStyle: const TextStyle(fontSize: 13),
+                                prefixIcon: const Icon(Icons.search, size: 18),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 0,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFE0E0E0),
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              style: const TextStyle(fontSize: 13),
+                              onChanged: (v) => ref
+                                  .read(shipmentsProvider.notifier)
+                                  .setSearch(v),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE0E0E0)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: state.filterStatus,
+                              isDense: true,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black87,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'todos',
+                                  child: Text('Todos'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'borrador',
+                                  child: Text('Borrador'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'despachada',
+                                  child: Text('Despachada'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'entregada',
+                                  child: Text('Entregada'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'anulada',
+                                  child: Text('Anulada'),
+                                ),
+                              ],
+                              onChanged: (v) {
+                                if (v != null) {
+                                  ref
+                                      .read(shipmentsProvider.notifier)
+                                      .setFilter(v);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FloatingActionButton.small(
+                          heroTag: 'newRemision',
+                          onPressed: () => _openCreateShipment(),
+                          backgroundColor: const Color(0xFF4CAF50),
+                          child: const Icon(Icons.add, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () => _openCreateShipment(),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Nueva Remisión'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF4CAF50),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: state.filterStatus,
+                          isDense: true,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black87,
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'todos',
+                              child: Text('Todos'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'borrador',
+                              child: Text('Borrador'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'despachada',
+                              child: Text('Despachada'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'entregada',
+                              child: Text('Entregada'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'anulada',
+                              child: Text('Anulada'),
+                            ),
+                          ],
+                          onChanged: (v) {
+                            if (v != null) {
+                              ref.read(shipmentsProvider.notifier).setFilter(v);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 36,
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Buscar...',
+                            hintStyle: const TextStyle(fontSize: 13),
+                            prefixIcon: const Icon(Icons.search, size: 18),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 0,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE0E0E0),
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                          style: const TextStyle(fontSize: 13),
+                          onChanged: (v) =>
+                              ref.read(shipmentsProvider.notifier).setSearch(v),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
         ),
         // Lista
         Expanded(
@@ -685,7 +845,12 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
                   subtitle: 'Crea tu primera remisión con el botón +',
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                  padding: EdgeInsets.fromLTRB(
+                    isCompact ? 12 : 24,
+                    4,
+                    isCompact ? 12 : 24,
+                    24,
+                  ),
                   itemCount: shipments.length,
                   itemBuilder: (context, index) =>
                       _buildShipmentCard(shipments[index], isCompact),
@@ -949,7 +1114,7 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
   // ═══════════════════════════════════════════════════════════
   // TAB 3: HISTORIAL
   // ═══════════════════════════════════════════════════════════
-  Widget _buildHistoryTab(ShipmentsState state) {
+  Widget _buildHistoryTab(ShipmentsState state, bool isCompact) {
     final history = state.historyShipments;
     if (history.isEmpty) {
       return _buildEmptyState(
@@ -960,7 +1125,12 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+      padding: EdgeInsets.fromLTRB(
+        isCompact ? 12 : 24,
+        12,
+        isCompact ? 12 : 24,
+        24,
+      ),
       itemCount: history.length,
       itemBuilder: (context, index) {
         final s = history[index];
@@ -1070,16 +1240,16 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
   // ACCIONES / DIALOGS
   // ═══════════════════════════════════════════════════════════
   void _openCreateShipment() {
+    final notifier = ref.read(shipmentsProvider.notifier);
+    final messenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => ShipmentFormDialog(
         onSave: (order) async {
-          final ok = await ref
-              .read(shipmentsProvider.notifier)
-              .createShipment(order);
-          if (ok && mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+          final ok = await notifier.createShipment(order);
+          if (ok) {
+            messenger.showSnackBar(
               const SnackBar(
                 content: Text('Remisión creada'),
                 backgroundColor: Color(0xFF43A047),
@@ -1109,9 +1279,8 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
         initialInvoiceNumber: delivery.invoiceNumber,
         initialItems: items.isNotEmpty ? items : null,
         onSave: (order) async {
-          final ok = await ref
-              .read(shipmentsProvider.notifier)
-              .createShipment(order);
+          final notifier2 = ref.read(shipmentsProvider.notifier);
+          final ok = await notifier2.createShipment(order);
           if (ok && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -1126,17 +1295,17 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
   }
 
   void _openEditShipment(ShipmentOrder shipment) {
+    final notifier = ref.read(shipmentsProvider.notifier);
+    final messenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => ShipmentFormDialog(
         existingShipment: shipment,
         onSave: (order) async {
-          final ok = await ref
-              .read(shipmentsProvider.notifier)
-              .updateShipment(order);
-          if (ok && mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+          final ok = await notifier.updateShipment(order);
+          if (ok) {
+            messenger.showSnackBar(
               const SnackBar(
                 content: Text('Remisión actualizada'),
                 backgroundColor: Color(0xFF43A047),
@@ -1149,22 +1318,21 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
   }
 
   void _confirmDispatch(ShipmentOrder shipment) {
+    final notifier = ref.read(shipmentsProvider.notifier);
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Despachar'),
         content: Text('¿Despachar remisión ${shipment.code}?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancelar'),
           ),
           FilledButton(
             onPressed: () async {
-              Navigator.pop(context);
-              await ref
-                  .read(shipmentsProvider.notifier)
-                  .dispatchShipment(shipment.id);
+              Navigator.pop(ctx);
+              await notifier.dispatchShipment(shipment.id);
             },
             child: const Text('Despachar'),
           ),
@@ -1174,10 +1342,11 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
   }
 
   void _confirmDelivery(ShipmentOrder shipment) {
+    final notifier = ref.read(shipmentsProvider.notifier);
     final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Confirmar Entrega'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1196,20 +1365,18 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancelar'),
           ),
           FilledButton(
             onPressed: () async {
-              Navigator.pop(context);
-              await ref
-                  .read(shipmentsProvider.notifier)
-                  .confirmDelivery(
-                    shipment.id,
-                    receivedBy: controller.text.trim().isNotEmpty
-                        ? controller.text.trim()
-                        : null,
-                  );
+              Navigator.pop(ctx);
+              await notifier.confirmDelivery(
+                shipment.id,
+                receivedBy: controller.text.trim().isNotEmpty
+                    ? controller.text.trim()
+                    : null,
+              );
             },
             child: const Text('Confirmar'),
           ),
@@ -1219,16 +1386,17 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
   }
 
   void _confirmCancel(ShipmentOrder shipment) {
+    final notifier = ref.read(shipmentsProvider.notifier);
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Anular Remisión'),
         content: Text(
           '¿Anular la remisión ${shipment.code}? Esta acción no se puede deshacer.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancelar'),
           ),
           FilledButton(
@@ -1236,10 +1404,8 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
               backgroundColor: const Color(0xFFC62828),
             ),
             onPressed: () async {
-              Navigator.pop(context);
-              await ref
-                  .read(shipmentsProvider.notifier)
-                  .cancelShipment(shipment.id);
+              Navigator.pop(ctx);
+              await notifier.cancelShipment(shipment.id);
             },
             child: const Text('Anular'),
           ),
@@ -1247,4 +1413,12 @@ class _ShipmentsPageState extends ConsumerState<ShipmentsPage>
       ),
     );
   }
+}
+
+class _SummaryData {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  const _SummaryData(this.label, this.value, this.icon, this.color);
 }

@@ -16,9 +16,14 @@ class AiAssistantDatasource {
   static Future<AiAssistantResponse> sendMessage({
     required String message,
     List<Map<String, String>> conversationHistory = const [],
+    String? systemPrompt,
   }) async {
     return _callFunction(
-      body: {'message': message, 'conversation_history': conversationHistory},
+      body: {
+        'message': message,
+        'conversation_history': conversationHistory,
+        if (systemPrompt != null) 'system_prompt': systemPrompt,
+      },
     );
   }
 

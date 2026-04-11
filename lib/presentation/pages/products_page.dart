@@ -9,6 +9,7 @@ import '../../data/datasources/inventory_datasource.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/material.dart' as mat;
 import '../widgets/recipe_dialog.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Página de Productos/Recetas
 /// Muestra productos que son plantillas (recetas) compuestas de materiales del inventario
@@ -1707,8 +1708,8 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                         : descCtrl.text,
                     totalWeight: totalWeight,
                     totalCost: materialCost,
-                    createdAt: product?.createdAt ?? DateTime.now(),
-                    updatedAt: DateTime.now(),
+                    createdAt: product?.createdAt ?? ColombiaTime.now(),
+                    updatedAt: ColombiaTime.now(),
                   );
 
                   String productId;
@@ -1789,8 +1790,8 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
       stock: 0,
       minStock: 0,
       unit: product.unit,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+      createdAt: ColombiaTime.now(),
+      updatedAt: ColombiaTime.now(),
     );
 
     await ref.read(productsProvider.notifier).createProduct(newProduct);

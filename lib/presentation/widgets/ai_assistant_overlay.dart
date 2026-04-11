@@ -20,23 +20,51 @@ class AiAssistantFab extends StatefulWidget {
   State<AiAssistantFab> createState() => _AiAssistantFabState();
 }
 
-class _AiAssistantFabState extends State<AiAssistantFab> {
+class _AiAssistantFabState extends State<AiAssistantFab>
+    with SingleTickerProviderStateMixin {
   static const _btnSize = 56.0;
+  static const _tabWidth = 24.0;
+  static const _tabHeight = 56.0;
   static const _margin = 12.0;
 
-  // null = aún no inicializado, se coloca abajo-derecha por defecto
+  // null = aún no inicializado
   double? _left;
   double? _top;
   bool _dragging = false;
+  bool _expanded = false; // solo mobile: tab expandido = muestra circulo
+
+  late final AnimationController _expandCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _expandCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+  }
+
+  @override
+  void dispose() {
+    _expandCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _isMobile => MediaQuery.of(context).size.width < 600;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Posición inicial: abajo-derecha
     if (_left == null || _top == null) {
       final size = MediaQuery.of(context).size;
-      _left = size.width - _btnSize - 20;
-      _top = size.height - _btnSize - 24;
+      if (_isMobile) {
+        // Tab pegado al borde derecho, centrado verticalmente
+        _left = size.width - _tabWidth;
+        _top = size.height * 0.45;
+      } else {
+        _left = size.width - _btnSize - 20;
+        _top = size.height - _btnSize - 24;
+      }
     }
   }
 
@@ -44,36 +72,105 @@ class _AiAssistantFabState extends State<AiAssistantFab> {
     final size = MediaQuery.of(context).size;
     setState(() {
       _dragging = true;
-      _left = (_left! + d.delta.dx).clamp(
-        _margin,
-        size.width - _btnSize - _margin,
-      );
-      _top = (_top! + d.delta.dy).clamp(
-        _margin,
-        size.height - _btnSize - _margin,
-      );
+      if (_isMobile && !_expanded) {
+        // Solo mover verticalmente cuando es tab
+        _top = (_top! + d.delta.dy).clamp(
+          _margin + 60,
+          size.height - _tabHeight - _margin - 60,
+        );
+      } else {
+        _left = (_left! + d.delta.dx).clamp(
+          _margin,
+          size.width - _btnSize - _margin,
+        );
+        _top = (_top! + d.delta.dy).clamp(
+          _margin,
+          size.height - _btnSize - _margin,
+        );
+      }
     });
   }
 
   void _onPanEnd(DragEndDetails _) {
-    // Snap al borde horizontal más cercano
     final size = MediaQuery.of(context).size;
-    final center = _left! + _btnSize / 2;
     setState(() {
       _dragging = false;
-      _left = center < size.width / 2
-          ? _margin
-          : size.width - _btnSize - _margin;
+      if (_isMobile && !_expanded) {
+        // El tab siempre se pega al borde mas cercano
+        final center = (_left ?? 0) + _tabWidth / 2;
+        _left = center < size.width / 2 ? 0.0 : size.width - _tabWidth;
+      } else {
+        final center = _left! + _btnSize / 2;
+        _left = center < size.width / 2
+            ? _margin
+            : size.width - _btnSize - _margin;
+      }
     });
+  }
+
+  void _toggleExpand() {
+    setState(() {
+      _expanded = !_expanded;
+      if (_expanded) {
+        // Mover del borde para mostrar circulo completo
+        final size = MediaQuery.of(context).size;
+        final isRight = (_left ?? 0) > size.width / 2;
+        _left = isRight ? size.width - _btnSize - _margin : _margin;
+        _expandCtrl.forward();
+      } else {
+        final size = MediaQuery.of(context).size;
+        final isRight = (_left ?? 0) > size.width / 2;
+        _left = isRight ? size.width - _tabWidth : 0.0;
+        _expandCtrl.reverse();
+      }
+    });
+  }
+
+  void _collapseIfMobile() {
+    if (_isMobile && _expanded) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (mounted) _toggleExpand();
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_left == null || _top == null) return const SizedBox.shrink();
-    // Clamp por si la ventana cambió de tamaño
     final size = MediaQuery.of(context).size;
-    final left = _left!.clamp(_margin, size.width - _btnSize - _margin);
-    final top = _top!.clamp(_margin, size.height - _btnSize - _margin);
+    final isMobile = _isMobile;
+
+    if (!isMobile) {
+      // Desktop: circulo normal draggable
+      final left = _left!.clamp(_margin, size.width - _btnSize - _margin);
+      final top = _top!.clamp(_margin, size.height - _btnSize - _margin);
+      return Positioned(
+        left: left,
+        top: top,
+        child: GestureDetector(
+          onPanUpdate: _onPanUpdate,
+          onPanEnd: _onPanEnd,
+          child: AnimatedContainer(
+            duration: _dragging
+                ? Duration.zero
+                : const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            child: _AiFab(onOpened: null),
+          ),
+        ),
+      );
+    }
+
+    // Mobile: tab colapsado o circulo expandido
+    final left = _left!.clamp(
+      _expanded ? _margin : 0.0,
+      _expanded ? size.width - _btnSize - _margin : size.width - _tabWidth,
+    );
+    final top = _top!.clamp(
+      _margin + 60,
+      size.height - (_expanded ? _btnSize : _tabHeight) - _margin - 60,
+    );
+
     return Positioned(
       left: left,
       top: top,
@@ -85,7 +182,51 @@ class _AiAssistantFabState extends State<AiAssistantFab> {
               ? Duration.zero
               : const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
-          child: _AiFab(),
+          child: _expanded
+              ? _AiFab(onOpened: _collapseIfMobile)
+              : _AiTab(onTap: _toggleExpand, isRight: left > size.width / 2),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tab lateral pequeño (flechita) para movil
+class _AiTab extends StatelessWidget {
+  final VoidCallback onTap;
+  final bool isRight;
+
+  const _AiTab({required this.onTap, required this.isRight});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 24,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [cs.primary, cs.tertiary],
+          ),
+          borderRadius: isRight
+              ? const BorderRadius.horizontal(left: Radius.circular(12))
+              : const BorderRadius.horizontal(right: Radius.circular(12)),
+          boxShadow: [
+            BoxShadow(
+              color: cs.primary.withOpacity(0.3),
+              blurRadius: 8,
+              offset: Offset(isRight ? -2 : 2, 0),
+            ),
+          ],
+        ),
+        child: Icon(
+          isRight ? Icons.chevron_left : Icons.chevron_right,
+          color: Colors.white,
+          size: 18,
         ),
       ),
     );
@@ -93,6 +234,8 @@ class _AiAssistantFabState extends State<AiAssistantFab> {
 }
 
 class _AiFab extends StatefulWidget {
+  final VoidCallback? onOpened;
+  const _AiFab({this.onOpened});
   @override
   State<_AiFab> createState() => _AiFabState();
 }
@@ -121,6 +264,7 @@ class _AiFabState extends State<_AiFab> with SingleTickerProviderStateMixin {
   }
 
   void _open() {
+    widget.onOpened?.call();
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -193,10 +337,10 @@ class _AiOverlayState extends ConsumerState<_AiOverlay>
   int _recordingSeconds = 0;
 
   static const _quickSuggestions = [
-    '¿Cómo va la caja hoy?',
+    '¿Qué tengo para hoy?',
+    '¿Qué vence esta semana?',
     '¿Cuánto nos deben?',
     'Resumen del mes',
-    'Stock bajo',
   ];
 
   @override
@@ -1087,6 +1231,12 @@ class _Bubble extends StatelessWidget {
                             height: 1.4,
                           ),
                         ),
+                        if (message.actionConfirmation != null &&
+                            !message.actionConfirmation!.confirmed)
+                          _ActionConfirmationCard(
+                            confirmation: message.actionConfirmation!,
+                            messageId: message.id,
+                          ),
                       ],
                     ),
             ),
@@ -1154,6 +1304,86 @@ class _TypingDotsState extends State<_TypingDots>
             }),
           );
         },
+      ),
+    );
+  }
+}
+
+// ─── Action confirmation card ─────────────────────────
+
+class _ActionConfirmationCard extends ConsumerWidget {
+  final ActionConfirmation confirmation;
+  final String messageId;
+
+  const _ActionConfirmationCard({
+    required this.confirmation,
+    required this.messageId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final notifier = ref.read(aiAssistantProvider.notifier);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: cs.primary.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.bolt, size: 14, color: cs.primary),
+              const SizedBox(width: 4),
+              Text(
+                'Accion propuesta',
+                style: tt.labelSmall?.copyWith(
+                  color: cs.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            confirmation.summary,
+            style: tt.bodySmall?.copyWith(color: cs.onPrimaryContainer),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => notifier.dismissAction(messageId),
+                  icon: const Icon(Icons.close, size: 14),
+                  label: const Text('Cancelar'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => notifier.confirmAction(messageId, context),
+                  icon: const Icon(Icons.check, size: 14),
+                  label: const Text('Confirmar'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

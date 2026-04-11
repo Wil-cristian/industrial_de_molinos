@@ -14,6 +14,7 @@ import '../../data/datasources/user_profile_datasource.dart';
 import '../../data/datasources/employees_datasource.dart';
 import '../../data/datasources/supabase_datasource.dart';
 import '../../core/utils/logger.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Pantalla de gestión de usuarios (solo admin)
 class UserManagementPage extends ConsumerStatefulWidget {
@@ -138,6 +139,7 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'userManagement',
         onPressed: () => _showCreateAccountDialog(context),
         icon: const Icon(Icons.person_add),
         label: const Text('Crear cuenta'),
@@ -534,7 +536,7 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
   }
 
   String _timeAgo(DateTime dt) {
-    final diff = DateTime.now().difference(dt.toLocal());
+    final diff = ColombiaTime.now().difference(dt.toLocal());
     if (diff.inSeconds < 60) return 'Ahora';
     if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
     if (diff.inHours < 24) return 'Hace ${diff.inHours}h';

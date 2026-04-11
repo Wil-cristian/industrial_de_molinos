@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../datasources/iva_datasource.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Estado del módulo IVA
 class IvaState {
@@ -90,7 +91,7 @@ class IvaNotifier extends Notifier<IvaState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       // Periodo actual
-      final currentPeriod = getBimonthlyPeriod(DateTime.now());
+      final currentPeriod = getBimonthlyPeriod(ColombiaTime.now());
       final period = state.selectedPeriod.isEmpty
           ? currentPeriod
           : state.selectedPeriod;
@@ -98,7 +99,7 @@ class IvaNotifier extends Notifier<IvaState> {
       // Cargar en paralelo
       final results = await Future.wait([
         IvaDataSource.getInvoices(period: period),
-        IvaDataSource.getConfig(DateTime.now().year),
+        IvaDataSource.getConfig(ColombiaTime.now().year),
         IvaDataSource.getBimonthlySummaries(),
         IvaDataSource.getSettlements(),
       ]);
@@ -220,7 +221,7 @@ class IvaNotifier extends Notifier<IvaState> {
   Future<void> _reloadInvoices() async {
     try {
       final period = state.selectedPeriod.isEmpty
-          ? getBimonthlyPeriod(DateTime.now())
+          ? getBimonthlyPeriod(ColombiaTime.now())
           : state.selectedPeriod;
       final invoices = await IvaDataSource.getInvoices(period: period);
       final summaries = await IvaDataSource.getBimonthlySummaries();

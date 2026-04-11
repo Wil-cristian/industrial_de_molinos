@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/employee.dart';
 import '../datasources/employees_datasource.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Estado de empleados
 class EmployeesState {
@@ -85,7 +86,7 @@ class EmployeesState {
 
   /// Tareas pendientes de hoy
   List<EmployeeTask> get todayTasks {
-    final today = DateTime.now();
+    final today = ColombiaTime.now();
     return tasks.where((t) {
       return t.assignedDate.year == today.year &&
           t.assignedDate.month == today.month &&
@@ -280,7 +281,7 @@ class EmployeesNotifier extends Notifier<EmployeesState> {
               description: t.description,
               assignedDate: t.assignedDate,
               dueDate: t.dueDate,
-              completedDate: DateTime.now(),
+              completedDate: ColombiaTime.now(),
               status: TaskStatus.completada,
               priority: t.priority,
               category: t.category,
@@ -289,7 +290,7 @@ class EmployeesNotifier extends Notifier<EmployeesState> {
               activityId: t.activityId,
               notes: t.notes,
               createdAt: t.createdAt,
-              updatedAt: DateTime.now(),
+              updatedAt: ColombiaTime.now(),
               assignedBy: t.assignedBy,
             );
           }
@@ -331,15 +332,15 @@ class EmployeesNotifier extends Notifier<EmployeesState> {
       );
       final entriesFuture = EmployeesDatasource.getTimeEntries(
         employeeId: employeeId,
-        startDate: DateTime.now().subtract(const Duration(days: 14)),
+        startDate: ColombiaTime.now().subtract(const Duration(days: 14)),
       );
       final adjustmentsFuture = EmployeesDatasource.getTimeAdjustments(
         employeeId: employeeId,
-        startDate: DateTime.now().subtract(const Duration(days: 30)),
+        startDate: ColombiaTime.now().subtract(const Duration(days: 30)),
       );
       final logsFuture = EmployeesDatasource.getTaskTimeLogs(
         employeeId: employeeId,
-        startDate: DateTime.now().subtract(const Duration(days: 30)),
+        startDate: ColombiaTime.now().subtract(const Duration(days: 30)),
       );
 
       final results = await Future.wait([
@@ -528,7 +529,7 @@ class EmployeesNotifier extends Notifier<EmployeesState> {
               source: e.source,
               notes: e.notes,
               createdAt: e.createdAt,
-              updatedAt: DateTime.now(),
+              updatedAt: ColombiaTime.now(),
             );
           }
           return e;

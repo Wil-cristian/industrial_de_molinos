@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/utils/logger.dart';
@@ -94,7 +95,7 @@ class ShipmentsDataSource {
     } catch (e) {
       AppLogger.error('Error obteniendo código de remisión: $e');
       // Fallback: generar basado en timestamp
-      final ts = DateTime.now().millisecondsSinceEpoch;
+      final ts = ColombiaTime.now().millisecondsSinceEpoch;
       return 'REM-${ts.toString().substring(ts.toString().length - 5)}';
     }
   }
@@ -191,7 +192,7 @@ class ShipmentsDataSource {
     try {
       final data = <String, dynamic>{'status': status};
       if (status == 'entregada') {
-        data['delivered_at'] = DateTime.now().toIso8601String();
+        data['delivered_at'] = ColombiaTime.nowIso8601();
         if (receivedBy != null) data['received_by'] = receivedBy;
       }
 

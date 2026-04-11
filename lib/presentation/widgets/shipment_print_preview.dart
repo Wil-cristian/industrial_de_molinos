@@ -423,14 +423,19 @@ class ShipmentPrintService {
       cellStyle: const pw.TextStyle(fontSize: 9),
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       cellAlignment: pw.Alignment.centerLeft,
+      columnWidths: {
+        0: const pw.FixedColumnWidth(22),  // #
+        7: const pw.FixedColumnWidth(28),  // Ok
+      },
       headers: [
         '#',
         'Tipo',
-        'Descripción',
+        'Descripcion',
         'Cant.',
         'Unid.',
         'Peso (kg)',
         'Dimensiones',
+        'Ok',
       ],
       data: items.asMap().entries.map((entry) {
         final i = entry.value;
@@ -444,6 +449,7 @@ class ShipmentPrintService {
           i.unit,
           i.weightKg != null ? i.weightKg!.toStringAsFixed(1) : '-',
           i.dimensions ?? '-',
+          '[ ]',
         ];
       }).toList(),
     );

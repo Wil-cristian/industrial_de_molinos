@@ -16,6 +16,8 @@ import '../../data/datasources/composite_products_datasource.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/quotation.dart';
 import '../../domain/entities/material.dart' as domain;
+import '../../core/responsive/responsive_helper.dart';
+import '../../core/utils/colombia_time.dart';
 
 class NewQuotationPage extends ConsumerStatefulWidget {
   final String? quotationId;
@@ -41,6 +43,8 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
 
   // Costos adicionales
   final _laborPercentController = TextEditingController(text: '15');
+  final _laborFixedController = TextEditingController(text: '0');
+  bool _laborIsPercent = true; // true = %, false = valor fijo
   final _indirectCostsController = TextEditingController(text: '0');
   final _profitMarginController = TextEditingController(text: '20');
   final _discountController = TextEditingController(text: '0'); // Descuento
@@ -98,8 +102,12 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
     (sum, item) => sum + (item['totalWeight'] as double? ?? 0),
   );
   double get _laborCost {
-    final percent = double.tryParse(_laborPercentController.text) ?? 0;
-    return _materialsCost * (percent / 100);
+    if (_laborIsPercent) {
+      final percent = double.tryParse(_laborPercentController.text) ?? 0;
+      return _materialsCost * (percent / 100);
+    } else {
+      return double.tryParse(_laborFixedController.text) ?? 0;
+    }
   }
 
   double get _indirectCosts =>
@@ -240,6 +248,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
   void dispose() {
     _customerController.dispose();
     _laborPercentController.dispose();
+    _laborFixedController.dispose();
     _indirectCostsController.dispose();
     _profitMarginController.dispose();
     _discountController.dispose();
@@ -266,155 +275,191 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
       );
     }
 
+    final isMobile = ResponsiveHelper.isMobile(context);
+
+    final mainContent = Column(
+      children: [
+        _buildHeader(),
+        Expanded(
+          child: Form(
+            key: _formKey,
+            child: Stepper(
+              currentStep: _currentStep,
+              onStepContinue: _onStepContinue,
+              onStepCancel: _onStepCancel,
+              onStepTapped: (step) => setState(() => _currentStep = step),
+              controlsBuilder: (context, details) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      if (_currentStep < 3)
+                        ElevatedButton(
+                          onPressed: details.onStepContinue,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
+                          ),
+                          child: const Text('Continuar'),
+                        ),
+                      if (_currentStep == 3) ...[
+                        ElevatedButton.icon(
+                          onPressed: _showPreviewDialog,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1565C0),
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isMobile ? 16 : 24,
+                              vertical: 12,
+                            ),
+                          ),
+                          icon: const Icon(Icons.preview, size: 18),
+                          label: Text(isMobile ? 'Preview' : 'Previsualizar'),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: _saveQuotation,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.success,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isMobile ? 16 : 24,
+                              vertical: 12,
+                            ),
+                          ),
+                          icon: const Icon(Icons.save, size: 18),
+                          label: Text(
+                            isMobile ? 'Guardar' : 'Guardar Cotización',
+                          ),
+                        ),
+                      ],
+                      if (_currentStep > 0)
+                        TextButton(
+                          onPressed: details.onStepCancel,
+                          child: const Text('Atrás'),
+                        ),
+                    ],
+                  ),
+                );
+              },
+              steps: [
+                Step(
+                  title: const Text('Cliente'),
+                  subtitle: Text(
+                    _selectedCustomerId != null
+                        ? _customers.firstWhere(
+                            (c) => c['id'] == _selectedCustomerId,
+                          )['name']
+                        : 'Selecciona un cliente',
+                  ),
+                  isActive: _currentStep >= 0,
+                  state: _currentStep > 0
+                      ? StepState.complete
+                      : StepState.indexed,
+                  content: _buildCustomerStep(),
+                ),
+                Step(
+                  title: const Text('Componentes'),
+                  subtitle: Text(
+                    '${_items.length} items - ${Helpers.formatNumber(_totalWeight)} kg',
+                  ),
+                  isActive: _currentStep >= 1,
+                  state: _currentStep > 1
+                      ? StepState.complete
+                      : StepState.indexed,
+                  content: _buildComponentsStep(),
+                ),
+                Step(
+                  title: const Text('Costos Adicionales'),
+                  subtitle: Text(
+                    'M.O. + Indirectos: ${Helpers.formatCurrency(_laborCost + _indirectCosts)}',
+                  ),
+                  isActive: _currentStep >= 2,
+                  state: _currentStep > 2
+                      ? StepState.complete
+                      : StepState.indexed,
+                  content: _buildCostsStep(),
+                ),
+                Step(
+                  title: const Text('Resumen y Confirmación'),
+                  subtitle: Text('Total: ${Helpers.formatCurrency(_total)}'),
+                  isActive: _currentStep >= 3,
+                  state: _currentStep == 3
+                      ? StepState.indexed
+                      : StepState.indexed,
+                  content: _buildSummaryStep(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       body: SafeArea(
-        child: Row(
-          children: [
-            // Panel lateral con resumen - REDUCIDO A 280
-            Container(
-              width: 280,
-              color: Colors.white,
-              child: _buildSummaryPanel(),
-            ),
-            // Contenido principal
-            Expanded(
-              child: Column(
+        child: isMobile
+            ? mainContent
+            : Row(
                 children: [
-                  _buildHeader(),
-                  Expanded(
-                    child: Form(
-                      key: _formKey,
-                      child: Stepper(
-                        currentStep: _currentStep,
-                        onStepContinue: _onStepContinue,
-                        onStepCancel: _onStepCancel,
-                        onStepTapped: (step) =>
-                            setState(() => _currentStep = step),
-                        controlsBuilder: (context, details) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: Row(
-                              children: [
-                                if (_currentStep < 3)
-                                  ElevatedButton(
-                                    onPressed: details.onStepContinue,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 20,
-                                        vertical: 10,
-                                      ),
-                                    ),
-                                    child: const Text('Continuar'),
-                                  ),
-                                if (_currentStep == 3) ...[
-                                  ElevatedButton.icon(
-                                    onPressed: _showPreviewDialog,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1565C0),
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                        vertical: 12,
-                                      ),
-                                    ),
-                                    icon: const Icon(Icons.preview),
-                                    label: const Text('Previsualizar'),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  ElevatedButton.icon(
-                                    onPressed: _saveQuotation,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.success,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                        vertical: 12,
-                                      ),
-                                    ),
-                                    icon: const Icon(Icons.save),
-                                    label: const Text('Guardar Cotización'),
-                                  ),
-                                ],
-                                const SizedBox(width: 12),
-                                if (_currentStep > 0)
-                                  TextButton(
-                                    onPressed: details.onStepCancel,
-                                    child: const Text('Atrás'),
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
-                        steps: [
-                          Step(
-                            title: const Text('Cliente'),
-                            subtitle: Text(
-                              _selectedCustomerId != null
-                                  ? _customers.firstWhere(
-                                      (c) => c['id'] == _selectedCustomerId,
-                                    )['name']
-                                  : 'Selecciona un cliente',
-                            ),
-                            isActive: _currentStep >= 0,
-                            state: _currentStep > 0
-                                ? StepState.complete
-                                : StepState.indexed,
-                            content: _buildCustomerStep(),
-                          ),
-                          Step(
-                            title: const Text('Componentes'),
-                            subtitle: Text(
-                              '${_items.length} items - ${Helpers.formatNumber(_totalWeight)} kg',
-                            ),
-                            isActive: _currentStep >= 1,
-                            state: _currentStep > 1
-                                ? StepState.complete
-                                : StepState.indexed,
-                            content: _buildComponentsStep(),
-                          ),
-                          Step(
-                            title: const Text('Costos Adicionales'),
-                            subtitle: Text(
-                              'M.O. + Indirectos: ${Helpers.formatCurrency(_laborCost + _indirectCosts)}',
-                            ),
-                            isActive: _currentStep >= 2,
-                            state: _currentStep > 2
-                                ? StepState.complete
-                                : StepState.indexed,
-                            content: _buildCostsStep(),
-                          ),
-                          Step(
-                            title: const Text('Resumen y Confirmación'),
-                            subtitle: Text(
-                              'Total: ${Helpers.formatCurrency(_total)}',
-                            ),
-                            isActive: _currentStep >= 3,
-                            state: _currentStep == 3
-                                ? StepState.indexed
-                                : StepState.indexed,
-                            content: _buildSummaryStep(),
-                          ),
-                        ],
-                      ),
-                    ),
+                  Container(
+                    width: 280,
+                    color: Colors.white,
+                    child: _buildSummaryPanel(),
                   ),
+                  Expanded(child: mainContent),
                 ],
               ),
-            ),
-          ],
-        ),
       ),
+      floatingActionButton: isMobile
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 80),
+              child: FloatingActionButton.small(
+                heroTag: 'newQuotation',
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                    ),
+                    builder: (_) => DraggableScrollableSheet(
+                      initialChildSize: 0.6,
+                      maxChildSize: 0.9,
+                      minChildSize: 0.3,
+                      expand: false,
+                      builder: (_, controller) => SingleChildScrollView(
+                        controller: controller,
+                        child: _buildSummaryPanel(),
+                      ),
+                    ),
+                  );
+                },
+                child: const Icon(Icons.receipt_long, size: 20),
+              ),
+            )
+          : null,
     );
   }
 
   Widget _buildHeader() {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 20,
+        vertical: isMobile ? 10 : 20,
+      ),
       color: Colors.white,
       child: Row(
         children: [
@@ -422,8 +467,9 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
             onPressed: () => context.go('/quotations'),
             icon: const Icon(Icons.arrow_back),
             tooltip: 'Volver',
+            visualDensity: isMobile ? VisualDensity.compact : null,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -433,25 +479,34 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.primary,
+                    fontSize: isMobile ? 18 : null,
                   ),
                 ),
-                Text(
-                  widget.isEditMode
-                      ? 'Modifique los datos de la cotización'
-                      : 'Complete los pasos para crear la cotización',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 14,
+                if (!isMobile)
+                  Text(
+                    widget.isEditMode
+                        ? 'Modifique los datos de la cotización'
+                        : 'Complete los pasos para crear la cotización',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
-          OutlinedButton.icon(
-            onPressed: () => context.go('/quotations'),
-            icon: const Icon(Icons.close),
-            label: const Text('Cancelar'),
-          ),
+          if (isMobile)
+            IconButton(
+              onPressed: () => context.go('/quotations'),
+              icon: const Icon(Icons.close),
+              tooltip: 'Cancelar',
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: () => context.go('/quotations'),
+              icon: const Icon(Icons.close),
+              label: const Text('Cancelar'),
+            ),
         ],
       ),
     );
@@ -1248,6 +1303,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _selectedCustomerId,
           decoration: InputDecoration(
             labelText: 'Cliente',
@@ -1311,7 +1367,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                         ),
                         Text(
                           Helpers.formatDate(
-                            DateTime.now().add(
+                            ColombiaTime.now().add(
                               Duration(
                                 days:
                                     int.tryParse(_validDaysController.text) ??
@@ -1341,36 +1397,82 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
 
   // PASO 2: Agregar componentes
   Widget _buildComponentsStep() {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Productos / Servicios',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        if (isMobile) ...[
+          Text(
+            'Productos / Servicios',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _showAddMaterialDialog(
+                    ref.read(inventoryProvider).materials,
+                  ),
+                  icon: const Icon(Icons.inventory_2_outlined, size: 16),
+                  label: const Text('Material', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                  ),
+                ),
               ),
-            ),
-            OutlinedButton.icon(
-              onPressed: () =>
-                  _showAddMaterialDialog(ref.read(inventoryProvider).materials),
-              icon: const Icon(Icons.inventory_2_outlined, size: 18),
-              label: const Text('Agregar Material'),
-            ),
-            const SizedBox(width: 12),
-            FilledButton.icon(
-              onPressed: _showSelectProductDialog,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Agregar Producto'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _showSelectProductDialog,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Producto', style: TextStyle(fontSize: 12)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ] else
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Productos / Servicios',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _showAddMaterialDialog(
+                  ref.read(inventoryProvider).materials,
+                ),
+                icon: const Icon(Icons.inventory_2_outlined, size: 18),
+                label: const Text('Agregar Material'),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                onPressed: _showSelectProductDialog,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Agregar Producto'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
         const SizedBox(height: 16),
         if (_items.isEmpty)
           Container(
@@ -1418,198 +1520,304 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
             ),
             child: Column(
               children: [
-                // Header de la tabla - COMPACTO
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(5),
-                    ),
-                  ),
-                  child: const Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          'Componente',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
+                if (isMobile)
+                  // Mobile: card layout for each item
+                  ..._items.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
                       ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          'Material',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Cant.',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Peso',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'P/kg',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Total',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                      SizedBox(width: 36),
-                    ],
-                  ),
-                ),
-                // Items - COMPACTO
-                ..._items.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: Theme.of(context).colorScheme.outlineVariant,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item['name'],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              Text(
-                                item['dimensions'] ?? '',
-                                style: TextStyle(
-                                  fontSize: 10,
+                      decoration: BoxDecoration(
+                        border: index > 0
+                            ? Border(
+                                top: BorderSide(
                                   color: Theme.of(
                                     context,
-                                  ).colorScheme.onSurfaceVariant,
+                                  ).colorScheme.outlineVariant,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            item['material'] ?? '-',
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            '${item['quantity']}',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            Helpers.formatNumber(
-                              item['totalWeight'] as double? ?? 0,
+                              )
+                            : null,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${item['quantity']}× ${item['name']}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if ((item['material']?.toString().isNotEmpty ??
+                                    false))
+                                  Text(
+                                    item['material'],
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      '${Helpers.formatNumber(item['totalWeight'] as double? ?? 0)} kg',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'P/kg: ${Helpers.formatCurrency(item['pricePerKg'] as double? ?? item['unitSalePrice'] as double? ?? 0)}',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(fontSize: 11),
                           ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            Helpers.formatCurrency(
-                              item['pricePerKg'] as double? ??
-                                  item['unitSalePrice'] as double? ??
-                                  0,
-                            ),
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
+                          const SizedBox(width: 4),
+                          Text(
                             Helpers.formatCurrency(
                               item['totalPrice'] as double? ?? 0,
                             ),
-                            textAlign: TextAlign.right,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
                             ),
                           ),
-                        ),
-                        SizedBox(
-                          width: 36,
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Color(0xFFC62828),
-                              size: 18,
+                          SizedBox(
+                            width: 28,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Color(0xFFC62828),
+                                size: 16,
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                setState(() => _items.removeAt(index));
+                                _refreshConsolidatedStock();
+                              },
                             ),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () {
-                              setState(() => _items.removeAt(index));
-                              _refreshConsolidatedStock();
-                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  })
+                else ...[
+                  // Desktop: table header
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(5),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            'Componente',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'Material',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'Cant.',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'Peso',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'P/kg',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'Total',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        SizedBox(width: 36),
                       ],
                     ),
-                  );
-                }),
+                  ),
+                  // Items - COMPACTO
+                  ..._items.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item['name'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  item['dimensions'] ?? '',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              item['material'] ?? '-',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              '${item['quantity']}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              Helpers.formatNumber(
+                                item['totalWeight'] as double? ?? 0,
+                              ),
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              Helpers.formatCurrency(
+                                item['pricePerKg'] as double? ??
+                                    item['unitSalePrice'] as double? ??
+                                    0,
+                              ),
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              Helpers.formatCurrency(
+                                item['totalPrice'] as double? ?? 0,
+                              ),
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 36,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Color(0xFFC62828),
+                                size: 18,
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                setState(() => _items.removeAt(index));
+                                _refreshConsolidatedStock();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ], // end desktop else
                 // Total - COMPACTO
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 10 : 12,
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
@@ -1623,54 +1831,93 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                       ),
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        flex: 3,
-                        child: Text(
-                          'TOTAL',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
+                  child: isMobile
+                      ? Row(
+                          children: [
+                            const Text(
+                              'TOTAL',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${_items.length} items',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${Helpers.formatNumber(_totalWeight)} kg',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              Helpers.formatCurrency(_materialsCost),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            const Expanded(
+                              flex: 3,
+                              child: Text(
+                                'TOTAL',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            const Expanded(flex: 2, child: SizedBox()),
+                            Expanded(
+                              child: Text(
+                                '${_items.length}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '${Helpers.formatNumber(_totalWeight)} kg',
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                            const Expanded(child: SizedBox()),
+                            Expanded(
+                              child: Text(
+                                Helpers.formatCurrency(_materialsCost),
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 36),
+                          ],
                         ),
-                      ),
-                      const Expanded(flex: 2, child: SizedBox()),
-                      Expanded(
-                        child: Text(
-                          '${_items.length}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          '${Helpers.formatNumber(_totalWeight)} kg',
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      const Expanded(child: SizedBox()),
-                      Expanded(
-                        child: Text(
-                          Helpers.formatCurrency(_materialsCost),
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 36),
-                    ],
-                  ),
                 ),
               ],
             ),
@@ -1681,12 +1928,13 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
 
   // PASO 3: Costos adicionales
   Widget _buildCostsStep() {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Mano de obra
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isMobile ? 12 : 16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -1694,68 +1942,240 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
               color: Theme.of(context).colorScheme.outlineVariant,
             ),
           ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.engineering,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Mano de Obra',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(width: 16),
-              SizedBox(
-                width: 100,
-                child: TextFormField(
-                  controller: _laborPercentController,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                    suffixText: '%',
-                    hintText: '15',
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+          child: isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.engineering,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Mano de Obra',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _QuotationLaborModeButton(
+                                label: '%',
+                                selected: _laborIsPercent,
+                                onTap: () =>
+                                    setState(() => _laborIsPercent = true),
+                              ),
+                              _QuotationLaborModeButton(
+                                label: '\$',
+                                selected: !_laborIsPercent,
+                                onTap: () =>
+                                    setState(() => _laborIsPercent = false),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            Helpers.formatCurrency(_laborCost),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Color(0xFF388E3C),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                    const SizedBox(height: 8),
+                    if (_laborIsPercent)
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 80,
+                            child: TextFormField(
+                              controller: _laborPercentController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              decoration: InputDecoration(
+                                suffixText: '%',
+                                hintText: '15',
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 10,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'del costo de materiales',
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      TextFormField(
+                        controller: _laborFixedController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Valor fijo de mano de obra',
+                          prefixText: '\$ ',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Icon(
+                      Icons.engineering,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                  ),
-                  onChanged: (_) => setState(() {}),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Mano de Obra',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _QuotationLaborModeButton(
+                            label: '%',
+                            selected: _laborIsPercent,
+                            onTap: () => setState(() => _laborIsPercent = true),
+                          ),
+                          _QuotationLaborModeButton(
+                            label: '\$',
+                            selected: !_laborIsPercent,
+                            onTap: () =>
+                                setState(() => _laborIsPercent = false),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    if (_laborIsPercent) ...[
+                      SizedBox(
+                        width: 100,
+                        child: TextFormField(
+                          controller: _laborPercentController,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          decoration: InputDecoration(
+                            suffixText: '%',
+                            hintText: '15',
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'del costo de materiales',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ] else ...[
+                      SizedBox(
+                        width: 200,
+                        child: TextFormField(
+                          controller: _laborFixedController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Valor fijo',
+                            prefixText: '\$ ',
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        Helpers.formatCurrency(_laborCost),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: const Color(0xFF388E3C),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'del costo de materiales',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 13,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  Helpers.formatCurrency(_laborCost),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: const Color(0xFF388E3C),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
         const SizedBox(height: 16),
         // Costos indirectos
@@ -1802,7 +2222,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
         const SizedBox(height: 16),
         // Margen de ganancia
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isMobile ? 12 : 16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -1815,70 +2235,143 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.trending_up, color: const Color(0xFF1976D2)),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Margen de Ganancia',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  Icon(
+                    Icons.trending_up,
+                    color: const Color(0xFF1976D2),
+                    size: isMobile ? 20 : 24,
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _profitMarginController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Porcentaje de ganancia',
-                        suffixText: '%',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Margen de Ganancia',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: isMobile ? 14 : 16,
+                    ),
+                  ),
+                  if (isMobile) ...[
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        Helpers.formatCurrency(_profitAmount),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: Color(0xFF1976D2),
                         ),
                       ),
-                      onChanged: (_) => setState(() {}),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Slider(
-                      value:
-                          double.tryParse(_profitMarginController.text) ?? 20,
-                      min: 0,
-                      max: 50,
-                      divisions: 50,
-                      label: '${_profitMarginController.text}%',
-                      onChanged: (value) {
-                        setState(() {
-                          _profitMarginController.text = value.toStringAsFixed(
-                            0,
-                          );
-                        });
-                      },
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE3F2FD),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text('Ganancia', style: TextStyle(fontSize: 12)),
-                        Text(
-                          Helpers.formatCurrency(_profitAmount),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1976D2),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ],
               ),
+              const SizedBox(height: 12),
+              if (isMobile) ...[
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 80,
+                      child: TextFormField(
+                        controller: _profitMarginController,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          suffixText: '%',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value:
+                            double.tryParse(_profitMarginController.text) ?? 20,
+                        min: 0,
+                        max: 50,
+                        divisions: 50,
+                        label: '${_profitMarginController.text}%',
+                        onChanged: (value) {
+                          setState(() {
+                            _profitMarginController.text = value
+                                .toStringAsFixed(0);
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _profitMarginController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Porcentaje de ganancia',
+                          suffixText: '%',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Slider(
+                        value:
+                            double.tryParse(_profitMarginController.text) ?? 20,
+                        min: 0,
+                        max: 50,
+                        divisions: 50,
+                        label: '${_profitMarginController.text}%',
+                        onChanged: (value) {
+                          setState(() {
+                            _profitMarginController.text = value
+                                .toStringAsFixed(0);
+                          });
+                        },
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Ganancia',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          Text(
+                            Helpers.formatCurrency(_profitAmount),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1976D2),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ], // end desktop profit margin else
             ],
           ),
         ),
@@ -1898,76 +2391,147 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.discount, color: const Color(0xFFD32F2F)),
+                  Icon(
+                    Icons.discount,
+                    color: const Color(0xFFD32F2F),
+                    size: isMobile ? 20 : 24,
+                  ),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     'Descuento',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: isMobile ? 14 : 16,
+                    ),
                   ),
                   const Spacer(),
-                  Text(
-                    '(Opcional)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _discountController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Porcentaje de descuento',
-                        suffixText: '%',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                  if (isMobile)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFEBEE),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '- ${Helpers.formatCurrency(_discountAmount)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: Color(0xFFD32F2F),
                         ),
                       ),
-                      onChanged: (_) => setState(() {}),
+                    )
+                  else
+                    Text(
+                      '(Opcional)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Slider(
-                      value: double.tryParse(_discountController.text) ?? 0,
-                      min: 0,
-                      max: 30,
-                      divisions: 30,
-                      label: '${_discountController.text}%',
-                      activeColor: const Color(0xFFEF5350),
-                      onChanged: (value) {
-                        setState(() {
-                          _discountController.text = value.toStringAsFixed(0);
-                        });
-                      },
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEBEE),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text('Descuento', style: TextStyle(fontSize: 12)),
-                        Text(
-                          '- ${Helpers.formatCurrency(_discountAmount)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFD32F2F),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
+              const SizedBox(height: 12),
+              if (isMobile)
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 80,
+                      child: TextFormField(
+                        controller: _discountController,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          suffixText: '%',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value: double.tryParse(_discountController.text) ?? 0,
+                        min: 0,
+                        max: 30,
+                        divisions: 30,
+                        label: '${_discountController.text}%',
+                        activeColor: const Color(0xFFEF5350),
+                        onChanged: (value) {
+                          setState(() {
+                            _discountController.text = value.toStringAsFixed(0);
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _discountController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Porcentaje de descuento',
+                          suffixText: '%',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Slider(
+                        value: double.tryParse(_discountController.text) ?? 0,
+                        min: 0,
+                        max: 30,
+                        divisions: 30,
+                        label: '${_discountController.text}%',
+                        activeColor: const Color(0xFFEF5350),
+                        onChanged: (value) {
+                          setState(() {
+                            _discountController.text = value.toStringAsFixed(0);
+                          });
+                        },
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFEBEE),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Descuento',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          Text(
+                            '- ${Helpers.formatCurrency(_discountAmount)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFD32F2F),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -2477,7 +3041,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
             (item) => QuotationItem(
               id:
                   item['id'] ??
-                  DateTime.now().millisecondsSinceEpoch.toString(),
+                  ColombiaTime.now().millisecondsSinceEpoch.toString(),
               name: item['name'] ?? '',
               description: item['dimensions'] ?? '',
               type: item['type'] ?? 'custom',
@@ -2505,8 +3069,8 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
       final quotation = Quotation(
         id: _editQuotationId ?? '', // Usar ID existente si es edición
         number: '', // Se genera en el servidor (solo para nuevas)
-        date: DateTime.now(),
-        validUntil: DateTime.now().add(Duration(days: validDays)),
+        date: ColombiaTime.now(),
+        validUntil: ColombiaTime.now().add(Duration(days: validDays)),
         customerId: _selectedCustomerId!,
         customerName: customer['name'] ?? '',
         status: 'Borrador',
@@ -2518,7 +3082,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
         otherCosts: _indirectCosts,
         profitMargin: double.tryParse(_profitMarginController.text) ?? 20,
         notes: _notesController.text,
-        createdAt: DateTime.now(),
+        createdAt: ColombiaTime.now(),
       );
 
       if (widget.isEditMode) {
@@ -2624,16 +3188,41 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
   }
 
   void _showAddMaterialDialog(List<domain.Material> materials) {
-    showDialog(
-      context: context,
-      builder: (context) => _AddMaterialFromInventoryDialog(
-        materials: materials,
-        onAdd: (materialData) {
-          setState(() => _items.add(materialData));
-          _refreshConsolidatedStock();
-        },
-      ),
-    );
+    final isMobile = ResponsiveHelper.isMobile(context);
+    if (isMobile) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (_) => DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          maxChildSize: 0.95,
+          minChildSize: 0.5,
+          expand: false,
+          builder: (ctx, controller) => _AddMaterialFromInventorySheet(
+            materials: materials,
+            scrollController: controller,
+            onAdd: (materialData) {
+              setState(() => _items.add(materialData));
+              _refreshConsolidatedStock();
+            },
+          ),
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => _AddMaterialFromInventoryDialog(
+          materials: materials,
+          onAdd: (materialData) {
+            setState(() => _items.add(materialData));
+            _refreshConsolidatedStock();
+          },
+        ),
+      );
+    }
   }
 
   void _showPreviewDialog() {
@@ -2757,7 +3346,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
 
             // Agregar producto del inventario como item
             _items.add({
-              'id': DateTime.now().millisecondsSinceEpoch.toString(),
+              'id': ColombiaTime.now().millisecondsSinceEpoch.toString(),
               'productId': product.id,
               'name': product.name,
               'type': 'product', // Tipo válido del ENUM
@@ -2927,232 +3516,248 @@ class _AddComponentDialogState extends State<_AddComponentDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: 600,
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.add_box,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Agregar Componente',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              // Tipo de componente
-              const Text(
-                'Tipo de componente',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(
-                    value: 'cylinder',
-                    label: Text('Cilindro'),
-                    icon: Icon(Icons.circle_outlined),
-                  ),
-                  ButtonSegment(
-                    value: 'circular_plate',
-                    label: Text('Tapa'),
-                    icon: Icon(Icons.lens),
-                  ),
-                  ButtonSegment(
-                    value: 'rectangular_plate',
-                    label: Text('Lámina'),
-                    icon: Icon(Icons.rectangle_outlined),
-                  ),
-                  ButtonSegment(
-                    value: 'shaft',
-                    label: Text('Eje'),
-                    icon: Icon(Icons.horizontal_rule),
-                  ),
-                  ButtonSegment(
-                    value: 'custom',
-                    label: Text('Manual'),
-                    icon: Icon(Icons.edit),
-                  ),
-                ],
-                selected: {_componentType},
-                onSelectionChanged: (selection) {
-                  setState(() {
-                    _componentType = selection.first;
-                    _calculatedWeight = 0;
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-              // Nombre del componente
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Nombre del componente',
-                  hintText: _getHintForType(),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Material
-              DropdownButtonFormField<String>(
-                initialValue: _selectedMaterialId,
-                decoration: InputDecoration(
-                  labelText: 'Material',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                items: widget.materialPrices
-                    .map(
-                      (m) => DropdownMenuItem(
-                        value: m['id'] as String,
-                        child: Text('${m['name']} - \$ ${m['pricePerKg']}/kg'),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 600,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        child: Container(
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.add_box,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Agregar Componente',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  setState(() => _selectedMaterialId = value);
-                  _calculateWeight();
-                },
-              ),
-              const SizedBox(height: 16),
-              // Dimensiones según tipo
-              _buildDimensionsFields(),
-              const SizedBox(height: 16),
-              // Cantidad
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _quantityController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Cantidad',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                // Tipo de componente
+                const Text(
+                  'Tipo de componente',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'cylinder',
+                      label: Text('Cilindro'),
+                      icon: Icon(Icons.circle_outlined),
+                    ),
+                    ButtonSegment(
+                      value: 'circular_plate',
+                      label: Text('Tapa'),
+                      icon: Icon(Icons.lens),
+                    ),
+                    ButtonSegment(
+                      value: 'rectangular_plate',
+                      label: Text('Lámina'),
+                      icon: Icon(Icons.rectangle_outlined),
+                    ),
+                    ButtonSegment(
+                      value: 'shaft',
+                      label: Text('Eje'),
+                      icon: Icon(Icons.horizontal_rule),
+                    ),
+                    ButtonSegment(
+                      value: 'custom',
+                      label: Text('Manual'),
+                      icon: Icon(Icons.edit),
+                    ),
+                  ],
+                  selected: {_componentType},
+                  onSelectionChanged: (selection) {
+                    setState(() {
+                      _componentType = selection.first;
+                      _calculatedWeight = 0;
+                    });
+                  },
+                ),
+                const SizedBox(height: 20),
+                // Nombre del componente
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Nombre del componente',
+                    hintText: _getHintForType(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Material
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  initialValue: _selectedMaterialId,
+                  decoration: InputDecoration(
+                    labelText: 'Material',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  items: widget.materialPrices
+                      .map(
+                        (m) => DropdownMenuItem(
+                          value: m['id'] as String,
+                          child: Text(
+                            '${m['name']} - \$ ${m['pricePerKg']}/kg',
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() => _selectedMaterialId = value);
+                    _calculateWeight();
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Dimensiones según tipo
+                _buildDimensionsFields(),
+                const SizedBox(height: 16),
+                // Cantidad
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _quantityController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Cantidad',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onChanged: (_) => _calculateWeight(),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton.icon(
+                      onPressed: _calculateWeight,
+                      icon: const Icon(Icons.calculate),
+                      label: const Text('Calcular'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
                         ),
                       ),
-                      onChanged: (_) => _calculateWeight(),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton.icon(
-                    onPressed: _calculateWeight,
-                    icon: const Icon(Icons.calculate),
-                    label: const Text('Calcular'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              // Resultado del cálculo
-              if (_calculatedWeight > 0)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFA5D6A7)),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Peso unitario:'),
-                          Text(
-                            '${Helpers.formatNumber(_calculatedWeight)} kg',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Peso total (×${_quantityController.text}):'),
-                          Text(
-                            '${Helpers.formatNumber(_calculatedWeight * (int.tryParse(_quantityController.text) ?? 1))} kg',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Precio Total:',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            Helpers.formatCurrency(
-                              _calculatedWeight *
-                                  (int.tryParse(_quantityController.text) ??
-                                      1) *
-                                  _pricePerKg,
-                            ),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-              const SizedBox(height: 24),
-              // Botones
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancelar'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: _calculatedWeight > 0 ? _addComponent : null,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Agregar'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+                const SizedBox(height: 20),
+                // Resultado del cálculo
+                if (_calculatedWeight > 0)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFA5D6A7)),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Peso unitario:'),
+                            Text(
+                              '${Helpers.formatNumber(_calculatedWeight)} kg',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Peso total (×${_quantityController.text}):'),
+                            Text(
+                              '${Helpers.formatNumber(_calculatedWeight * (int.tryParse(_quantityController.text) ?? 1))} kg',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Precio Total:',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              Helpers.formatCurrency(
+                                _calculatedWeight *
+                                    (int.tryParse(_quantityController.text) ??
+                                        1) *
+                                    _pricePerKg,
+                              ),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ],
+                const SizedBox(height: 24),
+                // Botones
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancelar'),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: _calculatedWeight > 0 ? _addComponent : null,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Agregar'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -3381,7 +3986,7 @@ class _AddComponentDialogState extends State<_AddComponentDialog> {
         : 0.0;
 
     final component = {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'id': ColombiaTime.now().millisecondsSinceEpoch.toString(),
       'name': _nameController.text.isNotEmpty
           ? _nameController.text
           : _getDefaultName(),
@@ -3545,6 +4150,21 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
       final pricing = await InventoryDataSource.getRecipeLivePricing(
         product.id,
       );
+      // Si el producto tiene customPrice, usarlo como precio de venta
+      if (pricing != null &&
+          product.customPrice != null &&
+          product.customPrice! > 0) {
+        pricing['total_sale'] = product.customPrice;
+        final cost = (pricing['total_cost'] as num?)?.toDouble() ?? 0;
+        pricing['profit_margin'] = cost > 0
+            ? ((product.customPrice! - cost) / product.customPrice! * 100)
+            : 100.0;
+        pricing['profit'] = product.customPrice! - cost;
+        final weight = (pricing['total_weight'] as num?)?.toDouble() ?? 0;
+        if (weight > 0) {
+          pricing['sale_per_kg'] = product.customPrice! / weight;
+        }
+      }
       if (mounted) {
         setState(() {
           _livePricing = pricing;
@@ -3563,12 +4183,16 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Dialog(
+      insetPadding: isMobile
+          ? const EdgeInsets.all(8)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 900,
-        height: MediaQuery.of(context).size.height * 0.8,
-        padding: const EdgeInsets.all(24),
+        width: isMobile ? double.infinity : 900,
+        height: MediaQuery.of(context).size.height * (isMobile ? 0.9 : 0.8),
+        padding: EdgeInsets.all(isMobile ? 12 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3578,14 +4202,21 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                 Icon(
                   Icons.inventory_2,
                   color: Theme.of(context).colorScheme.primary,
-                  size: 28,
+                  size: isMobile ? 22 : 28,
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Seleccionar Producto del Inventario',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    isMobile
+                        ? 'Seleccionar Producto'
+                        : 'Seleccionar Producto del Inventario',
+                    style: TextStyle(
+                      fontSize: isMobile ? 16 : 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
@@ -3617,6 +4248,7 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String?>(
+                    isExpanded: true,
                     initialValue: _selectedCategoryId,
                     decoration: InputDecoration(
                       labelText: 'Categoría',
@@ -3645,13 +4277,9 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
 
             // Contenido principal
             Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Lista de productos
-                  Expanded(
-                    flex: 2,
-                    child: Container(
+              child: isMobile
+                  ? // MOBILE: Solo lista, detalle en bottom sheet
+                    Container(
                       decoration: BoxDecoration(
                         border: Border.all(
                           color: Theme.of(context).colorScheme.outlineVariant,
@@ -3679,16 +4307,6 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                                       ).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Agregue productos desde el módulo de Inventario',
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                      fontSize: 12,
-                                    ),
-                                  ),
                                 ],
                               ),
                             )
@@ -3705,174 +4323,100 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                                 final isSelected =
                                     _selectedProduct?.id == product.id;
                                 final isRecipe = product.isRecipe;
-                                // Para recetas, no mostramos stock (no tiene sentido)
-                                // Para productos simples, sí mostramos stock
                                 final hasStock = isRecipe || product.stock > 0;
                                 return ListTile(
+                                  dense: true,
+                                  visualDensity: VisualDensity.compact,
                                   selected: isSelected,
                                   selectedTileColor: Theme.of(
                                     context,
                                   ).colorScheme.primary.withOpacity(0.1),
-                                  leading: Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: isRecipe
-                                          ? const Color(
-                                              0xFF1565C0,
-                                            ).withOpacity(0.1)
-                                          : (hasStock
-                                                ? Theme.of(context)
-                                                      .colorScheme
-                                                      .primary
-                                                      .withOpacity(0.1)
-                                                : const Color(
-                                                    0xFFC62828,
-                                                  ).withOpacity(0.1)),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      isRecipe
-                                          ? Icons.receipt_long
-                                          : Icons.inventory_2,
-                                      color: isRecipe
-                                          ? const Color(0xFF1565C0)
-                                          : (hasStock
-                                                ? Theme.of(
-                                                    context,
-                                                  ).colorScheme.primary
-                                                : const Color(0xFFC62828)),
-                                    ),
-                                  ),
                                   title: Text(
                                     product.name,
                                     style: TextStyle(
                                       fontWeight: isSelected
                                           ? FontWeight.bold
                                           : FontWeight.normal,
+                                      fontSize: 13,
                                     ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   subtitle: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(product.code),
-                                      if (isRecipe) ...[
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.receipt_long,
-                                              size: 14,
-                                              color: const Color(0xFF1565C0),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'Receta Compuesta',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: const Color(0xFF1976D2),
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ] else ...[
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              hasStock
-                                                  ? Icons.check_circle
-                                                  : Icons.warning,
-                                              size: 14,
-                                              color: hasStock
-                                                  ? const Color(0xFF2E7D32)
-                                                  : const Color(0xFFC62828),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'Stock: ${product.stock.toStringAsFixed(0)} ${product.unit}',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: hasStock
-                                                    ? const Color(0xFF2E7D32)
-                                                    : const Color(0xFFC62828),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                  trailing: Builder(
-                                    builder: (context) {
-                                      final isRecipeProduct = product.isRecipe;
-                                      final livePrice = isRecipeProduct
-                                          ? _recipeLiveVentaPrices[product.id]
-                                          : null;
-                                      final displayPrice =
-                                          livePrice ?? product.unitPrice;
-                                      final hasLivePrice = livePrice != null;
-                                      return Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            '\$ ${Helpers.formatNumber(displayPrice)}',
+                                      Builder(
+                                        builder: (context) {
+                                          final lp = product.isRecipe
+                                              ? _recipeLiveVentaPrices[product
+                                                    .id]
+                                              : null;
+                                          final dp = lp ?? product.unitPrice;
+                                          return Text(
+                                            '\$ ${Helpers.formatNumber(dp)}${lp != null ? ' ⚡EN VIVO' : ''}',
                                             style: TextStyle(
+                                              fontSize: 11,
                                               fontWeight: FontWeight.bold,
-                                              color: hasLivePrice
+                                              color: lp != null
                                                   ? const Color(0xFF388E3C)
                                                   : Theme.of(
                                                       context,
                                                     ).colorScheme.primary,
                                             ),
+                                          );
+                                        },
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            product.code,
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                            ),
                                           ),
-                                          if (hasLivePrice)
-                                            Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.sync,
-                                                  size: 10,
-                                                  color: const Color(
-                                                    0xFF43A047,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 2),
-                                                Text(
-                                                  'EN VIVO',
-                                                  style: TextStyle(
-                                                    fontSize: 9,
-                                                    color: const Color(
-                                                      0xFF43A047,
-                                                    ),
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          if (isRecipeProduct &&
-                                              _isLoadingRecipePrices &&
-                                              livePrice == null)
-                                            SizedBox(
-                                              width: 12,
-                                              height: 12,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 1.5,
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
+                                          const SizedBox(width: 8),
+                                          Icon(
+                                            isRecipe
+                                                ? Icons.receipt_long
+                                                : (hasStock
+                                                      ? Icons.check_circle
+                                                      : Icons.warning),
+                                            size: 12,
+                                            color: isRecipe
+                                                ? const Color(0xFF1565C0)
+                                                : (hasStock
+                                                      ? const Color(0xFF2E7D32)
+                                                      : const Color(
+                                                          0xFFC62828,
+                                                        )),
+                                          ),
+                                          const SizedBox(width: 2),
+                                          Flexible(
+                                            child: Text(
+                                              isRecipe
+                                                  ? 'Receta'
+                                                  : 'Stock: ${product.stock.toStringAsFixed(0)} ${product.unit}',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: isRecipe
+                                                    ? const Color(0xFF1976D2)
+                                                    : (hasStock
+                                                          ? const Color(
+                                                              0xFF2E7D32,
+                                                            )
+                                                          : const Color(
+                                                              0xFFC62828,
+                                                            )),
                                               ),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
+                                          ),
                                         ],
-                                      );
-                                    },
+                                      ),
+                                    ],
                                   ),
                                   onTap: () {
                                     setState(() => _selectedProduct = product);
-                                    // Si es receta, verificar stock y obtener precios en vivo
                                     if (product.isRecipe) {
                                       _checkRecipeStock(
                                         product,
@@ -3886,54 +4430,391 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                                       _recipeStockCheck = null;
                                       _livePricing = null;
                                     }
+                                    // Mostrar detalle en bottom sheet
+                                    _showProductDetailSheet(context);
                                   },
                                 );
                               },
                             ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-
-                  // Detalle del producto seleccionado
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAFAFA),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outlineVariant,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: _selectedProduct == null
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.touch_app,
-                                    size: 48,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'Selecciona un producto',
-                                    style: TextStyle(
+                    )
+                  : // DESKTOP: Dos paneles lado a lado
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Lista de productos
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: _filteredProducts.isEmpty
+                                ? Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.search_off,
+                                          size: 48,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'No se encontraron productos',
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Agregue productos desde el módulo de Inventario',
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    itemCount: _filteredProducts.length,
+                                    separatorBuilder: (_, __) => Divider(
+                                      height: 1,
                                       color: Theme.of(
                                         context,
-                                      ).colorScheme.onSurfaceVariant,
+                                      ).colorScheme.outlineVariant,
                                     ),
+                                    itemBuilder: (context, index) {
+                                      final product = _filteredProducts[index];
+                                      final isSelected =
+                                          _selectedProduct?.id == product.id;
+                                      final isRecipe = product.isRecipe;
+                                      // Para recetas, no mostramos stock (no tiene sentido)
+                                      // Para productos simples, sí mostramos stock
+                                      final hasStock =
+                                          isRecipe || product.stock > 0;
+                                      return ListTile(
+                                        dense: isMobile,
+                                        visualDensity: isMobile
+                                            ? VisualDensity.compact
+                                            : null,
+                                        selected: isSelected,
+                                        selectedTileColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withOpacity(0.1),
+                                        leading: isMobile
+                                            ? null
+                                            : Container(
+                                                width: 48,
+                                                height: 48,
+                                                decoration: BoxDecoration(
+                                                  color: isRecipe
+                                                      ? const Color(
+                                                          0xFF1565C0,
+                                                        ).withOpacity(0.1)
+                                                      : (hasStock
+                                                            ? Theme.of(context)
+                                                                  .colorScheme
+                                                                  .primary
+                                                                  .withOpacity(
+                                                                    0.1,
+                                                                  )
+                                                            : const Color(
+                                                                0xFFC62828,
+                                                              ).withOpacity(
+                                                                0.1,
+                                                              )),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Icon(
+                                                  isRecipe
+                                                      ? Icons.receipt_long
+                                                      : Icons.inventory_2,
+                                                  color: isRecipe
+                                                      ? const Color(0xFF1565C0)
+                                                      : (hasStock
+                                                            ? Theme.of(context)
+                                                                  .colorScheme
+                                                                  .primary
+                                                            : const Color(
+                                                                0xFFC62828,
+                                                              )),
+                                                ),
+                                              ),
+                                        title: Text(
+                                          product.name,
+                                          style: TextStyle(
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                            fontSize: isMobile ? 13 : null,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        subtitle: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            if (isMobile)
+                                              Builder(
+                                                builder: (context) {
+                                                  final lp = product.isRecipe
+                                                      ? _recipeLiveVentaPrices[product
+                                                            .id]
+                                                      : null;
+                                                  final dp =
+                                                      lp ?? product.unitPrice;
+                                                  return Text(
+                                                    '\$ ${Helpers.formatNumber(dp)}${lp != null ? ' ⚡EN VIVO' : ''}',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: lp != null
+                                                          ? const Color(
+                                                              0xFF388E3C,
+                                                            )
+                                                          : Theme.of(context)
+                                                                .colorScheme
+                                                                .primary,
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            Text(
+                                              product.code,
+                                              style: TextStyle(
+                                                fontSize: isMobile ? 10 : null,
+                                              ),
+                                            ),
+                                            if (isRecipe) ...[
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.receipt_long,
+                                                    size: 14,
+                                                    color: const Color(
+                                                      0xFF1565C0,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Receta Compuesta',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: const Color(
+                                                        0xFF1976D2,
+                                                      ),
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ] else ...[
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    hasStock
+                                                        ? Icons.check_circle
+                                                        : Icons.warning,
+                                                    size: 14,
+                                                    color: hasStock
+                                                        ? const Color(
+                                                            0xFF2E7D32,
+                                                          )
+                                                        : const Color(
+                                                            0xFFC62828,
+                                                          ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Stock: ${product.stock.toStringAsFixed(0)} ${product.unit}',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: hasStock
+                                                          ? const Color(
+                                                              0xFF2E7D32,
+                                                            )
+                                                          : const Color(
+                                                              0xFFC62828,
+                                                            ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                        trailing: isMobile
+                                            ? null
+                                            : Builder(
+                                                builder: (context) {
+                                                  final isRecipeProduct =
+                                                      product.isRecipe;
+                                                  final livePrice =
+                                                      isRecipeProduct
+                                                      ? _recipeLiveVentaPrices[product
+                                                            .id]
+                                                      : null;
+                                                  final displayPrice =
+                                                      livePrice ??
+                                                      product.unitPrice;
+                                                  final hasLivePrice =
+                                                      livePrice != null;
+                                                  return Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.end,
+                                                    children: [
+                                                      Text(
+                                                        '\$ ${Helpers.formatNumber(displayPrice)}',
+                                                        style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: hasLivePrice
+                                                              ? const Color(
+                                                                  0xFF388E3C,
+                                                                )
+                                                              : Theme.of(
+                                                                      context,
+                                                                    )
+                                                                    .colorScheme
+                                                                    .primary,
+                                                        ),
+                                                      ),
+                                                      if (hasLivePrice)
+                                                        Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            Icon(
+                                                              Icons.sync,
+                                                              size: 10,
+                                                              color:
+                                                                  const Color(
+                                                                    0xFF43A047,
+                                                                  ),
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 2,
+                                                            ),
+                                                            Text(
+                                                              'EN VIVO',
+                                                              style: TextStyle(
+                                                                fontSize: 9,
+                                                                color:
+                                                                    const Color(
+                                                                      0xFF43A047,
+                                                                    ),
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      if (isRecipeProduct &&
+                                                          _isLoadingRecipePrices &&
+                                                          livePrice == null)
+                                                        SizedBox(
+                                                          width: 12,
+                                                          height: 12,
+                                                          child: CircularProgressIndicator(
+                                                            strokeWidth: 1.5,
+                                                            color: Theme.of(context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  );
+                                                },
+                                              ),
+                                        onTap: () {
+                                          setState(
+                                            () => _selectedProduct = product,
+                                          );
+                                          // Si es receta, verificar stock y obtener precios en vivo
+                                          if (product.isRecipe) {
+                                            _checkRecipeStock(
+                                              product,
+                                              int.tryParse(
+                                                    _quantityController.text,
+                                                  ) ??
+                                                  1,
+                                            );
+                                            _fetchLivePricing(product);
+                                          } else {
+                                            _recipeStockCheck = null;
+                                            _livePricing = null;
+                                          }
+                                        },
+                                      );
+                                    },
                                   ),
-                                ],
+                          ),
+                        ),
+                        SizedBox(width: 16),
+
+                        // Detalle del producto seleccionado
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFAFAFA),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
                               ),
-                            )
-                          : _buildProductDetail(),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: _selectedProduct == null
+                                ? Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.touch_app,
+                                          size: 48,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'Selecciona un producto',
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : _buildProductDetail(),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
             ),
 
             const SizedBox(height: 16),
@@ -3946,44 +4827,125 @@ class _SelectProductDialogState extends State<_SelectProductDialog> {
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Cancelar'),
                 ),
-                const SizedBox(width: 12),
-                if (_selectedProduct != null)
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      final qty =
-                          double.tryParse(_quantityController.text) ?? 1;
-                      if (qty <= 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Ingrese una cantidad válida'),
-                          ),
+                if (!isMobile) ...[
+                  const SizedBox(width: 12),
+                  if (_selectedProduct != null)
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        final qty =
+                            double.tryParse(_quantityController.text) ?? 1;
+                        if (qty <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Ingrese una cantidad válida'),
+                            ),
+                          );
+                          return;
+                        }
+                        widget.onSelect(
+                          _selectedProduct!,
+                          qty,
+                          _recipeStockCheck,
+                          _livePricing,
                         );
-                        return;
-                      }
-                      widget.onSelect(
-                        _selectedProduct!,
-                        qty,
-                        _recipeStockCheck,
-                        _livePricing,
-                      );
-                      Navigator.pop(context);
-                    },
-                    icon: const Icon(Icons.add_shopping_cart, size: 18),
-                    label: const Text('Agregar a Cotización'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.add_shopping_cart, size: 18),
+                      label: const Text('Agregar a Cotización'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
                       ),
                     ),
-                  ),
+                ], // end if (!isMobile)
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// Bottom sheet con detalle del producto para mobile
+  void _showProductDetailSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return DraggableScrollableSheet(
+              initialChildSize: 0.65,
+              minChildSize: 0.4,
+              maxChildSize: 0.85,
+              expand: false,
+              builder: (_, scrollController) {
+                return Column(
+                  children: [
+                    // Handle
+                    Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    // Content
+                    Expanded(child: _buildProductDetail()),
+                    // Botón agregar
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            final qty =
+                                double.tryParse(_quantityController.text) ?? 1;
+                            if (qty <= 0) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Ingrese una cantidad válida'),
+                                ),
+                              );
+                              return;
+                            }
+                            widget.onSelect(
+                              _selectedProduct!,
+                              qty,
+                              _recipeStockCheck,
+                              _livePricing,
+                            );
+                            Navigator.pop(ctx); // close bottom sheet
+                            Navigator.pop(context); // close dialog
+                          },
+                          icon: const Icon(Icons.add_shopping_cart, size: 18),
+                          label: const Text('Agregar a Cotización'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -4471,7 +5433,7 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final String _quotationNumber =
-      'COT-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch.toString().substring(5, 11)}';
+      'COT-${ColombiaTime.now().year}-${ColombiaTime.now().millisecondsSinceEpoch.toString().substring(5, 11)}';
 
   @override
   void initState() {
@@ -4488,6 +5450,129 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
   @override
   Widget build(BuildContext context) {
     const headerColor = Color(0xFF1e293b);
+    final isMobile = ResponsiveHelper.isMobile(context);
+
+    if (isMobile) {
+      return Dialog.fullscreen(
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: headerColor,
+            foregroundColor: Colors.white,
+            title: Row(
+              children: [
+                const Icon(Icons.description, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _quotationNumber,
+                    style: const TextStyle(fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '\$ ${Helpers.formatNumber(widget.total)}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            bottom: TabBar(
+              controller: _tabController,
+              indicatorColor: Colors.white,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              tabs: const [
+                Tab(icon: Icon(Icons.person, size: 18), text: 'Cliente'),
+                Tab(icon: Icon(Icons.domain, size: 18), text: 'Empresa'),
+              ],
+            ),
+          ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [_buildClientView(), _buildEnterpriseView()],
+          ),
+          bottomNavigationBar: SafeArea(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        final quotationData = {
+                          'number': _quotationNumber,
+                          'customer': widget.customer['name'] ?? '',
+                          'customerRuc': widget.customer['document'] ?? '',
+                          'date': ColombiaTime.now(),
+                          'validUntil': ColombiaTime.now().add(
+                            Duration(days: widget.validDays),
+                          ),
+                          'status': 'Borrador',
+                          'materialsCost': widget.materialsCost,
+                          'laborCost': widget.laborCost,
+                          'indirectCosts': widget.indirectCosts,
+                          'profitMargin': widget.profitMargin,
+                          'discount': widget.discount,
+                          'total': widget.total,
+                          'weight': widget.totalWeight,
+                          'notes': widget.notes,
+                          'items': widget.items
+                              .map(
+                                (item) => {
+                                  'name': item['name'] ?? '',
+                                  'quantity': item['quantity'] ?? 1,
+                                  'totalWeight': item['totalWeight'] ?? 0,
+                                  'pricePerKg':
+                                      item['pricePerKg'] ??
+                                      item['unitSalePrice'] ??
+                                      0,
+                                  'totalPrice':
+                                      item['totalPrice'] ?? item['total'] ?? 0,
+                                },
+                              )
+                              .toList(),
+                        };
+                        PrintService.printQuotation(quotationData);
+                      },
+                      icon: const Icon(Icons.print, size: 16),
+                      label: const Text(
+                        'Imprimir',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cerrar'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -4594,7 +5679,7 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Válida hasta: ${_formatDate(DateTime.now().add(Duration(days: widget.validDays)))}',
+                        'Válida hasta: ${_formatDate(ColombiaTime.now().add(Duration(days: widget.validDays)))}',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 13,
@@ -4609,8 +5694,8 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                           'number': _quotationNumber,
                           'customer': widget.customer['name'] ?? '',
                           'customerRuc': widget.customer['document'] ?? '',
-                          'date': DateTime.now(),
-                          'validUntil': DateTime.now().add(
+                          'date': ColombiaTime.now(),
+                          'validUntil': ColombiaTime.now().add(
                             Duration(days: widget.validDays),
                           ),
                           'status': 'Borrador',
@@ -4745,12 +5830,13 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
   // ==========================================
   Widget _buildClientView() {
     const headerColor = Color(0xFF1e293b);
+    final isMobile = ResponsiveHelper.isMobile(context);
 
     return Container(
       color: const Color(0xFFF1F5F9).withOpacity(0.5),
       child: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(isMobile ? 8 : 32),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 900),
             decoration: BoxDecoration(
@@ -4782,166 +5868,139 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                 ),
                 // Contenido principal
                 Padding(
-                  padding: const EdgeInsets.all(48),
+                  padding: EdgeInsets.all(isMobile ? 12 : 48),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Header con título y empresa
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Título con icono
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.verified,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 48,
-                              ),
-                              const SizedBox(width: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'COTIZACIÓN',
-                                    style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w900,
-                                      color: Color(0xFF1e293b),
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                  Text(
-                                    '#$_quotationNumber',
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          // Logo empresa
-                          Row(
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  const Text(
-                                    'Industrial de Molinos S.A.S.',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: Color(0xFF1e293b),
-                                    ),
-                                  ),
-                                  Text(
-                                    'NIT: 901946675-1',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(width: 16),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(24),
-                                child: Image.asset(
-                                  'lib/photo/logo_empresa.png',
-                                  width: 48,
-                                  height: 48,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) => Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    child: Icon(
-                                      Icons.precision_manufacturing,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      size: 24,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 40),
-                      // Sección Cliente
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAFAFA),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFF5F5F5)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      if (isMobile)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
                               children: [
-                                Text(
-                                  'CLIENTE',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                    letterSpacing: 1.5,
-                                  ),
+                                Icon(
+                                  Icons.verified,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 28,
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  widget.customer['name'] ?? '',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF111418),
-                                  ),
-                                ),
-                                if (widget.customer['ruc'] != null)
-                                  Text(
-                                    'ID: ${widget.customer['ruc']}',
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                      fontSize: 13,
+                                const SizedBox(width: 8),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'COTIZACIÓN',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFF1e293b),
+                                      ),
                                     ),
-                                  ),
+                                    Text(
+                                      '#$_quotationNumber',
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                          ],
+                        )
+                      else
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Título con icono
+                            Row(
                               children: [
-                                _buildDateRow(
-                                  'Fecha Emisión:',
-                                  _formatDate(DateTime.now()),
+                                Icon(
+                                  Icons.verified,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 48,
                                 ),
-                                const SizedBox(height: 6),
-                                _buildDateRow(
-                                  'Vencimiento:',
-                                  _formatDate(
-                                    DateTime.now().add(
-                                      Duration(days: widget.validDays),
+                                const SizedBox(width: 16),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'COTIZACIÓN',
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFF1e293b),
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    Text(
+                                      '#$_quotationNumber',
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            // Logo empresa
+                            Row(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    const Text(
+                                      'Industrial de Molinos S.A.S.',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Color(0xFF1e293b),
+                                      ),
+                                    ),
+                                    Text(
+                                      'NIT: 901946675-1',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 16),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: Image.asset(
+                                    'lib/photo/logo_empresa.png',
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      child: Icon(
+                                        Icons.precision_manufacturing,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        size: 24,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -4949,8 +6008,132 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                             ),
                           ],
                         ),
+                      SizedBox(height: isMobile ? 16 : 40),
+                      // Sección Cliente
+                      Container(
+                        padding: EdgeInsets.all(isMobile ? 12 : 24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAFAFA),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFF5F5F5)),
+                        ),
+                        child: isMobile
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'CLIENTE',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    widget.customer['name'] ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF111418),
+                                    ),
+                                  ),
+                                  if (widget.customer['ruc'] != null)
+                                    Text(
+                                      'ID: ${widget.customer['ruc']}',
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Emisión: ${_formatDate(ColombiaTime.now())}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Vence: ${_formatDate(ColombiaTime.now().add(Duration(days: widget.validDays)))}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'CLIENTE',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                          letterSpacing: 1.5,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        widget.customer['name'] ?? '',
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF111418),
+                                        ),
+                                      ),
+                                      if (widget.customer['ruc'] != null)
+                                        Text(
+                                          'ID: ${widget.customer['ruc']}',
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      _buildDateRow(
+                                        'Fecha Emisión:',
+                                        _formatDate(ColombiaTime.now()),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      _buildDateRow(
+                                        'Vencimiento:',
+                                        _formatDate(
+                                          ColombiaTime.now().add(
+                                            Duration(days: widget.validDays),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                       ),
-                      const SizedBox(height: 40),
+                      SizedBox(height: isMobile ? 16 : 40),
                       // Tabla de productos
                       Container(
                         decoration: BoxDecoration(
@@ -4963,9 +6146,9 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                           children: [
                             // Header de tabla
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 16,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isMobile ? 10 : 24,
+                                vertical: isMobile ? 10 : 16,
                               ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFAFAFA),
@@ -5029,9 +6212,9 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                             // Items
                             ...widget.items.map(
                               (item) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 20,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isMobile ? 10 : 24,
+                                  vertical: isMobile ? 10 : 20,
                                 ),
                                 decoration: BoxDecoration(
                                   border: Border(
@@ -5102,64 +6285,106 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                       ),
                       const SizedBox(height: 32),
                       // Totales
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          SizedBox(
-                            width: 340,
-                            child: Column(
+                      if (isMobile)
+                        Column(
+                          children: [
+                            _buildTotalRow('Subtotal', widget.subtotal),
+                            _buildTotalRow('Mano de Obra', widget.laborCost),
+                            _buildTotalRow(
+                              'Costos Indirectos',
+                              widget.indirectCosts,
+                            ),
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              height: 1,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildTotalRow('Subtotal', widget.subtotal),
-                                _buildTotalRow(
-                                  'Mano de Obra',
-                                  widget.laborCost,
-                                ),
-                                _buildTotalRow(
-                                  'Costos Indirectos',
-                                  widget.indirectCosts,
-                                ),
-                                Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 12,
+                                const Text(
+                                  'Total',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF111418),
                                   ),
-                                  height: 1,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant,
                                 ),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      'Total',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF111418),
-                                      ),
-                                    ),
-                                    Text(
-                                      '\$${Helpers.formatNumber(widget.total)}',
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w900,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  '\$${Helpers.formatNumber(widget.total)}',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        )
+                      else
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            SizedBox(
+                              width: 340,
+                              child: Column(
+                                children: [
+                                  _buildTotalRow('Subtotal', widget.subtotal),
+                                  _buildTotalRow(
+                                    'Mano de Obra',
+                                    widget.laborCost,
+                                  ),
+                                  _buildTotalRow(
+                                    'Costos Indirectos',
+                                    widget.indirectCosts,
+                                  ),
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    height: 1,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
+                                  ),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Total',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF111418),
+                                        ),
+                                      ),
+                                      Text(
+                                        '\$${Helpers.formatNumber(widget.total)}',
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w900,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       // Notas/Validez
                       const SizedBox(height: 48),
                       Text(
-                        'Esta cotización es válida hasta el ${_formatDate(DateTime.now().add(Duration(days: widget.validDays)))}. Sujeta a cambios si no se confirma antes de la fecha límite.',
+                        'Esta cotización es válida hasta el ${_formatDate(ColombiaTime.now().add(Duration(days: widget.validDays)))}. Sujeta a cambios si no se confirma antes de la fecha límite.',
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -5257,10 +6482,11 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
   // VISTA EMPRESA - ERP Style con BOM
   // ==========================================
   Widget _buildEnterpriseView() {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Container(
       color: const Color(0xFFF1F4F8),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isMobile ? 8 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -5373,46 +6599,85 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
             ),
             const SizedBox(height: 16),
             // Tarjetas de resumen rápido
-            Row(
-              children: [
-                _buildStatCard(
-                  'Materiales',
-                  '\$${Helpers.formatNumber(widget.materialsCost)}',
-                  Icons.inventory_2,
-                  const Color(0xFF1565C0),
-                ),
-                const SizedBox(width: 12),
-                _buildStatCard(
-                  'Mano Obra',
-                  '\$${Helpers.formatNumber(widget.laborCost)}',
-                  Icons.engineering,
-                  const Color(0xFF7B1FA2),
-                ),
-                const SizedBox(width: 12),
-                _buildStatCard(
-                  'Costos Ind.',
-                  '\$${Helpers.formatNumber(widget.indirectCosts)}',
-                  Icons.electrical_services,
-                  const Color(0xFFF9A825),
-                ),
-                const SizedBox(width: 12),
-                _buildStatCard(
-                  'Margen',
-                  '${widget.profitMargin.toStringAsFixed(0)}%',
-                  Icons.trending_up,
-                  const Color(0xFF2E7D32),
-                ),
-                if (widget.discount > 0) ...[
+            if (isMobile)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildStatCardMobile(
+                    'Mat.',
+                    '\$${Helpers.formatNumber(widget.materialsCost)}',
+                    Icons.inventory_2,
+                    const Color(0xFF1565C0),
+                  ),
+                  _buildStatCardMobile(
+                    'M.O.',
+                    '\$${Helpers.formatNumber(widget.laborCost)}',
+                    Icons.engineering,
+                    const Color(0xFF7B1FA2),
+                  ),
+                  _buildStatCardMobile(
+                    'C.I.',
+                    '\$${Helpers.formatNumber(widget.indirectCosts)}',
+                    Icons.electrical_services,
+                    const Color(0xFFF9A825),
+                  ),
+                  _buildStatCardMobile(
+                    'Margen',
+                    '${widget.profitMargin.toStringAsFixed(0)}%',
+                    Icons.trending_up,
+                    const Color(0xFF2E7D32),
+                  ),
+                  if (widget.discount > 0)
+                    _buildStatCardMobile(
+                      'Desc.',
+                      '-\$${Helpers.formatNumber(widget.discount)}',
+                      Icons.discount,
+                      const Color(0xFFC62828),
+                    ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  _buildStatCard(
+                    'Materiales',
+                    '\$${Helpers.formatNumber(widget.materialsCost)}',
+                    Icons.inventory_2,
+                    const Color(0xFF1565C0),
+                  ),
                   const SizedBox(width: 12),
                   _buildStatCard(
-                    'Descuento',
-                    '-\$${Helpers.formatNumber(widget.discount)}',
-                    Icons.discount,
-                    const Color(0xFFC62828),
+                    'Mano Obra',
+                    '\$${Helpers.formatNumber(widget.laborCost)}',
+                    Icons.engineering,
+                    const Color(0xFF7B1FA2),
                   ),
+                  const SizedBox(width: 12),
+                  _buildStatCard(
+                    'Costos Ind.',
+                    '\$${Helpers.formatNumber(widget.indirectCosts)}',
+                    Icons.electrical_services,
+                    const Color(0xFFF9A825),
+                  ),
+                  const SizedBox(width: 12),
+                  _buildStatCard(
+                    'Margen',
+                    '${widget.profitMargin.toStringAsFixed(0)}%',
+                    Icons.trending_up,
+                    const Color(0xFF2E7D32),
+                  ),
+                  if (widget.discount > 0) ...[
+                    const SizedBox(width: 12),
+                    _buildStatCard(
+                      'Descuento',
+                      '-\$${Helpers.formatNumber(widget.discount)}',
+                      Icons.discount,
+                      const Color(0xFFC62828),
+                    ),
+                  ],
                 ],
-              ],
-            ),
+              ),
             const SizedBox(height: 16),
             // Análisis de Rentabilidad
             _buildProfitAnalysisSection(),
@@ -5472,82 +6737,83 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                       ],
                     ),
                   ),
-                  // Tabla BOM Header
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Theme.of(context).colorScheme.outlineVariant,
+                  // Tabla BOM Header (oculto en mobile, se usa card layout)
+                  if (!isMobile)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                       ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 220,
+                            child: Text(
+                              'Producto (Kilos)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: const Color(0xFF616161),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'Compra/kg',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: const Color(0xFF616161),
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              'Venta/kg',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: const Color(0xFF616161),
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              'Ganancia Total (% y /kg)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: const Color(0xFF616161),
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: 100,
+                            child: Text(
+                              'Total Venta',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: const Color(0xFF616161),
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 220,
-                          child: Text(
-                            'Producto (Kilos)',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: const Color(0xFF616161),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            'Compra/kg',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: const Color(0xFF616161),
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            'Venta/kg',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: const Color(0xFF616161),
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            'Ganancia Total (% y /kg)',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: const Color(0xFF616161),
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        SizedBox(
-                          width: 100,
-                          child: Text(
-                            'Total Venta',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: const Color(0xFF616161),
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                   // Items BOM
                   ...widget.items.map((item) => _buildBOMRow(item)),
                 ],
@@ -5759,15 +7025,16 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Row(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.payments, size: 28),
-                            SizedBox(width: 12),
+                            Icon(Icons.payments, size: isMobile ? 22 : 28),
+                            SizedBox(width: isMobile ? 8 : 12),
                             Text(
-                              'TOTAL COTIZACIÓN',
+                              isMobile ? 'TOTAL' : 'TOTAL COTIZACIÓN',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontSize: isMobile ? 13 : 16,
                               ),
                             ),
                           ],
@@ -5775,7 +7042,7 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                         Text(
                           '\$${Helpers.formatNumber(widget.total)}',
                           style: TextStyle(
-                            fontSize: 28,
+                            fontSize: isMobile ? 18 : 28,
                             fontWeight: FontWeight.w900,
                             color: Theme.of(context).colorScheme.primary,
                           ),
@@ -5858,6 +7125,53 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatCardMobile(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withOpacity(0.05),
+            blurRadius: 6,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -6036,147 +7350,27 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Fila principal con nombre y datos
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Nombre del producto
-              SizedBox(
-                width: 220,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          if (ResponsiveHelper.isMobile(context))
+            // Mobile: card layout
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.precision_manufacturing,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.primary,
+                    Icon(
+                      Icons.precision_manufacturing,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        item['name'],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            item['name'],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Código: ${item['productCode'] ?? 'N/A'} | Cant: $qty',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Peso: ${Helpers.formatNumber(totalWeight)} kg',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF1976D2),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Precio de Compra (por kg)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Compra/kg',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      '\$${Helpers.formatNumber(unitCostPrice)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFF9A825),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Precio de Venta (por kg)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Venta/kg',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      '\$${Helpers.formatNumber(unitSalePrice)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2E7D32),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Ganancia
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Ganancia Total',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      '\$${Helpers.formatNumber(totalProfit)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: totalProfit >= 0
-                            ? const Color(0xFF1565C0)
-                            : const Color(0xFFC62828),
-                      ),
-                    ),
-                    if (profitMargin > 0)
-                      Text(
-                        '${profitMargin.toStringAsFixed(1)}% | \$${Helpers.formatNumber(unitProfit as double)}/kg',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Total
-              SizedBox(
-                width: 100,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Total Venta',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
@@ -6188,9 +7382,207 @@ class _QuotationPreviewDialogState extends State<_QuotationPreviewDialog>
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(height: 4),
+                Text(
+                  'Cant: $qty | Peso: ${Helpers.formatNumber(totalWeight)} kg',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      'C: \$${Helpers.formatNumber(unitCostPrice)}/kg',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFFF9A825),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'V: \$${Helpers.formatNumber(unitSalePrice)}/kg',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF2E7D32),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Gan: \$${Helpers.formatNumber(totalProfit)}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: totalProfit >= 0
+                            ? const Color(0xFF1565C0)
+                            : const Color(0xFFC62828),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Nombre del producto
+                SizedBox(
+                  width: 220,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.precision_manufacturing,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              item['name'],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Código: ${item['productCode'] ?? 'N/A'} | Cant: $qty',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Peso: ${Helpers.formatNumber(totalWeight)} kg',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF1976D2),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Precio de Compra (por kg)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Compra/kg',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        '\$${Helpers.formatNumber(unitCostPrice)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFF9A825),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Precio de Venta (por kg)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Venta/kg',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        '\$${Helpers.formatNumber(unitSalePrice)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2E7D32),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Ganancia
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Ganancia Total',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        '\$${Helpers.formatNumber(totalProfit)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: totalProfit >= 0
+                              ? const Color(0xFF1565C0)
+                              : const Color(0xFFC62828),
+                        ),
+                      ),
+                      if (profitMargin > 0)
+                        Text(
+                          '${profitMargin.toStringAsFixed(1)}% | \$${Helpers.formatNumber(unitProfit as double)}/kg',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Total
+                SizedBox(
+                  width: 100,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Total Venta',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        '\$${Helpers.formatNumber(item['totalPrice'] as double? ?? 0)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           // Componentes si existen
           if (components.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -6390,9 +7782,8 @@ class _AddMaterialFromInventoryDialogState
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Agregar Material del Inventario'),
-      content: SizedBox(
-        width: 550,
-        height: 450,
+      content: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 550, maxHeight: 450),
         child: Column(
           children: [
             // Barra de búsqueda y filtro de categoría
@@ -6696,7 +8087,7 @@ class _AddMaterialFromInventoryDialogState
 
                   // Crear item compatible con la estructura de cotización
                   widget.onAdd({
-                    'id': DateTime.now().millisecondsSinceEpoch.toString(),
+                    'id': ColombiaTime.now().millisecondsSinceEpoch.toString(),
                     'materialId':
                         _selectedMaterial!.id, // ID del material del inventario
                     'inv_material_id': _selectedMaterial!
@@ -6730,6 +8121,487 @@ class _AddMaterialFromInventoryDialogState
           child: const Text('Agregar'),
         ),
       ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  MOBILE: Bottom sheet para agregar material
+// ═══════════════════════════════════════════════════
+class _AddMaterialFromInventorySheet extends StatefulWidget {
+  final List<domain.Material> materials;
+  final ScrollController scrollController;
+  final Function(Map<String, dynamic>) onAdd;
+
+  const _AddMaterialFromInventorySheet({
+    required this.materials,
+    required this.scrollController,
+    required this.onAdd,
+  });
+
+  @override
+  State<_AddMaterialFromInventorySheet> createState() =>
+      _AddMaterialFromInventorySheetState();
+}
+
+class _AddMaterialFromInventorySheetState
+    extends State<_AddMaterialFromInventorySheet> {
+  final _searchController = TextEditingController();
+  final _quantityController = TextEditingController(text: '1');
+  String? _selectedCategory;
+  domain.Material? _selectedMaterial;
+  double _quantity = 1;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _quantityController.dispose();
+    super.dispose();
+  }
+
+  void _updateQuantity(double newQty) {
+    if (newQty > 0) {
+      setState(() => _quantity = newQty);
+      _quantityController.text = newQty == newQty.truncate()
+          ? newQty.toStringAsFixed(0)
+          : newQty.toStringAsFixed(2);
+    }
+  }
+
+  List<String> get _categories {
+    final cats = widget.materials.map((m) => m.category).toSet().toList();
+    cats.sort((a, b) => b.compareTo(a));
+    return cats;
+  }
+
+  List<domain.Material> get _filteredMaterials {
+    var filtered = widget.materials.toList();
+    if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+      filtered = filtered
+          .where((m) => m.category == _selectedCategory)
+          .toList();
+    }
+    if (_searchController.text.isNotEmpty) {
+      final query = _searchController.text.toLowerCase();
+      filtered = filtered
+          .where(
+            (m) =>
+                m.name.toLowerCase().contains(query) ||
+                m.code.toLowerCase().contains(query),
+          )
+          .toList();
+    }
+    return filtered;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Handle bar
+        Container(
+          margin: const EdgeInsets.only(top: 8, bottom: 4),
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Colors.grey[400],
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        // Header
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.inventory_2_outlined, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Agregar Material',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        // Search
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              labelText: 'Buscar material',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              border: const OutlineInputBorder(),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 10,
+              ),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                      },
+                    )
+                  : null,
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ),
+        // Category chips
+        if (_categories.isNotEmpty)
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    label: const Text('Todas', style: TextStyle(fontSize: 11)),
+                    selected: _selectedCategory == null,
+                    onSelected: (_) => setState(() => _selectedCategory = null),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                ..._categories.map(
+                  (c) => Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ChoiceChip(
+                      label: Text(c, style: const TextStyle(fontSize: 11)),
+                      selected: _selectedCategory == c,
+                      onSelected: (_) => setState(() => _selectedCategory = c),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 4),
+        // Material list
+        Expanded(
+          child: _filteredMaterials.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 40,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No hay materiales',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  controller: widget.scrollController,
+                  itemCount: _filteredMaterials.length,
+                  itemBuilder: (context, index) {
+                    final material = _filteredMaterials[index];
+                    final isSelected = _selectedMaterial?.id == material.id;
+                    return ListTile(
+                      dense: true,
+                      selected: isSelected,
+                      selectedTileColor: const Color(
+                        0xFFF9A825,
+                      ).withValues(alpha: 0.1),
+                      leading: CircleAvatar(
+                        radius: 14,
+                        backgroundColor: material.isLowStock
+                            ? const Color(0xFFC62828).withValues(alpha: 0.1)
+                            : const Color(0xFFF9A825).withValues(alpha: 0.1),
+                        child: Icon(
+                          Icons.inventory_2,
+                          color: material.isLowStock
+                              ? const Color(0xFFC62828)
+                              : const Color(0xFFF9A825),
+                          size: 14,
+                        ),
+                      ),
+                      title: Text(
+                        material.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${material.code} • Stock: ${material.stock.toStringAsFixed(0)} ${material.unit}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: material.isLowStock
+                              ? const Color(0xFFD32F2F)
+                              : null,
+                        ),
+                      ),
+                      trailing: Text(
+                        Helpers.formatCurrency(
+                          material.pricePerKg > 0
+                              ? material.pricePerKg
+                              : material.unitPrice,
+                        ),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                      onTap: () => setState(() => _selectedMaterial = material),
+                    );
+                  },
+                ),
+        ),
+        // Selected material: quantity controls + add button
+        if (_selectedMaterial != null) ...[
+          const Divider(height: 1),
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            child: Column(
+              children: [
+                // Material name + price
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _selectedMaterial!.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      Helpers.formatCurrency(
+                        _selectedMaterial!.pricePerKg > 0
+                            ? _selectedMaterial!.pricePerKg
+                            : _selectedMaterial!.unitPrice,
+                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      '/${_selectedMaterial!.unit}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Quantity row + total
+                Row(
+                  children: [
+                    Text(
+                      'Cant:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, size: 20),
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      padding: EdgeInsets.zero,
+                      onPressed: _quantity > 1
+                          ? () => _updateQuantity(_quantity - 1)
+                          : null,
+                    ),
+                    SizedBox(
+                      width: 60,
+                      child: TextField(
+                        textAlign: TextAlign.center,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        controller: _quantityController,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 8,
+                          ),
+                        ),
+                        onChanged: (v) {
+                          final qty = double.tryParse(v);
+                          if (qty != null && qty > 0) {
+                            setState(() => _quantity = qty);
+                          }
+                        },
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline, size: 20),
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      padding: EdgeInsets.zero,
+                      onPressed: () => _updateQuantity(_quantity + 1),
+                    ),
+                    const Spacer(),
+                    Text(
+                      Helpers.formatCurrency(
+                        (_selectedMaterial!.pricePerKg > 0
+                                ? _selectedMaterial!.pricePerKg
+                                : _selectedMaterial!.unitPrice) *
+                            _quantity,
+                      ),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+                // Stock warning/ok
+                if (_quantity > _selectedMaterial!.stock)
+                  Container(
+                    margin: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3E0),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFFFB74D)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.warning_amber,
+                          color: Color(0xFFF57C00),
+                          size: 14,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Faltan ${(_quantity - _selectedMaterial!.stock).toStringAsFixed(1)} ${_selectedMaterial!.unit}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFFEF6C00),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                // Add button full width
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      final price = _selectedMaterial!.pricePerKg > 0
+                          ? _selectedMaterial!.pricePerKg
+                          : _selectedMaterial!.unitPrice;
+                      final totalPrice = price * _quantity;
+                      final costPrice = _selectedMaterial!.effectiveCostPrice;
+                      final totalCost = costPrice * _quantity;
+                      final totalProfit = totalPrice - totalCost;
+                      final profitMargin = totalCost > 0
+                          ? ((totalProfit / totalCost) * 100)
+                          : 0.0;
+
+                      widget.onAdd({
+                        'id': ColombiaTime.now().millisecondsSinceEpoch
+                            .toString(),
+                        'materialId': _selectedMaterial!.id,
+                        'inv_material_id': _selectedMaterial!.id,
+                        'name': _selectedMaterial!.name,
+                        'type': 'custom',
+                        'material': _selectedMaterial!.code,
+                        'dimensions': _selectedMaterial!.category,
+                        'quantity': _quantity.toInt(),
+                        'unitWeight': 1.0,
+                        'totalWeight': _quantity,
+                        'pricePerKg': price,
+                        'costPrice': costPrice,
+                        'unitSalePrice': price,
+                        'unitCostPrice': costPrice,
+                        'totalPrice': totalPrice,
+                        'totalCost': totalCost,
+                        'unitProfit': price - costPrice,
+                        'totalProfit': totalProfit,
+                        'profitMargin': profitMargin,
+                        'productCode': _selectedMaterial!.code,
+                        'stock': _selectedMaterial!.stock,
+                        'unit': _selectedMaterial!.unit,
+                      });
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Agregar Material'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _QuotationLaborModeButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _QuotationLaborModeButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: selected ? Colors.white : const Color(0xFF757575),
+          ),
+        ),
+      ),
     );
   }
 }

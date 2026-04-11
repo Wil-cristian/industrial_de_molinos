@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 /// Entidad para gestionar precios de materiales
 class MaterialPrice {
   final String id;
@@ -60,7 +61,7 @@ class MaterialPrice {
     'density': density,
     'unit': unit,
     'is_active': isActive,
-    'updated_at': updatedAt.toIso8601String(),
+    'updated_at': ColombiaTime.toIso8601(updatedAt),
   };
 
   factory MaterialPrice.fromJson(Map<String, dynamic> json) => MaterialPrice(

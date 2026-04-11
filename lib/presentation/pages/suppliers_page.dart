@@ -11,6 +11,7 @@ import '../../domain/entities/supplier.dart';
 import '../../domain/entities/purchase_order.dart';
 import '../../domain/entities/cash_movement.dart';
 import '../../domain/entities/account.dart';
+import '../../core/utils/colombia_time.dart';
 
 class SuppliersPage extends ConsumerStatefulWidget {
   final bool openNewDialog;
@@ -829,7 +830,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                   return;
                 }
 
-                final now = DateTime.now();
+                final now = ColombiaTime.now();
                 final supplierData = Supplier(
                   id: supplier?.id ?? '',
                   type: type,
@@ -1131,7 +1132,7 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
                           description: descCtrl.text.trim(),
                           reference: refNumber.toString().padLeft(6, '0'),
                           personName: supplier.displayName,
-                          date: DateTime.now(),
+                          date: ColombiaTime.now(),
                         );
                         await AccountsDataSource.createMovementWithBalanceUpdate(
                           movement,

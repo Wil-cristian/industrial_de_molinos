@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -351,8 +352,8 @@ class EmployeeIncapacity {
     return {
       'employee_id': employeeId,
       'type': type,
-      'start_date': startDate.toIso8601String().split('T')[0],
-      'end_date': endDate.toIso8601String().split('T')[0],
+      'start_date': ColombiaTime.dateString(startDate),
+      'end_date': ColombiaTime.dateString(endDate),
       'days_total': daysTotal,
       'certificate_number': certificateNumber,
       'medical_entity': medicalEntity,
@@ -524,9 +525,11 @@ class PayrollDatasource {
           'period_type': periodType,
           'period_number': periodNumber,
           'year': year,
-          'start_date': startDate.toIso8601String().split('T')[0],
-          'end_date': endDate.toIso8601String().split('T')[0],
-          'payment_date': paymentDate?.toIso8601String().split('T')[0],
+          'start_date': ColombiaTime.dateString(startDate),
+          'end_date': ColombiaTime.dateString(endDate),
+          'payment_date': (paymentDate != null
+              ? ColombiaTime.dateString(paymentDate)
+              : null),
           'status': 'abierto',
         })
         .select()
@@ -536,7 +539,7 @@ class PayrollDatasource {
   }
 
   static Future<PayrollPeriod?> getOrCreateCurrentPeriod() async {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final year = now.year;
     final month = now.month;
 
@@ -878,7 +881,7 @@ class PayrollDatasource {
       params: {
         'p_payroll_id': payrollId,
         'p_account_id': accountId,
-        'p_payment_date': paymentDate.toIso8601String().split('T')[0],
+        'p_payment_date': ColombiaTime.dateString(paymentDate),
       },
     );
 
@@ -989,7 +992,7 @@ class PayrollDatasource {
         'p_installments': installments,
         'p_account_id': accountId,
         'p_reason': reason,
-        'p_date': DateTime.now().toIso8601String(),
+        'p_date': ColombiaTime.nowIso8601(),
       },
     );
 
@@ -1028,7 +1031,7 @@ class PayrollDatasource {
     await _client.from('loan_payments').insert({
       'loan_id': loanId,
       'payroll_id': payrollId,
-      'payment_date': DateTime.now().toIso8601String().split('T')[0],
+      'payment_date': ColombiaTime.todayString(),
       'amount': amount,
       'installment_number': installmentNumber,
       'payment_method': paymentMethod,
@@ -1089,7 +1092,7 @@ class PayrollDatasource {
     await _client.rpc(
       'create_journal_entry',
       params: {
-        'p_date': DateTime.now().toIso8601String().split('T')[0],
+        'p_date': ColombiaTime.todayString(),
         'p_description':
             'Descuento nómina - Cuota $installmentNumber/$totalInstallments préstamo $employeeName',
         'p_ref_type': 'employee_loan',

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/helpers.dart';
 import '../../../data/providers/employees_provider.dart';
 import '../../../domain/entities/employee.dart';
+import '../../../core/utils/colombia_time.dart';
 
 /// Tab de gestión de tareas de empleados.
 class EmployeesTasksTab extends ConsumerStatefulWidget {
@@ -669,7 +670,7 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
                           assignedDate: task.assignedDate,
                           dueDate: task.dueDate,
                           completedDate: newStatus == TaskStatus.completada
-                              ? DateTime.now()
+                              ? ColombiaTime.now()
                               : null,
                           status: newStatus,
                           priority: task.priority,
@@ -679,7 +680,7 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
                           activityId: task.activityId,
                           notes: task.notes,
                           createdAt: task.createdAt,
-                          updatedAt: DateTime.now(),
+                          updatedAt: ColombiaTime.now(),
                           assignedBy: task.assignedBy,
                         );
                         await ref
@@ -881,7 +882,7 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
       );
     }
 
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final diff = dueDate.difference(now);
 
     if (diff.isNegative) {
@@ -1037,7 +1038,7 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
       );
       selectedCategory = match.isNotEmpty ? match.first : 'General';
     }
-    DateTime selectedDate = task?.assignedDate ?? DateTime.now();
+    DateTime selectedDate = task?.assignedDate ?? ColombiaTime.now();
     DateTime? dueDate = task?.dueDate;
 
     final employees = ref.read(employeesProvider).activeEmployees;
@@ -1047,8 +1048,12 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: Text(isEditing ? 'Editar Tarea' : 'Nueva Tarea'),
-          content: SizedBox(
-            width: 500,
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width < 500
+                  ? MediaQuery.of(context).size.width * 0.9
+                  : 500,
+            ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1214,156 +1219,181 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<TaskPriority>(
-                          value: selectedPriority,
-                          decoration: const InputDecoration(
-                            labelText: 'Prioridad',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: TaskPriority.values.map((priority) {
-                            return DropdownMenuItem(
-                              value: priority,
-                              child: Text(
-                                priority.name[0].toUpperCase() +
-                                    priority.name.substring(1),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setDialogState(() => selectedPriority = value!);
-                          },
+                  Builder(
+                    builder: (context) {
+                      final isNarrow = MediaQuery.of(context).size.width < 500;
+                      final priorityField =
+                          DropdownButtonFormField<TaskPriority>(
+                            value: selectedPriority,
+                            decoration: const InputDecoration(
+                              labelText: 'Prioridad',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: TaskPriority.values.map((priority) {
+                              return DropdownMenuItem(
+                                value: priority,
+                                child: Text(
+                                  priority.name[0].toUpperCase() +
+                                      priority.name.substring(1),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setDialogState(() => selectedPriority = value!);
+                            },
+                          );
+                      final categoryField = DropdownButtonFormField<String>(
+                        value: selectedCategory,
+                        decoration: const InputDecoration(
+                          labelText: 'Categoría',
+                          border: OutlineInputBorder(),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: selectedCategory,
-                          decoration: const InputDecoration(
-                            labelText: 'Categoría',
-                            border: OutlineInputBorder(),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'General',
+                            child: Text('General'),
                           ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'General',
-                              child: Text('General'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Produccion',
-                              child: Text('Producción'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Mantenimiento',
-                              child: Text('Mantenimiento'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Limpieza',
-                              child: Text('Limpieza'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Logistica',
-                              child: Text('Logística'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Administrativo',
-                              child: Text('Administrativo'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Reportes',
-                              child: Text('Reportes'),
-                            ),
+                          DropdownMenuItem(
+                            value: 'Produccion',
+                            child: Text('Producción'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Mantenimiento',
+                            child: Text('Mantenimiento'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Limpieza',
+                            child: Text('Limpieza'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Logistica',
+                            child: Text('Logística'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Administrativo',
+                            child: Text('Administrativo'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Reportes',
+                            child: Text('Reportes'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => selectedCategory = value!);
+                        },
+                      );
+                      if (isNarrow) {
+                        return Column(
+                          children: [
+                            priorityField,
+                            const SizedBox(height: 12),
+                            categoryField,
                           ],
-                          onChanged: (value) {
-                            setDialogState(() => selectedCategory = value!);
-                          },
-                        ),
-                      ),
-                    ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: priorityField),
+                          const SizedBox(width: 16),
+                          Expanded(child: categoryField),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ListTile(
-                          title: const Text('Fecha Asignación'),
-                          subtitle: Text(Helpers.formatDate(selectedDate)),
-                          trailing: const Icon(Icons.calendar_today),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side: const BorderSide(color: Color(0xFFBDBDBD)),
-                          ),
-                          onTap: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate: DateTime.now().subtract(
-                                const Duration(days: 365),
-                              ),
-                              lastDate: DateTime.now().add(
-                                const Duration(days: 365),
-                              ),
-                            );
-                            if (date != null) {
-                              setDialogState(() => selectedDate = date);
-                            }
-                          },
+                  Builder(
+                    builder: (context) {
+                      final isNarrow = MediaQuery.of(context).size.width < 500;
+                      final assignDateTile = ListTile(
+                        title: const Text('Fecha Asignación'),
+                        subtitle: Text(Helpers.formatDate(selectedDate)),
+                        trailing: const Icon(Icons.calendar_today),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: const BorderSide(color: Color(0xFFBDBDBD)),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ListTile(
-                          title: const Text('Fecha Límite'),
-                          subtitle: Text(
-                            dueDate != null
-                                ? Helpers.formatDate(dueDate!)
-                                : 'Sin fecha límite',
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (dueDate != null)
-                                IconButton(
-                                  icon: const Icon(Icons.clear, size: 18),
-                                  onPressed: () =>
-                                      setDialogState(() => dueDate = null),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.event),
-                            ],
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side: BorderSide(
-                              color: dueDate != null
-                                  ? const Color(0xFFF9A825)
-                                  : const Color(0xFFBDBDBD),
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: ColombiaTime.now().subtract(
+                              const Duration(days: 365),
                             ),
-                          ),
-                          tileColor: dueDate != null
-                              ? const Color(0xFFF9A825).withValues(alpha: 0.05)
-                              : null,
-                          onTap: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate:
-                                  dueDate ??
-                                  DateTime.now().add(const Duration(days: 7)),
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(
-                                const Duration(days: 365),
-                              ),
-                            );
-                            if (date != null) {
-                              setDialogState(() => dueDate = date);
-                            }
-                          },
+                            lastDate: ColombiaTime.now().add(
+                              const Duration(days: 365),
+                            ),
+                          );
+                          if (date != null) {
+                            setDialogState(() => selectedDate = date);
+                          }
+                        },
+                      );
+                      final dueDateTile = ListTile(
+                        title: const Text('Fecha Límite'),
+                        subtitle: Text(
+                          dueDate != null
+                              ? Helpers.formatDate(dueDate!)
+                              : 'Sin fecha límite',
                         ),
-                      ),
-                    ],
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (dueDate != null)
+                              IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () =>
+                                    setDialogState(() => dueDate = null),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.event),
+                          ],
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(
+                            color: dueDate != null
+                                ? const Color(0xFFF9A825)
+                                : const Color(0xFFBDBDBD),
+                          ),
+                        ),
+                        tileColor: dueDate != null
+                            ? const Color(0xFFF9A825).withValues(alpha: 0.05)
+                            : null,
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate:
+                                dueDate ??
+                                ColombiaTime.now().add(const Duration(days: 7)),
+                            firstDate: ColombiaTime.now(),
+                            lastDate: ColombiaTime.now().add(
+                              const Duration(days: 365),
+                            ),
+                          );
+                          if (date != null) {
+                            setDialogState(() => dueDate = date);
+                          }
+                        },
+                      );
+                      if (isNarrow) {
+                        return Column(
+                          children: [
+                            assignDateTile,
+                            const SizedBox(height: 12),
+                            dueDateTile,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: assignDateTile),
+                          const SizedBox(width: 16),
+                          Expanded(child: dueDateTile),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
@@ -1405,7 +1435,7 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
                     priority: selectedPriority,
                     category: selectedCategory,
                     createdAt: task.createdAt,
-                    updatedAt: DateTime.now(),
+                    updatedAt: ColombiaTime.now(),
                   );
                   await ref
                       .read(employeesProvider.notifier)
@@ -1439,8 +1469,8 @@ class EmployeesTasksTabState extends ConsumerState<EmployeesTasksTab> {
                       status: TaskStatus.pendiente,
                       priority: selectedPriority,
                       category: selectedCategory,
-                      createdAt: DateTime.now(),
-                      updatedAt: DateTime.now(),
+                      createdAt: ColombiaTime.now(),
+                      updatedAt: ColombiaTime.now(),
                     );
                     final created = await ref
                         .read(employeesProvider.notifier)

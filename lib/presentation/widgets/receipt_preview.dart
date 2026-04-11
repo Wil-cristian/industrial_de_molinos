@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/invoice.dart';
+import '../../core/utils/colombia_time.dart';
 
 // Fixed colors for print-ready receipt (not theme-dependent)
 const _kPrimary = Color(0xFF1B4F72);
@@ -915,7 +916,7 @@ class ReceiptPreviewEnterprise extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Text(
-              'Actualizado: Hoy, ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')} ${DateTime.now().hour >= 12 ? 'PM' : 'AM'}',
+              'Actualizado: Hoy, ${ColombiaTime.now().hour}:${ColombiaTime.now().minute.toString().padLeft(2, '0')} ${ColombiaTime.now().hour >= 12 ? 'PM' : 'AM'}',
               style: TextStyle(fontSize: 12, color: _kOnSurfaceVariant),
             ),
           ],

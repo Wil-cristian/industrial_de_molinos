@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/supplier.dart';
 import 'supabase_datasource.dart';
@@ -95,7 +96,7 @@ class SuppliersDataSource {
     final data = supplier.toJson();
     data.remove('id');
     data.remove('created_at');
-    data['updated_at'] = DateTime.now().toIso8601String();
+    data['updated_at'] = ColombiaTime.nowIso8601();
 
     final response = await _client
         .from(_table)

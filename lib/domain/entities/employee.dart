@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Entidad de Empleado
 class Employee {
@@ -123,7 +124,7 @@ class Employee {
       department: json['department'] as String?,
       hireDate: json['hire_date'] != null
           ? DateTime.parse(json['hire_date'] as String)
-          : DateTime.now(),
+          : ColombiaTime.now(),
       terminationDate: json['termination_date'] != null
           ? DateTime.parse(json['termination_date'] as String)
           : null,
@@ -149,10 +150,10 @@ class Employee {
       notes: json['notes'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
+          : ColombiaTime.now(),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
-          : DateTime.now(),
+          : ColombiaTime.now(),
     );
   }
 
@@ -167,8 +168,8 @@ class Employee {
       'address': address,
       'position': position,
       'department': department,
-      'hire_date': hireDate.toIso8601String().split('T')[0],
-      'termination_date': terminationDate?.toIso8601String().split('T')[0],
+      'hire_date': ColombiaTime.dateString(hireDate),
+      'termination_date': (terminationDate != null ? ColombiaTime.dateString(terminationDate!) : null),
       'salary': salary,
       'pay_type': payType,
       'daily_rate': dailyRate,
@@ -377,7 +378,7 @@ class EmployeeTask {
     final json = <String, dynamic>{
       'employee_id': employeeId,
       'title': title,
-      'assigned_date': assignedDate.toIso8601String().split('T')[0],
+      'assigned_date': ColombiaTime.dateString(assignedDate),
       'status': _taskStatusToString(status),
       'priority': _taskPriorityToString(priority),
       'category': category,
@@ -386,10 +387,10 @@ class EmployeeTask {
     // Solo incluir campos opcionales si tienen valor
     if (description != null) json['description'] = description;
     if (dueDate != null) {
-      json['due_date'] = dueDate!.toIso8601String().split('T')[0];
+      json['due_date'] = ColombiaTime.dateString(dueDate!);
     }
     if (completedDate != null) {
-      json['completed_date'] = completedDate!.toIso8601String();
+      json['completed_date'] = ColombiaTime.toIso8601(completedDate!);
     }
     if (estimatedTime != null) json['estimated_time'] = estimatedTime;
     if (actualTime != null) json['actual_time'] = actualTime;
@@ -551,12 +552,12 @@ class EmployeeTimeEntry {
   Map<String, dynamic> toJson() {
     return {
       'employee_id': employeeId,
-      'entry_date': entryDate.toIso8601String().split('T')[0],
+      'entry_date': ColombiaTime.dateString(entryDate),
       'scheduled_start': scheduledStart,
       'scheduled_end': scheduledEnd,
       'scheduled_minutes': scheduledMinutes,
-      'check_in': checkIn?.toIso8601String(),
-      'check_out': checkOut?.toIso8601String(),
+      'check_in': (checkIn != null ? ColombiaTime.toIso8601(checkIn!) : null),
+      'check_out': (checkOut != null ? ColombiaTime.toIso8601(checkOut!) : null),
       'break_minutes': breakMinutes,
       'worked_minutes': workedMinutes,
       'overtime_minutes': overtimeMinutes,
@@ -566,7 +567,7 @@ class EmployeeTimeEntry {
       'notes': notes,
       'approval_notes': approvalNotes,
       'approved_by': approvedBy,
-      'approved_at': approvedAt?.toIso8601String(),
+      'approved_at': (approvedAt != null ? ColombiaTime.toIso8601(approvedAt!) : null),
     };
   }
 }
@@ -642,8 +643,8 @@ class EmployeeTimeSheet {
     return {
       'employee_id': employeeId,
       'period_id': periodId,
-      'week_start': weekStart.toIso8601String().split('T')[0],
-      'week_end': weekEnd.toIso8601String().split('T')[0],
+      'week_start': ColombiaTime.dateString(weekStart),
+      'week_end': ColombiaTime.dateString(weekEnd),
       'scheduled_minutes': scheduledMinutes,
       'worked_minutes': workedMinutes,
       'overtime_minutes': overtimeMinutes,
@@ -651,7 +652,7 @@ class EmployeeTimeSheet {
       'status': status,
       'notes': notes,
       'locked_by': lockedBy,
-      'locked_at': lockedAt?.toIso8601String(),
+      'locked_at': (lockedAt != null ? ColombiaTime.toIso8601(lockedAt!) : null),
     };
   }
 }
@@ -724,14 +725,14 @@ class EmployeeTimeAdjustment {
       'timesheet_id': timesheetId,
       'entry_id': entryId,
       'period_id': periodId,
-      'adjustment_date': adjustmentDate.toIso8601String().split('T')[0],
+      'adjustment_date': ColombiaTime.dateString(adjustmentDate),
       'minutes': minutes,
       'type': type,
       'reason': reason,
       'status': status,
       'notes': notes,
       'approved_by': approvedBy,
-      'approved_at': approvedAt?.toIso8601String(),
+      'approved_at': (approvedAt != null ? ColombiaTime.toIso8601(approvedAt!) : null),
     };
   }
 }
@@ -785,8 +786,8 @@ class EmployeeTaskTimeLog {
     return {
       'task_id': taskId,
       'employee_id': employeeId,
-      'start_time': startTime.toIso8601String(),
-      'end_time': endTime?.toIso8601String(),
+      'start_time': ColombiaTime.toIso8601(startTime),
+      'end_time': (endTime != null ? ColombiaTime.toIso8601(endTime!) : null),
       'minutes': minutes,
       'status': status,
       'notes': notes,

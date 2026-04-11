@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/colombia_time.dart';
 
 enum ActivityType {
   payment,
@@ -117,16 +118,16 @@ class Activity {
       'title': title,
       'description': description,
       'activity_type': _activityTypeToString(activityType),
-      'start_date': startDate.toIso8601String(),
-      'end_date': endDate?.toIso8601String(),
-      'due_date': dueDate?.toIso8601String().split('T')[0],
+      'start_date': ColombiaTime.toIso8601(startDate),
+      'end_date': (endDate != null ? ColombiaTime.toIso8601(endDate!) : null),
+      'due_date': (dueDate != null ? ColombiaTime.dateString(dueDate!) : null),
       'status': _activityStatusToString(status),
       'priority': _activityPriorityToString(priority),
       'customer_id': customerId,
       'invoice_id': invoiceId,
       'quotation_id': quotationId,
       'reminder_enabled': reminderEnabled,
-      'reminder_date': reminderDate?.toIso8601String(),
+      'reminder_date': (reminderDate != null ? ColombiaTime.toIso8601(reminderDate!) : null),
       'amount': amount,
       'color': color,
       'icon': icon,
@@ -178,7 +179,7 @@ class Activity {
       icon: icon ?? this.icon,
       notes: notes ?? this.notes,
       createdAt: createdAt,
-      updatedAt: DateTime.now(),
+      updatedAt: ColombiaTime.now(),
     );
   }
 
@@ -301,7 +302,7 @@ class Activity {
     if (dueDate == null) return false;
     return status != ActivityStatus.completed && 
            status != ActivityStatus.cancelled &&
-           dueDate!.isBefore(DateTime.now());
+           dueDate!.isBefore(ColombiaTime.now());
   }
 
   static ActivityType _parseActivityType(String value) {

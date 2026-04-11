@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 // Entidad: Material de Inventario (Simplificada para Supabase)
 // Representa materia prima en el almacén
 
@@ -220,10 +221,10 @@ class Material {
       location: json['location'],
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(
-        json['created_at'] ?? DateTime.now().toIso8601String(),
+        json['created_at'] ?? ColombiaTime.nowIso8601(),
       ),
       updatedAt: DateTime.parse(
-        json['updated_at'] ?? DateTime.now().toIso8601String(),
+        json['updated_at'] ?? ColombiaTime.nowIso8601(),
       ),
     );
   }

@@ -1,5 +1,6 @@
-import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/utils/colombia_time.dart';
+import '../../core/utils/logger.dart';
 import '../../domain/entities/activity.dart';
 import 'audit_log_datasource.dart';
 
@@ -35,14 +36,11 @@ class ActivitiesDatasource {
   /// Obtener actividades por fecha
   static Future<List<Activity>> getActivitiesByDate(DateTime date) async {
     try {
-      final startOfDay = DateTime(date.year, date.month, date.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-
       final response = await _client
           .from('activities')
           .select('*, customers(name)')
-          .gte('start_date', startOfDay.toIso8601String())
-          .lt('start_date', endOfDay.toIso8601String())
+          .gte('start_date', ColombiaTime.startOfDayIso(date))
+          .lt('start_date', ColombiaTime.endOfDayIso(date))
           .order('start_date', ascending: true);
 
       return (response as List)
@@ -71,8 +69,8 @@ class ActivitiesDatasource {
       final response = await _client
           .from('activities')
           .select('*, customers(name)')
-          .gte('start_date', startOfMonth.toIso8601String())
-          .lt('start_date', endOfMonth.toIso8601String())
+          .gte('start_date', ColombiaTime.startOfDayIso(startOfMonth))
+          .lt('start_date', ColombiaTime.startOfDayIso(endOfMonth))
           .order('start_date', ascending: true);
 
       return (response as List)
@@ -99,9 +97,13 @@ class ActivitiesDatasource {
             'title': activity.title,
             'description': activity.description,
             'activity_type': _activityTypeToString(activity.activityType),
-            'start_date': activity.startDate.toIso8601String(),
-            'end_date': activity.endDate?.toIso8601String(),
-            'due_date': activity.dueDate?.toIso8601String().split('T')[0],
+            'start_date': ColombiaTime.toIso8601(activity.startDate),
+            'end_date': activity.endDate != null
+                ? ColombiaTime.toIso8601(activity.endDate!)
+                : null,
+            'due_date': activity.dueDate != null
+                ? ColombiaTime.dateString(activity.dueDate!)
+                : null,
             'status': _statusToString(activity.status),
             'priority': _priorityToString(activity.priority),
             'customer_id':
@@ -117,7 +119,9 @@ class ActivitiesDatasource {
             'icon': activity.icon,
             'notes': activity.notes,
             'reminder_enabled': activity.reminderEnabled,
-            'reminder_date': activity.reminderDate?.toIso8601String(),
+            'reminder_date': activity.reminderDate != null
+                ? ColombiaTime.toIso8601(activity.reminderDate!)
+                : null,
           })
           .select()
           .single();
@@ -146,9 +150,13 @@ class ActivitiesDatasource {
             'title': activity.title,
             'description': activity.description,
             'activity_type': _activityTypeToString(activity.activityType),
-            'start_date': activity.startDate.toIso8601String(),
-            'end_date': activity.endDate?.toIso8601String(),
-            'due_date': activity.dueDate?.toIso8601String().split('T')[0],
+            'start_date': ColombiaTime.toIso8601(activity.startDate),
+            'end_date': activity.endDate != null
+                ? ColombiaTime.toIso8601(activity.endDate!)
+                : null,
+            'due_date': activity.dueDate != null
+                ? ColombiaTime.dateString(activity.dueDate!)
+                : null,
             'status': _statusToString(activity.status),
             'priority': _priorityToString(activity.priority),
             'customer_id': activity.customerId,

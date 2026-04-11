@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/logger.dart';
 import '../../domain/entities/purchase_order.dart';
@@ -91,7 +92,7 @@ class PurchaseOrdersDataSource {
   /// Actualizar orden
   static Future<PurchaseOrder> update(PurchaseOrder order) async {
     final data = order.toJson();
-    data['updated_at'] = DateTime.now().toIso8601String();
+    data['updated_at'] = ColombiaTime.nowIso8601();
 
     final response = await _client
         .from(_table)
@@ -113,7 +114,7 @@ class PurchaseOrdersDataSource {
         .from(_table)
         .update({
           'status': status.name,
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': ColombiaTime.nowIso8601(),
         })
         .eq('id', orderId)
         .select(
@@ -150,7 +151,7 @@ class PurchaseOrdersDataSource {
           'amount_paid': newPaid,
           'payment_status': newPaymentStatus,
           'payment_method': method,
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': ColombiaTime.nowIso8601(),
         })
         .eq('id', orderId)
         .select(
@@ -236,7 +237,7 @@ class PurchaseOrdersDataSource {
       'reference_code': item.referenceCode,
       'description': item.description,
       'total': item.itemTotal,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': ColombiaTime.nowIso8601(),
     };
 
     final response = await _client

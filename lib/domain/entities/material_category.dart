@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Entidad: Categoría de Material
 /// Permite categorías personalizadas definidas por el usuario
@@ -180,10 +181,10 @@ class MaterialCategory {
       sortOrder: json['sort_order'] ?? 0,
       codePrefix: json['code_prefix'],
       createdAt: DateTime.parse(
-        json['created_at'] ?? DateTime.now().toIso8601String(),
+        json['created_at'] ?? ColombiaTime.nowIso8601(),
       ),
       updatedAt: DateTime.parse(
-        json['updated_at'] ?? DateTime.now().toIso8601String(),
+        json['updated_at'] ?? ColombiaTime.nowIso8601(),
       ),
     );
   }

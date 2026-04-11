@@ -1,4 +1,5 @@
 import 'composite_product.dart';
+import '../../core/utils/colombia_time.dart';
 
 class ProductionOrderMaterial {
   final String id;
@@ -251,13 +252,13 @@ class ProductionOrder {
   bool get isOverdue {
     if (dueDate == null) return false;
     if (status == 'completada') return false;
-    return dueDate!.isBefore(DateTime.now());
+    return dueDate!.isBefore(ColombiaTime.now());
   }
 
   /// Positive = days remaining; negative = days overdue; null = no due date
   int? get daysUntilDue {
     if (dueDate == null) return null;
-    return dueDate!.difference(DateTime.now()).inDays;
+    return dueDate!.difference(ColombiaTime.now()).inDays;
   }
 
   ProductionOrder copyWith({
@@ -310,7 +311,7 @@ class ProductionOrder {
     final product = json['products'] as Map<String, dynamic>?;
 
     DateTime parseDate(dynamic value) {
-      if (value == null) return DateTime.now();
+      if (value == null) return ColombiaTime.now();
       return DateTime.parse(value.toString());
     }
 

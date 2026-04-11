@@ -16,6 +16,8 @@ import '../../data/datasources/accounts_datasource.dart';
 import '../../data/providers/composite_products_provider.dart';
 import '../../core/utils/print_service.dart';
 import '../widgets/sale_invoice_scan_dialog.dart';
+import '../../core/responsive/responsive_helper.dart';
+import '../../core/utils/colombia_time.dart';
 
 class InvoicesPage extends ConsumerStatefulWidget {
   const InvoicesPage({super.key});
@@ -190,18 +192,152 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+    final hasActiveFilters =
+        _selectedStatus != 'Todos' ||
+        _selectedPaymentType != 'Todos' ||
+        _dateRange != null;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+      floatingActionButton: isMobile
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 80),
+              child: FloatingActionButton(
+                heroTag: 'invoices',
+                onPressed: () => context.go('/invoices/new'),
+                child: const Icon(Icons.add),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [
-            // Header ultra compacto
+            // Header
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 16,
+                vertical: isMobile ? 6 : 8,
+              ),
               color: Theme.of(context).colorScheme.surface,
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final isNarrow = constraints.maxWidth < 980;
+
+                  if (isMobile) {
+                    // ── Mobile header: título + stats arriba, búsqueda + iconos abajo ──
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Título y stats
+                        Row(
+                          children: [
+                            Text(
+                              'Recibos',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildQuickStat(
+                              '',
+                              Formatters.currency(_totalVentas),
+                              const Color(0xFF1565C0),
+                              Icons.trending_up,
+                            ),
+                            const SizedBox(width: 4),
+                            _buildQuickStat(
+                              '',
+                              Formatters.currency(_totalPendiente),
+                              const Color(0xFFF9A825),
+                              Icons.schedule,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        // Búsqueda + filtros + acciones
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 36,
+                                child: TextField(
+                                  onChanged: (value) =>
+                                      setState(() => _searchQuery = value),
+                                  decoration: InputDecoration(
+                                    hintText: 'Buscar...',
+                                    prefixIcon: const Icon(
+                                      Icons.search,
+                                      size: 18,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.outlineVariant,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.outlineVariant,
+                                      ),
+                                    ),
+                                    filled: true,
+                                    fillColor: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerLowest,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 0,
+                                    ),
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Badge(
+                              isLabelVisible: hasActiveFilters,
+                              smallSize: 8,
+                              child: IconButton(
+                                icon: const Icon(Icons.filter_list, size: 22),
+                                onPressed: () =>
+                                    _showMobileFiltersSheet(context),
+                                tooltip: 'Filtros',
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.receipt_long,
+                                size: 20,
+                                color: Color(0xFFE65100),
+                              ),
+                              onPressed: () async {
+                                final created =
+                                    await SaleInvoiceScanDialog.show(context);
+                                if (created == true) {
+                                  ref.read(invoicesProvider.notifier).refresh();
+                                }
+                              },
+                              tooltip: 'Reconciliar',
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  }
+
+                  // ── Desktop/Tablet header (original) ──
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -280,151 +416,19 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                               ),
                             ),
                           ),
-                          SizedBox(
-                            height: 36,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerLowest,
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedStatus,
-                                  isDense: true,
-                                  items:
-                                      [
-                                            'Todos',
-                                            'Pagada',
-                                            'Pendiente',
-                                            'Parcial',
-                                            'Vencida',
-                                            'Anulada',
-                                          ]
-                                          .map(
-                                            (s) => DropdownMenuItem(
-                                              value: s,
-                                              child: Text(
-                                                s,
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ),
-                                          )
-                                          .toList(),
-                                  onChanged: (value) =>
-                                      setState(() => _selectedStatus = value!),
-                                ),
-                              ),
-                            ),
+                          _buildFilterDropdown(
+                            _selectedStatus,
+                            [
+                              'Todos',
+                              'Pagada',
+                              'Pendiente',
+                              'Parcial',
+                              'Vencida',
+                              'Anulada',
+                            ],
+                            (v) => setState(() => _selectedStatus = v!),
                           ),
-                          SizedBox(
-                            height: 36,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerLowest,
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedPaymentType,
-                                  isDense: true,
-                                  items: [
-                                    DropdownMenuItem(
-                                      value: 'Todos',
-                                      child: Text(
-                                        'Tipo: Todos',
-                                        style: const TextStyle(fontSize: 13),
-                                      ),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'cash',
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.payments,
-                                            size: 14,
-                                            color: const Color(0xFF2E7D32),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Contado',
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'credit',
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.calendar_month,
-                                            size: 14,
-                                            color: const Color(0xFFF9A825),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Crédito',
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'advance',
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.savings,
-                                            size: 14,
-                                            color: const Color(0xFF7B1FA2),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Adelanto',
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                  onChanged: (value) => setState(
-                                    () => _selectedPaymentType = value!,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                          _buildPaymentTypeDropdown(),
                           SizedBox(
                             height: 36,
                             child: OutlinedButton.icon(
@@ -432,7 +436,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                                 final range = await showDateRangePicker(
                                   context: context,
                                   firstDate: DateTime(2020),
-                                  lastDate: DateTime.now().add(
+                                  lastDate: ColombiaTime.now().add(
                                     const Duration(days: 365),
                                   ),
                                   initialDateRange: _dateRange,
@@ -596,10 +600,20 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
       );
     }
 
+    final isMobile = ResponsiveHelper.isMobile(context);
+
+    if (isMobile) {
+      // ── Mobile: Card list ──
+      return ListView.builder(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
+        itemCount: invoices.length,
+        itemBuilder: (context, index) => _buildInvoiceCard(invoices[index]),
+      );
+    }
+
+    // ── Desktop/Tablet: DataTable ──
     return Padding(
-      padding: EdgeInsets.all(
-        MediaQuery.of(context).size.width < 600 ? 12 : 24,
-      ),
+      padding: const EdgeInsets.all(24),
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
@@ -685,6 +699,545 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                     .toList(),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Mobile invoice card ──────────────────────────────────────────
+  Widget _buildInvoiceCard(Map<String, dynamic> invoice) {
+    Color statusColor;
+    IconData statusIcon;
+    switch (invoice['status']) {
+      case 'Pagada':
+        statusColor = const Color(0xFF2E7D32);
+        statusIcon = Icons.check_circle;
+        break;
+      case 'Pendiente':
+        statusColor = const Color(0xFFF9A825);
+        statusIcon = Icons.schedule;
+        break;
+      case 'Parcial':
+        statusColor = const Color(0xFF1565C0);
+        statusIcon = Icons.pie_chart;
+        break;
+      case 'Vencida':
+        statusColor = const Color(0xFFC62828);
+        statusIcon = Icons.warning;
+        break;
+      case 'Anulada':
+        statusColor = const Color(0xFF9E9E9E);
+        statusIcon = Icons.cancel;
+        break;
+      default:
+        statusColor = const Color(0xFF9E9E9E);
+        statusIcon = Icons.help;
+    }
+
+    final total = invoice['total'] as double;
+    final paid = invoice['paid'] as double;
+    final pending = total - paid;
+    final saleType = invoice['salePaymentType'] as String?;
+    final typeColor = _paymentTypeColor(saleType);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _showInvoiceDetails(invoice),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top row: number + status + menu
+              Row(
+                children: [
+                  Text(
+                    invoice['number'],
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _paymentTypeIcon(saleType),
+                          size: 10,
+                          color: typeColor,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          _paymentTypeLabel(saleType),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: typeColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(statusIcon, size: 12, color: statusColor),
+                        const SizedBox(width: 3),
+                        Text(
+                          invoice['status'],
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: statusColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.more_vert,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    padding: EdgeInsets.zero,
+                    onSelected: (value) => _handleInvoiceAction(value, invoice),
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'view',
+                        child: Row(
+                          children: [
+                            Icon(Icons.visibility, size: 18),
+                            SizedBox(width: 8),
+                            Text('Ver detalle'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'print',
+                        child: Row(
+                          children: [
+                            Icon(Icons.print, size: 18),
+                            SizedBox(width: 8),
+                            Text('Imprimir'),
+                          ],
+                        ),
+                      ),
+                      if (invoice['status'] != 'Pagada' &&
+                          invoice['status'] != 'Anulada')
+                        PopupMenuItem(
+                          value: 'payment',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.payment,
+                                size: 18,
+                                color: AppColors.success,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Registrar pago',
+                                style: TextStyle(color: AppColors.success),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (invoice['status'] != 'Anulada')
+                        PopupMenuItem(
+                          value: 'cancel',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.cancel,
+                                size: 18,
+                                color: AppColors.danger,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Anular',
+                                style: TextStyle(color: AppColors.danger),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              // Customer
+              Text(
+                invoice['customer'] ?? '',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              // Bottom: date + total + paid
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    size: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    Formatters.date(invoice['date']),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        Formatters.currency(total),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      if (pending > 0 && invoice['status'] != 'Pagada')
+                        Text(
+                          'Debe: ${Formatters.currency(pending)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.warning,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      if (paid > 0 && invoice['status'] != 'Pagada')
+                        Text(
+                          'Pagado: ${Formatters.currency(paid)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.success,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Mobile filters bottom sheet ──────────────────────────────────
+  void _showMobileFiltersSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        String tempStatus = _selectedStatus;
+        String tempPaymentType = _selectedPaymentType;
+        DateTimeRange? tempDateRange = _dateRange;
+
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                MediaQuery.of(ctx).viewInsets.bottom + 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Filtros',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () {
+                          setSheetState(() {
+                            tempStatus = 'Todos';
+                            tempPaymentType = 'Todos';
+                            tempDateRange = null;
+                          });
+                        },
+                        child: const Text('Limpiar'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Estado',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children:
+                        [
+                          'Todos',
+                          'Pagada',
+                          'Pendiente',
+                          'Parcial',
+                          'Vencida',
+                          'Anulada',
+                        ].map((s) {
+                          final selected = tempStatus == s;
+                          return FilterChip(
+                            label: Text(s, style: TextStyle(fontSize: 12)),
+                            selected: selected,
+                            onSelected: (_) =>
+                                setSheetState(() => tempStatus = s),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          );
+                        }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Tipo de Pago',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children:
+                        [
+                          ('Todos', 'Todos'),
+                          ('cash', 'Contado'),
+                          ('credit', 'Crédito'),
+                          ('advance', 'Adelanto'),
+                        ].map((e) {
+                          final selected = tempPaymentType == e.$1;
+                          return FilterChip(
+                            label: Text(e.$2, style: TextStyle(fontSize: 12)),
+                            selected: selected,
+                            onSelected: (_) =>
+                                setSheetState(() => tempPaymentType = e.$1),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          );
+                        }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Text(
+                        'Fecha',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (tempDateRange != null)
+                        Text(
+                          '${Formatters.date(tempDateRange!.start)} - ${Formatters.date(tempDateRange!.end)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      const Spacer(),
+                      OutlinedButton(
+                        onPressed: () async {
+                          final range = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2020),
+                            lastDate: ColombiaTime.now().add(
+                              const Duration(days: 365),
+                            ),
+                            initialDateRange: tempDateRange,
+                          );
+                          if (range != null) {
+                            setSheetState(() => tempDateRange = range);
+                          }
+                        },
+                        child: Text(
+                          tempDateRange == null ? 'Seleccionar' : 'Cambiar',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedStatus = tempStatus;
+                          _selectedPaymentType = tempPaymentType;
+                          _dateRange = tempDateRange;
+                        });
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('Aplicar Filtros'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ── Desktop filter dropdown helper ───────────────────────────────
+  Widget _buildFilterDropdown(
+    String value,
+    List<String> items,
+    ValueChanged<String?> onChanged,
+  ) {
+    return SizedBox(
+      height: 36,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(8),
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: value,
+            isDense: true,
+            items: items
+                .map(
+                  (s) => DropdownMenuItem(
+                    value: s,
+                    child: Text(s, style: const TextStyle(fontSize: 13)),
+                  ),
+                )
+                .toList(),
+            onChanged: onChanged,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentTypeDropdown() {
+    return SizedBox(
+      height: 36,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(8),
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: _selectedPaymentType,
+            isDense: true,
+            items: [
+              DropdownMenuItem(
+                value: 'Todos',
+                child: Text(
+                  'Tipo: Todos',
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'cash',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.payments,
+                      size: 14,
+                      color: const Color(0xFF2E7D32),
+                    ),
+                    const SizedBox(width: 4),
+                    Text('Contado', style: const TextStyle(fontSize: 13)),
+                  ],
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'credit',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.calendar_month,
+                      size: 14,
+                      color: const Color(0xFFF9A825),
+                    ),
+                    const SizedBox(width: 4),
+                    Text('Crédito', style: const TextStyle(fontSize: 13)),
+                  ],
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'advance',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.savings,
+                      size: 14,
+                      color: const Color(0xFF7B1FA2),
+                    ),
+                    const SizedBox(width: 4),
+                    Text('Adelanto', style: const TextStyle(fontSize: 13)),
+                  ],
+                ),
+              ),
+            ],
+            onChanged: (value) => setState(() => _selectedPaymentType = value!),
           ),
         ),
       ),
@@ -829,7 +1382,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                   style: TextStyle(
                     color:
                         (invoice['dueDate'] as DateTime).isBefore(
-                              DateTime.now(),
+                              ColombiaTime.now(),
                             ) &&
                             invoice['status'] != 'Pagada'
                         ? const Color(0xFFC62828)

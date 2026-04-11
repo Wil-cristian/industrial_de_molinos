@@ -13,9 +13,12 @@ import '../../data/providers/invoices_provider.dart';
 import '../../data/providers/quotations_provider.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/invoice.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../widgets/customer_form_dialog.dart';
 import 'suppliers_page.dart';
 import 'purchase_orders_page.dart';
+import 'drivers_page.dart';
+import '../../core/utils/colombia_time.dart';
 
 class CustomersPage extends ConsumerStatefulWidget {
   final bool openNewDialog;
@@ -34,7 +37,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     Future.microtask(() {
       ref.read(customersProvider.notifier).loadCustomers();
       // Abrir diálogo si viene de la ruta /customers/new
@@ -91,26 +94,33 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
     final state = ref.watch(customersProvider);
     final filteredCustomers = _getFilteredCustomers(state.filteredCustomers);
 
+    final isMobile = ResponsiveHelper.isMobile(context);
+
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
+      floatingActionButton: isMobile
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 80),
+              child: FloatingActionButton(
+                heroTag: 'customers',
+                onPressed: () => _showAddCustomerDialog(context),
+                child: const Icon(Icons.person_add),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [
             // Header con tabs
             Container(
               color: cs.surface,
-              padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: cs.primary, size: 20),
-                    onPressed: () => context.go('/'),
-                    tooltip: 'Volver al menú',
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TabBar(
+              padding: EdgeInsets.only(
+                left: isMobile ? 8 : 20,
+                right: isMobile ? 8 : 20,
+                top: isMobile ? 4 : 12,
+              ),
+              child: isMobile
+                  ? TabBar(
                       controller: _tabController,
                       indicatorColor: cs.primary,
                       labelColor: cs.primary,
@@ -118,31 +128,70 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                       indicatorWeight: 3,
                       isScrollable: true,
                       tabAlignment: TabAlignment.start,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 10),
                       labelStyle: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: 12,
                       ),
                       tabs: const [
-                        Tab(
-                          icon: Icon(Icons.people, size: 18),
-                          text: 'Clientes',
-                          height: 44,
+                        Tab(text: 'Clientes', height: 36),
+                        Tab(text: 'Conductores', height: 36),
+                        Tab(text: 'Proveedores', height: 36),
+                        Tab(text: 'Órdenes', height: 36),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.arrow_back,
+                            color: cs.primary,
+                            size: 20,
+                          ),
+                          onPressed: () => context.go('/'),
+                          tooltip: 'Volver al menú',
+                          visualDensity: VisualDensity.compact,
                         ),
-                        Tab(
-                          icon: Icon(Icons.local_shipping, size: 18),
-                          text: 'Proveedores',
-                          height: 44,
-                        ),
-                        Tab(
-                          icon: Icon(Icons.shopping_cart, size: 18),
-                          text: 'Órdenes de Compra',
-                          height: 44,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TabBar(
+                            controller: _tabController,
+                            indicatorColor: cs.primary,
+                            labelColor: cs.primary,
+                            unselectedLabelColor: cs.onSurfaceVariant,
+                            indicatorWeight: 3,
+                            isScrollable: true,
+                            tabAlignment: TabAlignment.start,
+                            labelStyle: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            tabs: const [
+                              Tab(
+                                icon: Icon(Icons.people, size: 18),
+                                text: 'Clientes',
+                                height: 44,
+                              ),
+                              Tab(
+                                icon: Icon(Icons.directions_car, size: 18),
+                                text: 'Conductores',
+                                height: 44,
+                              ),
+                              Tab(
+                                icon: Icon(Icons.local_shipping, size: 18),
+                                text: 'Proveedores',
+                                height: 44,
+                              ),
+                              Tab(
+                                icon: Icon(Icons.shopping_cart, size: 18),
+                                text: 'Órdenes de Compra',
+                                height: 44,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
             ),
             // Contenido de tabs
             Expanded(
@@ -150,6 +199,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                 controller: _tabController,
                 children: [
                   _buildCustomersContent(theme, state, filteredCustomers),
+                  const DriversPage(),
                   const SuppliersPage(),
                   const PurchaseOrdersPage(),
                 ],
@@ -167,96 +217,119 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
     List<Customer> filteredCustomers,
   ) {
     final cs = theme.colorScheme;
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 20,
+            vertical: isMobile ? 8 : 12,
+          ),
           color: cs.surface,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    '${state.customers.length} clientes registrados',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
+              if (isMobile) ...[
+                // Mobile: stats compactos + botón agregar
+                Row(
+                  children: [
+                    _buildQuickStat(
+                      'Deuda',
+                      Formatters.currency(
+                        state.customers.fold(
+                          0.0,
+                          (sum, c) => sum + c.currentBalance,
+                        ),
+                      ),
+                      const Color(0xFFF9A825),
+                      Icons.account_balance_wallet,
                     ),
-                  ),
-                  _buildQuickStat(
-                    'Total Deuda',
-                    Formatters.currency(
-                      state.customers.fold(
-                        0.0,
-                        (sum, c) => sum + c.currentBalance,
+                    const SizedBox(width: 8),
+                    _buildQuickStat(
+                      'Activos',
+                      state.customers
+                          .where((c) => c.isActive)
+                          .length
+                          .toString(),
+                      const Color(0xFF2E7D32),
+                      Icons.people,
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${state.customers.length}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
                       ),
                     ),
-                    const Color(0xFFF9A825),
-                    Icons.account_balance_wallet,
-                  ),
-                  _buildQuickStat(
-                    'Clientes Activos',
-                    state.customers.where((c) => c.isActive).length.toString(),
-                    const Color(0xFF2E7D32),
-                    Icons.people,
-                  ),
-                  FilledButton.icon(
-                    onPressed: () => _showAddCustomerDialog(context),
-                    icon: const Icon(Icons.person_add, size: 18),
-                    label: const Text('Nuevo Cliente'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, size: 20),
+                      onSelected: (value) {
+                        if (value == 'refresh') {
+                          ref.read(customersProvider.notifier).loadCustomers();
+                        } else if (value == 'recalculate') {
+                          _recalculateBalances();
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'refresh',
+                          child: Text('Actualizar'),
+                        ),
+                        PopupMenuItem(
+                          value: 'recalculate',
+                          child: Text('Recalcular Saldos'),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Barra de búsqueda y filtros
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isNarrow = constraints.maxWidth < 980;
-                  return Wrap(
-                    spacing: 12,
-                    runSpacing: 10,
-                    children: [
-                      SizedBox(
-                        width: isNarrow ? constraints.maxWidth : 420,
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Mobile: búsqueda + filtro en fila
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 38,
                         child: TextField(
                           onChanged: (value) => ref
                               .read(customersProvider.notifier)
                               .search(value),
                           decoration: InputDecoration(
-                            hintText: 'Buscar por nombre, documento o email...',
-                            prefixIcon: const Icon(Icons.search),
+                            hintText: 'Buscar...',
+                            prefixIcon: const Icon(Icons.search, size: 18),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                               borderSide: BorderSide(color: cs.outlineVariant),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                               borderSide: BorderSide(color: cs.outlineVariant),
                             ),
                             filled: true,
                             fillColor: cs.surfaceContainerLowest,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 0,
+                            ),
+                            isDense: true,
                           ),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 38,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
                         decoration: BoxDecoration(
                           border: Border.all(color: cs.outlineVariant),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                           color: cs.surfaceContainerLowest,
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: _selectedFilter,
+                            isDense: true,
                             items:
                                 [
                                       'Todos',
@@ -266,9 +339,12 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                                       'Personas',
                                     ]
                                     .map(
-                                      (filter) => DropdownMenuItem(
-                                        value: filter,
-                                        child: Text(filter),
+                                      (f) => DropdownMenuItem(
+                                        value: f,
+                                        child: Text(
+                                          f,
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
                                       ),
                                     )
                                     .toList(),
@@ -277,68 +353,154 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                           ),
                         ),
                       ),
-                      OutlinedButton.icon(
-                        onPressed: () => ref
-                            .read(customersProvider.notifier)
-                            .loadCustomers(),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Actualizar'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                // Desktop: layout original
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      '${state.customers.length} clientes registrados',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    _buildQuickStat(
+                      'Total Deuda',
+                      Formatters.currency(
+                        state.customers.fold(
+                          0.0,
+                          (sum, c) => sum + c.currentBalance,
                         ),
                       ),
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          try {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Recalculando balances...'),
-                                duration: Duration(seconds: 1),
-                              ),
-                            );
-                            await CustomersDataSource.recalculateAllBalances();
-                            ref
+                      const Color(0xFFF9A825),
+                      Icons.account_balance_wallet,
+                    ),
+                    _buildQuickStat(
+                      'Clientes Activos',
+                      state.customers
+                          .where((c) => c.isActive)
+                          .length
+                          .toString(),
+                      const Color(0xFF2E7D32),
+                      Icons.people,
+                    ),
+                    FilledButton.icon(
+                      onPressed: () => _showAddCustomerDialog(context),
+                      icon: const Icon(Icons.person_add, size: 18),
+                      label: const Text('Nuevo Cliente'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Barra de búsqueda y filtros
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 980;
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 10,
+                      children: [
+                        SizedBox(
+                          width: isNarrow ? constraints.maxWidth : 420,
+                          child: TextField(
+                            onChanged: (value) => ref
                                 .read(customersProvider.notifier)
-                                .loadCustomers();
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('✅ Balances recalculados'),
-                                  backgroundColor: Color(0xFF2E7D32),
+                                .search(value),
+                            decoration: InputDecoration(
+                              hintText:
+                                  'Buscar por nombre, documento o email...',
+                              prefixIcon: const Icon(Icons.search),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: cs.outlineVariant,
                                 ),
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: $e'),
-                                  backgroundColor: AppColors.danger,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: cs.outlineVariant,
                                 ),
-                              );
-                            }
-                          }
-                        },
-                        icon: Icon(Icons.calculate, color: AppColors.warning),
-                        label: const Text('Recalcular Saldos'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.warning,
-                          side: BorderSide(
-                            color: AppColors.warning.withValues(alpha: 0.5),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
+                              ),
+                              filled: true,
+                              fillColor: cs.surfaceContainerLowest,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: cs.outlineVariant),
+                            borderRadius: BorderRadius.circular(12),
+                            color: cs.surfaceContainerLowest,
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedFilter,
+                              items:
+                                  [
+                                        'Todos',
+                                        'Activos',
+                                        'Con Deuda',
+                                        'Empresas',
+                                        'Personas',
+                                      ]
+                                      .map(
+                                        (filter) => DropdownMenuItem(
+                                          value: filter,
+                                          child: Text(filter),
+                                        ),
+                                      )
+                                      .toList(),
+                              onChanged: (value) =>
+                                  setState(() => _selectedFilter = value!),
+                            ),
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => ref
+                              .read(customersProvider.notifier)
+                              .loadCustomers(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Actualizar'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
+                            ),
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _recalculateBalances,
+                          icon: Icon(Icons.calculate, color: AppColors.warning),
+                          label: const Text('Recalcular Saldos'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.warning,
+                            side: BorderSide(
+                              color: AppColors.warning.withValues(alpha: 0.5),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ],
           ),
         ),
@@ -423,8 +585,39 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
     );
   }
 
+  Future<void> _recalculateBalances() async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Recalculando balances...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      await CustomersDataSource.recalculateAllBalances();
+      ref.read(customersProvider.notifier).loadCustomers();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Balances recalculados'),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildCustomerTile(Customer customer) {
     final cs = Theme.of(context).colorScheme;
+    final isMobile = ResponsiveHelper.isMobile(context);
     final debt = customer.currentBalance;
     final creditLimit = customer.creditLimit;
     final debtPercentage = creditLimit > 0 ? (debt / creditLimit) : 0.0;
@@ -435,14 +628,19 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
         : cs.tertiary;
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 20,
+        vertical: isMobile ? 8 : 12,
+      ),
       leading: CircleAvatar(
+        radius: isMobile ? 18 : 20,
         backgroundColor: cs.primaryContainer,
         child: Text(
           customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
           style: TextStyle(
             color: cs.onPrimaryContainer,
             fontWeight: FontWeight.bold,
+            fontSize: isMobile ? 14 : 16,
           ),
         ),
       ),
@@ -451,58 +649,65 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
           Expanded(
             child: Text(
               customer.displayName,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: isMobile ? 13 : 14,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: typeColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              customer.type == CustomerType.business ? 'Empresa' : 'Persona',
-              style: TextStyle(
-                fontSize: 11,
-                color: typeColor,
-                fontWeight: FontWeight.w500,
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: typeColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                customer.type == CustomerType.business ? 'Empresa' : 'Persona',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: typeColor,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: creditLimit > 0
-                  ? const Color(0xFF1565C0).withValues(alpha: 0.1)
-                  : const Color(0xFF2E7D32).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  creditLimit > 0 ? Icons.credit_card : Icons.payments,
-                  size: 12,
-                  color: creditLimit > 0
-                      ? const Color(0xFF1565C0)
-                      : const Color(0xFF388E3C),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  creditLimit > 0 ? 'Crédito' : 'Contado',
-                  style: TextStyle(
-                    fontSize: 11,
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: creditLimit > 0
+                    ? const Color(0xFF1565C0).withValues(alpha: 0.1)
+                    : const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    creditLimit > 0 ? Icons.credit_card : Icons.payments,
+                    size: 12,
                     color: creditLimit > 0
                         ? const Color(0xFF1565C0)
                         : const Color(0xFF388E3C),
-                    fontWeight: FontWeight.w500,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  Text(
+                    creditLimit > 0 ? 'Crédito' : 'Contado',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: creditLimit > 0
+                          ? const Color(0xFF1565C0)
+                          : const Color(0xFF388E3C),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 6),
+            const SizedBox(width: 6),
+          ],
           Container(
             width: 8,
             height: 8,
@@ -518,17 +723,32 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
         children: [
           const SizedBox(height: 4),
           Wrap(
-            spacing: 12,
+            spacing: isMobile ? 6 : 12,
             runSpacing: 4,
             children: [
+              if (isMobile)
+                Text(
+                  '${customer.type == CustomerType.business ? 'Empresa' : 'Persona'} · ${creditLimit > 0 ? 'Crédito' : 'Contado'}',
+                  style: TextStyle(
+                    color: typeColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.badge, size: 14, color: cs.onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Text(
-                    '${customer.documentType.displayName}: ${customer.documentNumber}',
-                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                  Flexible(
+                    child: Text(
+                      '${customer.documentType.displayName}: ${customer.documentNumber}',
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -960,7 +1180,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                       creditLimit: creditLimit,
                       currentBalance: currentBalance,
                       createdAt: customer.createdAt,
-                      updatedAt: DateTime.now(),
+                      updatedAt: ColombiaTime.now(),
                     );
 
                     final result = await ref
@@ -994,8 +1214,8 @@ class _CustomersPageState extends ConsumerState<CustomersPage>
                           : null,
                       creditLimit: creditLimit,
                       currentBalance: currentBalance,
-                      createdAt: DateTime.now(),
-                      updatedAt: DateTime.now(),
+                      createdAt: ColombiaTime.now(),
+                      updatedAt: ColombiaTime.now(),
                     );
 
                     final result = await ref
@@ -1506,7 +1726,7 @@ class _CustomerHistoryDialogState extends ConsumerState<_CustomerHistoryDialog>
         final isOverdue =
             !isPaid &&
             inv.dueDate != null &&
-            inv.dueDate!.isBefore(DateTime.now());
+            inv.dueDate!.isBefore(ColombiaTime.now());
 
         return ListTile(
           contentPadding: const EdgeInsets.symmetric(

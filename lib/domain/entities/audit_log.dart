@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../core/utils/colombia_time.dart';
 
 /// Registro de auditoría — quién hizo qué y cuándo
 class AuditLog {
@@ -53,7 +54,7 @@ class AuditLog {
           : json['details'] as Map<String, dynamic>?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
+          : ColombiaTime.now(),
     );
   }
 

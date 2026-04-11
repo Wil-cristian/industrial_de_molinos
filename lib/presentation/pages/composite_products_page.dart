@@ -10,7 +10,9 @@ import '../../data/providers/composite_products_provider.dart';
 import '../../data/providers/inventory_provider.dart';
 import '../../data/providers/settings_provider.dart';
 import '../../domain/entities/company_settings.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../widgets/material_form_dialog.dart';
+import '../../core/utils/colombia_time.dart';
 
 class CompositeProductsPage extends ConsumerStatefulWidget {
   const CompositeProductsPage({super.key});
@@ -43,14 +45,26 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
       );
     }
 
+    final isMobile = ResponsiveHelper.isMobile(context);
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+      floatingActionButton: isMobile
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 80),
+              child: FloatingActionButton(
+                heroTag: 'compositeProducts',
+                onPressed: () => _showCreateProductDialog(),
+                child: const Icon(Icons.add),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [
             // ── Header ──
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(isMobile ? 12 : 24),
               color: Colors.white,
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -60,15 +74,17 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                     children: [
                       Row(
                         children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.arrow_back,
-                              color: Theme.of(context).colorScheme.primary,
+                          if (!isMobile) ...[
+                            IconButton(
+                              icon: Icon(
+                                Icons.arrow_back,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              onPressed: () => context.go('/'),
+                              tooltip: 'Volver al menú',
                             ),
-                            onPressed: () => context.go('/'),
-                            tooltip: 'Volver al menú',
-                          ),
-                          const SizedBox(width: 8),
+                            const SizedBox(width: 8),
+                          ],
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,9 +93,7 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                   'Productos',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
+                                  style: Theme.of(context).textTheme.titleMedium
                                       ?.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: Theme.of(
@@ -87,15 +101,15 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                         ).colorScheme.primary,
                                       ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${state.products.length} productos registrados',
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                                if (!isMobile)
+                                  Text(
+                                    '${state.products.length} productos registrados',
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
@@ -118,20 +132,23 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                             const Color(0xFF2E7D32),
                             Icons.category,
                           ),
-                          FilledButton.icon(
-                            onPressed: () => _showCreateProductDialog(),
-                            icon: const Icon(Icons.add),
-                            label: Text(isNarrow ? 'Nuevo' : 'Nuevo Producto'),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 16,
+                          if (!isMobile)
+                            FilledButton.icon(
+                              onPressed: () => _showCreateProductDialog(),
+                              icon: const Icon(Icons.add),
+                              label: Text(
+                                isNarrow ? 'Nuevo' : 'Nuevo Producto',
+                              ),
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 16,
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: isMobile ? 10 : 20),
                       Wrap(
                         spacing: 16,
                         runSpacing: 10,
@@ -705,51 +722,45 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
   // ═══════════════════════════════════════════════════
 
   void _showProductDetail(CompositeProduct product) {
+    final isMobile = MediaQuery.of(context).size.width < 900;
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          width: 750,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Icon(
-                    _getCategoryIcon(product.category ?? ''),
-                    color: _getCategoryColor(product.category ?? ''),
-                    size: 32,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product.name,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+      builder: (context) {
+        final content = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Icon(
+                  _getCategoryIcon(product.category ?? ''),
+                  color: _getCategoryColor(product.category ?? ''),
+                  size: isMobile ? 24 : 32,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: TextStyle(
+                          fontSize: isMobile ? 16 : 20,
+                          fontWeight: FontWeight.bold,
                         ),
-                        Text(
-                          'Código: ${product.code}',
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
+                      ),
+                      Text(
+                        'Código: ${product.code}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: isMobile ? 12 : 14,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
+                if (!isMobile)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -777,154 +788,124 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(width: 16),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            if (product.description != null) ...[
+              Text(
+                product.description!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 16),
+            ],
 
-              if (product.description != null) ...[
+            // Componentes
+            Row(
+              children: [
+                const Icon(Icons.list_alt, size: 20),
+                const SizedBox(width: 8),
                 Text(
-                  product.description!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                  'Componentes (${product.componentCount})',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 16),
               ],
+            ),
+            const SizedBox(height: 12),
 
-              // Componentes
-              Row(
-                children: [
-                  const Icon(Icons.list_alt, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Componentes (${product.componentCount})',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+            Flexible(
+              fit: isMobile ? FlexFit.loose : FlexFit.tight,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              Flexible(
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: isMobile
+                      ? const NeverScrollableScrollPhysics()
+                      : null,
+                  itemCount: product.components.length,
+                  separatorBuilder: (_, __) => Divider(
+                    height: 1,
+                    color: Theme.of(context).colorScheme.outlineVariant,
                   ),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: product.components.length,
-                    separatorBuilder: (_, __) => Divider(
-                      height: 1,
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
-                    itemBuilder: (context, index) {
-                      final comp = product.components[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        child: Row(
-                          children: [
-                            // Número de orden
-                            SizedBox(
-                              width: 24,
-                              child: Text(
-                                '${index + 1}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                textAlign: TextAlign.center,
+                  itemBuilder: (context, index) {
+                    final comp = product.components[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        children: [
+                          // Número de orden
+                          SizedBox(
+                            width: 24,
+                            child: Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.1),
+                            child: Text(
+                              '${comp.quantity}×',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primary.withOpacity(0.1),
-                              child: Text(
-                                '${comp.quantity}×',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (comp.label != null &&
-                                      comp.label!.isNotEmpty)
-                                    Text(
-                                      comp.label!,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                      ),
-                                    ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (comp.label != null &&
+                                    comp.label!.isNotEmpty)
                                   Text(
-                                    comp.materialName ?? 'Componente',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  Text(
-                                    comp.dimensionsDescription,
+                                    comp.label!,
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
                                       color: Theme.of(
                                         context,
-                                      ).colorScheme.onSurfaceVariant,
+                                      ).colorScheme.primary,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
                                 Text(
-                                  'V: \$ ${Helpers.formatNumber(comp.totalPrice)}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    fontSize: 12,
+                                  comp.materialName ?? 'Componente',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                                 Text(
-                                  'C: \$ ${Helpers.formatNumber(comp.totalCostPrice)}',
+                                  comp.dimensionsDescription,
                                   style: TextStyle(
-                                    fontSize: 10,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                                Text(
-                                  '${Helpers.formatNumber(comp.totalWeight)} kg',
-                                  style: TextStyle(
-                                    fontSize: 10,
+                                    fontSize: 11,
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.onSurfaceVariant,
@@ -932,90 +913,170 @@ class _CompositeProductsPageState extends ConsumerState<CompositeProductsPage> {
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Resumen de costos
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAFA),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    _buildCostRow(
-                      'Precio Compra',
-                      '\$ ${Helpers.formatNumber(product.materialsCostPrice)}',
-                    ),
-                    _buildCostRow(
-                      'Venta Materiales',
-                      '\$ ${Helpers.formatNumber(product.materialsCost)}',
-                    ),
-                    if (product.customPrice != null)
-                      _buildCostRow(
-                        'Precio Final',
-                        '\$ ${Helpers.formatNumber(product.customPrice!)}',
-                        isBold: true,
-                        valueColor: Theme.of(context).colorScheme.primary,
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'V: \$ ${Helpers.formatNumber(comp.totalPrice)}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                'C: \$ ${Helpers.formatNumber(comp.totalCostPrice)}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                '${Helpers.formatNumber(comp.totalWeight)} kg',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    _buildCostRow(
-                      'Peso total',
-                      '${Helpers.formatNumber(product.totalWeight)} kg',
-                    ),
-                    const Divider(),
-                    _buildCostRow(
-                      'Ganancia',
-                      '\$ ${Helpers.formatNumber((product.customPrice ?? product.materialsCost) - product.materialsCostPrice)}',
-                      isBold: true,
-                      valueColor:
-                          (product.customPrice ?? product.materialsCost) -
-                                  product.materialsCostPrice >
-                              0
-                          ? const Color(0xFF388E3C)
-                          : const Color(0xFFD32F2F),
-                    ),
-                    _buildCostRow(
-                      'Margen',
-                      '${product.realProfitMargin.toStringAsFixed(1)}%',
-                      valueColor: product.realProfitMargin > 0
-                          ? const Color(0xFF388E3C)
-                          : const Color(0xFFD32F2F),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
-              const SizedBox(height: 16),
+            ),
+            const SizedBox(height: 16),
 
-              // Botones
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+            // Resumen de costos
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAFAFA),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cerrar'),
+                  _buildCostRow(
+                    'Precio Compra',
+                    '\$ ${Helpers.formatNumber(product.materialsCostPrice)}',
                   ),
-                  const SizedBox(width: 12),
+                  _buildCostRow(
+                    'Venta Materiales',
+                    '\$ ${Helpers.formatNumber(product.materialsCost)}',
+                  ),
+                  if (product.customPrice != null)
+                    _buildCostRow(
+                      'Precio Final',
+                      '\$ ${Helpers.formatNumber(product.customPrice!)}',
+                      isBold: true,
+                      valueColor: Theme.of(context).colorScheme.primary,
+                    ),
+                  _buildCostRow(
+                    'Peso total',
+                    '${Helpers.formatNumber(product.totalWeight)} kg',
+                  ),
+                  const Divider(),
+                  _buildCostRow(
+                    'Ganancia',
+                    '\$ ${Helpers.formatNumber((product.customPrice ?? product.materialsCost) - product.materialsCostPrice)}',
+                    isBold: true,
+                    valueColor:
+                        (product.customPrice ?? product.materialsCost) -
+                                product.materialsCostPrice >
+                            0
+                        ? const Color(0xFF388E3C)
+                        : const Color(0xFFD32F2F),
+                  ),
+                  _buildCostRow(
+                    'Margen',
+                    '${product.realProfitMargin.toStringAsFixed(1)}%',
+                    valueColor: product.realProfitMargin > 0
+                        ? const Color(0xFF388E3C)
+                        : const Color(0xFFD32F2F),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Botones
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cerrar'),
+                ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _showCreateProductDialog(product: product);
+                  },
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Editar'),
+                ),
+              ],
+            ),
+          ],
+        );
+
+        if (isMobile) {
+          return Dialog.fullscreen(
+            child: Scaffold(
+              appBar: AppBar(
+                leading: IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+                title: Text(
+                  product.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                actions: [
                   FilledButton.icon(
                     onPressed: () {
                       Navigator.pop(context);
                       _showCreateProductDialog(product: product);
                     },
-                    icon: const Icon(Icons.edit),
+                    icon: const Icon(Icons.edit, size: 18),
                     label: const Text('Editar'),
                   ),
+                  const SizedBox(width: 8),
                 ],
               ),
-            ],
+              body: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: content,
+              ),
+            ),
+          );
+        }
+
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-        ),
-      ),
+          child: Container(
+            width: 750,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            padding: const EdgeInsets.all(24),
+            child: content,
+          ),
+        );
+      },
     );
   }
 
@@ -1293,8 +1354,8 @@ class _CompositeProductFormDialogState
       customPrice: _customPriceController.text.trim().isNotEmpty
           ? double.tryParse(_customPriceController.text.trim())
           : null,
-      createdAt: widget.product?.createdAt ?? DateTime.now(),
-      updatedAt: DateTime.now(),
+      createdAt: widget.product?.createdAt ?? ColombiaTime.now(),
+      updatedAt: ColombiaTime.now(),
     );
   }
 
@@ -1306,7 +1367,125 @@ class _CompositeProductFormDialogState
     }
     final preview = _buildProduct();
     final inventoryState = ref.read(inventoryProvider);
+    final isMobile = MediaQuery.of(context).size.width < 900;
 
+    if (isMobile) {
+      return _buildMobileLayout(context, preview, inventoryState);
+    }
+    return _buildDesktopLayout(context, preview, inventoryState);
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  MOBILE: Pantalla completa con tabs
+  // ═══════════════════════════════════════════════════
+
+  Widget _buildMobileLayout(
+    BuildContext context,
+    CompositeProduct preview,
+    InventoryState inventoryState,
+  ) {
+    return Dialog.fullscreen(
+      child: DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close),
+            ),
+            titleSpacing: 0,
+            title: Text(
+              _isEditing ? 'Editar Producto' : 'Nuevo Producto',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilledButton.icon(
+                  onPressed: _isSaving ? null : _save,
+                  icon: _isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.save, size: 18),
+                  label: Text(_isEditing ? 'Guardar' : 'Crear'),
+                ),
+              ),
+            ],
+            bottom: TabBar(
+              isScrollable: false,
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+              unselectedLabelStyle: const TextStyle(fontSize: 13),
+              tabs: [
+                const Tab(
+                  icon: Icon(Icons.info_outline, size: 18),
+                  text: 'Info',
+                ),
+                const Tab(
+                  icon: Icon(Icons.calculate, size: 18),
+                  text: 'Agregar',
+                ),
+                Tab(
+                  icon: Badge(
+                    label: Text('${_components.length}'),
+                    isLabelVisible: _components.isNotEmpty,
+                    child: const Icon(Icons.list_alt, size: 18),
+                  ),
+                  text: 'Piezas',
+                ),
+              ],
+            ),
+          ),
+          body: Form(
+            key: _formKey,
+            child: TabBarView(
+              children: [
+                // ── Tab 1: Info General + Resumen ──
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: _buildLeftPanel(preview),
+                ),
+
+                // ── Tab 2: Agregar componentes ──
+                Column(
+                  children: [
+                    _buildModeTabs(),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: _addMode == 'calculado'
+                          ? _buildCalculadoPanel(inventoryState)
+                          : _buildDirectoPanel(inventoryState),
+                    ),
+                  ],
+                ),
+
+                // ── Tab 3: Piezas agregadas ──
+                _buildComponentsList(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  DESKTOP: Dialog tradicional lado a lado
+  // ═══════════════════════════════════════════════════
+
+  Widget _buildDesktopLayout(
+    BuildContext context,
+    CompositeProduct preview,
+    InventoryState inventoryState,
+  ) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
@@ -1719,80 +1898,67 @@ class _CompositeProductFormDialogState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Paso 1 + 2 en fila: Tipo | Material
-          Row(
+          // Paso 1: Tipo (chips compactos horizontales)
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tipo (chips compactos horizontales)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Text(
+                '1. Tipo',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 10,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
                 children: [
-                  Text(
-                    '1. Tipo',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                  _typeChip(
+                    'Lám',
+                    'lamina',
+                    Icons.crop_square,
+                    const Color(0xFF1565C0),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _typeChip(
-                        'Lám',
-                        'lamina',
-                        Icons.crop_square,
-                        const Color(0xFF1565C0),
-                      ),
-                      const SizedBox(width: 4),
-                      _typeChip(
-                        'Tubo',
-                        'tubo',
-                        Icons.circle_outlined,
-                        const Color(0xFF2E7D32),
-                      ),
-                      const SizedBox(width: 4),
-                      _typeChip(
-                        'Eje',
-                        'eje',
-                        Icons.horizontal_rule,
-                        const Color(0xFFF9A825),
-                      ),
-                      const SizedBox(width: 4),
-                      _typeChip(
-                        'Cuad',
-                        'eje_cuadrado',
-                        Icons.square_outlined,
-                        const Color(0xFF8E24AA),
-                      ),
-                    ],
+                  const SizedBox(width: 4),
+                  _typeChip(
+                    'Tubo',
+                    'tubo',
+                    Icons.circle_outlined,
+                    const Color(0xFF2E7D32),
+                  ),
+                  const SizedBox(width: 4),
+                  _typeChip(
+                    'Eje',
+                    'eje',
+                    Icons.horizontal_rule,
+                    const Color(0xFFF9A825),
+                  ),
+                  const SizedBox(width: 4),
+                  _typeChip(
+                    'Cuad',
+                    'eje_cuadrado',
+                    Icons.square_outlined,
+                    const Color(0xFF8E24AA),
                   ),
                 ],
               ),
-              if (_selectedCalculationType != null) ...[
-                const SizedBox(width: 10),
-                // Material dropdown
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '2. Material',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 10,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      _buildMaterialDropdown(inventoryState),
-                    ],
-                  ),
-                ),
-              ],
             ],
           ),
+
+          // Paso 2: Material dropdown (debajo de los tipos)
+          if (_selectedCalculationType != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              '2. Material',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 10,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            _buildMaterialDropdown(inventoryState),
+          ],
 
           if (_selectedMaterial != null) ...[
             const SizedBox(height: 6),
@@ -2076,6 +2242,7 @@ class _CompositeProductFormDialogState
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       ),
       isExpanded: true,
+      menuMaxHeight: MediaQuery.of(context).size.height * 0.5,
       items: materials.map((m) {
         return DropdownMenuItem(
           value: m,

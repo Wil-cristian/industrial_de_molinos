@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/datasources/supabase_datasource.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Página de diagnóstico para probar todas las conexiones a Supabase.
 /// Acceder desde Settings o navegando a /diagnostics.
@@ -133,7 +134,7 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
     });
 
     final client = SupabaseDataSource.client;
-    final globalStart = DateTime.now();
+    final globalStart = ColombiaTime.now();
 
     // Test 1: Conexión básica
     await _testEndpoint(
@@ -209,7 +210,7 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
 
     setState(() {
       _running = false;
-      _totalTime = DateTime.now().difference(globalStart);
+      _totalTime = ColombiaTime.now().difference(globalStart);
     });
   }
 

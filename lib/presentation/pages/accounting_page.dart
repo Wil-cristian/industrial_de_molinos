@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../data/providers/accounting_provider.dart';
 import '../../data/datasources/accounting_datasource.dart';
+import '../../core/utils/colombia_time.dart';
 
 class AccountingPage extends ConsumerStatefulWidget {
   const AccountingPage({super.key});
@@ -289,7 +290,7 @@ class _AccountingPageState extends ConsumerState<AccountingPage>
   }
 
   Future<void> _showDateRangeDialog() async {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),

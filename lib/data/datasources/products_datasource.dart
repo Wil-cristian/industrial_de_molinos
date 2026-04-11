@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/product.dart';
@@ -226,6 +227,9 @@ class ProductsDataSource {
       recipeDescription: json['recipe_description'],
       totalWeight: (json['total_weight'] ?? 0).toDouble(),
       totalCost: (json['total_cost'] ?? 0).toDouble(),
+      customPrice: json['custom_price'] != null
+          ? (json['custom_price'] as num).toDouble()
+          : null,
     );
   }
 
@@ -238,12 +242,13 @@ class ProductsDataSource {
       'category_id': product.categoryId,
       'unit_price': product.unitPrice,
       'cost_price': product.costPrice,
+      'custom_price': product.customPrice,
       'stock': product.stock,
       'min_stock': product.minStock,
       'unit': product.unit,
       'is_active': product.isActive,
-      'created_at': product.createdAt.toIso8601String(),
-      'updated_at': product.updatedAt.toIso8601String(),
+      'created_at': ColombiaTime.toIso8601(product.createdAt),
+      'updated_at': ColombiaTime.toIso8601(product.updatedAt),
       'is_recipe': product.isRecipe,
       'recipe_description': product.recipeDescription,
       'total_weight': product.totalWeight,

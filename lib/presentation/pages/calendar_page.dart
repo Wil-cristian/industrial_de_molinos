@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/entities/activity.dart';
+import '../../domain/entities/calendar_event.dart';
 import '../../data/providers/activities_provider.dart';
+import '../../data/providers/calendar_events_provider.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Página de Calendario/Organizador
 /// Gestión de actividades, eventos y recordatorios
@@ -16,8 +19,8 @@ class CalendarPage extends ConsumerStatefulWidget {
 }
 
 class _CalendarPageState extends ConsumerState<CalendarPage> {
-  DateTime _selectedDate = DateTime.now();
-  DateTime _displayedMonth = DateTime.now();
+  DateTime _selectedDate = ColombiaTime.now();
+  DateTime _displayedMonth = ColombiaTime.now();
   String _filterType = 'Todas';
   String _filterStatus = 'Todas';
   bool _dialogOpened = false;
@@ -28,6 +31,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     // Cargar actividades al iniciar
     Future.microtask(() {
       ref.read(activitiesProvider.notifier).loadActivities();
+      ref.read(calendarEventsProvider.notifier).loadEvents();
       // Abrir diálogo si viene con el parámetro
       if (widget.openNewDialog && !_dialogOpened) {
         _dialogOpened = true;
@@ -68,6 +72,396 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     return state.getActivitiesForDay(day);
   }
 
+  /// Actividades vencidas (pendientes con fecha pasada)
+  List<Activity> get _overdueActivities {
+    final now = ColombiaTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return ref.watch(activitiesProvider).activities.where((a) {
+      final date = a.dueDate ?? a.startDate;
+      return date.isBefore(today) &&
+          a.status != ActivityStatus.completed &&
+          a.status != ActivityStatus.cancelled;
+    }).toList();
+  }
+
+  /// Actividades de hoy pendientes
+  List<Activity> get _todayActivities {
+    final now = ColombiaTime.now();
+    return ref.watch(activitiesProvider).activities.where((a) {
+      final date = a.dueDate ?? a.startDate;
+      return _isSameDay(date, now) &&
+          a.status != ActivityStatus.completed &&
+          a.status != ActivityStatus.cancelled;
+    }).toList();
+  }
+
+  /// Actividades de los proximos 3 dias
+  List<Activity> get _upcomingActivities {
+    final now = ColombiaTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final limit = today.add(const Duration(days: 4));
+    return ref.watch(activitiesProvider).activities.where((a) {
+      final date = a.dueDate ?? a.startDate;
+      return date.isAfter(today) &&
+          date.isBefore(limit) &&
+          a.status != ActivityStatus.completed &&
+          a.status != ActivityStatus.cancelled;
+    }).toList();
+  }
+
+  /// Eventos automaticos vencidos
+  List<CalendarEvent> get _overdueEvents =>
+      ref.watch(calendarEventsProvider).overdueEvents;
+
+  /// Eventos automaticos de hoy
+  List<CalendarEvent> get _todayEvents =>
+      ref.watch(calendarEventsProvider).todayEvents;
+
+  /// Eventos automaticos proximos 3 dias
+  List<CalendarEvent> get _upcomingEvents =>
+      ref.watch(calendarEventsProvider).upcomingEvents;
+
+  int get _notificationCount =>
+      _overdueActivities.length +
+      _todayActivities.length +
+      _overdueEvents.length +
+      _todayEvents.length;
+
+  void _showNotificationsPanel() {
+    final overdue = _overdueActivities;
+    final today = _todayActivities;
+    final upcoming = _upcomingActivities;
+    final overdueEvt = _overdueEvents;
+    final todayEvt = _todayEvents;
+    final upcomingEvt = _upcomingEvents;
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        insetPadding: isMobile
+            ? const EdgeInsets.symmetric(horizontal: 12, vertical: 48)
+            : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Container(
+          width: isMobile ? double.maxFinite : 420,
+          constraints: const BoxConstraints(maxHeight: 500),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(ctx).colorScheme.primary,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.notifications_active,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Notificaciones',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (overdue.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFC62828),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${overdue.length} vencidas',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Body
+              Flexible(
+                child:
+                    (overdue.isEmpty &&
+                        today.isEmpty &&
+                        upcoming.isEmpty &&
+                        overdueEvt.isEmpty &&
+                        todayEvt.isEmpty &&
+                        upcomingEvt.isEmpty)
+                    ? const Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              size: 48,
+                              color: Color(0xFF2E7D32),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Sin pendientes',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.all(8),
+                        children: [
+                          if (overdue.isNotEmpty || overdueEvt.isNotEmpty) ...[
+                            _notifSection(
+                              'Vencidas',
+                              Icons.warning,
+                              const Color(0xFFC62828),
+                              overdue,
+                              ctx,
+                              events: overdueEvt,
+                            ),
+                          ],
+                          if (today.isNotEmpty || todayEvt.isNotEmpty) ...[
+                            _notifSection(
+                              'Hoy',
+                              Icons.today,
+                              const Color(0xFFF9A825),
+                              today,
+                              ctx,
+                              events: todayEvt,
+                            ),
+                          ],
+                          if (upcoming.isNotEmpty ||
+                              upcomingEvt.isNotEmpty) ...[
+                            _notifSection(
+                              'Proximos dias',
+                              Icons.upcoming,
+                              const Color(0xFF1565C0),
+                              upcoming,
+                              ctx,
+                              events: upcomingEvt,
+                            ),
+                          ],
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _notifSection(
+    String title,
+    IconData icon,
+    Color color,
+    List<Activity> activities,
+    BuildContext ctx, {
+    List<CalendarEvent> events = const [],
+  }) {
+    final totalCount = activities.length + events.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
+              Text(
+                '$title ($totalCount)',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...activities.map((a) => _notifTile(a, ctx)),
+        ...events.map((e) => _notifEventTile(e, ctx)),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _notifEventTile(CalendarEvent event, BuildContext ctx) {
+    final colorVal = Color(
+      int.parse('0xFF${event.color.replaceFirst('#', '')}'),
+    );
+    return InkWell(
+      onTap: () {
+        Navigator.pop(ctx);
+        setState(() {
+          _selectedDate = event.date;
+          _displayedMonth = DateTime(event.date.year, event.date.month);
+        });
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: colorVal.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colorVal.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            Icon(event.icon, size: 18, color: colorVal),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '${event.sourceLabel} - ${event.date.day}/${event.date.month}/${event.date.year}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF757575),
+                    ),
+                  ),
+                  if (event.subtitle != null)
+                    Text(
+                      event.subtitle!,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF9E9E9E),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: colorVal.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                event.sourceLabel,
+                style: TextStyle(
+                  fontSize: 9,
+                  color: colorVal,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _notifTile(Activity a, BuildContext ctx) {
+    final date = a.dueDate ?? a.startDate;
+    return InkWell(
+      onTap: () {
+        Navigator.pop(ctx);
+        setState(() {
+          _selectedDate = date;
+          _displayedMonth = DateTime(date.year, date.month);
+        });
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: a.colorValue.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: a.colorValue.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            Icon(a.iconData, size: 18, color: a.colorValue),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    a.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '${a.typeLabel} - ${date.day}/${date.month}/${date.year}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF757575),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: a.priorityColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                a.priorityLabel,
+                style: TextStyle(
+                  fontSize: 9,
+                  color: a.priorityColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showActivityDialog({Activity? activity}) {
     showDialog(
       context: context,
@@ -84,170 +478,291 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+      floatingActionButton: isMobile
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 80),
+              child: FloatingActionButton(
+                heroTag: 'calendar',
+                onPressed: () => _showActivityDialog(),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                mini: true,
+                child: const Icon(Icons.add),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [
-            // Header ultra compacto
+            // Header
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              color: Colors.white,
-              child: Row(
-                children: [
-                  Text(
-                    'Calendario',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Navegador de mes inline
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _displayedMonth = DateTime(
-                          _displayedMonth.year,
-                          _displayedMonth.month - 1,
-                        );
-                      });
-                    },
-                    icon: const Icon(Icons.chevron_left, size: 18),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 28,
-                      minHeight: 28,
-                    ),
-                  ),
-                  Text(
-                    '${_monthNames[_displayedMonth.month - 1]} ${_displayedMonth.year}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _displayedMonth = DateTime(
-                          _displayedMonth.year,
-                          _displayedMonth.month + 1,
-                        );
-                      });
-                    },
-                    icon: const Icon(Icons.chevron_right, size: 18),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 28,
-                      minHeight: 28,
-                    ),
-                  ),
-                  const Spacer(),
-                  // Filtros inline
-                  _buildCompactFilter('type', _filterType),
-                  const SizedBox(width: 4),
-                  _buildCompactFilter('status', _filterStatus),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    height: 28,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _showActivityDialog(),
-                      icon: const Icon(Icons.add, size: 14),
-                      label: const Text(
-                        'Nueva',
-                        style: TextStyle(fontSize: 11),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                    ),
-                  ),
-                ],
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 8 : 8,
+                vertical: 4,
               ),
+              color: Colors.white,
+              child: isMobile ? _buildMobileHeader() : _buildDesktopHeader(),
             ),
             // Contenido Principal
             Expanded(
-              child: Row(
-                children: [
-                  // Calendario
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      color: Colors.white,
-                      margin: const EdgeInsets.all(2),
-                      child: _buildCalendarGrid(),
-                    ),
-                  ),
-                  // Lista de Actividades
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      color: Colors.white,
-                      margin: const EdgeInsets.fromLTRB(0, 2, 2, 2),
-                      child: Column(
-                        children: [
-                          // Título de la fecha seleccionada
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.event,
-                                  size: 14,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  _dateFormat(_selectedDate),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  '${_filteredActivities.length} actividades',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(child: _buildActivityList()),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: isMobile ? _buildMobileBody() : _buildDesktopBody(),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDesktopHeader() {
+    return Row(
+      children: [
+        Text(
+          'Calendario',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        _buildMonthNavigator(),
+        const Spacer(),
+        _buildNotificationBell(),
+        const SizedBox(width: 4),
+        _buildCompactFilter('type', _filterType),
+        const SizedBox(width: 4),
+        _buildCompactFilter('status', _filterStatus),
+        const SizedBox(width: 8),
+        SizedBox(
+          height: 28,
+          child: ElevatedButton.icon(
+            onPressed: () => _showActivityDialog(),
+            icon: const Icon(Icons.add, size: 14),
+            label: const Text('Nueva', style: TextStyle(fontSize: 11)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileHeader() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Text(
+              'Calendario',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 4),
+            _buildNotificationBell(),
+            const Spacer(),
+            _buildMonthNavigator(),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(child: _buildCompactFilter('type', _filterType)),
+            const SizedBox(width: 6),
+            Expanded(child: _buildCompactFilter('status', _filterStatus)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMonthNavigator() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          onPressed: () {
+            setState(() {
+              _displayedMonth = DateTime(
+                _displayedMonth.year,
+                _displayedMonth.month - 1,
+              );
+            });
+          },
+          icon: const Icon(Icons.chevron_left, size: 18),
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+        ),
+        Text(
+          '${_monthNames[_displayedMonth.month - 1]} ${_displayedMonth.year}',
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        IconButton(
+          onPressed: () {
+            setState(() {
+              _displayedMonth = DateTime(
+                _displayedMonth.year,
+                _displayedMonth.month + 1,
+              );
+            });
+          },
+          icon: const Icon(Icons.chevron_right, size: 18),
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopBody() {
+    return Row(
+      children: [
+        Expanded(
+          flex: 1,
+          child: Container(
+            color: Colors.white,
+            margin: const EdgeInsets.all(2),
+            child: _buildCalendarGrid(),
+          ),
+        ),
+        Expanded(
+          flex: 1,
+          child: Container(
+            color: Colors.white,
+            margin: const EdgeInsets.fromLTRB(0, 2, 2, 2),
+            child: Column(
+              children: [
+                _buildSelectedDateHeader(),
+                Expanded(child: _buildActivityList()),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileBody() {
+    return Column(
+      children: [
+        // Calendario compacto arriba
+        Container(
+          color: Colors.white,
+          margin: const EdgeInsets.fromLTRB(2, 2, 2, 0),
+          child: _buildCalendarGrid(isMobile: true),
+        ),
+        // Separador con fecha seleccionada
+        Container(
+          color: Colors.white,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          child: _buildSelectedDateHeader(),
+        ),
+        // Lista de actividades abajo
+        Expanded(
+          child: Container(
+            color: Colors.white,
+            margin: const EdgeInsets.fromLTRB(2, 0, 2, 2),
+            child: _buildActivityList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectedDateHeader() {
+    final evtCount = ref
+        .watch(calendarEventsProvider)
+        .getEventsForDay(_selectedDate)
+        .length;
+    final totalCount = _filteredActivities.length + evtCount;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.event,
+            size: 14,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            _dateFormat(_selectedDate),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            '$totalCount items',
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationBell() {
+    final count = _notificationCount;
+    return Stack(
+      children: [
+        IconButton(
+          onPressed: _showNotificationsPanel,
+          icon: Icon(
+            count > 0 ? Icons.notifications_active : Icons.notifications_none,
+            size: 20,
+            color: count > 0
+                ? const Color(0xFFC62828)
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+          tooltip: 'Notificaciones',
+        ),
+        if (count > 0)
+          Positioned(
+            right: 2,
+            top: 2,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                color: Color(0xFFC62828),
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+              child: Text(
+                count > 9 ? '9+' : '$count',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -304,7 +819,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     );
   }
 
-  Widget _buildCalendarGrid() {
+  Widget _buildCalendarGrid({bool isMobile = false}) {
     final firstDay = DateTime(_displayedMonth.year, _displayedMonth.month, 1);
     final lastDay = DateTime(
       _displayedMonth.year,
@@ -314,43 +829,66 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     final prevMonthDays = firstDay.weekday - 1;
     final totalCells = prevMonthDays + lastDay.day + (7 - lastDay.weekday % 7);
 
-    return GridView.builder(
+    final dayHeaders = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
+    final grid = GridView.builder(
+      shrinkWrap: isMobile,
+      physics: isMobile ? const NeverScrollableScrollPhysics() : null,
       padding: const EdgeInsets.all(4),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        childAspectRatio: 1.2,
+        childAspectRatio: isMobile ? 1.4 : 1.2,
         crossAxisSpacing: 2,
         mainAxisSpacing: 2,
       ),
-      itemCount: totalCells,
+      itemCount: 7 + totalCells,
       itemBuilder: (context, index) {
+        // Header row (day names)
+        if (index < 7) {
+          return Center(
+            child: Text(
+              dayHeaders[index],
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          );
+        }
+
+        final cellIndex = index - 7;
         DateTime cellDate;
         bool isCurrentMonth = false;
 
-        if (index < prevMonthDays) {
+        if (cellIndex < prevMonthDays) {
           cellDate = DateTime(
             _displayedMonth.year,
             _displayedMonth.month - 1,
-            lastDay.day - prevMonthDays + index + 1,
+            lastDay.day - prevMonthDays + cellIndex + 1,
           );
-        } else if (index < prevMonthDays + lastDay.day) {
+        } else if (cellIndex < prevMonthDays + lastDay.day) {
           isCurrentMonth = true;
           cellDate = DateTime(
             _displayedMonth.year,
             _displayedMonth.month,
-            index - prevMonthDays + 1,
+            cellIndex - prevMonthDays + 1,
           );
         } else {
           cellDate = DateTime(
             _displayedMonth.year,
             _displayedMonth.month + 1,
-            index - prevMonthDays - lastDay.day + 1,
+            cellIndex - prevMonthDays - lastDay.day + 1,
           );
         }
 
         final activities = _getActivitiesForDay(cellDate);
+        final dayEvents = ref
+            .watch(calendarEventsProvider)
+            .getEventsForDay(cellDate);
         final isSelected = _isSameDay(cellDate, _selectedDate);
-        final isToday = _isSameDay(cellDate, DateTime.now());
+        final isToday = _isSameDay(cellDate, ColombiaTime.now());
+        final hasItems = activities.isNotEmpty || dayEvents.isNotEmpty;
 
         return GestureDetector(
           onTap: () {
@@ -392,11 +930,11 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                         : const Color(0xFFBDBDBD),
                   ),
                 ),
-                if (activities.isNotEmpty)
+                if (hasItems)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      for (int i = 0; i < activities.length && i < 3; i++)
+                      for (int i = 0; i < activities.length && i < 2; i++)
                         Container(
                           width: 3,
                           height: 3,
@@ -410,6 +948,25 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                             ),
                           ),
                         ),
+                      for (
+                        int i = 0;
+                        i < dayEvents.length &&
+                            (i + activities.length.clamp(0, 2)) < 4;
+                        i++
+                      )
+                        Container(
+                          width: 3,
+                          height: 3,
+                          margin: const EdgeInsets.symmetric(horizontal: 0.5),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(
+                              int.parse(
+                                '0xFF${dayEvents[i].color.replaceFirst('#', '')}',
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
               ],
@@ -418,12 +975,17 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
         );
       },
     );
+
+    return grid;
   }
 
   Widget _buildActivityList() {
     final activities = _filteredActivities;
+    final dayEvents = ref
+        .watch(calendarEventsProvider)
+        .getEventsForDay(_selectedDate);
 
-    if (activities.isEmpty) {
+    if (activities.isEmpty && dayEvents.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -446,18 +1008,25 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
       );
     }
 
+    final totalItems = activities.length + dayEvents.length;
+
     return ListView.separated(
       padding: const EdgeInsets.all(4),
-      itemCount: activities.length,
+      itemCount: totalItems,
       separatorBuilder: (_, __) => const SizedBox(height: 4),
       itemBuilder: (context, index) {
-        final activity = activities[index];
-        return _ActivityCard(
-          activity: activity,
-          onTap: () => _showActivityDialog(activity: activity),
-          onEdit: () => _showActivityDialog(activity: activity),
-          onDelete: () => _showDeleteConfirmation(activity),
-        );
+        if (index < activities.length) {
+          final activity = activities[index];
+          return _ActivityCard(
+            activity: activity,
+            onTap: () => _showActivityDialog(activity: activity),
+            onEdit: () => _showActivityDialog(activity: activity),
+            onDelete: () => _showDeleteConfirmation(activity),
+          );
+        } else {
+          final event = dayEvents[index - activities.length];
+          return _EventCard(event: event);
+        }
       },
     );
   }
@@ -653,11 +1222,17 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return Dialog(
+      insetPadding: isMobile
+          ? const EdgeInsets.symmetric(horizontal: 12, vertical: 24)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.5,
-        padding: const EdgeInsets.all(24),
+        width: isMobile ? double.maxFinite : screenWidth * 0.5,
+        padding: EdgeInsets.all(isMobile ? 16 : 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -667,11 +1242,11 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                 widget.activity == null
                     ? 'Nueva Actividad'
                     : 'Editar Actividad',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               // Título
               TextField(
                 controller: _titleController,
@@ -713,8 +1288,8 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                         final date = await showDatePicker(
                           context: context,
                           initialDate: _selectedDate,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(Duration(days: 365)),
+                          firstDate: ColombiaTime.now(),
+                          lastDate: ColombiaTime.now().add(Duration(days: 365)),
                         );
                         if (date != null) {
                           setState(() => _selectedDate = date);
@@ -725,10 +1300,13 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              // Tipo
-              Row(
+              // Tipo y Prioridad
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
                 children: [
-                  Expanded(
+                  SizedBox(
+                    width: isMobile ? double.infinity : 200,
                     child: DropdownButtonFormField<String>(
                       value: _selectedType,
                       decoration: InputDecoration(
@@ -737,14 +1315,22 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      items: ['payment', 'delivery', 'meeting', 'collection']
-                          .map(
-                            (type) => DropdownMenuItem(
-                              value: type,
-                              child: Text(type),
-                            ),
-                          )
-                          .toList(),
+                      isExpanded: true,
+                      items: const [
+                        DropdownMenuItem(value: 'payment', child: Text('Pago')),
+                        DropdownMenuItem(
+                          value: 'delivery',
+                          child: Text('Entrega'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'meeting',
+                          child: Text('Reunion'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'collection',
+                          child: Text('Cobro'),
+                        ),
+                      ],
                       onChanged: (value) {
                         if (value != null) {
                           setState(() => _selectedType = value);
@@ -752,8 +1338,8 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
+                  SizedBox(
+                    width: isMobile ? double.infinity : 200,
                     child: DropdownButtonFormField<String>(
                       value: _selectedPriority,
                       decoration: InputDecoration(
@@ -762,14 +1348,16 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      items: ['low', 'medium', 'high', 'urgent']
-                          .map(
-                            (priority) => DropdownMenuItem(
-                              value: priority,
-                              child: Text(priority),
-                            ),
-                          )
-                          .toList(),
+                      isExpanded: true,
+                      items: const [
+                        DropdownMenuItem(value: 'low', child: Text('Baja')),
+                        DropdownMenuItem(value: 'medium', child: Text('Media')),
+                        DropdownMenuItem(value: 'high', child: Text('Alta')),
+                        DropdownMenuItem(
+                          value: 'urgent',
+                          child: Text('Urgente'),
+                        ),
+                      ],
                       onChanged: (value) {
                         if (value != null) {
                           setState(() => _selectedPriority = value);
@@ -789,12 +1377,21 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                items: ['pending', 'inProgress', 'completed', 'cancelled']
-                    .map(
-                      (status) =>
-                          DropdownMenuItem(value: status, child: Text(status)),
-                    )
-                    .toList(),
+                items: const [
+                  DropdownMenuItem(value: 'pending', child: Text('Pendiente')),
+                  DropdownMenuItem(
+                    value: 'inProgress',
+                    child: Text('En Progreso'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'completed',
+                    child: Text('Completada'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'cancelled',
+                    child: Text('Cancelada'),
+                  ),
+                ],
                 onChanged: (value) {
                   if (value != null) setState(() => _selectedStatus = value);
                 },
@@ -1003,8 +1600,8 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
         dueDate: _selectedDate,
         color: color,
         icon: activityType.name,
-        createdAt: widget.activity?.createdAt ?? DateTime.now(),
-        updatedAt: DateTime.now(),
+        createdAt: widget.activity?.createdAt ?? ColombiaTime.now(),
+        updatedAt: ColombiaTime.now(),
       );
 
       bool success;
@@ -1029,8 +1626,8 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
               dueDate: dates[i],
               color: color,
               icon: activityType.name,
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
+              createdAt: ColombiaTime.now(),
+              updatedAt: ColombiaTime.now(),
             );
 
             final result = await ref
@@ -1125,6 +1722,89 @@ class _ActivityDialogState extends ConsumerState<_ActivityDialog> {
   }
 }
 
+/// Tarjeta de Evento auto-generado (facturas, OPs, envios, etc.)
+class _EventCard extends StatelessWidget {
+  final CalendarEvent event;
+
+  const _EventCard({required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorVal = Color(
+      int.parse('0xFF${event.color.replaceFirst('#', '')}'),
+    );
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: colorVal.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorVal.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 36,
+            decoration: BoxDecoration(
+              color: colorVal,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(event.icon, size: 20, color: colorVal),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    color: event.isOverdue ? const Color(0xFFC62828) : null,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (event.subtitle != null)
+                  Text(
+                    event.subtitle!,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF757575),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: colorVal.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              event.sourceLabel,
+              style: TextStyle(
+                fontSize: 9,
+                color: colorVal,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (event.isOverdue) ...[
+            const SizedBox(width: 4),
+            const Icon(Icons.warning_amber, size: 14, color: Color(0xFFC62828)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// Tarjeta de Actividad
 class _ActivityCard extends StatelessWidget {
   final Activity activity;
@@ -1141,10 +1821,12 @@ class _ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(isMobile ? 8 : 12),
         decoration: BoxDecoration(
           border: Border.all(
             color: Color(

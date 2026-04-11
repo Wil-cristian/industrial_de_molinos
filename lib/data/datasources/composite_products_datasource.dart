@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/logger.dart';
 import '../../domain/entities/composite_product.dart';
@@ -50,14 +51,19 @@ class CompositeProductsDataSource {
                 (materialData['unit_price'] as num?)?.toDouble() ?? 0;
             final liveCostPerKg =
                 (materialData['cost_price'] as num?)?.toDouble() ?? 0;
-            final weightPerUnit =
+            final rawWeight =
                 (comp['calculated_weight'] as num?)?.toDouble() ?? 0;
+            // Si el peso es 0, usar 1 como fallback (igual que el RPC SQL)
+            final weightPerUnit = rawWeight > 0 ? rawWeight : 1.0;
 
-            // Precio VENTA: usar price_per_kg × peso, o unit_price si no hay precio por kg
+            // Precio VENTA: usar price_per_kg × peso, o cost_price × peso, o unit_price
             comp['unit_cost'] = liveSalePerKg > 0
                 ? weightPerUnit * liveSalePerKg
-                : liveUnitPrice;
-            comp['live_cost'] = weightPerUnit * liveCostPerKg;
+                : (liveCostPerKg > 0
+                    ? weightPerUnit * liveCostPerKg
+                    : liveUnitPrice);
+            comp['live_cost'] = weightPerUnit *
+                (liveCostPerKg > 0 ? liveCostPerKg : liveSalePerKg);
             comp['material_name'] ??= materialData['name'];
             comp['material_code'] ??= materialData['code'];
           }
@@ -108,16 +114,20 @@ class CompositeProductsDataSource {
             (materialData['unit_price'] as num?)?.toDouble() ?? 0;
         final liveCostPerKg =
             (materialData['cost_price'] as num?)?.toDouble() ?? 0;
-        final weightPerUnit =
+        final rawWeight =
             (comp['calculated_weight'] as num?)?.toDouble() ?? 0;
+        final weightPerUnit = rawWeight > 0 ? rawWeight : 1.0;
 
-        // Precio VENTA: usar price_per_kg × peso, o unit_price si no hay precio por kg
+        // Precio VENTA: usar price_per_kg × peso, o cost_price × peso, o unit_price
         comp['unit_cost'] = liveSalePerKg > 0
             ? weightPerUnit * liveSalePerKg
-            : liveUnitPrice;
+            : (liveCostPerKg > 0
+                ? weightPerUnit * liveCostPerKg
+                : liveUnitPrice);
 
         // Precio COMPRA por pieza = peso × precio_compra_por_kg del material
-        comp['live_cost'] = weightPerUnit * liveCostPerKg;
+        comp['live_cost'] = weightPerUnit *
+            (liveCostPerKg > 0 ? liveCostPerKg : liveSalePerKg);
 
         comp['material_name'] ??= materialData['name'];
         comp['material_code'] ??= materialData['code'];
@@ -228,8 +238,8 @@ class CompositeProductsDataSource {
         id: '', // Nuevo ID será generado
         code: '${original.code}-COPIA',
         name: '${original.name} (Copia)',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        createdAt: ColombiaTime.now(),
+        updatedAt: ColombiaTime.now(),
       );
       return await create(duplicated);
     } catch (e) {

@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 /// Perfil de usuario con rol y vínculo a empleado
 class UserProfile {
   final String id;
@@ -34,7 +35,7 @@ class UserProfile {
     this.email,
     this.lastSignInAt,
     this.hasStoredCredential = false,
-  }) : createdAt = createdAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? ColombiaTime.now();
 
   bool get isAdmin => role == 'admin';
   bool get isTecnico => role == 'tecnico';
@@ -52,7 +53,7 @@ class UserProfile {
       isActive: json['is_active'] as bool? ?? true,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
+          : ColombiaTime.now(),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,

@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 class StorageLocation {
   final String id;
   final String name;
@@ -22,10 +23,10 @@ class StorageLocation {
       description: json['description'] as String?,
       isActive: json['is_active'] as bool? ?? true,
       createdAt: DateTime.parse(
-        json['created_at'] ?? DateTime.now().toIso8601String(),
+        json['created_at'] ?? ColombiaTime.nowIso8601(),
       ),
       updatedAt: DateTime.parse(
-        json['updated_at'] ?? DateTime.now().toIso8601String(),
+        json['updated_at'] ?? ColombiaTime.nowIso8601(),
       ),
     );
   }

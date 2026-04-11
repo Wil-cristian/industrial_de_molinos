@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/account.dart';
@@ -67,7 +68,7 @@ class AccountsDataSource {
     final data = _accountToJson(account);
     data.remove('id');
     data.remove('created_at');
-    data['updated_at'] = DateTime.now().toIso8601String();
+    data['updated_at'] = ColombiaTime.nowIso8601();
 
     final response = await _client
         .from(_accountsTable)
@@ -93,7 +94,7 @@ class AccountsDataSource {
         .from(_accountsTable)
         .update({
           'balance': newBalance,
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': ColombiaTime.nowIso8601(),
         })
         .eq('id', accountId);
   }
@@ -152,14 +153,11 @@ class AccountsDataSource {
 
   /// Obtener movimientos por fecha
   static Future<List<CashMovement>> getMovementsByDate(DateTime date) async {
-    final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
-
     final response = await _client
         .from(_movementsTable)
         .select()
-        .gte('date', startOfDay.toIso8601String())
-        .lt('date', endOfDay.toIso8601String())
+        .gte('date', ColombiaTime.startOfDayIso(date))
+        .lt('date', ColombiaTime.endOfDayIso(date))
         .order('created_at', ascending: false);
     return response
         .map<CashMovement>((json) => _movementFromJson(json))
@@ -171,18 +169,11 @@ class AccountsDataSource {
     DateTime startDate,
     DateTime endDate,
   ) async {
-    final start = DateTime(startDate.year, startDate.month, startDate.day);
-    final end = DateTime(
-      endDate.year,
-      endDate.month,
-      endDate.day,
-    ).add(const Duration(days: 1));
-
     final response = await _client
         .from(_movementsTable)
         .select()
-        .gte('date', start.toIso8601String())
-        .lt('date', end.toIso8601String())
+        .gte('date', ColombiaTime.startOfDayIso(startDate))
+        .lt('date', ColombiaTime.endOfDayIso(endDate))
         .order('date', ascending: false)
         .order('created_at', ascending: false);
     return response
@@ -261,7 +252,7 @@ class AccountsDataSource {
           'p_to_account_id': toAccountId,
           'p_amount': amount,
           'p_description': description,
-          'p_date': date.toIso8601String().split('T')[0],
+          'p_date': ColombiaTime.dateString(date),
           'p_reference': reference,
         },
       );
@@ -326,7 +317,7 @@ class AccountsDataSource {
       );
     }
 
-    final transferId = DateTime.now().millisecondsSinceEpoch.toString();
+    final transferId = ColombiaTime.now().millisecondsSinceEpoch.toString();
 
     final outMovement = CashMovement(
       id: '',
@@ -401,7 +392,7 @@ class AccountsDataSource {
           'p_description': movement.description,
           'p_reference': movement.reference,
           'p_person_name': movement.personName,
-          'p_date': movement.date.toIso8601String().split('T')[0],
+          'p_date': ColombiaTime.dateString(movement.date),
         },
       );
 
@@ -588,8 +579,8 @@ class AccountsDataSource {
       'account_number': account.accountNumber,
       'color': account.color,
       'is_active': account.isActive,
-      'created_at': account.createdAt.toIso8601String(),
-      'updated_at': account.updatedAt.toIso8601String(),
+      'created_at': ColombiaTime.toIso8601(account.createdAt),
+      'updated_at': ColombiaTime.toIso8601(account.updatedAt),
     };
   }
 
@@ -610,10 +601,10 @@ class AccountsDataSource {
       personName: json['person_name'],
       date: json['date'] != null
           ? DateTime.parse(json['date'])
-          : DateTime.now(),
+          : ColombiaTime.now(),
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
+          : ColombiaTime.now(),
       linkedTransferId: json['linked_transfer_id'],
       attachments: json['attachments'] != null && json['attachments'] is List
           ? (json['attachments'] as List)
@@ -640,8 +631,8 @@ class AccountsDataSource {
       'description': movement.description,
       'reference': movement.reference,
       'person_name': movement.personName,
-      'date': movement.date.toIso8601String(),
-      'created_at': movement.createdAt.toIso8601String(),
+      'date': ColombiaTime.toIso8601(movement.date),
+      'created_at': ColombiaTime.toIso8601(movement.createdAt),
       'linked_transfer_id': movement.linkedTransferId,
     };
   }

@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 // Tipos de cuenta
 enum AccountType {
   cash,      // Efectivo (Caja)
@@ -28,8 +29,8 @@ class Account {
     this.isActive = true,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) : createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? ColombiaTime.now(),
+       updatedAt = updatedAt ?? ColombiaTime.now();
 
   Account copyWith({
     String? id,
@@ -53,7 +54,7 @@ class Account {
       color: color ?? this.color,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? DateTime.now(),
+      updatedAt: updatedAt ?? ColombiaTime.now(),
     );
   }
 
@@ -67,8 +68,8 @@ class Account {
       'accountNumber': accountNumber,
       'color': color,
       'isActive': isActive,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': ColombiaTime.toIso8601(createdAt),
+      'updatedAt': ColombiaTime.toIso8601(updatedAt),
     };
   }
 
@@ -87,10 +88,10 @@ class Account {
       isActive: json['isActive'] ?? true,
       createdAt: json['createdAt'] != null 
           ? DateTime.parse(json['createdAt']) 
-          : DateTime.now(),
+          : ColombiaTime.now(),
       updatedAt: json['updatedAt'] != null 
           ? DateTime.parse(json['updatedAt']) 
-          : DateTime.now(),
+          : ColombiaTime.now(),
     );
   }
 

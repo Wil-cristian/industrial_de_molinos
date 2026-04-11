@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/responsive/responsive_helper.dart';
 import '../../domain/entities/audit_log.dart';
 import '../../data/providers/audit_log_provider.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Página de Panel de Auditoría — Movimientos del sistema
 /// Muestra quién hizo qué y cuándo
@@ -334,7 +335,7 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage> {
   }
 
   Future<void> _selectDateRange(BuildContext context) async {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final result = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2024),

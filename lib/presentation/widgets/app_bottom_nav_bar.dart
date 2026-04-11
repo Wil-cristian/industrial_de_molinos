@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
-/// Bottom navigation bar para vista móvil.
-/// Muestra 4 items principales + botón "Más" que abre un drawer.
+/// Bottom navigation bar M3 para vista móvil.
+/// Indicador activo pill, filled/outlined icons, animaciones spring,
+/// haptic feedback, y menú "Más" categorizado con staggered animations.
 class AppBottomNavBar extends StatelessWidget {
   final String currentRoute;
   final StatefulNavigationShell navigationShell;
@@ -13,117 +15,161 @@ class AppBottomNavBar extends StatelessWidget {
     required this.navigationShell,
   });
 
+  // Íconos filled + outlined para M3
   static const _mainItems = [
     _BottomNavItem(
-      icon: Icons.account_balance_wallet,
+      iconFilled: Icons.account_balance_wallet,
+      iconOutlined: Icons.account_balance_wallet_outlined,
       label: 'Caja',
       route: '/daily-cash',
       branchIndex: 1,
     ),
     _BottomNavItem(
-      icon: Icons.receipt_long,
+      iconFilled: Icons.receipt_long,
+      iconOutlined: Icons.receipt_long_outlined,
       label: 'Ventas',
       route: '/invoices',
       branchIndex: 6,
     ),
     _BottomNavItem(
-      icon: Icons.people,
+      iconFilled: Icons.people,
+      iconOutlined: Icons.people_outlined,
       label: 'Clientes',
       route: '/customers',
       branchIndex: 5,
     ),
     _BottomNavItem(
-      icon: Icons.warehouse,
+      iconFilled: Icons.warehouse,
+      iconOutlined: Icons.warehouse_outlined,
       label: 'Materiales',
       route: '/materials',
       branchIndex: 4,
     ),
   ];
 
-  static const _moreItems = [
-    _BottomNavItem(
-      icon: Icons.dashboard,
-      label: 'Dashboard',
-      route: '/',
-      branchIndex: 0,
+  // Categorías para el menú "Más"
+  static const _moreCategories = [
+    _MoreCategory(
+      title: 'Operaciones',
+      color: Color(0xFF2E7D32), // green[800]
+      items: [
+        _BottomNavItem(
+          iconFilled: Icons.shopping_bag,
+          iconOutlined: Icons.shopping_bag_outlined,
+          label: 'Compras',
+          route: '/expenses',
+          branchIndex: 2,
+        ),
+        _BottomNavItem(
+          iconFilled: Icons.layers,
+          iconOutlined: Icons.layers_outlined,
+          label: 'Productos',
+          route: '/composite-products',
+          branchIndex: 14,
+        ),
+        _BottomNavItem(
+          iconFilled: Icons.factory,
+          iconOutlined: Icons.factory_outlined,
+          label: 'Producción',
+          route: '/production-orders',
+          branchIndex: 15,
+        ),
+        _BottomNavItem(
+          iconFilled: Icons.local_shipping,
+          iconOutlined: Icons.local_shipping_outlined,
+          label: 'Entregas',
+          route: '/pending-deliveries',
+          branchIndex: 16,
+        ),
+      ],
     ),
-    _BottomNavItem(
-      icon: Icons.shopping_bag,
-      label: 'Compras',
-      route: '/expenses',
-      branchIndex: 2,
+    _MoreCategory(
+      title: 'Finanzas',
+      color: Color(0xFF1565C0), // blue[800]
+      items: [
+        _BottomNavItem(
+          iconFilled: Icons.request_quote,
+          iconOutlined: Icons.request_quote_outlined,
+          label: 'Cotizaciones',
+          route: '/quotations',
+          branchIndex: 7,
+        ),
+        _BottomNavItem(
+          iconFilled: Icons.account_balance,
+          iconOutlined: Icons.account_balance_outlined,
+          label: 'Contabilidad',
+          route: '/accounting',
+          branchIndex: 12,
+        ),
+        _BottomNavItem(
+          iconFilled: Icons.receipt,
+          iconOutlined: Icons.receipt_outlined,
+          label: 'Control IVA',
+          route: '/iva-control',
+          branchIndex: 13,
+        ),
+        _BottomNavItem(
+          iconFilled: Icons.bar_chart,
+          iconOutlined: Icons.bar_chart_rounded,
+          label: 'Reportes',
+          route: '/reports',
+          branchIndex: 8,
+        ),
+      ],
     ),
-    _BottomNavItem(
-      icon: Icons.layers,
-      label: 'Productos',
-      route: '/composite-products',
-      branchIndex: 14,
+    _MoreCategory(
+      title: 'Personas',
+      color: Color(0xFFE65100), // orange[900]
+      items: [
+        _BottomNavItem(
+          iconFilled: Icons.badge,
+          iconOutlined: Icons.badge_outlined,
+          label: 'Empleados',
+          route: '/employees',
+          branchIndex: 10,
+        ),
+        _BottomNavItem(
+          iconFilled: Icons.manage_accounts,
+          iconOutlined: Icons.manage_accounts_outlined,
+          label: 'Usuarios',
+          route: '/user-management',
+          branchIndex: 17,
+        ),
+      ],
     ),
-    _BottomNavItem(
-      icon: Icons.factory,
-      label: 'Produccion',
-      route: '/production-orders',
-      branchIndex: 15,
-    ),
-    _BottomNavItem(
-      icon: Icons.local_shipping,
-      label: 'Entregas',
-      route: '/pending-deliveries',
-      branchIndex: 16,
-    ),
-    _BottomNavItem(
-      icon: Icons.request_quote,
-      label: 'Cotizaciones',
-      route: '/quotations',
-      branchIndex: 7,
-    ),
-    _BottomNavItem(
-      icon: Icons.bar_chart,
-      label: 'Reportes',
-      route: '/reports',
-      branchIndex: 8,
-    ),
-    _BottomNavItem(
-      icon: Icons.calendar_today,
-      label: 'Calendario',
-      route: '/calendar',
-      branchIndex: 9,
-    ),
-    _BottomNavItem(
-      icon: Icons.badge,
-      label: 'Empleados',
-      route: '/employees',
-      branchIndex: 10,
-    ),
-    _BottomNavItem(
-      icon: Icons.business_center,
-      label: 'Activos',
-      route: '/assets',
-      branchIndex: 11,
-    ),
-    _BottomNavItem(
-      icon: Icons.account_balance,
-      label: 'Contabilidad',
-      route: '/accounting',
-      branchIndex: 12,
-    ),
-    _BottomNavItem(
-      icon: Icons.receipt_long,
-      label: 'Control IVA',
-      route: '/iva-control',
-      branchIndex: 13,
-    ),
-    _BottomNavItem(
-      icon: Icons.manage_accounts,
-      label: 'Usuarios',
-      route: '/user-management',
-      branchIndex: 17,
-    ),
-    _BottomNavItem(
-      icon: Icons.security,
-      label: 'Auditoría',
-      route: '/audit-panel',
-      branchIndex: 18,
+    _MoreCategory(
+      title: 'Sistema',
+      color: Color(0xFF546E7A), // blueGrey[600]
+      items: [
+        _BottomNavItem(
+          iconFilled: Icons.dashboard,
+          iconOutlined: Icons.dashboard_outlined,
+          label: 'Dashboard',
+          route: '/',
+          branchIndex: 0,
+        ),
+        _BottomNavItem(
+          iconFilled: Icons.calendar_today,
+          iconOutlined: Icons.calendar_today_outlined,
+          label: 'Calendario',
+          route: '/calendar',
+          branchIndex: 9,
+        ),
+        _BottomNavItem(
+          iconFilled: Icons.business_center,
+          iconOutlined: Icons.business_center_outlined,
+          label: 'Activos',
+          route: '/assets',
+          branchIndex: 11,
+        ),
+        _BottomNavItem(
+          iconFilled: Icons.security,
+          iconOutlined: Icons.security_outlined,
+          label: 'Auditoría',
+          route: '/audit-panel',
+          branchIndex: 18,
+        ),
+      ],
     ),
   ];
 
@@ -134,15 +180,17 @@ class AppBottomNavBar extends StatelessWidget {
         return i;
       }
     }
-    // Si es dashboard o alguna ruta del menú "Más", resaltar "Más"
     if (currentRoute == '/') return 4;
-    for (final item in _moreItems) {
-      if (currentRoute.startsWith(item.route) && item.route != '/') return 4;
+    for (final cat in _moreCategories) {
+      for (final item in cat.items) {
+        if (currentRoute.startsWith(item.route) && item.route != '/') return 4;
+      }
     }
-    return 4; // default: "Más"
+    return 4;
   }
 
   void _onItemTapped(BuildContext context, int index) {
+    HapticFeedback.lightImpact();
     if (index == 4) {
       _showMoreSheet(context);
       return;
@@ -157,10 +205,11 @@ class AppBottomNavBar extends StatelessWidget {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => _MoreMenu(
-        items: _moreItems,
+        categories: _moreCategories,
         currentRoute: currentRoute,
         onItemTap: (item) {
           Navigator.pop(ctx);
+          HapticFeedback.lightImpact();
           navigationShell.goBranch(item.branchIndex);
         },
       ),
@@ -170,29 +219,30 @@ class AppBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = _getSelectedIndex();
-
     final cs = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
         color: cs.surface,
         boxShadow: [
           BoxShadow(
-            color: cs.shadow.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+            color: cs.shadow.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -3),
           ),
         ],
       ),
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 64,
+          height: 60,
           child: Row(
             children: [
               for (int i = 0; i < _mainItems.length; i++)
                 Expanded(
                   child: _NavBarItem(
-                    icon: _mainItems[i].icon,
+                    iconFilled: _mainItems[i].iconFilled,
+                    iconOutlined: _mainItems[i].iconOutlined,
                     label: _mainItems[i].label,
                     isSelected: selected == i,
                     onTap: () => _onItemTapped(context, i),
@@ -200,7 +250,8 @@ class AppBottomNavBar extends StatelessWidget {
                 ),
               Expanded(
                 child: _NavBarItem(
-                  icon: Icons.menu,
+                  iconFilled: Icons.grid_view_rounded,
+                  iconOutlined: Icons.grid_view_outlined,
                   label: 'Más',
                   isSelected: selected == 4,
                   onTap: () => _onItemTapped(context, 4),
@@ -214,114 +265,309 @@ class AppBottomNavBar extends StatelessWidget {
   }
 }
 
-class _NavBarItem extends StatelessWidget {
-  final IconData icon;
+// ─── Nav Bar Item con pill indicator animado (M3) ───────────────────────
+
+class _NavBarItem extends StatefulWidget {
+  final IconData iconFilled;
+  final IconData iconOutlined;
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _NavBarItem({
-    required this.icon,
+    required this.iconFilled,
+    required this.iconOutlined,
     required this.label,
     required this.isSelected,
     required this.onTap,
   });
 
   @override
+  State<_NavBarItem> createState() => _NavBarItemState();
+}
+
+class _NavBarItemState extends State<_NavBarItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _iconScale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 350),
+      vsync: this,
+    );
+    _iconScale = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    if (widget.isSelected) _controller.value = 1.0;
+  }
+
+  @override
+  void didUpdateWidget(covariant _NavBarItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelected && !oldWidget.isSelected) {
+      _controller.forward(from: 0);
+    } else if (!widget.isSelected && oldWidget.isSelected) {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final color = isSelected ? cs.primary : cs.onSurfaceVariant;
 
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+    return GestureDetector(
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final isActive = widget.isSelected;
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Pill indicator + icon
+              SizedBox(
+                height: 32,
+                width: 56,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Animated pill indicator
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      width: isActive ? 56 : 0,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? cs.secondaryContainer
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    // Icon with scale
+                    Transform.scale(
+                      scale: _iconScale.value,
+                      child: Icon(
+                        isActive ? widget.iconFilled : widget.iconOutlined,
+                        color: isActive
+                            ? cs.onSecondaryContainer
+                            : cs.onSurfaceVariant,
+                        size: 22,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 2),
+              // Label
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  color: isActive ? cs.onSurface : cs.onSurfaceVariant,
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  letterSpacing: isActive ? 0.1 : 0,
+                ),
+                child: Text(
+                  widget.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-class _MoreMenu extends StatelessWidget {
-  final List<_BottomNavItem> items;
+// ─── Menú "Más" categorizado con staggered animations ───────────────────
+
+class _MoreMenu extends StatefulWidget {
+  final List<_MoreCategory> categories;
   final String currentRoute;
   final void Function(_BottomNavItem) onItemTap;
 
   const _MoreMenu({
-    required this.items,
+    required this.categories,
     required this.currentRoute,
     required this.onItemTap,
   });
 
   @override
+  State<_MoreMenu> createState() => _MoreMenuState();
+}
+
+class _MoreMenuState extends State<_MoreMenu>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _staggerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _staggerController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _staggerController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+
+    // Contar total items para stagger
+    int itemIndex = 0;
+    final totalItems = widget.categories.fold<int>(
+      0,
+      (sum, cat) => sum + cat.items.length,
+    );
+
     return Container(
-      margin: const EdgeInsets.all(12),
+      margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
       decoration: BoxDecoration(
         color: cs.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: cs.shadow.withOpacity(0.12),
+            blurRadius: 24,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
+          // Drag handle (M3: 32x4 con 48dp hit target)
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
             child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: cs.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
+              width: double.infinity,
+              height: 28,
+              alignment: Alignment.center,
+              child: Container(
+                width: 32,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: cs.onSurfaceVariant.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
           ),
+          // Título
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
             child: Row(
               children: [
-                Icon(Icons.apps, color: cs.primary, size: 20),
-                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: cs.primaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.apps_rounded,
+                    color: cs.onPrimaryContainer,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Text(
                   'Más opciones',
-                  style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  style: tt.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
                 ),
               ],
             ),
           ),
-          Divider(height: 1, color: cs.outlineVariant),
+          // Categorías
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
-            child: GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 4,
-              crossAxisSpacing: 4,
-              childAspectRatio: 1.1,
-              children: items.map((item) {
-                final isActive =
-                    currentRoute.startsWith(item.route) && item.route != '/' ||
-                    (item.route == '/' && currentRoute == '/');
-                return _MoreMenuItem(
-                  icon: item.icon,
-                  label: item.label,
-                  isActive: isActive,
-                  onTap: () => onItemTap(item),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: widget.categories.map((cat) {
+                final catItems = cat.items.map((item) {
+                  final idx = itemIndex++;
+                  final isActive =
+                      (widget.currentRoute.startsWith(item.route) &&
+                          item.route != '/') ||
+                      (item.route == '/' && widget.currentRoute == '/');
+                  return _StaggeredMoreItem(
+                    controller: _staggerController,
+                    index: idx,
+                    totalItems: totalItems,
+                    child: _MoreMenuItem(
+                      iconFilled: item.iconFilled,
+                      iconOutlined: item.iconOutlined,
+                      label: item.label,
+                      isActive: isActive,
+                      categoryColor: cat.color,
+                      onTap: () => widget.onItemTap(item),
+                    ),
+                  );
+                }).toList();
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Category header
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 3,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: cat.color,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            cat.title,
+                            style: tt.labelSmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Items grid (4 columnas)
+                    GridView.count(
+                      crossAxisCount: 4,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 2,
+                      crossAxisSpacing: 2,
+                      childAspectRatio: 0.9,
+                      children: catItems,
+                    ),
+                  ],
                 );
               }).toList(),
             ),
@@ -332,67 +578,183 @@ class _MoreMenu extends StatelessWidget {
   }
 }
 
-class _MoreMenuItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
+// ─── Stagger wrapper para animar cada item con delay ────────────────────
 
-  const _MoreMenuItem({
-    required this.icon,
-    required this.label,
-    required this.isActive,
-    required this.onTap,
+class _StaggeredMoreItem extends StatelessWidget {
+  final AnimationController controller;
+  final int index;
+  final int totalItems;
+  final Widget child;
+
+  const _StaggeredMoreItem({
+    required this.controller,
+    required this.index,
+    required this.totalItems,
+    required this.child,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isActive ? cs.primaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isActive ? cs.onPrimaryContainer : cs.onSurfaceVariant,
-              size: 24,
+    final start = (index / totalItems) * 0.6;
+    final end = start + 0.4;
+    final opacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: controller,
+        curve: Interval(start, end.clamp(0.0, 1.0), curve: Curves.easeOut),
+      ),
+    );
+    final slide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: controller,
+            curve: Interval(
+              start,
+              end.clamp(0.0, 1.0),
+              curve: Curves.easeOutCubic,
             ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                color: isActive ? cs.onPrimaryContainer : cs.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+          ),
+        );
+
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) => Opacity(
+        opacity: opacity.value,
+        child: Transform.translate(
+          offset: Offset(0, slide.value.dy * 20),
+          child: child,
         ),
       ),
     );
   }
 }
 
+// ─── Item individual del menú "Más" con ícono circular con color ────────
+
+class _MoreMenuItem extends StatefulWidget {
+  final IconData iconFilled;
+  final IconData iconOutlined;
+  final String label;
+  final bool isActive;
+  final Color categoryColor;
+  final VoidCallback onTap;
+
+  const _MoreMenuItem({
+    required this.iconFilled,
+    required this.iconOutlined,
+    required this.label,
+    required this.isActive,
+    required this.categoryColor,
+    required this.onTap,
+  });
+
+  @override
+  State<_MoreMenuItem> createState() => _MoreMenuItemState();
+}
+
+class _MoreMenuItemState extends State<_MoreMenuItem> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final iconBg = widget.isActive
+        ? widget.categoryColor
+        : widget.categoryColor.withOpacity(0.1);
+    final iconColor = widget.isActive ? Colors.white : widget.categoryColor;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.92 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Container(
+          decoration: BoxDecoration(
+            color: widget.isActive
+                ? cs.secondaryContainer.withOpacity(0.5)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Circular icon background
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  shape: BoxShape.circle,
+                  boxShadow: widget.isActive
+                      ? [
+                          BoxShadow(
+                            color: widget.categoryColor.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [],
+                ),
+                child: Icon(
+                  widget.isActive ? widget.iconFilled : widget.iconOutlined,
+                  color: iconColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: widget.isActive
+                      ? FontWeight.w600
+                      : FontWeight.w500,
+                  color: widget.isActive ? cs.onSurface : cs.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Data models ────────────────────────────────────────────────────────
+
 class _BottomNavItem {
-  final IconData icon;
+  final IconData iconFilled;
+  final IconData iconOutlined;
   final String label;
   final String route;
   final int branchIndex;
 
   const _BottomNavItem({
-    required this.icon,
+    required this.iconFilled,
+    required this.iconOutlined,
     required this.label,
     required this.route,
     required this.branchIndex,
+  });
+}
+
+class _MoreCategory {
+  final String title;
+  final Color color;
+  final List<_BottomNavItem> items;
+
+  const _MoreCategory({
+    required this.title,
+    required this.color,
+    required this.items,
   });
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/providers/nfc_kiosk_provider.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Pagina de asistencia NFC — Kiosko Windows con lector USB
 class NfcAttendancePage extends ConsumerStatefulWidget {
@@ -777,7 +778,7 @@ class _ClockWidget extends StatelessWidget {
     return StreamBuilder(
       stream: Stream.periodic(const Duration(seconds: 1)),
       builder: (context, _) {
-        final now = DateTime.now();
+        final now = ColombiaTime.now();
         return Column(
           children: [
             Text(

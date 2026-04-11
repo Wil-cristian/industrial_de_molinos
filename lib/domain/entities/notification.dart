@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/colombia_time.dart';
 
 enum NotificationType {
   lowStock,
@@ -174,7 +175,7 @@ class AppNotification {
   }
 
   String get timeAgo {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final diff = now.difference(createdAt);
 
     if (diff.inMinutes < 1) {

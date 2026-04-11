@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 // Entidad: Proveedor
 enum SupplierType { individual, business }
 
@@ -98,8 +99,8 @@ class Supplier {
       'bank_name': bankName,
       'current_debt': currentDebt,
       'is_active': isActive,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': ColombiaTime.toIso8601(createdAt),
+      'updated_at': ColombiaTime.toIso8601(updatedAt),
     };
   }
 

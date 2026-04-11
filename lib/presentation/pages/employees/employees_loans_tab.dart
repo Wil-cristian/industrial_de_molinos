@@ -1,6 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/utils/helpers.dart';
 import '../../../data/datasources/accounts_datasource.dart';
 import '../../../data/datasources/payroll_datasource.dart';
@@ -9,6 +10,7 @@ import '../../../domain/entities/employee.dart';
 import '../../../data/providers/payroll_provider.dart';
 import '../../../data/providers/employees_provider.dart';
 import '../../../domain/entities/cash_movement.dart';
+import '../../../core/utils/colombia_time.dart';
 
 /// Tab de préstamos y adelantos de empleados.
 class EmployeesLoansTab extends ConsumerStatefulWidget {
@@ -34,20 +36,21 @@ class EmployeesLoansTabState extends ConsumerState<EmployeesLoansTab> {
     String label,
     String value,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    bool compact = false,
+  }) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(compact ? 10 : 16),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(compact ? 8 : 12),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color),
+              child: Icon(icon, color: color, size: compact ? 20 : 24),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -58,8 +61,10 @@ class EmployeesLoansTabState extends ConsumerState<EmployeesLoansTab> {
                     label,
                     style: TextStyle(
                       color: const Color(0xFF757575),
-                      fontSize: 12,
+                      fontSize: compact ? 11 : 12,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   FittedBox(
@@ -67,8 +72,8 @@ class EmployeesLoansTabState extends ConsumerState<EmployeesLoansTab> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       value,
-                      style: const TextStyle(
-                        fontSize: 20,
+                      style: TextStyle(
+                        fontSize: compact ? 16 : 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -93,44 +98,99 @@ class EmployeesLoansTabState extends ConsumerState<EmployeesLoansTab> {
         .toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(ResponsiveHelper.isMobile(context) ? 12 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Resumen
-          Row(
-            children: [
-              Expanded(
-                child: _buildPayrollSummaryCard(
-                  'Préstamos Activos',
-                  '${activeLoans.length}',
-                  Icons.account_balance_wallet,
-                  const Color(0xFFF9A825),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildPayrollSummaryCard(
-                  'Monto Total Prestado',
-                  Helpers.formatCurrency(
-                    activeLoans.fold(0.0, (sum, l) => sum + l.totalAmount),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 500;
+              if (isCompact) {
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildPayrollSummaryCard(
+                            'Activos',
+                            '${activeLoans.length}',
+                            Icons.account_balance_wallet,
+                            const Color(0xFFF9A825),
+                            compact: true,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildPayrollSummaryCard(
+                            'Total Prestado',
+                            Helpers.formatCurrency(
+                              activeLoans.fold(
+                                0.0,
+                                (sum, l) => sum + l.totalAmount,
+                              ),
+                            ),
+                            Icons.attach_money,
+                            theme.colorScheme.primary,
+                            compact: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildPayrollSummaryCard(
+                      'Pendiente de Cobro',
+                      Helpers.formatCurrency(
+                        activeLoans.fold(
+                          0.0,
+                          (sum, l) => sum + l.remainingAmount,
+                        ),
+                      ),
+                      Icons.pending,
+                      const Color(0xFFC62828),
+                      compact: true,
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(
+                    child: _buildPayrollSummaryCard(
+                      'Préstamos Activos',
+                      '${activeLoans.length}',
+                      Icons.account_balance_wallet,
+                      const Color(0xFFF9A825),
+                    ),
                   ),
-                  Icons.attach_money,
-                  theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildPayrollSummaryCard(
-                  'Pendiente de Cobro',
-                  Helpers.formatCurrency(
-                    activeLoans.fold(0.0, (sum, l) => sum + l.remainingAmount),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildPayrollSummaryCard(
+                      'Monto Total Prestado',
+                      Helpers.formatCurrency(
+                        activeLoans.fold(0.0, (sum, l) => sum + l.totalAmount),
+                      ),
+                      Icons.attach_money,
+                      theme.colorScheme.primary,
+                    ),
                   ),
-                  Icons.pending,
-                  const Color(0xFFC62828),
-                ),
-              ),
-            ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildPayrollSummaryCard(
+                      'Pendiente de Cobro',
+                      Helpers.formatCurrency(
+                        activeLoans.fold(
+                          0.0,
+                          (sum, l) => sum + l.remainingAmount,
+                        ),
+                      ),
+                      Icons.pending,
+                      const Color(0xFFC62828),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 24),
 
@@ -382,7 +442,12 @@ class EmployeesLoansTabState extends ConsumerState<EmployeesLoansTab> {
               ],
             ),
             content: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 450, minWidth: 200),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width < 500
+                    ? MediaQuery.of(context).size.width * 0.9
+                    : 450,
+                minWidth: 200,
+              ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -409,14 +474,20 @@ class EmployeesLoansTabState extends ConsumerState<EmployeesLoansTab> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Total: ${Helpers.formatCurrency(loan.totalAmount)}',
+                              Flexible(
+                                child: Text(
+                                  'Total: ${Helpers.formatCurrency(loan.totalAmount)}',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              Text(
-                                'Pendiente: ${Helpers.formatCurrency(remaining)}',
-                                style: TextStyle(
-                                  color: const Color(0xFFD32F2F),
-                                  fontWeight: FontWeight.w600,
+                              Flexible(
+                                child: Text(
+                                  'Pendiente: ${Helpers.formatCurrency(remaining)}',
+                                  style: TextStyle(
+                                    color: const Color(0xFFD32F2F),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -673,7 +744,7 @@ class EmployeesLoansTabState extends ConsumerState<EmployeesLoansTab> {
                                   'Abono préstamo - ${loan.employeeName ?? "Empleado"} - Cuota ${loan.paidInstallments + 1}/${loan.installments}${notesController.text.isNotEmpty ? " | ${notesController.text}" : ""}',
                               reference: loan.id,
                               personName: loan.employeeName,
-                              date: DateTime.now(),
+                              date: ColombiaTime.now(),
                             );
                             await AccountsDataSource.createMovementWithBalanceUpdate(
                               movement,
@@ -832,7 +903,7 @@ class EmployeesLoansTabState extends ConsumerState<EmployeesLoansTab> {
     final reasonController = TextEditingController();
 
     // Generar quincenas futuras para seleccionar inicio de descuento
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     const meses = [
       '',
       'Ene',
@@ -930,7 +1001,12 @@ class EmployeesLoansTabState extends ConsumerState<EmployeesLoansTab> {
               ],
             ),
             content: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 480, minWidth: 200),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width < 500
+                    ? MediaQuery.of(context).size.width * 0.9
+                    : 480,
+                minWidth: 200,
+              ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1146,7 +1222,7 @@ class EmployeesLoansTabState extends ConsumerState<EmployeesLoansTab> {
                                 'Nov',
                                 'Dic',
                               ];
-                              final now2 = DateTime.now();
+                              final now2 = ColombiaTime.now();
                               final isPast =
                                   DateTime(
                                     qYear,

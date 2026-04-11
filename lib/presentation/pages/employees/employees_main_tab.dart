@@ -13,6 +13,7 @@ import '../../../data/providers/payroll_provider.dart';
 import '../../../data/providers/accounts_provider.dart';
 import '../../../domain/entities/employee.dart';
 import '../../../domain/entities/cash_movement.dart';
+import '../../../core/utils/colombia_time.dart';
 
 /// Tab principal de empleados — lista, detalle, dialogs de CRUD/asistencia/NFC.
 class EmployeesMainTab extends ConsumerStatefulWidget {
@@ -403,12 +404,16 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                       ? theme.colorScheme.primary.withValues(alpha: 0.08)
                       : Colors.transparent,
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: MediaQuery.of(context).size.width < 600
+                          ? 12
+                          : 20,
+                      vertical: MediaQuery.of(context).size.width < 600
+                          ? 8
+                          : 12,
                     ),
                     leading: CircleAvatar(
-                      radius: 26,
+                      radius: MediaQuery.of(context).size.width < 600 ? 22 : 26,
                       backgroundColor: theme.colorScheme.primary.withValues(
                         alpha: 0.12,
                       ),
@@ -453,7 +458,8 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                                       icon: Icons.business,
                                       label: employee.department!,
                                     ),
-                                  if (employee.phone != null)
+                                  if (employee.phone != null &&
+                                      MediaQuery.of(context).size.width >= 600)
                                     _buildInfoChip(
                                       icon: Icons.phone,
                                       label: employee.phone!,
@@ -461,16 +467,18 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            // Barra de progreso de horas semanales
-                            SizedBox(
-                              width: 120,
-                              child: _buildEmployeeHoursProgressBar(
-                                employee,
-                                state,
-                                theme,
+                            if (MediaQuery.of(context).size.width >= 600) ...[
+                              const SizedBox(width: 8),
+                              // Barra de progreso de horas semanales
+                              SizedBox(
+                                width: 120,
+                                child: _buildEmployeeHoursProgressBar(
+                                  employee,
+                                  state,
+                                  theme,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ],
@@ -643,7 +651,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     double weekHours = weeklyBase;
 
     // Calcular ajustes de esta semana
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
 
     final weekAdjustments = state.timeAdjustments
@@ -847,13 +855,17 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                     ],
                   ),
                 ),
-                // Info compacta
-                if (employee.phone != null) ...[
+                // Info compacta (solo en pantallas anchas)
+                if (employee.phone != null &&
+                    MediaQuery.of(context).size.width > 600) ...[
                   Icon(Icons.phone, size: 14, color: textSub),
                   const SizedBox(width: 4),
-                  Text(
-                    employee.phone!,
-                    style: TextStyle(fontSize: 11, color: textSub),
+                  Flexible(
+                    child: Text(
+                      employee.phone!,
+                      style: TextStyle(fontSize: 11, color: textSub),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   const SizedBox(width: 12),
                 ],
@@ -1348,7 +1360,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     required Color textMain,
     required Color textSub,
   }) {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final quinStart = _getQuincenaStart(now);
     final quinEnd = _getQuincenaEnd(now);
 
@@ -1579,7 +1591,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     final Map<String, Map<String, int>> dayData = {};
 
     for (final adj in adjustments) {
-      final dateKey = adj.adjustmentDate.toIso8601String().split('T')[0];
+      final dateKey = ColombiaTime.dateString(adj.adjustmentDate);
       dayData.putIfAbsent(
         dateKey,
         () => {'ausente': 0, 'permiso': 0, 'incapacidad': 0},
@@ -1608,7 +1620,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     required DateTime date,
     required Map<String, Map<String, int>> dayData,
   }) {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final dateOnly = DateTime(date.year, date.month, date.day);
 
@@ -1617,7 +1629,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     // No permitir editar domingos
     if (date.weekday == DateTime.sunday) return;
 
-    final dateKey = date.toIso8601String().split('T')[0];
+    final dateKey = ColombiaTime.dateString(date);
     final data = dayData[dateKey];
     final ausentes = data?['ausente'] ?? 0;
     final permisos = data?['permiso'] ?? 0;
@@ -2075,7 +2087,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     const double weeklyBase = 44.0;
     double weekHours = weeklyBase;
 
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
 
     final weekAdjustments = state.timeAdjustments
@@ -2107,7 +2119,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     Employee employee,
     EmployeesState state,
   ) {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
     int daysPresent = 0;
     int daysAbsent = 0;
@@ -2312,7 +2324,9 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 10),
-              Text(isEditing ? 'Editar Empleado' : 'Nuevo Empleado'),
+              Expanded(
+                child: Text(isEditing ? 'Editar Empleado' : 'Nuevo Empleado'),
+              ),
             ],
           ),
           content: ConstrainedBox(
@@ -2609,7 +2623,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                   attendanceBonusDays: employee?.attendanceBonusDays ?? 6,
                   workSchedule: employee?.workSchedule ?? 'tiempo_completo',
                   status: selectedStatus,
-                  hireDate: employee?.hireDate ?? DateTime.now(),
+                  hireDate: employee?.hireDate ?? ColombiaTime.now(),
                   documentType: employee?.documentType,
                   documentNumber: employee?.documentNumber,
                   address: employee?.address,
@@ -2618,8 +2632,8 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                   notes: employee?.notes,
                   emergencyContact: employee?.emergencyContact,
                   emergencyPhone: employee?.emergencyPhone,
-                  createdAt: employee?.createdAt ?? DateTime.now(),
-                  updatedAt: DateTime.now(),
+                  createdAt: employee?.createdAt ?? ColombiaTime.now(),
+                  updatedAt: ColombiaTime.now(),
                 );
 
                 Navigator.pop(context);
@@ -2886,13 +2900,13 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                                 employeeName: employee.fullName,
                                 title: task.title,
                                 description: task.description,
-                                assignedDate: DateTime.now(),
+                                assignedDate: ColombiaTime.now(),
                                 dueDate: task.dueDate,
                                 status: task.status,
                                 priority: task.priority,
                                 category: task.category,
                                 createdAt: task.createdAt,
-                                updatedAt: DateTime.now(),
+                                updatedAt: ColombiaTime.now(),
                               );
 
                               await ref
@@ -2939,7 +2953,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
 
   void _showEmployeeDetail(Employee employee) {
     ref.read(employeesProvider.notifier).selectEmployee(employee);
-    int selectedDayIndex = (DateTime.now().weekday - 1).clamp(
+    int selectedDayIndex = (ColombiaTime.now().weekday - 1).clamp(
       0,
       5,
     ); // 0=Lunes, 5=Sábado
@@ -2962,7 +2976,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
               .where((l) => l.employeeId == employee.id && l.status == 'activo')
               .toList();
 
-          final now = DateTime.now();
+          final now = ColombiaTime.now();
           final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
 
           // Días de la semana (sin domingo)
@@ -3632,7 +3646,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
 
   void _addHours(Employee employee, double hours) async {
     // Mostrar diálogo para elegir fecha (hoy o pasada)
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     DateTime selectedDate = now;
     final hoursCtrl = TextEditingController(text: hours.abs().toString());
     final isPositive = hours > 0;
@@ -3832,8 +3846,8 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     // key=employeeId, value={type, startDate, endDate, days, diagnosis}
     final incapacityRecords = <String, Map<String, dynamic>>{};
 
-    DateTime selectedDate = initialDate ?? DateTime.now();
-    final now = DateTime.now();
+    DateTime selectedDate = initialDate ?? ColombiaTime.now();
+    final now = ColombiaTime.now();
     final quinStart = _getQuincenaStart(now);
     final quinEnd = _getQuincenaEnd(now);
 
@@ -3876,7 +3890,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
         endDate: quinEnd,
       );
       for (final adj in adjustments) {
-        final dateKey = adj.adjustmentDate.toIso8601String().split('T')[0];
+        final dateKey = ColombiaTime.dateString(adj.adjustmentDate);
         dayData.putIfAbsent(
           dateKey,
           () => {'ausente': 0, 'permiso': 0, 'incapacidad': 0},
@@ -4632,10 +4646,10 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                             final date = await showDatePicker(
                               context: ctx,
                               initialDate: startDate,
-                              firstDate: DateTime.now().subtract(
+                              firstDate: ColombiaTime.now().subtract(
                                 const Duration(days: 30),
                               ),
-                              lastDate: DateTime.now().add(
+                              lastDate: ColombiaTime.now().add(
                                 const Duration(days: 365),
                               ),
                             );
@@ -4673,7 +4687,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                               context: ctx,
                               initialDate: endDate,
                               firstDate: startDate,
-                              lastDate: DateTime.now().add(
+                              lastDate: ColombiaTime.now().add(
                                 const Duration(days: 365),
                               ),
                             );
@@ -4813,7 +4827,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     }
 
     for (final day in quinDays) {
-      final dateKey = day.toIso8601String().split('T')[0];
+      final dateKey = ColombiaTime.dateString(day);
       final data = dayData[dateKey];
       final isSunday = day.weekday == DateTime.sunday;
       final isToday =
@@ -5366,7 +5380,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
       // Crear set de fechas con incapacidad
       final incapacityDates = <String>{};
       for (final adj in incapacityAdjustments) {
-        incapacityDates.add(adj.adjustmentDate.toIso8601String().split('T')[0]);
+        incapacityDates.add(ColombiaTime.dateString(adj.adjustmentDate));
       }
 
       // Contar días consecutivos hacia atrás desde date-1
@@ -5380,7 +5394,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
           continue;
         }
 
-        final dateKey = checkDate.toIso8601String().split('T')[0];
+        final dateKey = ColombiaTime.dateString(checkDate);
         if (incapacityDates.contains(dateKey)) {
           consecutiveDays++;
           checkDate = checkDate.subtract(const Duration(days: 1));
@@ -5399,7 +5413,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
   }
 
   void _showTimeHistoryDialog(Employee employee) {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     DateTime startDate = DateTime(now.year, now.month, 1); // Inicio del mes
     DateTime endDate = now;
     List<EmployeeTimeEntry> historyEntries = [];
@@ -5898,7 +5912,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
           context: ctx,
           initialDate: date,
           firstDate: DateTime(2024),
-          lastDate: DateTime.now(),
+          lastDate: ColombiaTime.now(),
         );
         if (picked != null) onPicked(picked);
       },
@@ -6405,7 +6419,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                             description:
                                 'Adelanto de sueldo - ${employee.fullName}${notesController.text.isNotEmpty ? " | ${notesController.text}" : ""}',
                             personName: employee.fullName,
-                            date: DateTime.now(),
+                            date: ColombiaTime.now(),
                           );
                           await AccountsDataSource.createMovementWithBalanceUpdate(
                             movement,
@@ -6474,7 +6488,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
     final reasonController = TextEditingController();
 
     // Generar quincenas futuras para seleccionar inicio de descuento
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     const meses = [
       '',
       'Ene',
@@ -6788,7 +6802,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                                 'Nov',
                                 'Dic',
                               ];
-                              final now2 = DateTime.now();
+                              final now2 = ColombiaTime.now();
                               final isPast =
                                   DateTime(
                                     qYear,

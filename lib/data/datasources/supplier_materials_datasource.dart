@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/supplier_material.dart';
 import 'audit_log_datasource.dart';
@@ -65,7 +66,7 @@ class SupplierMaterialsDataSource {
       'material_id': materialId,
       'unit_price': unitPrice,
       'last_purchase_price': unitPrice,
-      'last_purchase_date': DateTime.now().toIso8601String(),
+      'last_purchase_date': ColombiaTime.nowIso8601(),
       if (minOrderQuantity != null) 'min_order_quantity': minOrderQuantity,
       if (leadTimeDays != null) 'lead_time_days': leadTimeDays,
       if (notes != null) 'notes': notes,

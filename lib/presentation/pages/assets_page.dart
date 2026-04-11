@@ -8,6 +8,7 @@ import '../../domain/entities/asset.dart';
 import '../../domain/entities/activity.dart';
 import '../../data/providers/assets_provider.dart';
 import '../../data/providers/activities_provider.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Página de Activos Fijos / Inversiones
 /// Gestión de herramientas, maquinaria, equipos e inversiones
@@ -226,57 +227,87 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
   }
 
   Widget _buildStatsCards(AssetsState state) {
+    // Calcular total de unidades (suma de quantity de todos los activos)
+    final totalUnits = state.assets.fold<int>(0, (sum, a) => sum + a.quantity);
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final singleColumn = constraints.maxWidth < 360;
         final narrow = constraints.maxWidth < 720;
+
         if (narrow) {
-          final cardWidth = singleColumn
-              ? constraints.maxWidth
-              : (constraints.maxWidth - 8) / 2;
-          return Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              SizedBox(
-                width: cardWidth,
-                child: _buildStatCard(
-                  'Activos',
-                  '${state.totalAssets}',
-                  Icons.business_center,
-                  const Color(0xFF1565C0),
+          // Mobile: card compacta con 2 filas de 2 stats
+          return Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF000000).withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _buildStatCard(
-                  'Valor',
-                  '\$ ${Helpers.formatNumber(state.totalValue)}',
-                  Icons.account_balance,
-                  const Color(0xFF2E7D32),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildCompactStat(
+                        Icons.business_center,
+                        const Color(0xFF1565C0),
+                        'Activos',
+                        '${state.totalAssets}',
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 36,
+                      color: const Color(0xFFE0E0E0),
+                    ),
+                    Expanded(
+                      child: _buildCompactStat(
+                        Icons.inventory_2,
+                        const Color(0xFF00897B),
+                        'Unidades',
+                        '$totalUnits',
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _buildStatCard(
-                  'Inversión',
-                  '\$ ${Helpers.formatNumber(state.totalInvestment)}',
-                  Icons.trending_up,
-                  const Color(0xFF7B1FA2),
+                const Divider(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildCompactStat(
+                        Icons.account_balance,
+                        const Color(0xFF2E7D32),
+                        'Valor total',
+                        '\$ ${Helpers.formatNumber(state.totalValue)}',
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 36,
+                      color: const Color(0xFFE0E0E0),
+                    ),
+                    Expanded(
+                      child: _buildCompactStat(
+                        Icons.build,
+                        const Color(0xFFF9A825),
+                        'En mant.',
+                        '${state.inMaintenance}',
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _buildStatCard(
-                  'Mant.',
-                  '${state.inMaintenance}',
-                  Icons.build,
-                  const Color(0xFFF9A825),
-                ),
-              ),
-            ],
+              ],
+            ),
           );
         }
+
+        // Desktop: row de 4 cards
         return Row(
           children: [
             Expanded(
@@ -285,6 +316,15 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 '${state.totalAssets}',
                 Icons.business_center,
                 const Color(0xFF1565C0),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildStatCard(
+                'Unidades',
+                '$totalUnits',
+                Icons.inventory_2,
+                const Color(0xFF00897B),
               ),
             ),
             const SizedBox(width: 8),
@@ -299,15 +339,6 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
             const SizedBox(width: 8),
             Expanded(
               child: _buildStatCard(
-                'Inversión',
-                '\$ ${Helpers.formatNumber(state.totalInvestment)}',
-                Icons.trending_up,
-                const Color(0xFF7B1FA2),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildStatCard(
                 'Mant.',
                 '${state.inMaintenance}',
                 Icons.build,
@@ -317,6 +348,46 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildCompactStat(
+    IconData icon,
+    Color color,
+    String label,
+    String value,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -552,19 +623,26 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile =
-            constraints.maxWidth < ResponsiveHelper.mobileBreakpoint;
-        final isDesktop =
-            constraints.maxWidth >= ResponsiveHelper.tabletBreakpoint;
-        final columns = isMobile
-            ? 1
-            : _selectedAsset != null && isDesktop
+            constraints.maxWidth < ResponsiveHelper.tabletBreakpoint;
+
+        if (isMobile) {
+          // Lista compacta en móvil
+          return ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: filteredAssets.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              return _buildAssetListTile(filteredAssets[index]);
+            },
+          );
+        }
+
+        // Desktop: Grid de tarjetas como antes
+        final columns = _selectedAsset != null
             ? (constraints.maxWidth > 500 ? 2 : 1)
             : (constraints.maxWidth > 1100 ? 3 : 2);
-        final aspectRatio = isMobile
-            ? 1.05
-            : constraints.maxWidth < 900
-            ? 1.2
-            : 1.5;
+        final aspectRatio = constraints.maxWidth < 900 ? 1.2 : 1.5;
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -576,11 +654,165 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
           ),
           itemCount: filteredAssets.length,
           itemBuilder: (context, index) {
-            final asset = filteredAssets[index];
-            return _buildAssetCard(asset);
+            return _buildAssetCard(filteredAssets[index]);
           },
         );
       },
+    );
+  }
+
+  /// Tile compacto tipo lista para móvil
+  Widget _buildAssetListTile(Asset asset) {
+    final isSelected = _selectedAsset?.id == asset.id;
+    return GestureDetector(
+      onTap: () => _openAssetDetailSheet(asset),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: isSelected
+              ? Border.all(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 2,
+                )
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF000000).withOpacity(0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Icono de categoría
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: asset.categoryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                asset.categoryIcon,
+                color: asset.categoryColor,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Info principal
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    asset.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(
+                        asset.categoryLabel,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
+                      if (asset.location != null) ...[
+                        Text(
+                          ' · ',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                        ),
+                        Icon(
+                          Icons.location_on,
+                          size: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        Flexible(
+                          child: Text(
+                            asset.location!,
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Cantidad (badge) + valor
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '\$ ${Helpers.formatNumber(asset.currentValue)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (asset.quantity > 1)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00897B).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '×${asset.quantity}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF00897B),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      asset.status == 'activo'
+                          ? Icons.check_circle
+                          : asset.status == 'mantenimiento'
+                          ? Icons.build
+                          : Icons.cancel,
+                      color: asset.statusColor,
+                      size: 14,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -709,6 +941,27 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                if (asset.quantity > 1) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00897B).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '×${asset.quantity}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF00897B),
+                      ),
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 Text(
                   '\$ ${Helpers.formatNumber(asset.currentValue)}',
@@ -1005,6 +1258,8 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 'Precio compra',
                 '\$ ${Helpers.formatNumber(asset.purchasePrice)}',
               ),
+              if (asset.quantity > 1)
+                _infoRow('Cantidad', '${asset.quantity} unidades'),
               _infoRow('Depreciación', '${asset.depreciationRate}% anual'),
               if (asset.location != null)
                 _infoRow('Ubicación', asset.location!),
@@ -1345,10 +1600,13 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     );
     final brandController = TextEditingController(text: asset?.brand ?? '');
     final modelController = TextEditingController(text: asset?.model ?? '');
+    final quantityController = TextEditingController(
+      text: (asset?.quantity ?? 1).toString(),
+    );
 
     String selectedCategory = asset?.category ?? 'maquinaria';
     String selectedStatus = asset?.status ?? 'activo';
-    DateTime purchaseDate = asset?.purchaseDate ?? DateTime.now();
+    DateTime purchaseDate = asset?.purchaseDate ?? ColombiaTime.now();
 
     showDialog(
       context: context,
@@ -1483,6 +1741,17 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                       const SizedBox(height: 16),
                       if (compact) ...[
                         TextField(
+                          controller: quantityController,
+                          decoration: const InputDecoration(
+                            labelText: 'Cantidad / Unidades',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.inventory_2),
+                            hintText: '1',
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
                           controller: purchasePriceController,
                           decoration: const InputDecoration(
                             labelText: 'Precio de compra *',
@@ -1537,6 +1806,19 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                                 keyboardType: TextInputType.number,
                               ),
                             ),
+                            const SizedBox(width: 16),
+                            SizedBox(
+                              width: 120,
+                              child: TextField(
+                                controller: quantityController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Cantidad',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.inventory_2, size: 18),
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
                           ],
                         ),
                       const SizedBox(height: 16),
@@ -1556,7 +1838,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                               context: context,
                               initialDate: purchaseDate,
                               firstDate: DateTime(2000),
-                              lastDate: DateTime.now(),
+                              lastDate: ColombiaTime.now(),
                             );
                             if (date != null) {
                               setDialogState(() => purchaseDate = date);
@@ -1613,7 +1895,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                                     context: context,
                                     initialDate: purchaseDate,
                                     firstDate: DateTime(2000),
-                                    lastDate: DateTime.now(),
+                                    lastDate: ColombiaTime.now(),
                                   );
                                   if (date != null) {
                                     setDialogState(() => purchaseDate = date);
@@ -1785,8 +2067,9 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                   model: modelController.text.isEmpty
                       ? null
                       : modelController.text,
-                  createdAt: asset?.createdAt ?? DateTime.now(),
-                  updatedAt: DateTime.now(),
+                  quantity: int.tryParse(quantityController.text) ?? 1,
+                  createdAt: asset?.createdAt ?? ColombiaTime.now(),
+                  updatedAt: ColombiaTime.now(),
                 );
 
                 final messenger = ScaffoldMessenger.of(context);
@@ -1829,7 +2112,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     final costController = TextEditingController();
     final performedByController = TextEditingController();
     String maintenanceType = 'preventivo';
-    DateTime maintenanceDate = DateTime.now();
+    DateTime maintenanceDate = ColombiaTime.now();
     DateTime? nextMaintenanceDate;
 
     showDialog(
@@ -1946,11 +2229,11 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                         onTap: () async {
                           final date = await showDatePicker(
                             context: context,
-                            initialDate: DateTime.now().add(
+                            initialDate: ColombiaTime.now().add(
                               const Duration(days: 30),
                             ),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(
+                            firstDate: ColombiaTime.now(),
+                            lastDate: ColombiaTime.now().add(
                               const Duration(days: 730),
                             ),
                           );
@@ -1992,7 +2275,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                       ? null
                       : performedByController.text,
                   nextMaintenanceDate: nextMaintenanceDate,
-                  createdAt: DateTime.now(),
+                  createdAt: ColombiaTime.now(),
                 );
 
                 final messenger = ScaffoldMessenger.of(context);
@@ -2026,8 +2309,8 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                       notes: performedByController.text.isNotEmpty
                           ? 'Responsable: ${performedByController.text}'
                           : null,
-                      createdAt: DateTime.now(),
-                      updatedAt: DateTime.now(),
+                      createdAt: ColombiaTime.now(),
+                      updatedAt: ColombiaTime.now(),
                     );
                     await ref
                         .read(activitiesProvider.notifier)

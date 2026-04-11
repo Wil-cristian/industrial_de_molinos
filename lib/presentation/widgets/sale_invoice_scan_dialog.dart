@@ -24,6 +24,7 @@ import '../../domain/entities/product.dart';
 import 'material_form_dialog.dart';
 import 'customer_form_dialog.dart';
 import 'quick_product_dialog.dart';
+import '../../core/utils/colombia_time.dart';
 
 // =====================================================
 // SaleInvoiceScanDialog — Reconciliación de Deudas
@@ -138,8 +139,8 @@ class _BatchItem {
     totalCtrl.text = r.total.toStringAsFixed(2);
 
     // Auto-detectar si es factura histórica (>30 días) → no descontar inventario
-    final invoiceDate = r.invoiceDate ?? DateTime.now();
-    final daysSinceInvoice = DateTime.now().difference(invoiceDate).inDays;
+    final invoiceDate = r.invoiceDate ?? ColombiaTime.now();
+    final daysSinceInvoice = ColombiaTime.now().difference(invoiceDate).inDays;
     deductInventory = daysSinceInvoice <= 30;
 
     // Matchear items con productos/materiales del inventario
@@ -2495,7 +2496,7 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
     if (photo == null) return;
 
     final bytes = await photo.readAsBytes();
-    final fileName = 'foto_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final fileName = 'foto_${ColombiaTime.now().millisecondsSinceEpoch}.jpg';
 
     // Convertir a PlatformFile para reusar el flujo existente
     final platformFile = PlatformFile(
@@ -3660,7 +3661,7 @@ class _SaleInvoiceScanDialogState extends ConsumerState<SaleInvoiceScanDialog> {
     }
 
     // Parsear datos
-    DateTime issueDate = DateTime.now();
+    DateTime issueDate = ColombiaTime.now();
     if (item.invoiceDateCtrl.text.isNotEmpty) {
       try {
         issueDate = _dateFormat.parse(item.invoiceDateCtrl.text);

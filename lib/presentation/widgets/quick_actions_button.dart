@@ -313,6 +313,7 @@ class _QuickActionsButtonState extends ConsumerState<QuickActionsButton>
   Widget _buildMobileFab(BuildContext context, double maxPanelHeight) {
     if (!_isExpanded) {
       return FloatingActionButton(
+        heroTag: 'quickActionsOpen',
         onPressed: _toggleExpanded,
         child: const Icon(Icons.bolt, size: 26),
       );
@@ -418,6 +419,7 @@ class _QuickActionsButtonState extends ConsumerState<QuickActionsButton>
     });
 
     return FloatingActionButton(
+      heroTag: 'quickActionsClose',
       onPressed: _toggleExpanded,
       child: const Icon(Icons.close, size: 26),
     );

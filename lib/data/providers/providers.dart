@@ -13,3 +13,4 @@ export 'composite_products_provider.dart';
 export 'production_orders_provider.dart';
 export 'material_category_provider.dart';
 export 'ai_assistant_provider.dart';
+export 'commissions_provider.dart';

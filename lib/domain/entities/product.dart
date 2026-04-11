@@ -13,12 +13,13 @@ class Product {
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
-  
+
   // Campos de receta
   final bool isRecipe;
   final String? recipeDescription;
   final double totalWeight;
   final double totalCost;
+  final double? customPrice;
 
   Product({
     required this.id,
@@ -38,15 +39,18 @@ class Product {
     this.recipeDescription,
     this.totalWeight = 0,
     this.totalCost = 0,
+    this.customPrice,
   });
+
+  // Precio de venta efectivo: customPrice si existe, sino unitPrice
+  double get effectiveSalePrice => customPrice ?? unitPrice;
 
   // Stock bajo
   bool get isLowStock => stock <= minStock;
 
   // Margen de ganancia
-  double get profitMargin => costPrice > 0 
-      ? ((unitPrice - costPrice) / costPrice) * 100 
-      : 0;
+  double get profitMargin =>
+      costPrice > 0 ? ((unitPrice - costPrice) / costPrice) * 100 : 0;
 
   Product copyWith({
     String? id,
@@ -66,6 +70,7 @@ class Product {
     String? recipeDescription,
     double? totalWeight,
     double? totalCost,
+    double? customPrice,
   }) {
     return Product(
       id: id ?? this.id,
@@ -85,6 +90,7 @@ class Product {
       recipeDescription: recipeDescription ?? this.recipeDescription,
       totalWeight: totalWeight ?? this.totalWeight,
       totalCost: totalCost ?? this.totalCost,
+      customPrice: customPrice ?? this.customPrice,
     );
   }
 }

@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 /// Estados posibles de una cotización
 enum QuotationStatus {
   borrador('Borrador'),
@@ -137,8 +138,8 @@ class Quotation {
   Map<String, dynamic> toJson() => {
     'id': id,
     'number': number,
-    'date': date.toIso8601String(),
-    'valid_until': validUntil.toIso8601String(),
+    'date': ColombiaTime.toIso8601(date),
+    'valid_until': ColombiaTime.toIso8601(validUntil),
     'customer_id': customerId,
     'customer_name': customerName,
     'status': status,
@@ -150,8 +151,8 @@ class Quotation {
     'other_costs': otherCosts,
     'profit_margin': profitMargin,
     'notes': notes,
-    'created_at': createdAt.toIso8601String(),
-    'updated_at': updatedAt?.toIso8601String(),
+    'created_at': ColombiaTime.toIso8601(createdAt),
+    'updated_at': (updatedAt != null ? ColombiaTime.toIso8601(updatedAt!) : null),
     'synced': synced,
   };
 

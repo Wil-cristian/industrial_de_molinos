@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'data/datasources/supabase_datasource.dart';
@@ -363,14 +364,81 @@ final GoRouter router = GoRouter(
 
 /// Shell principal adaptivo: sidebar en desktop, bottom nav en móvil
 /// Si el usuario es empleado, redirige a su dashboard
-class _MainShell extends ConsumerWidget {
+/// Nav bar se oculta al scrollear hacia abajo y reaparece al subir
+class _MainShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
   final String currentPath;
 
   const _MainShell({required this.navigationShell, required this.currentPath});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends ConsumerState<_MainShell>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _navBarController;
+  late Animation<Offset> _navBarSlide;
+  int _previousIndex = -1;
+  double _fadeOpacity = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _navBarController = AnimationController(
+      duration: const Duration(milliseconds: 250),
+      vsync: this,
+    );
+    _navBarSlide =
+        Tween<Offset>(
+          begin: Offset.zero,
+          end: const Offset(0, 1), // slide down to hide
+        ).animate(
+          CurvedAnimation(parent: _navBarController, curve: Curves.easeInOut),
+        );
+  }
+
+  @override
+  void didUpdateWidget(covariant _MainShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Fade in when branch changes
+    final newIndex = widget.navigationShell.currentIndex;
+    if (_previousIndex != -1 && _previousIndex != newIndex) {
+      setState(() => _fadeOpacity = 0.0);
+      Future.microtask(() {
+        if (mounted) setState(() => _fadeOpacity = 1.0);
+      });
+      // Show nav bar when changing tabs
+      _navBarController.reverse();
+    }
+    _previousIndex = newIndex;
+  }
+
+  @override
+  void dispose() {
+    _navBarController.dispose();
+    super.dispose();
+  }
+
+  bool _handleScrollNotification(UserScrollNotification notification) {
+    if (notification.direction == ScrollDirection.reverse) {
+      // Scrolling down → hide
+      if (_navBarController.status != AnimationStatus.forward &&
+          _navBarController.status != AnimationStatus.completed) {
+        _navBarController.forward();
+      }
+    } else if (notification.direction == ScrollDirection.forward) {
+      // Scrolling up → show
+      if (_navBarController.status != AnimationStatus.reverse &&
+          _navBarController.status != AnimationStatus.dismissed) {
+        _navBarController.reverse();
+      }
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final roleState = ref.watch(roleProvider);
 
     // Si aún está cargando el perfil, mostrar loading
@@ -418,18 +486,37 @@ class _MainShell extends ConsumerWidget {
 
     if (isMobile) {
       return Scaffold(
-        body: Stack(
-          children: [
-            Container(
-              color: Theme.of(context).colorScheme.surfaceContainerLowest,
-              child: navigationShell,
-            ),
-            const AiAssistantFab(),
-          ],
-        ),
-        bottomNavigationBar: AppBottomNavBar(
-          currentRoute: currentPath,
-          navigationShell: navigationShell,
+        body: NotificationListener<UserScrollNotification>(
+          onNotification: _handleScrollNotification,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  opacity: _fadeOpacity,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  child: Container(
+                    color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                    child: widget.navigationShell,
+                  ),
+                ),
+              ),
+              const AiAssistantFab(),
+              // Nav bar overlay
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: SlideTransition(
+                  position: _navBarSlide,
+                  child: AppBottomNavBar(
+                    currentRoute: widget.currentPath,
+                    navigationShell: widget.navigationShell,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -440,11 +527,11 @@ class _MainShell extends ConsumerWidget {
         children: [
           Row(
             children: [
-              AppSidebar(currentRoute: currentPath),
+              AppSidebar(currentRoute: widget.currentPath),
               Expanded(
                 child: Container(
                   color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                  child: navigationShell,
+                  child: widget.navigationShell,
                 ),
               ),
             ],

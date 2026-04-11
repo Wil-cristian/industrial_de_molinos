@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../datasources/reports_datasource.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Estado para reportes de ventas
 class SalesReportState {
@@ -23,8 +24,8 @@ class SalesReportState {
     this.selectedPeriod = 'Este Mes',
     DateTime? startDate,
     DateTime? endDate,
-  }) : startDate = startDate ?? DateTime(DateTime.now().year, DateTime.now().month, 1),
-       endDate = endDate ?? DateTime.now();
+  }) : startDate = startDate ?? DateTime(ColombiaTime.now().year, ColombiaTime.now().month, 1),
+       endDate = endDate ?? ColombiaTime.now();
 
   SalesReportState copyWith({
     SalesStats? stats,
@@ -60,7 +61,7 @@ class SalesReportNotifier extends Notifier<SalesReportState> {
 
   /// Cambiar período
   void setPeriod(String period) {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     DateTime startDate;
     DateTime endDate = now;
 
@@ -106,7 +107,7 @@ class SalesReportNotifier extends Notifier<SalesReportState> {
           startDate: state.startDate,
           endDate: state.endDate,
         ),
-        ReportsDataSource.getMonthlySalesChart(year: DateTime.now().year),
+        ReportsDataSource.getMonthlySalesChart(year: ColombiaTime.now().year),
         ReportsDataSource.getTopProducts(
           startDate: state.startDate,
           endDate: state.endDate,

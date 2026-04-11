@@ -15,7 +15,9 @@ import '../../domain/entities/material.dart' as mat;
 import '../../domain/entities/material_category.dart';
 import '../../domain/entities/material_subcategory.dart';
 import '../../domain/entities/supplier.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../widgets/material_form_dialog.dart';
+import '../../core/utils/colombia_time.dart';
 
 class MaterialsPage extends ConsumerStatefulWidget {
   final bool openNewDialog;
@@ -73,15 +75,29 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inventoryProvider);
+    final isMobile = ResponsiveHelper.isMobile(context);
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+      floatingActionButton: isMobile
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 80),
+              child: FloatingActionButton(
+                heroTag: 'materials',
+                onPressed: _showAddMaterialDialog,
+                child: const Icon(Icons.add),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [
             // Header compacto
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 20,
+                vertical: isMobile ? 8 : 12,
+              ),
               color: Theme.of(context).colorScheme.surface,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,6 +105,81 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final isNarrow = constraints.maxWidth < 980;
+
+                      if (isMobile) {
+                        // Mobile header: título compacto + stats
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Inventario',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                _buildQuickStat(
+                                  'Valor',
+                                  '\$${Helpers.formatNumber(state.totalInventoryValue)}',
+                                  AppColors.success,
+                                  Icons.attach_money,
+                                ),
+                                const SizedBox(width: 6),
+                                if (state.lowStockMaterials.isNotEmpty)
+                                  _buildQuickStat(
+                                    'Bajo',
+                                    '${state.lowStockMaterials.length}',
+                                    AppColors.warning,
+                                    Icons.warning,
+                                  ),
+                                Text(
+                                  '${state.materials.length}',
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                if (state.lowStockMaterials.isNotEmpty)
+                                  IconButton(
+                                    onPressed: _creatingOrders
+                                        ? null
+                                        : _createPurchaseOrdersFromLowStock,
+                                    icon: _creatingOrders
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : Icon(
+                                            Icons.shopping_cart,
+                                            size: 20,
+                                            color: AppColors.warning,
+                                          ),
+                                    tooltip: 'Pedir Faltantes',
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                              ],
+                            ),
+                          ],
+                        );
+                      }
+
+                      // Desktop header
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -571,7 +662,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
 
       final orders = await PurchaseOrdersDataSource.createFromShortage(
         missingMaterials: missingMaterials,
-        quotationNumber: 'INV-${DateTime.now().millisecondsSinceEpoch}',
+        quotationNumber: 'INV-${ColombiaTime.now().millisecondsSinceEpoch}',
       );
 
       // Detectar materiales sin proveedor
@@ -1789,7 +1880,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   );
                   return;
                 }
-                final now = DateTime.now();
+                final now = ColombiaTime.now();
                 final newSupplier = Supplier(
                   id: '',
                   type: type,
@@ -2906,8 +2997,8 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   location: locationCtrl.text.isEmpty
                       ? null
                       : locationCtrl.text,
-                  createdAt: material?.createdAt ?? DateTime.now(),
-                  updatedAt: DateTime.now(),
+                  createdAt: material?.createdAt ?? ColombiaTime.now(),
+                  updatedAt: ColombiaTime.now(),
                 );
 
                 final messenger = ScaffoldMessenger.of(context);
@@ -3616,7 +3707,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                   .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
                   .replaceAll(RegExp(r'^_|_$'), '');
 
-              final now = DateTime.now();
+              final now = ColombiaTime.now();
               final newSubcat = MaterialSubcategory(
                 id: '',
                 categoryId: categoryId,
@@ -3990,7 +4081,7 @@ class _MaterialsPageState extends ConsumerState<MaterialsPage> {
                     .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
                     .replaceAll(RegExp(r'^_|_$'), '');
 
-                final now = DateTime.now();
+                final now = ColombiaTime.now();
                 final newCat = MaterialCategory(
                   id: '',
                   name: nameCtrl.text.trim(),

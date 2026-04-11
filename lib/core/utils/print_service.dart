@@ -3,6 +3,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Servicio de impresión para facturas y cotizaciones.
 /// Genera PDFs en tamaño carta con logo, datos de empresa, tabla de items y totales.
@@ -63,7 +64,7 @@ class PrintService {
     final customerRuc = invoice['customerRuc'] ?? '';
     final date = invoice['date'] is DateTime
         ? invoice['date'] as DateTime
-        : DateTime.now();
+        : ColombiaTime.now();
     final dueDate = invoice['dueDate'] is DateTime
         ? invoice['dueDate'] as DateTime
         : null;
@@ -422,7 +423,7 @@ class PrintService {
     final customerRuc = quotation['customerRuc'] ?? '';
     final date = quotation['date'] is DateTime
         ? quotation['date'] as DateTime
-        : DateTime.now();
+        : ColombiaTime.now();
     final validUntil = quotation['validUntil'] is DateTime
         ? quotation['validUntil'] as DateTime
         : null;
@@ -1697,7 +1698,7 @@ class PrintService {
     final netPay = (payroll['netPay'] as num?)?.toDouble() ?? 0;
     final paymentDate = payroll['paymentDate'] is DateTime
         ? payroll['paymentDate'] as DateTime
-        : DateTime.now();
+        : ColombiaTime.now();
     final notes = (payroll['notes'] as String?) ?? '';
     final isDailyPay = (payroll['isDailyPay'] as bool?) ?? false;
     final dailyRate = (payroll['dailyRate'] as num?)?.toDouble() ?? 0;

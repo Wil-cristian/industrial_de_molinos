@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/utils/logger.dart';
 import '../../domain/entities/quotation.dart';
 import '../datasources/quotations_datasource.dart';
+import '../datasources/ai_action_logger.dart';
 import 'inventory_provider.dart';
 import 'materials_provider.dart';
 
@@ -101,6 +102,11 @@ class QuotationsNotifier extends Notifier<QuotationsState> {
     try {
       final created = await QuotationsDataSource.create(quotation);
       state = state.copyWith(quotations: [created, ...state.quotations]);
+      AiActionLogger.logQuotation(
+        'crear_cotizacion',
+        quotationId: created.id,
+        quotationName: quotation.customerName,
+      );
       return created;
     } catch (e) {
       AppLogger.error('❌ QuotationsProvider.createQuotation error: $e');

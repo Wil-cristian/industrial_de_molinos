@@ -10,6 +10,8 @@ import '../../data/datasources/inventory_datasource.dart';
 import '../../data/datasources/accounts_datasource.dart';
 import '../../data/datasources/composite_products_datasource.dart';
 import '../../data/datasources/production_orders_datasource.dart';
+import '../../data/datasources/commissions_datasource.dart';
+import '../../data/providers/employees_provider.dart';
 import '../../domain/entities/production_order.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/customer.dart';
@@ -17,6 +19,7 @@ import '../../domain/entities/invoice.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/material.dart' as domain;
 import '../widgets/weight_calculator_dialog.dart';
+import '../../core/utils/colombia_time.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // Color de tema para la página de ventas (azul claro)
@@ -77,6 +80,15 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
     'Empaque',
   ];
   final _customProcessController = TextEditingController();
+
+  // Vendedor y comisión
+  String? _selectedSellerId;
+  bool _hasCommission = false;
+  double _commissionPercentage =
+      CommissionsDatasource.defaultCommissionPercentage;
+  final _commissionPercentageController = TextEditingController(
+    text: CommissionsDatasource.defaultCommissionPercentage.toStringAsFixed(4),
+  );
 
   // Clientes del provider
   List<Map<String, dynamic>> get _customers {
@@ -177,6 +189,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       ),
       Future.microtask(
         () => ref.read(inventoryProvider.notifier).loadMaterials(),
+      ),
+      Future.microtask(
+        () => ref.read(employeesProvider.notifier).loadEmployees(),
       ),
       _loadAccounts(),
     ]);
@@ -480,37 +495,41 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   Container(
                     width: 280,
                     color: Colors.white,
-                    child: _buildSummaryPanel(),
+                    child: _buildSummaryPanel(insideScrollable: true),
                   ),
                   Expanded(child: mainContent),
                 ],
               ),
       ),
       floatingActionButton: isMobile
-          ? FloatingActionButton.small(
-              backgroundColor: _saleThemeColor,
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(16),
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 80),
+              child: FloatingActionButton.small(
+                heroTag: 'newSale',
+                backgroundColor: _saleThemeColor,
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
                     ),
-                  ),
-                  builder: (_) => DraggableScrollableSheet(
-                    initialChildSize: 0.6,
-                    maxChildSize: 0.9,
-                    minChildSize: 0.3,
-                    expand: false,
-                    builder: (_, controller) => SingleChildScrollView(
-                      controller: controller,
-                      child: _buildSummaryPanel(),
+                    builder: (_) => DraggableScrollableSheet(
+                      initialChildSize: 0.6,
+                      maxChildSize: 0.9,
+                      minChildSize: 0.3,
+                      expand: false,
+                      builder: (_, controller) => SingleChildScrollView(
+                        controller: controller,
+                        child: _buildSummaryPanel(),
+                      ),
                     ),
-                  ),
-                );
-              },
-              child: const Icon(Icons.receipt_long, size: 20),
+                  );
+                },
+                child: const Icon(Icons.receipt_long, size: 20),
+              ),
             )
           : null,
     );
@@ -518,8 +537,12 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
 
   // ════════════════════════ HEADER ════════════════════════
   Widget _buildHeader() {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 20,
+        vertical: isMobile ? 10 : 20,
+      ),
       color: Colors.white,
       child: Row(
         children: [
@@ -527,8 +550,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             onPressed: () => context.go('/invoices'),
             icon: const Icon(Icons.arrow_back),
             tooltip: 'Volver',
+            visualDensity: isMobile ? VisualDensity.compact : null,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,30 +562,39 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: _saleThemeColor,
+                    fontSize: isMobile ? 18 : null,
                   ),
                 ),
-                Text(
-                  'Complete los pasos para registrar la venta',
-                  style: TextStyle(
-                    color: const Color(0xFF757575),
-                    fontSize: 14,
+                if (!isMobile)
+                  Text(
+                    'Complete los pasos para registrar la venta',
+                    style: TextStyle(
+                      color: const Color(0xFF757575),
+                      fontSize: 14,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
-          OutlinedButton.icon(
-            onPressed: () => context.go('/invoices'),
-            icon: const Icon(Icons.close),
-            label: const Text('Cancelar'),
-          ),
+          if (isMobile)
+            IconButton(
+              onPressed: () => context.go('/invoices'),
+              icon: const Icon(Icons.close),
+              tooltip: 'Cancelar',
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: () => context.go('/invoices'),
+              icon: const Icon(Icons.close),
+              label: const Text('Cancelar'),
+            ),
         ],
       ),
     );
   }
 
   // ════════════════════════ PANEL LATERAL ════════════════════════
-  Widget _buildSummaryPanel() {
+  Widget _buildSummaryPanel({bool insideScrollable = false}) {
     return Column(
       children: [
         Container(
@@ -599,226 +632,237 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             ],
           ),
         ),
-        Expanded(
-          child: ListView(
+        if (insideScrollable)
+          Padding(
             padding: const EdgeInsets.all(12),
-            children: [
-              _buildSummarySection(
-                'Cliente',
-                _selectedCustomerId != null
-                    ? _customers.firstWhere(
-                        (c) => c['id'] == _selectedCustomerId,
-                        orElse: () => <String, dynamic>{
-                          'name': 'No seleccionado',
-                        },
-                      )['name']
-                    : 'No seleccionado',
-                Icons.person,
-              ),
-              const SizedBox(height: 12),
-              _buildSummarySection(
-                'Productos',
-                '${_items.length} items',
-                Icons.inventory_2,
-              ),
-              if (_items.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                ..._items
-                    .take(3)
-                    .map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(left: 28, bottom: 2),
-                        child: Text(
-                          '• ${item['name']}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: const Color(0xFF757575),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
+            child: Column(children: [_buildSummaryContent()]),
+          )
+        else
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(12),
+              children: [_buildSummaryContent()],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSummarySection(
+          'Cliente',
+          _selectedCustomerId != null
+              ? _customers.firstWhere(
+                  (c) => c['id'] == _selectedCustomerId,
+                  orElse: () => <String, dynamic>{'name': 'No seleccionado'},
+                )['name']
+              : 'No seleccionado',
+          Icons.person,
+        ),
+        const SizedBox(height: 12),
+        _buildSummarySection(
+          'Productos',
+          '${_items.length} items',
+          Icons.inventory_2,
+        ),
+        if (_items.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          ..._items
+              .take(3)
+              .map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(left: 28, bottom: 2),
+                  child: Text(
+                    '• ${item['name']}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: const Color(0xFF757575),
                     ),
-                if (_items.length > 3)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 32),
-                    child: Text(
-                      '+ ${_items.length - 3} más...',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: const Color(0xFF9E9E9E),
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-              ],
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 16),
-              _buildCostLine('Materiales', _materialsCost),
-              _buildCostLine('Mano de Obra', _laborCost),
-              _buildCostLine('Costos Indirectos', _indirectCosts),
-              const SizedBox(height: 8),
-              const Divider(),
-              _buildCostLine('Subtotal', _subtotal),
-              _buildCostLine(
-                'Margen (${_profitMarginController.text}%)',
-                _profitAmount,
-              ),
-              if (_discountAmount > 0)
-                _buildCostLine(
-                  'Descuento (${_discountController.text}%)',
-                  -_discountAmount,
-                  color: const Color(0xFFC62828),
                 ),
-              const Divider(thickness: 2),
-              const SizedBox(height: 8),
+              ),
+          if (_items.length > 3)
+            Padding(
+              padding: const EdgeInsets.only(left: 32),
+              child: Text(
+                '+ ${_items.length - 3} más...',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: const Color(0xFF9E9E9E),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+        const SizedBox(height: 16),
+        const Divider(),
+        const SizedBox(height: 16),
+        _buildCostLine('Materiales', _materialsCost),
+        _buildCostLine('Mano de Obra', _laborCost),
+        _buildCostLine('Costos Indirectos', _indirectCosts),
+        const SizedBox(height: 8),
+        const Divider(),
+        _buildCostLine('Subtotal', _subtotal),
+        _buildCostLine(
+          'Margen (${_profitMarginController.text}%)',
+          _profitAmount,
+        ),
+        if (_discountAmount > 0)
+          _buildCostLine(
+            'Descuento (${_discountController.text}%)',
+            -_discountAmount,
+            color: const Color(0xFFC62828),
+          ),
+        const Divider(thickness: 2),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'TOTAL',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            Text(
+              Helpers.formatCurrency(_total),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+                color: _saleThemeColor,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Peso total
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE3F2FD),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.scale, color: const Color(0xFF1976D2), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Peso Total:',
+                style: TextStyle(color: const Color(0xFF1976D2)),
+              ),
+              const Spacer(),
+              Text(
+                '${Helpers.formatNumber(_totalWeight)} kg',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1976D2),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildStockVerificationCard(),
+        const SizedBox(height: 12),
+        // Forma de pago en sidebar
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _paymentType == 'cash'
+                ? const Color(0xFFE8F5E9)
+                : const Color(0xFFFFF3E0),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _paymentType == 'cash'
+                  ? const Color(0xFF81C784)
+                  : _paymentType == 'advance'
+                  ? const Color(0xFFCE93D8)
+                  : const Color(0xFFFFB74D),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'TOTAL',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  Icon(
+                    _paymentType == 'cash'
+                        ? Icons.payments
+                        : _paymentType == 'advance'
+                        ? Icons.savings
+                        : Icons.calendar_month,
+                    color: _paymentType == 'cash'
+                        ? const Color(0xFF388E3C)
+                        : _paymentType == 'advance'
+                        ? const Color(0xFF7B1FA2)
+                        : const Color(0xFFF57C00),
+                    size: 16,
                   ),
-                  Text(
-                    Helpers.formatCurrency(_total),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22,
-                      color: _saleThemeColor,
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _paymentType == 'cash'
+                          ? 'Pago de Contado'
+                          : _paymentType == 'advance'
+                          ? 'Adelanto + Crédito'
+                          : 'Crédito ($_creditDays días)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: _paymentType == 'cash'
+                            ? const Color(0xFF2E7D32)
+                            : _paymentType == 'advance'
+                            ? const Color(0xFF7B1FA2)
+                            : const Color(0xFFEF6C00),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              // Peso total
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.scale, color: const Color(0xFF1976D2), size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Peso Total:',
-                      style: TextStyle(color: const Color(0xFF1976D2)),
+              if (_paymentType == 'cash' && _selectedAccount != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    '${_getPaymentMethodLabel()} → ${_selectedAccount!.name}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: const Color(0xFF43A047),
                     ),
-                    const Spacer(),
-                    Text(
-                      '${Helpers.formatNumber(_totalWeight)} kg',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1976D2),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildStockVerificationCard(),
-              const SizedBox(height: 12),
-              // Forma de pago en sidebar
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _paymentType == 'cash'
-                      ? const Color(0xFFE8F5E9)
-                      : const Color(0xFFFFF3E0),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _paymentType == 'cash'
-                        ? const Color(0xFF81C784)
-                        : _paymentType == 'advance'
-                        ? const Color(0xFFCE93D8)
-                        : const Color(0xFFFFB74D),
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          _paymentType == 'cash'
-                              ? Icons.payments
-                              : _paymentType == 'advance'
-                              ? Icons.savings
-                              : Icons.calendar_month,
-                          color: _paymentType == 'cash'
-                              ? const Color(0xFF388E3C)
-                              : _paymentType == 'advance'
-                              ? const Color(0xFF7B1FA2)
-                              : const Color(0xFFF57C00),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            _paymentType == 'cash'
-                                ? 'Pago de Contado'
-                                : _paymentType == 'advance'
-                                ? 'Adelanto + Crédito'
-                                : 'Crédito ($_creditDays días)',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: _paymentType == 'cash'
-                                  ? const Color(0xFF2E7D32)
-                                  : _paymentType == 'advance'
-                                  ? const Color(0xFF7B1FA2)
-                                  : const Color(0xFFEF6C00),
-                            ),
-                          ),
-                        ),
-                      ],
+              if (_paymentType == 'credit' && _installments > 1)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    '$_installments cuotas de ${Helpers.formatCurrency(_total / _installments)}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: const Color(0xFFFB8C00),
                     ),
-                    if (_paymentType == 'cash' && _selectedAccount != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          '${_getPaymentMethodLabel()} → ${_selectedAccount!.name}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: const Color(0xFF43A047),
-                          ),
-                        ),
-                      ),
-                    if (_paymentType == 'credit' && _installments > 1)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          '$_installments cuotas de ${Helpers.formatCurrency(_total / _installments)}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: const Color(0xFFFB8C00),
-                          ),
-                        ),
-                      ),
-                    if (_paymentType == 'advance') ...[
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          'Adelanto: ${Helpers.formatCurrency(_advanceAmount)}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: const Color(0xFF7B1FA2),
-                          ),
-                        ),
-                      ),
-                      Text(
-                        'Restante: ${Helpers.formatCurrency(_total - _advanceAmount)} ($_advanceCreditDays días)',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: const Color(0xFF9E9E9E),
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
-              ),
+              if (_paymentType == 'advance') ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Adelanto: ${Helpers.formatCurrency(_advanceAmount)}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: const Color(0xFF7B1FA2),
+                    ),
+                  ),
+                ),
+                Text(
+                  'Restante: ${Helpers.formatCurrency(_total - _advanceAmount)} ($_advanceCreditDays días)',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: const Color(0xFF9E9E9E),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -1058,6 +1102,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
           value: _selectedCustomerId,
+          isExpanded: true,
           decoration: InputDecoration(
             labelText: 'Cliente',
             prefixIcon: const Icon(Icons.person),
@@ -1069,6 +1114,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   value: c['id'] as String,
                   child: Text(
                     '${c['name']} - ${c['documentType'] ?? 'CC'}: ${c['ruc']}',
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               )
@@ -1082,34 +1128,81 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
 
   // ════════════════════════ PASO 2: PRODUCTOS ════════════════════════
   Widget _buildComponentsStep() {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Productos / Servicios',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        if (isMobile) ...[
+          Text(
+            'Productos / Servicios',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _showAddMaterialDialog(
+                    ref.read(inventoryProvider).materials,
+                  ),
+                  icon: const Icon(Icons.inventory_2_outlined, size: 16),
+                  label: const Text('Material', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
               ),
-            ),
-            OutlinedButton.icon(
-              onPressed: () =>
-                  _showAddMaterialDialog(ref.read(inventoryProvider).materials),
-              icon: const Icon(Icons.inventory_2_outlined, size: 18),
-              label: const Text('Agregar Material'),
-            ),
-            const SizedBox(width: 12),
-            FilledButton.icon(
-              onPressed: _showSelectProductDialog,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Agregar Producto'),
-              style: FilledButton.styleFrom(backgroundColor: _saleThemeColor),
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _showSelectProductDialog,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Producto', style: TextStyle(fontSize: 12)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _saleThemeColor,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ] else
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Productos / Servicios',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _showAddMaterialDialog(
+                  ref.read(inventoryProvider).materials,
+                ),
+                icon: const Icon(Icons.inventory_2_outlined, size: 18),
+                label: const Text('Agregar Material'),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                onPressed: _showSelectProductDialog,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Agregar Producto'),
+                style: FilledButton.styleFrom(backgroundColor: _saleThemeColor),
+              ),
+            ],
+          ),
         const SizedBox(height: 16),
         if (_items.isEmpty)
           Container(
@@ -1606,12 +1699,13 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
 
   // ════════════════════════ PASO 3: COSTOS ════════════════════════
   Widget _buildCostsStep() {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Mano de obra
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isMobile ? 12 : 16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -1619,64 +1713,131 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           ),
           child: Column(
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.engineering, color: _saleThemeColor),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Mano de Obra',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(width: 16),
-                  // Toggle: Porcentaje vs Valor fijo
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(8),
+              if (isMobile) ...[
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.engineering,
+                      color: _saleThemeColor,
+                      size: 20,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _LaborModeButton(
-                          label: '%',
-                          selected: _laborIsPercent,
-                          onTap: () => setState(() => _laborIsPercent = true),
+                    const SizedBox(width: 6),
+                    const Expanded(
+                      child: Text(
+                        'Mano de Obra',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
-                        _LaborModeButton(
-                          label: '\$',
-                          selected: !_laborIsPercent,
-                          onTap: () => setState(() => _laborIsPercent = false),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      Helpers.formatCurrency(_laborCost),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Color(0xFF388E3C),
                       ),
                     ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _LaborModeButton(
+                            label: '%',
+                            selected: _laborIsPercent,
+                            onTap: () => setState(() => _laborIsPercent = true),
+                          ),
+                          _LaborModeButton(
+                            label: '\$',
+                            selected: !_laborIsPercent,
+                            onTap: () =>
+                                setState(() => _laborIsPercent = false),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
                   ),
-                ],
-              ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    Helpers.formatCurrency(_laborCost),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color(0xFF388E3C),
+                    ),
+                  ),
+                ),
+              ] else
+                Row(
+                  children: [
+                    const Icon(Icons.engineering, color: _saleThemeColor),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Mano de Obra',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _LaborModeButton(
+                            label: '%',
+                            selected: _laborIsPercent,
+                            onTap: () => setState(() => _laborIsPercent = true),
+                          ),
+                          _LaborModeButton(
+                            label: '\$',
+                            selected: !_laborIsPercent,
+                            onTap: () =>
+                                setState(() => _laborIsPercent = false),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        Helpers.formatCurrency(_laborCost),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF388E3C),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 12),
               if (_laborIsPercent)
                 Row(
                   children: [
                     SizedBox(
-                      width: 100,
+                      width: isMobile ? 80 : 100,
                       child: TextFormField(
                         controller: _laborPercentController,
                         keyboardType: TextInputType.number,
@@ -1697,11 +1858,13 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      'del costo de materiales',
-                      style: TextStyle(
-                        color: const Color(0xFF757575),
-                        fontSize: 13,
+                    Flexible(
+                      child: Text(
+                        isMobile ? 'del costo mat.' : 'del costo de materiales',
+                        style: TextStyle(
+                          color: const Color(0xFF757575),
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -1728,7 +1891,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         const SizedBox(height: 16),
         // Costos indirectos
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isMobile ? 12 : 16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -1768,7 +1931,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         const SizedBox(height: 16),
         // Margen de ganancia
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isMobile ? 12 : 16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -1781,75 +1944,134 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 children: [
                   Icon(Icons.trending_up, color: const Color(0xFF1976D2)),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Margen de Ganancia',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  Expanded(
+                    child: const Text(
+                      'Margen de Ganancia',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _profitMarginController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Porcentaje de ganancia',
-                        suffixText: '%',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Slider(
-                      value:
-                          double.tryParse(_profitMarginController.text) ?? 20,
-                      min: 0,
-                      max: 50,
-                      divisions: 50,
-                      label: '${_profitMarginController.text}%',
-                      onChanged: (value) {
-                        setState(() {
-                          _profitMarginController.text = value.toStringAsFixed(
-                            0,
-                          );
-                        });
-                      },
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE3F2FD),
+              if (isMobile) ...[
+                TextFormField(
+                  controller: _profitMarginController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Porcentaje de ganancia',
+                    suffixText: '%',
+                    isDense: true,
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Column(
-                      children: [
-                        const Text('Ganancia', style: TextStyle(fontSize: 12)),
-                        Text(
-                          Helpers.formatCurrency(_profitAmount),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1976D2),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 8),
+                Slider(
+                  value: double.tryParse(_profitMarginController.text) ?? 20,
+                  min: 0,
+                  max: 50,
+                  divisions: 50,
+                  label: '${_profitMarginController.text}%',
+                  onChanged: (value) {
+                    setState(() {
+                      _profitMarginController.text = value.toStringAsFixed(0);
+                    });
+                  },
+                ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Ganancia: ', style: TextStyle(fontSize: 12)),
+                      Text(
+                        Helpers.formatCurrency(_profitAmount),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1976D2),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _profitMarginController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Porcentaje de ganancia',
+                          suffixText: '%',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                      ],
+                        onChanged: (_) => setState(() {}),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Slider(
+                        value:
+                            double.tryParse(_profitMarginController.text) ?? 20,
+                        min: 0,
+                        max: 50,
+                        divisions: 50,
+                        label: '${_profitMarginController.text}%',
+                        onChanged: (value) {
+                          setState(() {
+                            _profitMarginController.text = value
+                                .toStringAsFixed(0);
+                          });
+                        },
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Ganancia',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          Text(
+                            Helpers.formatCurrency(_profitAmount),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1976D2),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
         const SizedBox(height: 16),
         // Descuento
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isMobile ? 12 : 16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -1862,11 +2084,15 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 children: [
                   Icon(Icons.discount, color: const Color(0xFFD32F2F)),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Descuento',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  const Expanded(
+                    child: Text(
+                      'Descuento',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
-                  const Spacer(),
                   Text(
                     '(Opcional)',
                     style: TextStyle(
@@ -1877,59 +2103,115 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 ],
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _discountController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Porcentaje de descuento',
-                        suffixText: '%',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Slider(
-                      value: double.tryParse(_discountController.text) ?? 0,
-                      min: 0,
-                      max: 30,
-                      divisions: 30,
-                      label: '${_discountController.text}%',
-                      activeColor: const Color(0xFFEF5350),
-                      onChanged: (value) {
-                        setState(() {
-                          _discountController.text = value.toStringAsFixed(0);
-                        });
-                      },
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEBEE),
+              if (isMobile) ...[
+                TextFormField(
+                  controller: _discountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Porcentaje de descuento',
+                    suffixText: '%',
+                    isDense: true,
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Column(
-                      children: [
-                        const Text('Descuento', style: TextStyle(fontSize: 12)),
-                        Text(
-                          '- ${Helpers.formatCurrency(_discountAmount)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFD32F2F),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 8),
+                Slider(
+                  value: double.tryParse(_discountController.text) ?? 0,
+                  min: 0,
+                  max: 30,
+                  divisions: 30,
+                  label: '${_discountController.text}%',
+                  activeColor: const Color(0xFFEF5350),
+                  onChanged: (value) {
+                    setState(() {
+                      _discountController.text = value.toStringAsFixed(0);
+                    });
+                  },
+                ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEBEE),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Descuento: ', style: TextStyle(fontSize: 12)),
+                      Text(
+                        '- ${Helpers.formatCurrency(_discountAmount)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFD32F2F),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _discountController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Porcentaje de descuento',
+                          suffixText: '%',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                      ],
+                        onChanged: (_) => setState(() {}),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Slider(
+                        value: double.tryParse(_discountController.text) ?? 0,
+                        min: 0,
+                        max: 30,
+                        divisions: 30,
+                        label: '${_discountController.text}%',
+                        activeColor: const Color(0xFFEF5350),
+                        onChanged: (value) {
+                          setState(() {
+                            _discountController.text = value.toStringAsFixed(0);
+                          });
+                        },
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFEBEE),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Descuento',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          Text(
+                            '- ${Helpers.formatCurrency(_discountAmount)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFD32F2F),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -1939,12 +2221,13 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
 
   // ════════════════════════ PASO 4: PAGO Y CONFIRMACIÓN ════════════════════════
   Widget _buildPaymentStep() {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Forma de pago
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(isMobile ? 12 : 20),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -1963,40 +2246,69 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              // Selector Contado / Crédito
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildPaymentTypeCard(
+              const SizedBox(height: 16),
+              // Selector Contado / Crédito / Adelanto
+              if (isMobile)
+                Column(
+                  children: [
+                    _buildPaymentTypeCard(
                       'cash',
                       'Contado',
-                      'Pago inmediato al confirmar',
+                      'Pago inmediato',
                       Icons.payments,
                       const Color(0xFF2E7D32),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildPaymentTypeCard(
+                    const SizedBox(height: 8),
+                    _buildPaymentTypeCard(
                       'credit',
                       'Crédito',
-                      'Pago a plazos / cuotas',
+                      'Pago a plazos',
                       Icons.calendar_month,
                       const Color(0xFFF9A825),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Tercera opción: Adelanto
-              _buildPaymentTypeCard(
-                'advance',
-                'Adelanto',
-                'Pago parcial ahora, resto a crédito',
-                Icons.savings,
-                const Color(0xFF7B1FA2),
-              ),
+                    const SizedBox(height: 8),
+                    _buildPaymentTypeCard(
+                      'advance',
+                      'Adelanto',
+                      'Parcial + crédito',
+                      Icons.savings,
+                      const Color(0xFF7B1FA2),
+                    ),
+                  ],
+                )
+              else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildPaymentTypeCard(
+                        'cash',
+                        'Contado',
+                        'Pago inmediato al confirmar',
+                        Icons.payments,
+                        const Color(0xFF2E7D32),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildPaymentTypeCard(
+                        'credit',
+                        'Crédito',
+                        'Pago a plazos / cuotas',
+                        Icons.calendar_month,
+                        const Color(0xFFF9A825),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildPaymentTypeCard(
+                  'advance',
+                  'Adelanto',
+                  'Pago parcial ahora, resto a crédito',
+                  Icons.savings,
+                  const Color(0xFF7B1FA2),
+                ),
+              ],
               const SizedBox(height: 20),
               // Opciones según tipo de pago
               if (_paymentType == 'cash') _buildCashOptions(),
@@ -2041,6 +2353,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        // ═══════ VENDEDOR Y COMISIÓN ═══════
+        _buildSellerCommissionSection(),
         const SizedBox(height: 16),
         // ═══════ ORDEN DE PRODUCCIÓN ═══════
         Container(
@@ -2483,6 +2798,209 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
     );
   }
 
+  Widget _buildSellerCommissionSection() {
+    final employeesState = ref.watch(employeesProvider);
+    final activeEmployees = employeesState.activeEmployees;
+    final selectedEmployee = _selectedSellerId != null
+        ? activeEmployees.where((e) => e.id == _selectedSellerId).firstOrNull
+        : null;
+    final commissionAmount = _hasCommission
+        ? _total * (_commissionPercentage / 100)
+        : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _hasCommission
+              ? const Color(0xFF6A1B9A).withValues(alpha: 0.4)
+              : const Color(0xFFEEEEEE),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.person_pin,
+                color: _hasCommission
+                    ? const Color(0xFF6A1B9A)
+                    : const Color(0xFF616161),
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Vendedor y Comisión',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Selector de vendedor
+          DropdownButtonFormField<String>(
+            value: _selectedSellerId,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: 'Quién realizó la venta',
+              prefixIcon: const Icon(Icons.badge),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+            ),
+            items: [
+              const DropdownMenuItem<String>(
+                value: null,
+                child: Text('Sin vendedor asignado'),
+              ),
+              ...activeEmployees.map(
+                (emp) => DropdownMenuItem<String>(
+                  value: emp.id,
+                  child: Text(emp.fullName),
+                ),
+              ),
+            ],
+            onChanged: (value) {
+              setState(() {
+                _selectedSellerId = value;
+                if (value == null) {
+                  _hasCommission = false;
+                }
+              });
+            },
+          ),
+          if (_selectedSellerId != null) ...[
+            const SizedBox(height: 12),
+            // Switch de comisión
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '¿Comisiona esta venta?',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: const Color(0xFF616161),
+                    ),
+                  ),
+                ),
+                Switch(
+                  value: _hasCommission,
+                  activeColor: const Color(0xFF6A1B9A),
+                  onChanged: (v) => setState(() => _hasCommission = v),
+                ),
+              ],
+            ),
+            if (_hasCommission) ...[
+              const SizedBox(height: 8),
+              // Porcentaje de comisión
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _commissionPercentageController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: '% Comisión',
+                        suffixText: '%',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                      ),
+                      onChanged: (v) {
+                        setState(() {
+                          _commissionPercentage =
+                              double.tryParse(v) ??
+                              CommissionsDatasource.defaultCommissionPercentage;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Monto calculado
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6A1B9A).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF6A1B9A).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Comisión',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: const Color(0xFF6A1B9A),
+                          ),
+                        ),
+                        Text(
+                          Helpers.formatCurrency(commissionAmount),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF6A1B9A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Info
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3E5F5),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: Color(0xFF6A1B9A),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Vendedor: ${selectedEmployee?.fullName ?? "?"} — '
+                        'Comisión ${_commissionPercentage.toStringAsFixed(4)}% '
+                        'de ${Helpers.formatCurrency(_total)} = ${Helpers.formatCurrency(commissionAmount)}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF6A1B9A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildPaymentTypeCard(
     String type,
     String title,
@@ -2556,12 +3074,12 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             _buildMethodChip('cash', 'Efectivo', Icons.money),
-            const SizedBox(width: 8),
             _buildMethodChip('transfer', 'Transferencia', Icons.swap_horiz),
-            const SizedBox(width: 8),
             _buildMethodChip('card', 'Tarjeta', Icons.credit_card),
           ],
         ),
@@ -2640,12 +3158,12 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             _buildDaysChip(30),
-            const SizedBox(width: 8),
             _buildDaysChip(60),
-            const SizedBox(width: 8),
             _buildDaysChip(90),
           ],
         ),
@@ -2659,14 +3177,13 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             _buildInstallmentChip(1),
-            const SizedBox(width: 8),
             _buildInstallmentChip(2),
-            const SizedBox(width: 8),
             _buildInstallmentChip(3),
-            const SizedBox(width: 8),
             _buildInstallmentChip(6),
           ],
         ),
@@ -2814,12 +3331,12 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             _buildMethodChip('cash', 'Efectivo', Icons.money),
-            const SizedBox(width: 8),
             _buildMethodChip('transfer', 'Transferencia', Icons.swap_horiz),
-            const SizedBox(width: 8),
             _buildMethodChip('card', 'Tarjeta', Icons.credit_card),
           ],
         ),
@@ -2865,14 +3382,13 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             _buildAdvanceDaysChip(15),
-            const SizedBox(width: 8),
             _buildAdvanceDaysChip(30),
-            const SizedBox(width: 8),
             _buildAdvanceDaysChip(60),
-            const SizedBox(width: 8),
             _buildAdvanceDaysChip(90),
           ],
         ),
@@ -3306,6 +3822,28 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   ],
                 ),
               ],
+              if (_hasCommission && _selectedSellerId != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.person_pin,
+                      color: Color(0xFF6A1B9A),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Comisión: ${Helpers.formatCurrency(_total * (_commissionPercentage / 100))} (${_commissionPercentage.toStringAsFixed(4)}%)',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF6A1B9A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -3347,10 +3885,10 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
 
       // Fecha de vencimiento según tipo de pago
       final dueDate = _paymentType == 'credit'
-          ? DateTime.now().add(Duration(days: _creditDays))
+          ? ColombiaTime.now().add(Duration(days: _creditDays))
           : _paymentType == 'advance'
-          ? DateTime.now().add(Duration(days: _advanceCreditDays))
-          : DateTime.now();
+          ? ColombiaTime.now().add(Duration(days: _advanceCreditDays))
+          : ColombiaTime.now();
 
       // 1. Crear factura con items
       // Factor para distribuir mano de obra, costos indirectos
@@ -3364,7 +3902,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         type: 'invoice',
         series: 'VTA',
         customer: customer,
-        issueDate: DateTime.now(),
+        issueDate: ColombiaTime.now(),
         dueDate: dueDate,
         salePaymentType: _paymentType,
         taxRate: 0,
@@ -3393,13 +3931,55 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           );
         }).toList(),
         notes: _notesController.text.isEmpty ? null : _notesController.text,
+        sellerId: _selectedSellerId,
+        hasCommission: _hasCommission,
+        commissionPercentage: _hasCommission ? _commissionPercentage : 0,
       );
+
+      // Construir lista de items para la OP (invoice.items viene vacío del create)
+      final invoiceItems = _items.map((item) {
+        final qty = (item['quantity'] as num?)?.toDouble() ?? 1;
+        final itemSaleTotal =
+            (item['totalPrice'] as double? ?? 0) * scaleFactor;
+        return InvoiceItem(
+          id: '',
+          invoiceId: invoice.id,
+          productId: item['productId'],
+          materialId: item['materialId'],
+          productCode: item['material'] ?? item['productCode'] ?? '',
+          productName: item['name'] ?? '',
+          description: item['dimensions'] ?? '',
+          quantity: qty,
+          unit: item['unit'] ?? 'und',
+          unitPrice: itemSaleTotal / qty,
+          discount: 0,
+          taxRate: 0,
+          subtotal: itemSaleTotal,
+          taxAmount: 0,
+          total: itemSaleTotal,
+        );
+      }).toList();
 
       AppLogger.info('📝 Factura creada: ${invoice.fullNumber}');
 
       // 2. Emitir factura (esto descuenta inventario automáticamente)
       await InvoicesDataSource.updateStatus(invoice.id, 'issued');
       AppLogger.info('📦 Inventario descontado para ${invoice.fullNumber}');
+
+      // 2.5 Crear registro de comisión si aplica
+      if (_hasCommission && _selectedSellerId != null) {
+        await CommissionsDatasource.createCommission(
+          invoiceId: invoice.id,
+          employeeId: _selectedSellerId!,
+          invoiceNumber: invoice.fullNumber,
+          customerName: customer.name,
+          invoiceTotal: invoice.total,
+          commissionPercentage: _commissionPercentage,
+        );
+        AppLogger.info(
+          '💰 Comisión registrada: ${(_commissionPercentage).toStringAsFixed(4)}% de ${invoice.total}',
+        );
+      }
 
       // 3. Registrar pago según tipo
       if (_paymentType == 'cash' && _selectedAccount != null) {
@@ -3438,7 +4018,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
 
           final op = await ProductionOrdersDataSource.createFromSale(
             invoice: invoice,
-            items: invoice.items,
+            items: invoiceItems,
             processChain: chain,
           );
 
@@ -3552,7 +4132,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             if (hasLivePricing) {
               unitSalePrice =
                   (livePricing['total_sale'] as num?)?.toDouble() ??
-                  product.unitPrice;
+                  product.effectiveSalePrice;
               unitCostPrice =
                   (livePricing['total_cost'] as num?)?.toDouble() ??
                   product.costPrice;
@@ -3571,16 +4151,19 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
               final productCost = product.totalCost > 0
                   ? product.totalCost
                   : product.costPrice;
-              unitSalePrice = product.unitPrice;
+              final effectivePrice = product.effectiveSalePrice;
+              unitSalePrice = effectivePrice;
               unitCostPrice = productCost;
               salePricePerKg = unitWeight > 0
-                  ? product.unitPrice / unitWeight
-                  : product.unitPrice;
+                  ? effectivePrice / unitWeight
+                  : effectivePrice;
               costPricePerKg = unitWeight > 0
                   ? productCost / unitWeight
                   : productCost;
-              productProfit = product.unitPrice - productCost;
-              productMargin = product.profitMargin;
+              productProfit = effectivePrice - productCost;
+              productMargin = productCost > 0
+                  ? ((effectivePrice - productCost) / productCost) * 100
+                  : 0;
             }
 
             // Convertir componentes de receta para almacenar
@@ -3616,7 +4199,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             }
 
             _items.add({
-              'id': DateTime.now().millisecondsSinceEpoch.toString(),
+              'id': ColombiaTime.now().millisecondsSinceEpoch.toString(),
               'productId': product.id,
               'name': product.name,
               'type': 'product',
@@ -3688,6 +4271,9 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
   List<Map<String, dynamic>>? _recipeStockCheck;
   bool _isCheckingStock = false;
 
+  // Bottom sheet setState for mobile (bottom sheet is a separate overlay)
+  StateSetter? _bottomSheetSetState;
+
   // Precios EN VIVO de todas las recetas para la lista
   Map<String, double> _recipeLiveVentaPrices = {};
   bool _isLoadingRecipePrices = false;
@@ -3729,7 +4315,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
       final compositeProducts = await CompositeProductsDataSource.getAll();
       final Map<String, double> prices = {};
       for (final cp in compositeProducts) {
-        prices[cp.id] = cp.materialsCost;
+        prices[cp.id] = cp.customPrice ?? cp.materialsCost;
       }
       if (mounted) {
         setState(() {
@@ -3752,20 +4338,41 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
       final pricing = await InventoryDataSource.getRecipeLivePricing(
         product.id,
       );
+      // Si el producto tiene customPrice, usarlo como precio de venta
+      // en vez del calculado por BOM (que puede ser 0 si no tiene componentes)
+      if (pricing != null &&
+          product.customPrice != null &&
+          product.customPrice! > 0) {
+        pricing['total_sale'] = product.customPrice;
+        final cost = (pricing['total_cost'] as num?)?.toDouble() ?? 0;
+        pricing['profit_margin'] = cost > 0
+            ? ((product.customPrice! - cost) / product.customPrice! * 100)
+            : 100.0;
+        pricing['profit'] = product.customPrice! - cost;
+        final weight = (pricing['total_weight'] as num?)?.toDouble() ?? 0;
+        if (weight > 0) {
+          pricing['sale_per_kg'] = product.customPrice! / weight;
+        }
+      }
       if (mounted) {
         setState(() {
           _livePricing = pricing;
           _loadingPricing = false;
         });
+        _bottomSheetSetState?.call(() {});
       }
     } catch (e) {
-      if (mounted) setState(() => _loadingPricing = false);
+      if (mounted) {
+        setState(() => _loadingPricing = false);
+        _bottomSheetSetState?.call(() {});
+      }
     }
   }
 
   Future<void> _checkRecipeStock(Product product, int quantity) async {
     if (!product.isRecipe) return;
     setState(() => _isCheckingStock = true);
+    _bottomSheetSetState?.call(() {});
     try {
       final stockCheck = await InventoryDataSource.checkRecipeStock(
         product.id,
@@ -3776,6 +4383,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
           _recipeStockCheck = stockCheck;
           _isCheckingStock = false;
         });
+        _bottomSheetSetState?.call(() {});
       }
     } catch (e) {
       if (mounted) {
@@ -3783,18 +4391,25 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
           _recipeStockCheck = null;
           _isCheckingStock = false;
         });
+        _bottomSheetSetState?.call(() {});
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+    final screenSize = MediaQuery.of(context).size;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: isMobile
+          ? const EdgeInsets.all(8)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: Container(
-        width: 800,
-        height: 600,
-        padding: const EdgeInsets.all(24),
+        width: isMobile ? screenSize.width : 800,
+        height: isMobile ? screenSize.height * 0.9 : 600,
+        padding: EdgeInsets.all(isMobile ? 12 : 24),
         child: Column(
           children: [
             // Header
@@ -3806,76 +4421,115 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                   size: 28,
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Seleccionar Producto',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    'Seleccionar Producto',
+                    style: TextStyle(
+                      fontSize: isMobile ? 16 : 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             // Filtros
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Buscar producto...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      isDense: true,
-                    ),
-                    onChanged: (v) => setState(() => _searchQuery = v),
+            if (isMobile) ...[
+              TextField(
+                decoration: InputDecoration(
+                  hintText: 'Buscar producto...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  isDense: true,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedCategoryId,
-                    decoration: InputDecoration(
-                      hintText: 'Categoría',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      isDense: true,
-                    ),
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text('Todas')),
-                      ...widget.categories.map(
-                        (c) =>
-                            DropdownMenuItem(value: c.id, child: Text(c.name)),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _selectedCategoryId = v),
+                onChanged: (v) => setState(() => _searchQuery = v),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedCategoryId,
+                decoration: InputDecoration(
+                  hintText: 'Categoría',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  isDense: true,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('Todas')),
+                  ...widget.categories.map(
+                    (c) => DropdownMenuItem(value: c.id, child: Text(c.name)),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _selectedCategoryId = v),
+              ),
+            ] else
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Buscar producto...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        isDense: true,
+                      ),
+                      onChanged: (v) => setState(() => _searchQuery = v),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedCategoryId,
+                      decoration: InputDecoration(
+                        hintText: 'Categoría',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        isDense: true,
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Todas'),
+                        ),
+                        ...widget.categories.map(
+                          (c) => DropdownMenuItem(
+                            value: c.id,
+                            child: Text(c.name),
+                          ),
+                        ),
+                      ],
+                      onChanged: (v) => setState(() => _selectedCategoryId = v),
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 12),
             // Lista de productos
             Expanded(
-              child: Row(
-                children: [
-                  // Lista
-                  Expanded(
-                    child: ListView.builder(
+              child: isMobile
+                  ? ListView.builder(
                       itemCount: _filteredProducts.length,
                       itemBuilder: (context, index) {
                         final p = _filteredProducts[index];
                         final isSelected = _selectedProduct?.id == p.id;
                         return ListTile(
+                          dense: true,
                           selected: isSelected,
                           selectedTileColor: _saleThemeColor.withValues(
                             alpha: 0.1,
                           ),
                           leading: CircleAvatar(
+                            radius: 16,
                             backgroundColor: p.isRecipe
                                 ? const Color(0xFFE1BEE7)
                                 : const Color(0xFFBBDEFB),
@@ -3883,7 +4537,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                               p.isRecipe
                                   ? Icons.auto_fix_high
                                   : Icons.inventory_2,
-                              size: 18,
+                              size: 16,
                               color: p.isRecipe
                                   ? const Color(0xFF7B1FA2)
                                   : const Color(0xFF1976D2),
@@ -3898,130 +4552,9 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                               fontSize: 13,
                             ),
                           ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                p.code,
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                              if (p.isRecipe) ...[
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.receipt_long,
-                                      size: 12,
-                                      color: const Color(0xFF8E24AA),
-                                    ),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      'Receta',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: const Color(0xFF7B1FA2),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    if (p.totalWeight > 0) ...[
-                                      const SizedBox(width: 6),
-                                      Icon(
-                                        Icons.scale,
-                                        size: 10,
-                                        color: const Color(0xFF9E9E9E),
-                                      ),
-                                      const SizedBox(width: 2),
-                                      Text(
-                                        '${Helpers.formatNumber(p.totalWeight)} kg',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: const Color(0xFF757575),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ] else ...[
-                                Row(
-                                  children: [
-                                    Icon(
-                                      p.stock > 0
-                                          ? Icons.check_circle
-                                          : Icons.warning,
-                                      size: 12,
-                                      color: p.stock > 0
-                                          ? const Color(0xFF2E7D32)
-                                          : const Color(0xFFC62828),
-                                    ),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      'Stock: ${p.stock.toStringAsFixed(0)} ${p.unit}',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: p.stock > 0
-                                            ? const Color(0xFF388E3C)
-                                            : const Color(0xFFD32F2F),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ],
-                          ),
-                          trailing: Builder(
-                            builder: (context) {
-                              final livePrice = p.isRecipe
-                                  ? _recipeLiveVentaPrices[p.id]
-                                  : null;
-                              final displayPrice = livePrice ?? p.unitPrice;
-                              final hasLivePrice = livePrice != null;
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    Helpers.formatCurrency(displayPrice),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                      color: hasLivePrice
-                                          ? const Color(0xFF388E3C)
-                                          : _saleThemeColor,
-                                    ),
-                                  ),
-                                  if (hasLivePrice)
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.sync,
-                                          size: 9,
-                                          color: const Color(0xFF43A047),
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          'EN VIVO',
-                                          style: TextStyle(
-                                            fontSize: 8,
-                                            color: const Color(0xFF43A047),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  if (p.isRecipe &&
-                                      _isLoadingRecipePrices &&
-                                      livePrice == null)
-                                    SizedBox(
-                                      width: 12,
-                                      height: 12,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 1.5,
-                                        color: const Color(0xFFBDBDBD),
-                                      ),
-                                    ),
-                                ],
-                              );
-                            },
+                          subtitle: Text(
+                            '${p.code}${p.isRecipe ? ' · Receta' : ' · Stock: ${p.stock.toStringAsFixed(0)} ${p.unit}'}',
+                            style: const TextStyle(fontSize: 10),
                           ),
                           onTap: () {
                             setState(() {
@@ -4036,23 +4569,236 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
                                 int.tryParse(_quantityController.text) ?? 1,
                               );
                             }
+                            // On mobile, show detail as bottom sheet
+                            _showMobileProductDetail(context);
                           },
                         );
                       },
+                    )
+                  : Row(
+                      children: [
+                        // Lista
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: _filteredProducts.length,
+                            itemBuilder: (context, index) {
+                              final p = _filteredProducts[index];
+                              final isSelected = _selectedProduct?.id == p.id;
+                              return ListTile(
+                                selected: isSelected,
+                                selectedTileColor: _saleThemeColor.withValues(
+                                  alpha: 0.1,
+                                ),
+                                leading: CircleAvatar(
+                                  backgroundColor: p.isRecipe
+                                      ? const Color(0xFFE1BEE7)
+                                      : const Color(0xFFBBDEFB),
+                                  child: Icon(
+                                    p.isRecipe
+                                        ? Icons.auto_fix_high
+                                        : Icons.inventory_2,
+                                    size: 18,
+                                    color: p.isRecipe
+                                        ? const Color(0xFF7B1FA2)
+                                        : const Color(0xFF1976D2),
+                                  ),
+                                ),
+                                title: Text(
+                                  p.name,
+                                  style: TextStyle(
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      p.code,
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    if (p.isRecipe) ...[
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.receipt_long,
+                                            size: 12,
+                                            color: const Color(0xFF8E24AA),
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            'Receta',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: const Color(0xFF7B1FA2),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          if (p.totalWeight > 0) ...[
+                                            const SizedBox(width: 6),
+                                            Icon(
+                                              Icons.scale,
+                                              size: 10,
+                                              color: const Color(0xFF9E9E9E),
+                                            ),
+                                            const SizedBox(width: 2),
+                                            Text(
+                                              '${Helpers.formatNumber(p.totalWeight)} kg',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: const Color(0xFF757575),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ] else ...[
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            p.stock > 0
+                                                ? Icons.check_circle
+                                                : Icons.warning,
+                                            size: 12,
+                                            color: p.stock > 0
+                                                ? const Color(0xFF2E7D32)
+                                                : const Color(0xFFC62828),
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            'Stock: ${p.stock.toStringAsFixed(0)} ${p.unit}',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: p.stock > 0
+                                                  ? const Color(0xFF388E3C)
+                                                  : const Color(0xFFD32F2F),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                trailing: Builder(
+                                  builder: (context) {
+                                    final livePrice = p.isRecipe
+                                        ? _recipeLiveVentaPrices[p.id]
+                                        : null;
+                                    final displayPrice =
+                                        livePrice ?? p.effectiveSalePrice;
+                                    final hasLivePrice = livePrice != null;
+                                    return Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          Helpers.formatCurrency(displayPrice),
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            color: hasLivePrice
+                                                ? const Color(0xFF388E3C)
+                                                : _saleThemeColor,
+                                          ),
+                                        ),
+                                        if (hasLivePrice)
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.sync,
+                                                size: 9,
+                                                color: const Color(0xFF43A047),
+                                              ),
+                                              const SizedBox(width: 2),
+                                              Text(
+                                                'EN VIVO',
+                                                style: TextStyle(
+                                                  fontSize: 8,
+                                                  color: const Color(
+                                                    0xFF43A047,
+                                                  ),
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        if (p.isRecipe &&
+                                            _isLoadingRecipePrices &&
+                                            livePrice == null)
+                                          SizedBox(
+                                            width: 12,
+                                            height: 12,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 1.5,
+                                              color: const Color(0xFFBDBDBD),
+                                            ),
+                                          ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                                onTap: () {
+                                  setState(() {
+                                    _selectedProduct = p;
+                                    _livePricing = null;
+                                    _recipeStockCheck = null;
+                                  });
+                                  _loadLivePricing(p);
+                                  if (p.isRecipe) {
+                                    _checkRecipeStock(
+                                      p,
+                                      int.tryParse(_quantityController.text) ??
+                                          1,
+                                    );
+                                  }
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                        // Detalle del producto seleccionado
+                        if (_selectedProduct != null) ...[
+                          const VerticalDivider(),
+                          SizedBox(width: 320, child: _buildProductDetail()),
+                        ],
+                      ],
                     ),
-                  ),
-                  // Detalle del producto seleccionado
-                  if (_selectedProduct != null) ...[
-                    const VerticalDivider(),
-                    SizedBox(width: 320, child: _buildProductDetail()),
-                  ],
-                ],
-              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _showMobileProductDetail(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setBottomState) {
+          _bottomSheetSetState = setBottomState;
+          return DraggableScrollableSheet(
+            initialChildSize: 0.7,
+            maxChildSize: 0.9,
+            minChildSize: 0.4,
+            expand: false,
+            builder: (_, controller) => SingleChildScrollView(
+              controller: controller,
+              padding: const EdgeInsets.all(16),
+              child: _buildProductDetail(),
+            ),
+          );
+        },
+      ),
+    ).whenComplete(() => _bottomSheetSetState = null);
   }
 
   Widget _buildProductDetail() {
@@ -4073,7 +4819,7 @@ class _SaleSelectProductDialogState extends State<_SaleSelectProductDialog> {
     final liveMargin = hasLive
         ? (_livePricing!['profit_margin'] as num?)?.toDouble()
         : null;
-    final displayPrice = livePrice ?? product.unitPrice;
+    final displayPrice = livePrice ?? product.effectiveSalePrice;
     final displayCost = liveCost ?? product.costPrice;
     final displayWeight = liveWeight ?? product.totalWeight;
 
@@ -4731,23 +5477,32 @@ class _SaleAddMaterialDialogState extends State<_SaleAddMaterialDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+    final screenSize = MediaQuery.of(context).size;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: isMobile
+          ? const EdgeInsets.all(8)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: Container(
-        width: 600,
-        height: 500,
-        padding: const EdgeInsets.all(24),
+        width: isMobile ? screenSize.width : 600,
+        height: isMobile ? screenSize.height * 0.85 : 500,
+        padding: EdgeInsets.all(isMobile ? 12 : 24),
         child: Column(
           children: [
             Row(
               children: [
                 const Icon(Icons.inventory_2, color: _saleThemeColor, size: 28),
                 const SizedBox(width: 12),
-                const Text(
-                  'Agregar Material',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    'Agregar Material',
+                    style: TextStyle(
+                      fontSize: isMobile ? 16 : 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
@@ -4768,147 +5523,317 @@ class _SaleAddMaterialDialogState extends State<_SaleAddMaterialDialog> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _filteredMaterials.length,
-                      itemBuilder: (context, index) {
-                        final m = _filteredMaterials[index];
-                        final isSelected = _selectedMaterial?.id == m.id;
-                        return ListTile(
-                          selected: isSelected,
-                          selectedTileColor: _saleThemeColor.withValues(
-                            alpha: 0.1,
-                          ),
-                          leading: CircleAvatar(
-                            backgroundColor: const Color(0xFFB2DFDB),
-                            child: Icon(
-                              Icons.category,
-                              size: 18,
-                              color: const Color(0xFF00796B),
-                            ),
-                          ),
-                          title: Text(
-                            m.name,
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                          subtitle: Text(
-                            '${m.code} · Stock: ${m.stock} ${m.unit} · ${Helpers.formatCurrency(m.effectivePrice)}/kg',
-                            style: const TextStyle(fontSize: 10),
-                          ),
-                          onTap: () => setState(() => _selectedMaterial = m),
-                        );
-                      },
-                    ),
-                  ),
-                  if (_selectedMaterial != null) ...[
-                    const VerticalDivider(),
-                    SizedBox(
-                      width: 200,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _selectedMaterial!.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Venta: ${Helpers.formatCurrency(_selectedMaterial!.effectivePrice)}/kg',
-                            style: TextStyle(
-                              color: const Color(0xFF388E3C),
-                              fontSize: 11,
-                            ),
-                          ),
-                          Text(
-                            'Costo: ${Helpers.formatCurrency(_selectedMaterial!.effectiveCostPrice)}/kg',
-                            style: TextStyle(
-                              color: const Color(0xFFD32F2F),
-                              fontSize: 11,
-                            ),
-                          ),
-                          Text(
-                            'Stock: ${_selectedMaterial!.stock} ${_selectedMaterial!.unit}',
-                            style: TextStyle(
-                              color: const Color(0xFF757575),
-                              fontSize: 11,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final result =
-                                    await WeightCalculatorDialog.show(
-                                      context,
-                                      material: _selectedMaterial!,
-                                      category: _selectedMaterial!.category,
-                                    );
-                                if (result != null) {
-                                  setState(() {
-                                    _quantityController.text = result.weight
-                                        .toStringAsFixed(2);
-                                  });
-                                }
-                              },
-                              icon: const Icon(Icons.calculate, size: 14),
-                              label: const Text(
-                                'Calcular Peso',
-                                style: TextStyle(fontSize: 11),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: _saleThemeColor,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
+              child: isMobile
+                  ? Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: _filteredMaterials.length,
+                            itemBuilder: (context, index) {
+                              final m = _filteredMaterials[index];
+                              final isSelected = _selectedMaterial?.id == m.id;
+                              return ListTile(
+                                dense: true,
+                                selected: isSelected,
+                                selectedTileColor: _saleThemeColor.withValues(
+                                  alpha: 0.1,
                                 ),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _quantityController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText:
-                                  'Cantidad (${_selectedMaterial!.unit})',
-                              isDense: true,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _addMaterial,
-                              icon: const Icon(Icons.add, size: 16),
-                              label: const Text(
-                                'Agregar',
-                                style: TextStyle(fontSize: 13),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _saleThemeColor,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
+                                leading: CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: const Color(0xFFB2DFDB),
+                                  child: Icon(
+                                    Icons.category,
+                                    size: 16,
+                                    color: const Color(0xFF00796B),
+                                  ),
                                 ),
-                              ),
+                                title: Text(
+                                  m.name,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                subtitle: Text(
+                                  '${m.code} · Stock: ${m.stock} ${m.unit}',
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                                trailing: Text(
+                                  Helpers.formatCurrency(m.effectivePrice),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                onTap: () =>
+                                    setState(() => _selectedMaterial = m),
+                              );
+                            },
+                          ),
+                        ),
+                        if (_selectedMaterial != null) ...[
+                          const Divider(height: 1),
+                          Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedMaterial!.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'V: ${Helpers.formatCurrency(_selectedMaterial!.effectivePrice)}/kg',
+                                      style: const TextStyle(
+                                        color: Color(0xFF388E3C),
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'C: ${Helpers.formatCurrency(_selectedMaterial!.effectiveCostPrice)}/kg',
+                                      style: const TextStyle(
+                                        color: Color(0xFFD32F2F),
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Stock: ${_selectedMaterial!.stock} ${_selectedMaterial!.unit}',
+                                      style: const TextStyle(
+                                        color: Color(0xFF757575),
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _quantityController,
+                                        keyboardType: TextInputType.number,
+                                        decoration: InputDecoration(
+                                          labelText:
+                                              'Cant. (${_selectedMaterial!.unit})',
+                                          isDense: true,
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    OutlinedButton.icon(
+                                      onPressed: () async {
+                                        final result =
+                                            await WeightCalculatorDialog.show(
+                                              context,
+                                              material: _selectedMaterial!,
+                                              category:
+                                                  _selectedMaterial!.category,
+                                            );
+                                        if (result != null) {
+                                          setState(() {
+                                            _quantityController.text = result
+                                                .weight
+                                                .toStringAsFixed(2);
+                                          });
+                                        }
+                                      },
+                                      icon: const Icon(
+                                        Icons.calculate,
+                                        size: 14,
+                                      ),
+                                      label: const Text(
+                                        'Peso',
+                                        style: TextStyle(fontSize: 11),
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: _saleThemeColor,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 8,
+                                        ),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    ElevatedButton.icon(
+                                      onPressed: _addMaterial,
+                                      icon: const Icon(Icons.add, size: 16),
+                                      label: const Text(
+                                        'Agregar',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: _saleThemeColor,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: _filteredMaterials.length,
+                            itemBuilder: (context, index) {
+                              final m = _filteredMaterials[index];
+                              final isSelected = _selectedMaterial?.id == m.id;
+                              return ListTile(
+                                selected: isSelected,
+                                selectedTileColor: _saleThemeColor.withValues(
+                                  alpha: 0.1,
+                                ),
+                                leading: CircleAvatar(
+                                  backgroundColor: const Color(0xFFB2DFDB),
+                                  child: Icon(
+                                    Icons.category,
+                                    size: 18,
+                                    color: const Color(0xFF00796B),
+                                  ),
+                                ),
+                                title: Text(
+                                  m.name,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                subtitle: Text(
+                                  '${m.code} · Stock: ${m.stock} ${m.unit} · ${Helpers.formatCurrency(m.effectivePrice)}/kg',
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                                onTap: () =>
+                                    setState(() => _selectedMaterial = m),
+                              );
+                            },
+                          ),
+                        ),
+                        if (_selectedMaterial != null) ...[
+                          const VerticalDivider(),
+                          SizedBox(
+                            width: 200,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedMaterial!.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Venta: ${Helpers.formatCurrency(_selectedMaterial!.effectivePrice)}/kg',
+                                  style: TextStyle(
+                                    color: const Color(0xFF388E3C),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                Text(
+                                  'Costo: ${Helpers.formatCurrency(_selectedMaterial!.effectiveCostPrice)}/kg',
+                                  style: TextStyle(
+                                    color: const Color(0xFFD32F2F),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                Text(
+                                  'Stock: ${_selectedMaterial!.stock} ${_selectedMaterial!.unit}',
+                                  style: TextStyle(
+                                    color: const Color(0xFF757575),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final result =
+                                          await WeightCalculatorDialog.show(
+                                            context,
+                                            material: _selectedMaterial!,
+                                            category:
+                                                _selectedMaterial!.category,
+                                          );
+                                      if (result != null) {
+                                        setState(() {
+                                          _quantityController.text = result
+                                              .weight
+                                              .toStringAsFixed(2);
+                                        });
+                                      }
+                                    },
+                                    icon: const Icon(Icons.calculate, size: 14),
+                                    label: const Text(
+                                      'Calcular Peso',
+                                      style: TextStyle(fontSize: 11),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: _saleThemeColor,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                TextField(
+                                  controller: _quantityController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText:
+                                        'Cantidad (${_selectedMaterial!.unit})',
+                                    isDense: true,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: _addMaterial,
+                                    icon: const Icon(Icons.add, size: 16),
+                                    label: const Text(
+                                      'Agregar',
+                                      style: TextStyle(fontSize: 13),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: _saleThemeColor,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
-                ],
-              ),
             ),
           ],
         ),
@@ -4924,7 +5849,7 @@ class _SaleAddMaterialDialogState extends State<_SaleAddMaterialDialog> {
     final totalCost = m.effectiveCostPrice * qty;
 
     widget.onAdd({
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'id': ColombiaTime.now().millisecondsSinceEpoch.toString(),
       'name': m.name,
       'type': 'material',
       'material': m.code,
@@ -5064,7 +5989,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
     } catch (_) {
       // fallback if RPC fails
       if (mounted) {
-        setState(() => _saleNumber = 'VTA-${DateTime.now().year}-PREVIEW');
+        setState(() => _saleNumber = 'VTA-${ColombiaTime.now().year}-PREVIEW');
       }
     }
   }
@@ -5077,12 +6002,15 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+    final screenSize = MediaQuery.of(context).size;
+
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(24),
+      insetPadding: EdgeInsets.all(isMobile ? 4 : 24),
       child: Container(
-        width: 1100,
-        height: MediaQuery.of(context).size.height * 0.9,
+        width: isMobile ? screenSize.width : 1100,
+        height: screenSize.height * (isMobile ? 0.95 : 0.9),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -5097,100 +6025,121 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
           children: [
             // ══════ HEADER OSCURO ══════
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 24,
+                vertical: isMobile ? 10 : 16,
+              ),
               decoration: const BoxDecoration(
                 color: Color(0xFF0D47A1),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  const Icon(Icons.receipt_long, color: Colors.white, size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'PREVISUALIZACIÓN DE VENTA',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
+                  Row(
+                    children: [
+                      if (!isMobile)
+                        const Icon(
+                          Icons.receipt_long,
+                          color: Colors.white,
+                          size: 28,
                         ),
-                        Text(
-                          _saleNumber,
-                          style: TextStyle(
-                            color: const Color(0xFFFFFFFF).withOpacity(0.7),
-                            fontSize: 13,
-                          ),
+                      if (!isMobile) const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isMobile
+                                  ? 'PREVISUALIZACIÓN'
+                                  : 'PREVISUALIZACIÓN DE VENTA',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: isMobile ? 14 : 18,
+                              ),
+                            ),
+                            Text(
+                              _saleNumber,
+                              style: TextStyle(
+                                color: const Color(0xFFFFFFFF).withOpacity(0.7),
+                                fontSize: isMobile ? 11 : 13,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                  // Tabs
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFFFF).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildTab(0, 'Cliente', Icons.person),
-                        _buildTab(1, 'Empresa', Icons.business),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Total
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFFFF).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'TOTAL',
-                          style: TextStyle(
-                            color: Color(0xB3FFFFFF),
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '\$${Helpers.formatNumber(widget.total)}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 22,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Cerrar
-                  InkWell(
-                    onTap: () => Navigator.pop(context),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFFFFF).withOpacity(0.15),
-                        shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 20,
+                      // Total
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 10 : 16,
+                          vertical: isMobile ? 4 : 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFFFF).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              'TOTAL',
+                              style: TextStyle(
+                                color: const Color(0xB3FFFFFF),
+                                fontSize: isMobile ? 9 : 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '\$${Helpers.formatNumber(widget.total)}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: isMobile ? 16 : 22,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      // Cerrar
+                      InkWell(
+                        onTap: () => Navigator.pop(context),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFFFFF).withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Tabs - as a separate row for mobile
+                  Row(
+                    mainAxisAlignment: isMobile
+                        ? MainAxisAlignment.center
+                        : MainAxisAlignment.start,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFFFF).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildTab(0, 'Cliente', Icons.person),
+                            _buildTab(1, 'Empresa', Icons.business),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -5204,7 +6153,10 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
             ),
             // ══════ FOOTER ══════
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 10 : 24,
+                vertical: isMobile ? 8 : 14,
+              ),
               decoration: BoxDecoration(
                 color: const Color(0xFFFAFAFA),
                 borderRadius: const BorderRadius.vertical(
@@ -5212,116 +6164,231 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                 ),
                 border: Border(top: BorderSide(color: const Color(0xFFEEEEEE))),
               ),
-              child: Row(
-                children: [
-                  // Info de pago
-                  Icon(
-                    widget.paymentType == 'cash'
-                        ? Icons.payments
-                        : widget.paymentType == 'advance'
-                        ? Icons.savings
-                        : Icons.calendar_month,
-                    color: widget.paymentType == 'cash'
-                        ? const Color(0xFF2E7D32)
-                        : widget.paymentType == 'advance'
-                        ? const Color(0xFF7B1FA2)
-                        : const Color(0xFFF9A825),
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      widget.paymentType == 'cash'
-                          ? 'Pago de contado: ${widget.paymentMethodLabel} → ${widget.accountName}'
-                          : widget.paymentType == 'advance'
-                          ? 'Adelanto: ${Helpers.formatCurrency(widget.advanceAmount)} → ${widget.accountName} | Restante: ${Helpers.formatCurrency(widget.total - widget.advanceAmount)} a ${widget.creditDays} días'
-                          : 'Crédito: ${widget.creditDays} días${widget.installments > 1 ? ', ${widget.installments} cuotas de \$${Helpers.formatNumber(widget.total / widget.installments)}' : ''}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: const Color(0xFF757575),
-                      ),
-                    ),
-                  ),
-                  // Stock badge
-                  if (widget.stockIssues.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(right: 12),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFE0B2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.warning_amber,
-                            size: 14,
-                            color: const Color(0xFFEF6C00),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${widget.stockIssues.length} sin stock',
+              child: isMobile
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Stock badge
+                        Row(
+                          children: [
+                            Icon(
+                              widget.paymentType == 'cash'
+                                  ? Icons.payments
+                                  : widget.paymentType == 'advance'
+                                  ? Icons.savings
+                                  : Icons.calendar_month,
+                              color: widget.paymentType == 'cash'
+                                  ? const Color(0xFF2E7D32)
+                                  : widget.paymentType == 'advance'
+                                  ? const Color(0xFF7B1FA2)
+                                  : const Color(0xFFF9A825),
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                widget.paymentType == 'cash'
+                                    ? 'Contado: ${widget.paymentMethodLabel}'
+                                    : widget.paymentType == 'advance'
+                                    ? 'Adelanto: ${Helpers.formatCurrency(widget.advanceAmount)}'
+                                    : 'Crédito: ${widget.creditDays} días',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF757575),
+                                ),
+                              ),
+                            ),
+                            if (widget.stockIssues.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFE0B2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${widget.stockIssues.length} sin stock',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFEF6C00),
+                                  ),
+                                ),
+                              )
+                            else
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFC8E6C9),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'Stock OK',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2E7D32),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.edit, size: 16),
+                                label: const Text(
+                                  'Editar',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF616161),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: widget.onConfirm,
+                                icon: const Icon(Icons.check_circle, size: 16),
+                                label: const Text(
+                                  'Confirmar',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2E7D32),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        // Info de pago
+                        Icon(
+                          widget.paymentType == 'cash'
+                              ? Icons.payments
+                              : widget.paymentType == 'advance'
+                              ? Icons.savings
+                              : Icons.calendar_month,
+                          color: widget.paymentType == 'cash'
+                              ? const Color(0xFF2E7D32)
+                              : widget.paymentType == 'advance'
+                              ? const Color(0xFF7B1FA2)
+                              : const Color(0xFFF9A825),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.paymentType == 'cash'
+                                ? 'Pago de contado: ${widget.paymentMethodLabel} → ${widget.accountName}'
+                                : widget.paymentType == 'advance'
+                                ? 'Adelanto: ${Helpers.formatCurrency(widget.advanceAmount)} → ${widget.accountName} | Restante: ${Helpers.formatCurrency(widget.total - widget.advanceAmount)} a ${widget.creditDays} días'
+                                : 'Crédito: ${widget.creditDays} días${widget.installments > 1 ? ', ${widget.installments} cuotas de \$${Helpers.formatNumber(widget.total / widget.installments)}' : ''}',
                             style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFFEF6C00),
+                              fontSize: 12,
+                              color: const Color(0xFF757575),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  if (widget.stockIssues.isEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(right: 12),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFC8E6C9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 14,
-                            color: const Color(0xFF2E7D32),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Stock OK',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF2E7D32),
+                        ),
+                        // Stock badge
+                        if (widget.stockIssues.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(right: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFE0B2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.warning_amber,
+                                  size: 14,
+                                  color: const Color(0xFFEF6C00),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${widget.stockIssues.length} sin stock',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFFEF6C00),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
+                        if (widget.stockIssues.isEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(right: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFC8E6C9),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  size: 14,
+                                  color: const Color(0xFF2E7D32),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Stock OK',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF2E7D32),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // Botones
+                        _buildFooterButton(
+                          'Editar',
+                          Icons.edit,
+                          const Color(0xFF616161),
+                          () => Navigator.pop(context),
+                        ),
+                        const SizedBox(width: 10),
+                        _buildFooterButton(
+                          'Confirmar Venta',
+                          Icons.check_circle,
+                          const Color(0xFF2E7D32),
+                          widget.onConfirm,
+                          filled: true,
+                        ),
+                      ],
                     ),
-                  // Botones
-                  _buildFooterButton(
-                    'Editar',
-                    Icons.edit,
-                    const Color(0xFF616161),
-                    () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 10),
-                  _buildFooterButton(
-                    'Confirmar Venta',
-                    Icons.check_circle,
-                    const Color(0xFF2E7D32),
-                    widget.onConfirm,
-                    filled: true,
-                  ),
-                ],
-              ),
             ),
           ],
         ),
@@ -5394,13 +6461,14 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
   // VISTA CLIENTE - Factura limpia
   // ══════════════════════════════════════════════════════
   Widget _buildClientView() {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Container(
       color: const Color(0xFFF1F4F8),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isMobile ? 8 : 24),
         child: Center(
           child: Container(
-            width: 800,
+            width: isMobile ? double.infinity : 800,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
@@ -5425,7 +6493,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.all(isMobile ? 12 : 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -5578,7 +6646,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                               children: [
                                 _buildDateRow(
                                   'Fecha:',
-                                  _formatDate(DateTime.now()),
+                                  _formatDate(ColombiaTime.now()),
                                 ),
                                 const SizedBox(height: 6),
                                 if (widget.paymentType == 'credit' ||
@@ -5586,7 +6654,7 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                   _buildDateRow(
                                     'Vencimiento:',
                                     _formatDate(
-                                      DateTime.now().add(
+                                      ColombiaTime.now().add(
                                         Duration(days: widget.creditDays),
                                       ),
                                     ),
@@ -5947,16 +7015,17 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
   // VISTA EMPRESA - ERP con BOM y análisis
   // ══════════════════════════════════════════════════════
   Widget _buildEnterpriseView() {
+    final isMobile = ResponsiveHelper.isMobile(context);
     return Container(
       color: const Color(0xFFF1F4F8),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isMobile ? 8 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header con info + badges
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(isMobile ? 12 : 20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -5970,8 +7039,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
               child: Row(
                 children: [
                   Container(
-                    width: 56,
-                    height: 56,
+                    width: isMobile ? 40 : 56,
+                    height: isMobile ? 40 : 56,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
@@ -6058,29 +7127,31 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
             ),
             const SizedBox(height: 16),
             // Tarjetas de resumen
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 _buildStatCard(
                   'Costo Mat.',
                   '\$${Helpers.formatNumber(widget.materialsPurchaseCost)}',
                   Icons.inventory_2,
                   const Color(0xFF1565C0),
+                  isMobile: isMobile,
                 ),
-                const SizedBox(width: 12),
                 _buildStatCard(
                   'Mano Obra',
                   '\$${Helpers.formatNumber(widget.laborCost)}',
                   Icons.engineering,
                   const Color(0xFF7B1FA2),
+                  isMobile: isMobile,
                 ),
-                const SizedBox(width: 12),
                 _buildStatCard(
                   'Costos Ind.',
                   '\$${Helpers.formatNumber(widget.indirectCosts)}',
                   Icons.electrical_services,
                   const Color(0xFFF9A825),
+                  isMobile: isMobile,
                 ),
-                const SizedBox(width: 12),
                 Builder(
                   builder: (context) {
                     final totalCostBasis =
@@ -6099,18 +7170,18 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                       realMargin >= 0
                           ? const Color(0xFF2E7D32)
                           : const Color(0xFFC62828),
+                      isMobile: isMobile,
                     );
                   },
                 ),
-                if (widget.discount > 0) ...[
-                  const SizedBox(width: 12),
+                if (widget.discount > 0)
                   _buildStatCard(
                     'Descuento',
                     '-\$${Helpers.formatNumber(widget.discount)}',
                     Icons.discount,
                     const Color(0xFFC62828),
+                    isMobile: isMobile,
                   ),
-                ],
               ],
             ),
             const SizedBox(height: 16),
@@ -6248,81 +7319,83 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                       ],
                     ),
                   ),
-                  // BOM Header
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      border: Border(
-                        bottom: BorderSide(color: const Color(0xFFEEEEEE)),
+                  // BOM Header + Rows
+                  if (!isMobile) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        border: Border(
+                          bottom: BorderSide(color: const Color(0xFFEEEEEE)),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 200,
+                            child: Text(
+                              'Producto (Kilos)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: const Color(0xFF616161),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'Compra/kg',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: const Color(0xFF616161),
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              'Venta/kg',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: const Color(0xFF616161),
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              'Ganancia',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: const Color(0xFF616161),
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: 100,
+                            child: Text(
+                              'Total Venta',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: const Color(0xFF616161),
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 200,
-                          child: Text(
-                            'Producto (Kilos)',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: const Color(0xFF616161),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            'Compra/kg',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: const Color(0xFF616161),
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            'Venta/kg',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: const Color(0xFF616161),
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            'Ganancia',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: const Color(0xFF616161),
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        SizedBox(
-                          width: 100,
-                          child: Text(
-                            'Total Venta',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: const Color(0xFF616161),
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // BOM Rows
-                  ...widget.items.map((item) => _buildBOMRow(item)),
+                    ...widget.items.map((item) => _buildBOMRow(item)),
+                  ] else
+                    ...widget.items.map((item) => _buildBOMRowMobile(item)),
                 ],
               ),
             ),
@@ -6723,11 +7796,13 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
     String title,
     String value,
     IconData icon,
-    Color color,
-  ) {
-    return Expanded(
+    Color color, {
+    bool isMobile = false,
+  }) {
+    return SizedBox(
+      width: isMobile ? 140 : 160,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isMobile ? 10 : 16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -6742,23 +7817,29 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: isMobile ? 28 : 36,
+              height: isMobile ? 28 : 36,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: color, size: 20),
+              child: Icon(icon, color: color, size: isMobile ? 16 : 20),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: isMobile ? 6 : 12),
             Text(
               title,
-              style: TextStyle(fontSize: 11, color: const Color(0xFF757575)),
+              style: TextStyle(
+                fontSize: isMobile ? 10 : 11,
+                color: const Color(0xFF757575),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               value,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: isMobile ? 13 : 15,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -6986,6 +8067,136 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                 ],
               ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBOMRowMobile(Map<String, dynamic> item) {
+    final components = item['components'] as List<dynamic>? ?? [];
+    final qty = (item['quantity'] as num?)?.toInt() ?? 1;
+    final totalWeight = (item['totalWeight'] as num?)?.toDouble() ?? 0;
+    final totalSalePrice = (item['totalPrice'] as num?)?.toDouble() ?? 0;
+    final totalCost = (item['totalCost'] as num?)?.toDouble() ?? 0;
+
+    final unitSalePrice = totalWeight > 0
+        ? totalSalePrice / totalWeight
+        : (item['unitSalePrice'] as num?)?.toDouble() ??
+              (item['pricePerKg'] as num?)?.toDouble() ??
+              0;
+    final unitCostPrice = totalWeight > 0 && totalCost > 0
+        ? totalCost / totalWeight
+        : (item['unitCostPrice'] as num?)?.toDouble() ?? 0;
+
+    final totalProfit =
+        (item['totalProfit'] as num?)?.toDouble() ??
+        (totalSalePrice - totalCost);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: const Color(0xFFEEEEEE))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.precision_manufacturing,
+                size: 14,
+                color: _saleThemeColor,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  item['name'] ?? '',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                '\$${Helpers.formatNumber(totalSalePrice)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Cant: $qty · Peso: ${Helpers.formatNumber(totalWeight)} kg',
+            style: const TextStyle(fontSize: 10, color: Color(0xFF9E9E9E)),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Text(
+                'C: \$${Helpers.formatNumber(unitCostPrice)}/kg',
+                style: const TextStyle(fontSize: 10, color: Color(0xFFF9A825)),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'V: \$${Helpers.formatNumber(unitSalePrice)}/kg',
+                style: const TextStyle(fontSize: 10, color: Color(0xFF2E7D32)),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'G: \$${Helpers.formatNumber(totalProfit)}',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: totalProfit >= 0
+                      ? const Color(0xFF1565C0)
+                      : const Color(0xFFC62828),
+                ),
+              ),
+            ],
+          ),
+          if (components.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            ...components.take(3).map((c) {
+              if (c == null) return const SizedBox.shrink();
+              final compName = c['component_name'] ?? c['name'] ?? 'Componente';
+              final compQty = (c['quantity'] ?? c['required_qty'] ?? 0) as num;
+              final compUnit = c['unit'] ?? '';
+              final hasStock = c['has_stock'] ?? c['hasStock'] ?? true;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Row(
+                  children: [
+                    Icon(
+                      hasStock ? Icons.check_circle : Icons.cancel,
+                      size: 10,
+                      color: hasStock
+                          ? const Color(0xFF43A047)
+                          : const Color(0xFFE53935),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        '$compQty× $compName ($compUnit)',
+                        style: const TextStyle(fontSize: 9),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            if (components.length > 3)
+              Text(
+                '+${components.length - 3} más',
+                style: const TextStyle(
+                  fontSize: 9,
+                  color: Color(0xFF1976D2),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
           ],
         ],
       ),

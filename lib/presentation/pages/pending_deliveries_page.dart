@@ -6,6 +6,7 @@ import '../../core/utils/logger.dart';
 import '../../data/datasources/invoices_datasource.dart';
 import '../../domain/entities/invoice.dart';
 import 'delivery_material_detail_page.dart';
+import '../../core/utils/colombia_time.dart';
 
 class PendingDeliveriesPage extends ConsumerStatefulWidget {
   const PendingDeliveriesPage({super.key});
@@ -109,7 +110,7 @@ class _PendingDeliveriesPageState extends ConsumerState<PendingDeliveriesPage> {
       _deliveries.fold(0.0, (s, d) => s + d.materialCostPending);
 
   bool _isDeliveryOverdue(DateTime date) =>
-      date.isBefore(DateTime.now().subtract(const Duration(hours: 12)));
+      date.isBefore(ColombiaTime.now().subtract(const Duration(hours: 12)));
 
   @override
   Widget build(BuildContext context) {

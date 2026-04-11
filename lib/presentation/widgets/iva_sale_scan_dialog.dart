@@ -1,10 +1,15 @@
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/utils/helpers.dart';
 import '../../data/datasources/invoice_scanner_service.dart';
 import '../../data/datasources/iva_datasource.dart';
+import '../../core/utils/colombia_time.dart';
 
 // =====================================================
 // IvaSaleScanDialog
@@ -315,6 +320,7 @@ class _IvaSaleScanDialogState extends State<IvaSaleScanDialog> {
   // ──────────────────────────────────────────────────────────────
   Widget _buildSelectStep() {
     final theme = Theme.of(context);
+    final showCamera = !kIsWeb;
     return Padding(
       padding: const EdgeInsets.all(24),
       child: SingleChildScrollView(
@@ -368,54 +374,99 @@ class _IvaSaleScanDialogState extends State<IvaSaleScanDialog> {
             ),
             const SizedBox(height: 20),
 
-            // Drop zone
-            GestureDetector(
-              onTap: _pickFiles,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.3),
-                    width: 2,
-                    style: BorderStyle.solid,
+            // Opciones: galería/archivos y cámara
+            if (showCamera) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSelectorCard(
+                      icon: Icons.photo_library,
+                      label: 'Galería / Archivos',
+                      subtitle: 'PDF, JPG, PNG · Múltiples',
+                      color: theme.colorScheme.primary,
+                      onTap: _pickFiles,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSelectorCard(
+                      icon: Icons.camera_alt,
+                      label: 'Tomar Foto',
+                      subtitle: 'Cámara · Varias páginas',
+                      color: const Color(0xFFE65100),
+                      onTap: _takePhoto,
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              // Drop zone (escritorio / web)
+              GestureDetector(
+                onTap: _pickFiles,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      width: 2,
+                      style: BorderStyle.solid,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.upload_file,
+                        size: 52,
+                        color: theme.colorScheme.primary.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Seleccionar facturas de venta',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Soporta PDF, JPG, PNG · Múltiples archivos',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF9E9E9E),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.upload_file,
-                      size: 52,
-                      color: theme.colorScheme.primary.withOpacity(0.5),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Seleccionar facturas de venta',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Soporta PDF, JPG, PNG · Múltiples archivos',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF9E9E9E)),
-                    ),
-                  ],
-                ),
               ),
-            ),
+            ],
 
             if (_items.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text(
-                '${_items.length} archivo(s) seleccionado(s)',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${_items.length} archivo(s) seleccionado(s)',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (showCamera)
+                    TextButton.icon(
+                      onPressed: _takePhoto,
+                      icon: const Icon(Icons.add_a_photo, size: 16),
+                      label: const Text(
+                        'Otra foto',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
               ...List.generate(_items.length, (idx) {
@@ -486,6 +537,80 @@ class _IvaSaleScanDialogState extends State<IvaSaleScanDialog> {
       });
     } catch (e) {
       setState(() => _globalError = 'Error al seleccionar archivos: $e');
+    }
+  }
+
+  // ─── Selector Card (para galería / cámara) ─────────────────────
+  Widget _buildSelectorCard({
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3), width: 2),
+          color: color.withOpacity(0.05),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 40, color: color.withOpacity(0.7)),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: color,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 11, color: Color(0xFF9E9E9E)),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Tomar Foto con Cámara ─────────────────────────────────────
+  Future<void> _takePhoto() async {
+    try {
+      final picker = ImagePicker();
+      final photo = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 2000,
+        maxHeight: 2000,
+      );
+      if (photo == null) return;
+
+      final bytes = await photo.readAsBytes();
+      final fileName = 'foto_${ColombiaTime.now().millisecondsSinceEpoch}.jpg';
+
+      final platformFile = PlatformFile(
+        name: fileName,
+        size: bytes.length,
+        bytes: Uint8List.fromList(bytes),
+      );
+
+      setState(() {
+        _globalError = null;
+        _items.add(_SaleBatchItem(index: _items.length, file: platformFile));
+      });
+    } catch (e) {
+      setState(() => _globalError = 'Error al tomar foto: $e');
     }
   }
 
@@ -949,7 +1074,7 @@ class _IvaSaleScanDialogState extends State<IvaSaleScanDialog> {
       ),
       style: const TextStyle(fontSize: 13),
       onTap: () async {
-        DateTime initial = DateTime.now();
+        DateTime initial = ColombiaTime.now();
         if (ctrl.text.isNotEmpty) {
           try {
             initial = _dateFormat.parse(ctrl.text);
@@ -1086,7 +1211,7 @@ class _IvaSaleScanDialogState extends State<IvaSaleScanDialog> {
         ? item.invoiceNumberCtrl.text.trim()
         : 'SIN-NUM';
 
-    DateTime invoiceDate = DateTime.now();
+    DateTime invoiceDate = ColombiaTime.now();
     if (item.invoiceDateCtrl.text.isNotEmpty) {
       try {
         invoiceDate = _dateFormat.parse(item.invoiceDateCtrl.text);

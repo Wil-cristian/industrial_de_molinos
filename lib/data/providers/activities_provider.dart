@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/activity.dart';
 import '../datasources/activities_datasource.dart';
+import '../datasources/ai_action_logger.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Estado de las actividades
 class ActivitiesState {
@@ -14,7 +16,7 @@ class ActivitiesState {
     this.isLoading = false,
     this.error,
     DateTime? selectedMonth,
-  }) : selectedMonth = selectedMonth ?? DateTime.now();
+  }) : selectedMonth = selectedMonth ?? ColombiaTime.now();
 
   ActivitiesState copyWith({
     List<Activity>? activities,
@@ -77,7 +79,10 @@ class ActivitiesNotifier extends Notifier<ActivitiesState> {
       selectedMonth: DateTime(year, month),
     );
     try {
-      final activities = await ActivitiesDatasource.getActivitiesByMonth(year, month);
+      final activities = await ActivitiesDatasource.getActivitiesByMonth(
+        year,
+        month,
+      );
       state = state.copyWith(activities: activities, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -89,8 +94,11 @@ class ActivitiesNotifier extends Notifier<ActivitiesState> {
     try {
       final created = await ActivitiesDatasource.createActivity(activity);
       if (created != null) {
-        state = state.copyWith(
-          activities: [...state.activities, created],
+        state = state.copyWith(activities: [...state.activities, created]);
+        AiActionLogger.logActivity(
+          'crear_actividad',
+          activityId: created.id,
+          activityName: activity.title,
         );
         return true;
       }
@@ -163,7 +171,7 @@ class ActivitiesNotifier extends Notifier<ActivitiesState> {
               reminderEnabled: a.reminderEnabled,
               reminderDate: a.reminderDate,
               createdAt: a.createdAt,
-              updatedAt: DateTime.now(),
+              updatedAt: ColombiaTime.now(),
             );
           }
           return a;
@@ -182,5 +190,5 @@ class ActivitiesNotifier extends Notifier<ActivitiesState> {
 /// Provider de actividades
 final activitiesProvider =
     NotifierProvider<ActivitiesNotifier, ActivitiesState>(() {
-  return ActivitiesNotifier();
-});
+      return ActivitiesNotifier();
+    });

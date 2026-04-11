@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/company_settings.dart';
 import '../../domain/entities/material_price.dart';
@@ -35,7 +36,7 @@ class SettingsDataSource {
     data.remove('id');
     data.remove('created_at');
     data.remove('updated_at');
-    data['updated_at'] = DateTime.now().toIso8601String();
+    data['updated_at'] = ColombiaTime.nowIso8601();
 
     // Verificar si existe un registro
     final existing = await _client
@@ -328,7 +329,7 @@ class SettingsDataSource {
         .update({
           'name': name,
           'description': description,
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': ColombiaTime.nowIso8601(),
         })
         .eq('id', id)
         .select()
@@ -383,7 +384,7 @@ class SettingsDataSource {
     await _client.from('sync_log').insert({
       'table_name': tableName,
       'operation': operation,
-      'synced_at': DateTime.now().toIso8601String(),
+      'synced_at': ColombiaTime.nowIso8601(),
     });
   }
 

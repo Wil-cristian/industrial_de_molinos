@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'audit_log_datasource.dart';
 import 'supabase_datasource.dart';
@@ -120,7 +121,7 @@ class IvaDataSource {
         .from('iva_bimonthly_settlements')
         .update({
           'is_settled': true,
-          'settled_at': DateTime.now().toIso8601String(),
+          'settled_at': ColombiaTime.nowIso8601(),
         })
         .eq('bimonthly_period', period);
     AuditLogDatasource.log(
@@ -248,7 +249,7 @@ class IvaInvoice {
 
   Map<String, dynamic> toInsertJson() => {
     'invoice_number': invoiceNumber,
-    'invoice_date': invoiceDate.toIso8601String().substring(0, 10),
+    'invoice_date': ColombiaTime.dateString(invoiceDate),
     'company': company,
     'invoice_type': invoiceType,
     'base_amount': baseAmount,
@@ -516,7 +517,7 @@ class IvaConfig {
   factory IvaConfig.fromJson(Map<String, dynamic> json) {
     return IvaConfig(
       id: json['id'] as String?,
-      year: (json['year'] as num?)?.toInt() ?? DateTime.now().year,
+      year: (json['year'] as num?)?.toInt() ?? ColombiaTime.now().year,
       uvtValue: (json['uvt_value'] as num?)?.toDouble() ?? 49799,
       grupoRst: (json['grupo_rst'] as num?)?.toInt() ?? 2,
       tarifaSimple: (json['tarifa_simple'] as num?)?.toDouble() ?? 0.02,

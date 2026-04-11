@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/logger.dart';
@@ -48,8 +49,8 @@ class AuditLogDatasource {
           'p_module': module,
           'p_action': action,
           'p_user_id': userId,
-          'p_from_date': fromDate?.toIso8601String(),
-          'p_to_date': toDate?.toIso8601String(),
+          'p_from_date': (fromDate != null ? ColombiaTime.toIso8601(fromDate) : null),
+          'p_to_date': (toDate != null ? ColombiaTime.toIso8601(toDate) : null),
           'p_limit': limit,
           'p_offset': offset,
         },

@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/utils/logger.dart';
@@ -111,7 +112,7 @@ class ProductionOrdersDataSource {
     ProductionOrderCreationInput input,
   ) async {
     try {
-      final now = DateTime.now();
+      final now = ColombiaTime.now();
       final code =
           'OP-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${now.millisecondsSinceEpoch.toString().substring(7)}';
 
@@ -125,8 +126,10 @@ class ProductionOrdersDataSource {
             'quantity': input.quantity,
             'status': 'planificada',
             'priority': input.priority,
-            'start_date': now.toIso8601String().split('T')[0],
-            'due_date': input.dueDate?.toIso8601String().split('T')[0],
+            'start_date': ColombiaTime.dateString(now),
+            'due_date': (input.dueDate != null
+                ? ColombiaTime.dateString(input.dueDate!)
+                : null),
             'notes': input.notes,
           })
           .select('id')
@@ -206,8 +209,10 @@ class ProductionOrdersDataSource {
             'title': '$processName — $code',
             'description':
                 'Etapa de producción: $processName\nProducto: ${input.product.name} x${input.quantity}',
-            'assigned_date': now.toIso8601String().split('T')[0],
-            'due_date': input.dueDate?.toIso8601String().split('T')[0],
+            'assigned_date': ColombiaTime.dateString(now),
+            'due_date': (input.dueDate != null
+                ? ColombiaTime.dateString(input.dueDate!)
+                : null),
             'status': 'pendiente',
             'priority': input.priority == 'urgente'
                 ? 'urgente'
@@ -249,7 +254,7 @@ class ProductionOrdersDataSource {
   static Future<void> updateOrderStatus(String orderId, String status) async {
     final values = <String, dynamic>{'status': status};
     if (status == 'completada') {
-      values['completed_at'] = DateTime.now().toIso8601String();
+      values['completed_at'] = ColombiaTime.nowIso8601();
     }
 
     await _client
@@ -313,14 +318,14 @@ class ProductionOrdersDataSource {
   static Future<void> updateDueDate(String orderId, DateTime dueDate) async {
     await _client
         .from('production_orders')
-        .update({'due_date': dueDate.toIso8601String().split('T')[0]})
+        .update({'due_date': ColombiaTime.dateString(dueDate)})
         .eq('id', orderId);
     AuditLogDatasource.log(
       action: 'update',
       module: 'production',
       recordId: orderId,
       description: 'Cambió fecha de entrega',
-      details: {'new_due_date': dueDate.toIso8601String().split('T')[0]},
+      details: {'new_due_date': ColombiaTime.dateString(dueDate)},
     );
   }
 
@@ -409,7 +414,7 @@ class ProductionOrdersDataSource {
         'title': '${stage.processName} — $code',
         'description':
             'Etapa de producción: ${stage.processName}\nProducto: $productName x$quantity',
-        'assigned_date': DateTime.now().toIso8601String().split('T')[0],
+        'assigned_date': ColombiaTime.todayString(),
         'due_date': dueDate,
         'status': stage.status == 'completada' ? 'completada' : 'pendiente',
         'priority': priority == 'urgente'
@@ -537,7 +542,7 @@ class ProductionOrdersDataSource {
     try {
       if (processChain.isEmpty) return null;
 
-      final now = DateTime.now();
+      final now = ColombiaTime.now();
       final code =
           'OP-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${now.millisecondsSinceEpoch.toString().substring(7)}';
 
@@ -563,7 +568,7 @@ class ProductionOrdersDataSource {
             'quantity': items.fold<double>(0, (sum, i) => sum + i.quantity),
             'status': 'planificada',
             'priority': priority,
-            'start_date': now.toIso8601String().split('T')[0],
+            'start_date': ColombiaTime.dateString(now),
             'invoice_id': invoice.id,
             'notes':
                 notes ??
@@ -633,7 +638,7 @@ class ProductionOrdersDataSource {
             'title': '$processName — $code',
             'description':
                 'Etapa de producción: $processName\nVenta: ${invoice.fullNumber}\nProducto: $productName',
-            'assigned_date': now.toIso8601String().split('T')[0],
+            'assigned_date': ColombiaTime.dateString(now),
             'status': 'pendiente',
             'priority': priority == 'urgente'
                 ? 'urgente'

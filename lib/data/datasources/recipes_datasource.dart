@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/product.dart';
 import 'audit_log_datasource.dart';
@@ -17,7 +18,7 @@ class RecipeDataSource {
   }) async {
     try {
       // Generar código único
-      final code = 'REC-${DateTime.now().millisecondsSinceEpoch}';
+      final code = 'REC-${ColombiaTime.now().millisecondsSinceEpoch}';
 
       // Insertar el producto como receta
       final response = await _supabase
@@ -79,8 +80,8 @@ class RecipeDataSource {
         recipeDescription: description,
         totalWeight: totalWeight,
         totalCost: totalCost,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        createdAt: ColombiaTime.now(),
+        updatedAt: ColombiaTime.now(),
       );
     } catch (e) {
       throw Exception('Error al guardar receta: $e');
@@ -176,7 +177,7 @@ class RecipeDataSource {
             'cost_price': totalCost,
             'total_weight': totalWeight,
             'total_cost': totalCost,
-            'updated_at': DateTime.now().toIso8601String(),
+            'updated_at': ColombiaTime.nowIso8601(),
           })
           .eq('id', productId);
 

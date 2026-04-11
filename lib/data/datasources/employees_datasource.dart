@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 import '../../core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/employee.dart';
@@ -136,7 +137,7 @@ class EmployeesDatasource {
   /// Obtener tareas por fecha
   static Future<List<EmployeeTask>> getTasksByDate(DateTime date) async {
     try {
-      final dateStr = date.toIso8601String().split('T')[0];
+      final dateStr = ColombiaTime.dateString(date);
       final response = await _client
           .from('employee_tasks')
           .select('*, employees(first_name, last_name)')
@@ -218,7 +219,7 @@ class EmployeesDatasource {
           .from('employee_tasks')
           .update({
             'status': 'completada',
-            'completed_date': DateTime.now().toIso8601String(),
+            'completed_date': ColombiaTime.nowIso8601(),
           })
           .eq('id', taskId);
 
@@ -263,17 +264,11 @@ class EmployeesDatasource {
           .eq('employee_id', employeeId);
 
       if (startDate != null) {
-        query = query.gte(
-          'entry_date',
-          startDate.toIso8601String().split('T')[0],
-        );
+        query = query.gte('entry_date', ColombiaTime.dateString(startDate));
       }
 
       if (endDate != null) {
-        query = query.lte(
-          'entry_date',
-          endDate.toIso8601String().split('T')[0],
-        );
+        query = query.lte('entry_date', ColombiaTime.dateString(endDate));
       }
 
       final response = await query
@@ -326,15 +321,12 @@ class EmployeesDatasource {
       if (startDate != null) {
         query = query.gte(
           'adjustment_date',
-          startDate.toIso8601String().split('T')[0],
+          ColombiaTime.dateString(startDate),
         );
       }
 
       if (endDate != null) {
-        query = query.lte(
-          'adjustment_date',
-          endDate.toIso8601String().split('T')[0],
-        );
+        query = query.lte('adjustment_date', ColombiaTime.dateString(endDate));
       }
 
       final response = await query.order('adjustment_date', ascending: false);
@@ -358,8 +350,8 @@ class EmployeesDatasource {
       final response = await _client
           .from('employee_time_adjustments')
           .select()
-          .gte('adjustment_date', startDate.toIso8601String().split('T')[0])
-          .lte('adjustment_date', endDate.toIso8601String().split('T')[0])
+          .gte('adjustment_date', ColombiaTime.dateString(startDate))
+          .lte('adjustment_date', ColombiaTime.dateString(endDate))
           .order('adjustment_date', ascending: true);
 
       return (response as List)
@@ -386,9 +378,7 @@ class EmployeesDatasource {
         'employee_id': employeeId,
         'minutes': minutes,
         'type': type,
-        'adjustment_date': (date ?? DateTime.now()).toIso8601String().split(
-          'T',
-        )[0],
+        'adjustment_date': ColombiaTime.dateString(date ?? ColombiaTime.now()),
         'reason': reason,
         'notes': notes,
         'timesheet_id': timesheetId,
@@ -414,7 +404,7 @@ class EmployeesDatasource {
     required DateTime date,
   }) async {
     try {
-      final dateStr = date.toIso8601String().split('T')[0];
+      final dateStr = ColombiaTime.dateString(date);
       // Primero obtener IDs para saber cuántos son
       final existing = await _client
           .from('employee_time_adjustments')
@@ -480,11 +470,11 @@ class EmployeesDatasource {
           .eq('employee_id', employeeId);
 
       if (startDate != null) {
-        query = query.gte('start_time', startDate.toIso8601String());
+        query = query.gte('start_time', ColombiaTime.toIso8601(startDate));
       }
 
       if (endDate != null) {
-        query = query.lte('start_time', endDate.toIso8601String());
+        query = query.lte('start_time', ColombiaTime.toIso8601(endDate));
       }
 
       final response = await query.order('start_time', ascending: false);
@@ -510,8 +500,8 @@ class EmployeesDatasource {
           .from('employee_time_entries')
           .insert({
             'employee_id': employeeId,
-            'entry_date': date.toIso8601String().split('T')[0],
-            'check_in': checkIn.toIso8601String(),
+            'entry_date': ColombiaTime.dateString(date),
+            'check_in': ColombiaTime.toIso8601(checkIn),
             'status': 'registrado',
             'source': 'manual',
           })
@@ -537,7 +527,7 @@ class EmployeesDatasource {
       final updates = <String, dynamic>{};
 
       if (checkOut != null) {
-        updates['check_out'] = checkOut.toIso8601String();
+        updates['check_out'] = ColombiaTime.toIso8601(checkOut);
       }
       if (hoursWorked != null) {
         updates['worked_minutes'] = (hoursWorked * 60).round();
@@ -586,10 +576,7 @@ class EmployeesDatasource {
     try {
       await _client
           .from('employee_time_sheets')
-          .update({
-            'status': 'cerrado',
-            'locked_at': DateTime.now().toIso8601String(),
-          })
+          .update({'status': 'cerrado', 'locked_at': ColombiaTime.nowIso8601()})
           .eq('id', timesheetId);
       AppLogger.success('? Timesheet cerrado exitosamente');
       return true;
@@ -610,7 +597,7 @@ class EmployeesDatasource {
           .update({
             'status': 'aprobado',
             'approved_by': approvedBy,
-            'approved_at': DateTime.now().toIso8601String(),
+            'approved_at': ColombiaTime.nowIso8601(),
           })
           .eq('id', timesheetId);
       AppLogger.success('? Timesheet aprobado exitosamente');
@@ -740,10 +727,10 @@ class EmployeesDatasource {
         query = query.eq('employee_id', employeeId);
       }
       if (startDate != null) {
-        query = query.gte('scanned_at', startDate.toIso8601String());
+        query = query.gte('scanned_at', ColombiaTime.toIso8601(startDate));
       }
       if (endDate != null) {
-        query = query.lte('scanned_at', endDate.toIso8601String());
+        query = query.lte('scanned_at', ColombiaTime.toIso8601(endDate));
       }
 
       final response = await query
@@ -760,7 +747,7 @@ class EmployeesDatasource {
   /// Obtener estado actual de asistencia de todos los empleados (hoy)
   static Future<List<Map<String, dynamic>>> getTodayAttendanceStatus() async {
     try {
-      final today = DateTime.now().toIso8601String().split('T')[0];
+      final today = ColombiaTime.todayString();
       final response = await _client
           .from('employees')
           .select(

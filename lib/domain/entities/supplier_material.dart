@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 // Entidad: Relación Proveedor-Material con precio de compra
 
 class SupplierMaterial {
@@ -110,7 +111,7 @@ class SupplierMaterial {
       'material_id': materialId,
       'unit_price': unitPrice,
       'last_purchase_price': lastPurchasePrice,
-      'last_purchase_date': lastPurchaseDate?.toIso8601String(),
+      'last_purchase_date': (lastPurchaseDate != null ? ColombiaTime.toIso8601(lastPurchaseDate!) : null),
       'min_order_quantity': minOrderQuantity,
       'lead_time_days': leadTimeDays,
       'notes': notes,

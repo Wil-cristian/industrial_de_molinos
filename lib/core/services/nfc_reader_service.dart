@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import '../utils/logger.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Resultado de un escaneo NFC/RFID via lector USB HID
 class NfcScanResult {
@@ -132,7 +133,7 @@ class NfcReaderService {
     }
 
     _lastCardId = cardId;
-    _lastScanTime = DateTime.now();
+    _lastScanTime = ColombiaTime.now();
     _scanCount++;
     _emitScanResult(cardId);
   }
@@ -155,7 +156,7 @@ class NfcReaderService {
   bool _isDuplicate(String cardId) {
     if (_lastCardId == null || _lastScanTime == null) return false;
     if (_lastCardId != cardId) return false;
-    final elapsed = DateTime.now().difference(_lastScanTime!).inSeconds;
+    final elapsed = ColombiaTime.now().difference(_lastScanTime!).inSeconds;
     return elapsed < antiDuplicateCooldownSeconds;
   }
 
@@ -168,7 +169,7 @@ class NfcReaderService {
     _scanController.add(
       NfcScanResult(
         cardId: cardId,
-        scannedAt: DateTime.now(),
+        scannedAt: ColombiaTime.now(),
         uidBytes: uidBytes,
       ),
     );
@@ -184,7 +185,7 @@ class NfcReaderService {
     _scanController.add(
       NfcScanResult(
         cardId: normalized,
-        scannedAt: DateTime.now(),
+        scannedAt: ColombiaTime.now(),
         payload: payload,
         uidBytes: normalized.length ~/ 2,
       ),

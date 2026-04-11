@@ -1,3 +1,4 @@
+import '../../core/utils/colombia_time.dart';
 /// Tipo de forma del material (para calcular peso)
 enum MaterialShape {
   cylinder, // Tubo/Cilindro hueco
@@ -459,8 +460,8 @@ class InventoryMaterial {
     'default_diameter': defaultDiameter,
     'default_length': defaultLength,
     'is_active': isActive,
-    'created_at': createdAt.toIso8601String(),
-    'updated_at': updatedAt.toIso8601String(),
+    'created_at': ColombiaTime.toIso8601(createdAt),
+    'updated_at': ColombiaTime.toIso8601(updatedAt),
   };
 
   factory InventoryMaterial.fromJson(Map<String, dynamic> json) =>

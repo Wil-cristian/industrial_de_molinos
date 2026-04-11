@@ -1,5 +1,6 @@
 import 'account.dart';
 import '../../data/datasources/storage_datasource.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Mapea valores de categoría del DB (incluyendo nombres viejos) al enum actual.
 MovementCategory parseCategoryFromJson(String value) {
@@ -48,6 +49,7 @@ enum MovementType {
 }
 
 // Categorías de movimiento
+// ignore_for_file: constant_identifier_names
 enum MovementCategory {
   // Ingresos
   sale, // Venta
@@ -112,7 +114,7 @@ class CashMovement {
     this.attachments = const [],
     this.account,
     this.toAccount,
-  }) : createdAt = createdAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? ColombiaTime.now();
 
   CashMovement copyWith({
     String? id,
@@ -166,8 +168,8 @@ class CashMovement {
       'description': description,
       'reference': reference,
       'personName': personName,
-      'date': date.toIso8601String(),
-      'createdAt': createdAt.toIso8601String(),
+      'date': ColombiaTime.toIso8601(date),
+      'createdAt': ColombiaTime.toIso8601(createdAt),
       'linkedTransferId': linkedTransferId,
       'attachments': attachments.map((a) => a.toJson()).toList(),
     };
@@ -191,10 +193,10 @@ class CashMovement {
       personName: json['personName'],
       date: json['date'] != null
           ? DateTime.parse(json['date'])
-          : DateTime.now(),
+          : ColombiaTime.now(),
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
+          : ColombiaTime.now(),
       linkedTransferId: json['linkedTransferId'],
       attachments: json['attachments'] != null && json['attachments'] is List
           ? (json['attachments'] as List)
@@ -304,7 +306,7 @@ class DailyCashReport {
 
   Map<String, dynamic> toJson() {
     return {
-      'date': date.toIso8601String(),
+      'date': ColombiaTime.toIso8601(date),
       'openingBalances': openingBalances,
       'closingBalances': closingBalances,
       'movements': movements.map((m) => m.toJson()).toList(),
@@ -313,7 +315,7 @@ class DailyCashReport {
       'totalTransfersIn': totalTransfersIn,
       'totalTransfersOut': totalTransfersOut,
       'isClosed': isClosed,
-      'closedAt': closedAt?.toIso8601String(),
+      'closedAt': (closedAt != null ? ColombiaTime.toIso8601(closedAt!) : null),
       'notes': notes,
     };
   }

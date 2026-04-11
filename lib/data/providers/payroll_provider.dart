@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../datasources/payroll_datasource.dart';
 import '../datasources/employees_datasource.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Estado del sistema de nómina
 class PayrollState {
@@ -95,7 +96,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
       // NO crear periodo automáticamente — solo buscar el más reciente que ya exista.
       // El periodo solo se crea cuando el usuario genera una nómina explícitamente.
       // EXCEPCIÓN: si no hay ningún periodo en la BD (primera vez), crear el actual.
-      final now = DateTime.now();
+      final now = ColombiaTime.now();
       final isQ1 = now.day <= 15;
       final currentPeriodNumber = isQ1 ? (now.month * 2 - 1) : (now.month * 2);
 
@@ -379,7 +380,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
       await PayrollDatasource.processPayrollPayment(
         payrollId: payrollId,
         accountId: accountId,
-        paymentDate: paymentDate ?? DateTime.now(),
+        paymentDate: paymentDate ?? ColombiaTime.now(),
       );
 
       // Recargar nóminas
@@ -444,7 +445,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
       );
       final existingDates = <String>{};
       for (final adj in existingAdj) {
-        existingDates.add(adj.adjustmentDate.toIso8601String().split('T')[0]);
+        existingDates.add(ColombiaTime.dateString(adj.adjustmentDate));
       }
 
       // Iterar cada día del rango
@@ -460,7 +461,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
 
         dayNumber++;
         final dateStr = '${current.day}/${current.month}/${current.year}';
-        final dateKey = current.toIso8601String().split('T')[0];
+        final dateKey = ColombiaTime.dateString(current);
 
         // Verificar si ya existe ajuste para esta fecha
         if (existingDates.contains(dateKey)) {
@@ -532,7 +533,7 @@ class PayrollNotifier extends Notifier<PayrollState> {
     try {
       await PayrollDatasource.updateIncapacity(incapacityId, {
         'status': 'terminada',
-        'end_date': DateTime.now().toIso8601String().split('T')[0],
+        'end_date': ColombiaTime.todayString(),
       });
       await loadIncapacities();
       return true;

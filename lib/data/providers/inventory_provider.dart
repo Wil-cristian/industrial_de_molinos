@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/material.dart';
 import '../datasources/inventory_datasource.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Estado para el inventario de materiales
 class InventoryState {
@@ -117,7 +118,7 @@ class InventoryNotifier extends Notifier<InventoryState> {
       final materials = state.materials
           .map(
             (m) => m.id == id
-                ? m.copyWith(stock: newStock, updatedAt: DateTime.now())
+                ? m.copyWith(stock: newStock, updatedAt: ColombiaTime.now())
                 : m,
           )
           .toList();

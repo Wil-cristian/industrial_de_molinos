@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -21,6 +21,7 @@ import '../../domain/entities/cash_movement.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/entities/material.dart' as mat;
 import 'material_form_dialog.dart';
+import '../../core/utils/colombia_time.dart';
 
 /// Normaliza unidades de medida escaneadas a formato estándar del inventario
 String _normalizeUnitGlobal(String unit) =>
@@ -3510,7 +3511,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
     if (photo == null) return;
 
     final bytes = await photo.readAsBytes();
-    final fileName = 'compra_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final fileName = 'compra_${ColombiaTime.now().millisecondsSinceEpoch}.jpg';
 
     final platformFile = PlatformFile(
       name: fileName,
@@ -3664,7 +3665,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
   }
 
   Future<void> _pickDateForCtrl(TextEditingController controller) async {
-    DateTime initial = DateTime.now();
+    DateTime initial = ColombiaTime.now();
     if (controller.text.isNotEmpty) {
       try {
         initial = _dateFormat.parse(controller.text);
@@ -3904,7 +3905,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         double.tryParse(item.taxRateCtrl.text) ?? item.result!.taxRate;
     final creditDays =
         int.tryParse(item.creditDaysCtrl.text) ?? item.result!.creditDays;
-    DateTime invoiceDate = DateTime.now();
+    DateTime invoiceDate = ColombiaTime.now();
     if (item.invoiceDateCtrl.text.isNotEmpty) {
       try {
         invoiceDate = _dateFormat.parse(item.invoiceDateCtrl.text);
@@ -3945,8 +3946,10 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
             'customer_address': item.supplierAddressCtrl.text.trim().isNotEmpty
                 ? item.supplierAddressCtrl.text.trim()
                 : null,
-            'issue_date': invoiceDate.toIso8601String().split('T')[0],
-            'due_date': dueDate?.toIso8601String().split('T')[0],
+            'issue_date': ColombiaTime.dateString(invoiceDate),
+            'due_date': dueDate != null
+                ? ColombiaTime.dateString(dueDate)
+                : null,
             'subtotal': subtotal,
             'tax_rate': taxRate,
             'tax_amount': taxAmount,
@@ -4006,7 +4009,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
           'invoice_id': invoiceId,
           'amount': total,
           'method': 'transfer',
-          'payment_date': DateTime.now().toIso8601String().split('T')[0],
+          'payment_date': ColombiaTime.todayString(),
           'reference':
               'COMPRA-${invoiceResponse['series']}-${invoiceResponse['number']}',
         });
@@ -4146,7 +4149,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
         final description = match.effectiveDescription;
         final unitPrice = match.effectiveUnitPrice;
         if (match.isNew) {
-          final now = DateTime.now();
+          final now = ColombiaTime.now();
           final uniqueCode = 'FAC-${now.millisecondsSinceEpoch % 1000000}';
           final inferredCategory = _inferCategory(description);
           final created = await InventoryDataSource.createMaterial(
@@ -4186,7 +4189,7 @@ class _InvoiceScanDialogState extends ConsumerState<InvoiceScanDialog> {
                   .from('materials')
                   .update({
                     'cost_price': unitPrice,
-                    'updated_at': DateTime.now().toIso8601String(),
+                    'updated_at': ColombiaTime.nowIso8601(),
                   })
                   .eq('id', material.id);
             } catch (_) {}

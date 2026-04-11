@@ -10,6 +10,7 @@ import '../../domain/entities/cash_movement.dart';
 import '../../domain/entities/account.dart';
 import '../widgets/expense_scan_dialog.dart';
 import '../widgets/invoice_scan_dialog.dart';
+import '../../core/utils/colombia_time.dart';
 
 class ExpensesPage extends ConsumerStatefulWidget {
   const ExpensesPage({super.key});
@@ -408,7 +409,104 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
   Widget _buildCategoryCards() {
     final byCategory = _expenseByCategory;
     final countByCat = _countByCategory;
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
 
+    if (isMobile) {
+      // Mobile: compact scrollable chip row
+      return SizedBox(
+        height: 70,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          children: _expenseCategories.map((cat) {
+            final amount = byCategory[cat] ?? 0;
+            final count = countByCat[cat] ?? 0;
+            final isSelected = _selectedCategory == cat;
+            final color = _categoryColors[cat] ?? const Color(0xFF9E9E9E);
+            final icon = _categoryIcons[cat] ?? Icons.category;
+
+            return Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: GestureDetector(
+                onTap: () => setState(() {
+                  _selectedCategory = isSelected ? null : cat;
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 100,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? color.withValues(alpha: 0.15)
+                        : Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected
+                          ? color
+                          : Theme.of(context).colorScheme.outlineVariant,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(icon, size: 13, color: color),
+                          if (count > 0) ...[
+                            const SizedBox(width: 3),
+                            Text(
+                              '$count',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: color,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        _categoryLabel(cat),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected
+                              ? color
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                      Text(
+                        Formatters.currency(amount),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected
+                              ? color
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      );
+    }
+
+    // Desktop: original grid
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 10, 24, 4),
       child: LayoutBuilder(
@@ -1333,7 +1431,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage>
   }
 
   Future<void> _showDateRangeFilter() async {
-    final now = DateTime.now();
+    final now = ColombiaTime.now();
     final range = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2024),
