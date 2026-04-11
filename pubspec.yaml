@@ -2,7 +2,7 @@ name: molinos_app
 description: "Sistema de gestión contable para PYME - Industrial de Molinos"
 publish_to: 'none'
 
-version: 2.0.1+1
+version: 2.0.1+10
 
 environment:
   sdk: ^3.10.0
