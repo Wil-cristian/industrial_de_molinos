@@ -856,12 +856,15 @@ class PrintService {
       headers: ['Producto', 'Cant.', 'P. Unitario', 'Total'],
       data: products.map((p) {
         final product = p as Map<String, dynamic>;
+        final description = (product['description'] as String?)?.trim() ?? '';
         final qty = (product['quantity'] as num?)?.toDouble() ?? 1;
         final unitPrice = (product['unitPrice'] as num?)?.toDouble() ?? 0;
         final lineTotal =
             (product['total'] as num?)?.toDouble() ?? (qty * unitPrice);
         return [
-          product['name'] ?? '',
+          description.isEmpty
+              ? (product['name'] ?? '')
+              : '${product['name'] ?? ''}\n$description',
           qty % 1 == 0 ? qty.toInt().toString() : qty.toStringAsFixed(2),
           _formatCurrency(unitPrice),
           _formatCurrency(lineTotal),

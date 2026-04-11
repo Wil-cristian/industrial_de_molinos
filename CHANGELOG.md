@@ -5,6 +5,16 @@ Todos los cambios notables en esta aplicacion seran documentados en este archivo
 El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [2.0.0] - 2026-04-11
+
+### Mejorado
+- Asistente IA con capacidades de acciones confirmables (navegacion y calendario) con flujo de confirmacion en chat.
+- Sistema de aprendizaje por uso con registro de acciones del usuario para personalizar respuestas.
+- Optimizacion de consumo de tokens: prompt del sistema cacheado por sesion y reduccion de historial enviado.
+
+### Corregido
+- Ajustes de estabilidad en ejecucion de acciones del asistente y logging en flujos clave.
+
 ## [1.0.9] - 2026-04-10
 
 ### Mejorado

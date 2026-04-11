@@ -66,6 +66,7 @@ class _InvoicesPageState extends ConsumerState<InvoicesPage>
                     'itemId': item.id,
                     'invoiceId': item.invoiceId,
                     'name': item.productName,
+                    'description': item.description,
                     'quantity': item.quantity,
                     'unit': item.unit,
                     'unitPrice': item.unitPrice,

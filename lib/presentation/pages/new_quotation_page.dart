@@ -48,6 +48,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
   final _indirectCostsController = TextEditingController(text: '0');
   final _profitMarginController = TextEditingController(text: '20');
   final _discountController = TextEditingController(text: '0'); // Descuento
+  bool _discountIsPercent = true; // true = %, false = valor fijo
   final _notesController = TextEditingController();
   final _validDaysController = TextEditingController(text: '15');
 
@@ -119,9 +120,17 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
   }
 
   double get _discountAmount {
-    final discount = double.tryParse(_discountController.text) ?? 0;
-    return (_subtotal + _profitAmount) * (discount / 100);
+    final discountInput = double.tryParse(_discountController.text) ?? 0;
+    final baseAmount = _subtotal + _profitAmount;
+    if (_discountIsPercent) {
+      return (baseAmount * (discountInput / 100)).clamp(0, baseAmount);
+    }
+    return discountInput.clamp(0, baseAmount);
   }
+
+  String get _discountSummaryLabel => _discountIsPercent
+      ? 'Descuento (${_discountController.text}%)'
+      : 'Descuento (Valor fijo)';
 
   double get _total => _subtotal + _profitAmount - _discountAmount;
 
@@ -613,7 +622,7 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
               ),
               if (_discountAmount > 0)
                 _buildCostLine(
-                  'Descuento (${_discountController.text}%)',
+                  _discountSummaryLabel,
                   -_discountAmount,
                   color: const Color(0xFFC62828),
                 ),
@@ -2435,6 +2444,24 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                 ],
               ),
               const SizedBox(height: 12),
+              Row(
+                children: [
+                  ChoiceChip(
+                    label: const Text('%'),
+                    selected: _discountIsPercent,
+                    onSelected: (_) =>
+                        setState(() => _discountIsPercent = true),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('Valor'),
+                    selected: !_discountIsPercent,
+                    onSelected: (_) =>
+                        setState(() => _discountIsPercent = false),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               if (isMobile)
                 Row(
                   children: [
@@ -2445,7 +2472,9 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
                         decoration: InputDecoration(
-                          suffixText: '%',
+                          labelText: _discountIsPercent ? '%' : 'Valor',
+                          suffixText: _discountIsPercent ? '%' : null,
+                          prefixText: _discountIsPercent ? null : '\$ ',
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -2458,21 +2487,37 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                         onChanged: (_) => setState(() {}),
                       ),
                     ),
-                    Expanded(
-                      child: Slider(
-                        value: double.tryParse(_discountController.text) ?? 0,
-                        min: 0,
-                        max: 30,
-                        divisions: 30,
-                        label: '${_discountController.text}%',
-                        activeColor: const Color(0xFFEF5350),
-                        onChanged: (value) {
-                          setState(() {
-                            _discountController.text = value.toStringAsFixed(0);
-                          });
-                        },
+                    if (_discountIsPercent)
+                      Expanded(
+                        child: Slider(
+                          value: double.tryParse(_discountController.text) ?? 0,
+                          min: 0,
+                          max: 30,
+                          divisions: 30,
+                          label: '${_discountController.text}%',
+                          activeColor: const Color(0xFFEF5350),
+                          onChanged: (value) {
+                            setState(() {
+                              _discountController.text = value.toStringAsFixed(
+                                0,
+                              );
+                            });
+                          },
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: Text(
+                          'Ingresa valor fijo',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ),
-                    ),
                   ],
                 )
               else
@@ -2483,8 +2528,11 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                         controller: _discountController,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
-                          labelText: 'Porcentaje de descuento',
-                          suffixText: '%',
+                          labelText: _discountIsPercent
+                              ? 'Porcentaje de descuento'
+                              : 'Valor de descuento',
+                          suffixText: _discountIsPercent ? '%' : null,
+                          prefixText: _discountIsPercent ? null : '\$ ',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -2492,22 +2540,39 @@ class _NewQuotationPageState extends ConsumerState<NewQuotationPage> {
                         onChanged: (_) => setState(() {}),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Slider(
-                        value: double.tryParse(_discountController.text) ?? 0,
-                        min: 0,
-                        max: 30,
-                        divisions: 30,
-                        label: '${_discountController.text}%',
-                        activeColor: const Color(0xFFEF5350),
-                        onChanged: (value) {
-                          setState(() {
-                            _discountController.text = value.toStringAsFixed(0);
-                          });
-                        },
+                    if (_discountIsPercent) ...[
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Slider(
+                          value: double.tryParse(_discountController.text) ?? 0,
+                          min: 0,
+                          max: 30,
+                          divisions: 30,
+                          label: '${_discountController.text}%',
+                          activeColor: const Color(0xFFEF5350),
+                          onChanged: (value) {
+                            setState(() {
+                              _discountController.text = value.toStringAsFixed(
+                                0,
+                              );
+                            });
+                          },
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'Ingresa el valor total del descuento.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(

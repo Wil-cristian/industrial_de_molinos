@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'data/datasources/supabase_datasource.dart';
 import 'data/providers/auth_provider.dart';
 import 'data/providers/role_provider.dart';
+import 'core/permissions/screen_permissions.dart';
 import 'presentation/pages/dashboard_page.dart';
 // ProductsPage ya no se usa - unificada en CompositeProductsPage
 import 'presentation/pages/customers_page.dart';
@@ -483,6 +484,17 @@ class _MainShellState extends ConsumerState<_MainShell>
     }
 
     final isMobile = ResponsiveHelper.isMobile(context);
+
+    // Verificar permisos de pantalla — si el usuario no tiene acceso, redirigir
+    final permissions = ref.watch(screenPermissionsProvider);
+    if (!permissions.canAccessRoute(widget.currentPath)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          GoRouter.of(context).go('/daily-cash');
+        }
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     if (isMobile) {
       return Scaffold(

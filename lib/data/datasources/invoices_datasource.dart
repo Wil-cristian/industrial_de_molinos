@@ -8,6 +8,7 @@ import 'supabase_datasource.dart';
 import 'accounts_datasource.dart';
 import 'customers_datasource.dart';
 import 'audit_log_datasource.dart';
+import 'settings_datasource.dart';
 
 class InvoicesDataSource {
   static SupabaseClient get _client => SupabaseDataSource.client;
@@ -499,6 +500,22 @@ class InvoicesDataSource {
   static Future<void> updateStatus(String id, String status) async {
     // Obtener estado actual para manejar stock
     final currentInvoice = await getById(id);
+    final updateData = <String, dynamic>{'status': status};
+
+    // Si la factura se emite/finaliza y no tiene fecha de entrega,
+    // asignar una fecha automática para que aparezca en calendario.
+    if ((status == 'issued' || status == 'paid') &&
+        currentInvoice?.deliveryDate == null) {
+      final baseDate = currentInvoice?.issueDate ?? ColombiaTime.now();
+      final companySettings = await SettingsDataSource.getCompanySettings();
+      final daysToAdd = companySettings.autoDeliveryDays.clamp(0, 30);
+      final autoDeliveryDate = DateTime(
+        baseDate.year,
+        baseDate.month,
+        baseDate.day,
+      ).add(Duration(days: daysToAdd));
+      updateData['delivery_date'] = ColombiaTime.dateString(autoDeliveryDate);
+    }
 
     // Si se está emitiendo el recibo, descontar stock
     if (status == 'issued') {
@@ -520,7 +537,7 @@ class InvoicesDataSource {
       }
     }
 
-    await _client.from('invoices').update({'status': status}).eq('id', id);
+    await _client.from('invoices').update(updateData).eq('id', id);
 
     await AuditLogDatasource.log(
       action: status == 'cancelled' ? 'cancel' : 'update',

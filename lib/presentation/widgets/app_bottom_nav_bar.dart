@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/permissions/screen_permissions.dart';
 
 /// Bottom navigation bar M3 para vista móvil.
 /// Indicador activo pill, filled/outlined icons, animaciones spring,
 /// haptic feedback, y menú "Más" categorizado con staggered animations.
-class AppBottomNavBar extends StatelessWidget {
+class AppBottomNavBar extends ConsumerWidget {
   final String currentRoute;
   final StatefulNavigationShell navigationShell;
 
@@ -23,6 +25,7 @@ class AppBottomNavBar extends StatelessWidget {
       label: 'Caja',
       route: '/daily-cash',
       branchIndex: 1,
+      screenKey: AppScreen.dailyCash,
     ),
     _BottomNavItem(
       iconFilled: Icons.receipt_long,
@@ -30,6 +33,7 @@ class AppBottomNavBar extends StatelessWidget {
       label: 'Ventas',
       route: '/invoices',
       branchIndex: 6,
+      screenKey: AppScreen.invoices,
     ),
     _BottomNavItem(
       iconFilled: Icons.people,
@@ -37,6 +41,7 @@ class AppBottomNavBar extends StatelessWidget {
       label: 'Clientes',
       route: '/customers',
       branchIndex: 5,
+      screenKey: AppScreen.customers,
     ),
     _BottomNavItem(
       iconFilled: Icons.warehouse,
@@ -44,6 +49,7 @@ class AppBottomNavBar extends StatelessWidget {
       label: 'Materiales',
       route: '/materials',
       branchIndex: 4,
+      screenKey: AppScreen.materials,
     ),
   ];
 
@@ -51,7 +57,7 @@ class AppBottomNavBar extends StatelessWidget {
   static const _moreCategories = [
     _MoreCategory(
       title: 'Operaciones',
-      color: Color(0xFF2E7D32), // green[800]
+      color: Color(0xFF2E7D32),
       items: [
         _BottomNavItem(
           iconFilled: Icons.shopping_bag,
@@ -59,6 +65,7 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Compras',
           route: '/expenses',
           branchIndex: 2,
+          screenKey: AppScreen.expenses,
         ),
         _BottomNavItem(
           iconFilled: Icons.layers,
@@ -66,6 +73,7 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Productos',
           route: '/composite-products',
           branchIndex: 14,
+          screenKey: AppScreen.compositeProducts,
         ),
         _BottomNavItem(
           iconFilled: Icons.factory,
@@ -73,6 +81,7 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Producción',
           route: '/production-orders',
           branchIndex: 15,
+          screenKey: AppScreen.productionOrders,
         ),
         _BottomNavItem(
           iconFilled: Icons.local_shipping,
@@ -80,12 +89,13 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Entregas',
           route: '/pending-deliveries',
           branchIndex: 16,
+          screenKey: AppScreen.shipments,
         ),
       ],
     ),
     _MoreCategory(
       title: 'Finanzas',
-      color: Color(0xFF1565C0), // blue[800]
+      color: Color(0xFF1565C0),
       items: [
         _BottomNavItem(
           iconFilled: Icons.request_quote,
@@ -93,6 +103,7 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Cotizaciones',
           route: '/quotations',
           branchIndex: 7,
+          screenKey: AppScreen.quotations,
         ),
         _BottomNavItem(
           iconFilled: Icons.account_balance,
@@ -100,6 +111,7 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Contabilidad',
           route: '/accounting',
           branchIndex: 12,
+          screenKey: AppScreen.accounting,
         ),
         _BottomNavItem(
           iconFilled: Icons.receipt,
@@ -107,6 +119,7 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Control IVA',
           route: '/iva-control',
           branchIndex: 13,
+          screenKey: AppScreen.ivaControl,
         ),
         _BottomNavItem(
           iconFilled: Icons.bar_chart,
@@ -114,12 +127,13 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Reportes',
           route: '/reports',
           branchIndex: 8,
+          screenKey: AppScreen.reports,
         ),
       ],
     ),
     _MoreCategory(
       title: 'Personas',
-      color: Color(0xFFE65100), // orange[900]
+      color: Color(0xFFE65100),
       items: [
         _BottomNavItem(
           iconFilled: Icons.badge,
@@ -127,6 +141,7 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Empleados',
           route: '/employees',
           branchIndex: 10,
+          screenKey: AppScreen.employees,
         ),
         _BottomNavItem(
           iconFilled: Icons.manage_accounts,
@@ -134,12 +149,13 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Usuarios',
           route: '/user-management',
           branchIndex: 17,
+          screenKey: AppScreen.userManagement,
         ),
       ],
     ),
     _MoreCategory(
       title: 'Sistema',
-      color: Color(0xFF546E7A), // blueGrey[600]
+      color: Color(0xFF546E7A),
       items: [
         _BottomNavItem(
           iconFilled: Icons.dashboard,
@@ -147,6 +163,7 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Dashboard',
           route: '/',
           branchIndex: 0,
+          screenKey: AppScreen.dashboard,
         ),
         _BottomNavItem(
           iconFilled: Icons.calendar_today,
@@ -154,6 +171,7 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Calendario',
           route: '/calendar',
           branchIndex: 9,
+          screenKey: AppScreen.calendar,
         ),
         _BottomNavItem(
           iconFilled: Icons.business_center,
@@ -161,6 +179,7 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Activos',
           route: '/assets',
           branchIndex: 11,
+          screenKey: AppScreen.assets,
         ),
         _BottomNavItem(
           iconFilled: Icons.security,
@@ -168,6 +187,7 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Auditoría',
           route: '/audit-panel',
           branchIndex: 18,
+          screenKey: AppScreen.auditPanel,
         ),
       ],
     ),
@@ -189,23 +209,44 @@ class AppBottomNavBar extends StatelessWidget {
     return 4;
   }
 
-  void _onItemTapped(BuildContext context, int index) {
+  void _onItemTapped(
+    BuildContext context,
+    int index,
+    ScreenPermissionsState permissions,
+  ) {
     HapticFeedback.lightImpact();
     if (index == 4) {
-      _showMoreSheet(context);
+      _showMoreSheet(context, permissions);
       return;
     }
     final item = _mainItems[index];
     navigationShell.goBranch(item.branchIndex);
   }
 
-  void _showMoreSheet(BuildContext context) {
+  void _showMoreSheet(
+    BuildContext context,
+    ScreenPermissionsState permissions,
+  ) {
+    // Filtrar categorías por permisos
+    final filteredCategories = _moreCategories
+        .map(
+          (cat) => _MoreCategory(
+            title: cat.title,
+            color: cat.color,
+            items: cat.items
+                .where((item) => permissions.canAccess(item.screenKey))
+                .toList(),
+          ),
+        )
+        .where((cat) => cat.items.isNotEmpty)
+        .toList();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => _MoreMenu(
-        categories: _moreCategories,
+        categories: filteredCategories,
         currentRoute: currentRoute,
         onItemTap: (item) {
           Navigator.pop(ctx);
@@ -217,7 +258,8 @@ class AppBottomNavBar extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final permissions = ref.watch(screenPermissionsProvider);
     final selected = _getSelectedIndex();
     final cs = Theme.of(context).colorScheme;
 
@@ -245,7 +287,7 @@ class AppBottomNavBar extends StatelessWidget {
                     iconOutlined: _mainItems[i].iconOutlined,
                     label: _mainItems[i].label,
                     isSelected: selected == i,
-                    onTap: () => _onItemTapped(context, i),
+                    onTap: () => _onItemTapped(context, i, permissions),
                   ),
                 ),
               Expanded(
@@ -254,7 +296,7 @@ class AppBottomNavBar extends StatelessWidget {
                   iconOutlined: Icons.grid_view_outlined,
                   label: 'Más',
                   isSelected: selected == 4,
-                  onTap: () => _onItemTapped(context, 4),
+                  onTap: () => _onItemTapped(context, 4, permissions),
                 ),
               ),
             ],
@@ -737,6 +779,7 @@ class _BottomNavItem {
   final String label;
   final String route;
   final int branchIndex;
+  final String screenKey;
 
   const _BottomNavItem({
     required this.iconFilled,
@@ -744,6 +787,7 @@ class _BottomNavItem {
     required this.label,
     required this.route,
     required this.branchIndex,
+    required this.screenKey,
   });
 }
 

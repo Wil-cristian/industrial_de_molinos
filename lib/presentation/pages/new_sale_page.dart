@@ -50,6 +50,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
   final _indirectCostsController = TextEditingController(text: '0');
   final _profitMarginController = TextEditingController(text: '20');
   final _discountController = TextEditingController(text: '0');
+  bool _discountIsPercent = true; // true = %, false = valor fijo
   final _notesController = TextEditingController();
 
   // Forma de pago
@@ -89,6 +90,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
   final _commissionPercentageController = TextEditingController(
     text: CommissionsDatasource.defaultCommissionPercentage.toStringAsFixed(4),
   );
+
+  // Días de entrega
+  final _deliveryDaysController = TextEditingController(text: '3');
 
   // Clientes del provider
   List<Map<String, dynamic>> get _customers {
@@ -146,9 +150,17 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
   }
 
   double get _discountAmount {
-    final discount = double.tryParse(_discountController.text) ?? 0;
-    return (_subtotal + _profitAmount) * (discount / 100);
+    final discountInput = double.tryParse(_discountController.text) ?? 0;
+    final baseAmount = _subtotal + _profitAmount;
+    if (_discountIsPercent) {
+      return (baseAmount * (discountInput / 100)).clamp(0, baseAmount);
+    }
+    return discountInput.clamp(0, baseAmount);
   }
+
+  String get _discountSummaryLabel => _discountIsPercent
+      ? 'Descuento (${_discountController.text}%)'
+      : 'Descuento (Valor fijo)';
 
   double get _total => _subtotal + _profitAmount - _discountAmount;
 
@@ -234,6 +246,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
     _notesController.dispose();
     _advanceAmountController.dispose();
     _customProcessController.dispose();
+    _deliveryDaysController.dispose();
     super.dispose();
   }
 
@@ -714,7 +727,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         ),
         if (_discountAmount > 0)
           _buildCostLine(
-            'Descuento (${_discountController.text}%)',
+            _discountSummaryLabel,
             -_discountAmount,
             color: const Color(0xFFC62828),
           ),
@@ -1092,6 +1105,13 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
 
   // ════════════════════════ PASO 1: CLIENTE ════════════════════════
   Widget _buildCustomerStep() {
+    final selectedCustomer = _selectedCustomerId == null
+        ? null
+        : _customers.cast<Map<String, dynamic>?>().firstWhere(
+            (customer) => customer?['id'] == _selectedCustomerId,
+            orElse: () => null,
+          );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1100,28 +1120,95 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           style: TextStyle(fontSize: 14),
         ),
         const SizedBox(height: 16),
-        DropdownButtonFormField<String>(
-          value: _selectedCustomerId,
-          isExpanded: true,
-          decoration: InputDecoration(
-            labelText: 'Cliente',
-            prefixIcon: const Icon(Icons.person),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-          items: _customers
-              .map(
-                (c) => DropdownMenuItem(
-                  value: c['id'] as String,
-                  child: Text(
-                    '${c['name']} - ${c['documentType'] ?? 'CC'}: ${c['ruc']}',
-                    overflow: TextOverflow.ellipsis,
-                  ),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _showCustomerSelectorDialog,
+            borderRadius: BorderRadius.circular(14),
+            child: Ink(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: _selectedCustomerId != null
+                      ? _saleThemeColor.withValues(alpha: 0.45)
+                      : const Color(0xFFD0D7DE),
+                  width: _selectedCustomerId != null ? 1.4 : 1,
                 ),
-              )
-              .toList(),
-          onChanged: (value) => setState(() => _selectedCustomerId = value),
-          validator: (value) => value == null ? 'Seleccione un cliente' : null,
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0D000000),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _saleThemeColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.person_search,
+                      color: _saleThemeColor,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          selectedCustomer == null
+                              ? 'Seleccionar cliente'
+                              : (selectedCustomer['name'] as String? ??
+                                    'Cliente'),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: selectedCustomer == null
+                                ? const Color(0xFF424242)
+                                : const Color(0xFF111827),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          selectedCustomer == null
+                              ? 'Abre una ventana centrada con búsqueda por nombre o documento.'
+                              : '${selectedCustomer['documentType'] ?? 'CC'}: ${selectedCustomer['ruc'] ?? 'Sin documento'}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Icon(Icons.keyboard_arrow_down_rounded, size: 28),
+                ],
+              ),
+            ),
+          ),
         ),
+        if (_selectedCustomerId == null)
+          const Padding(
+            padding: EdgeInsets.only(top: 10, left: 4),
+            child: Text(
+              'Debes seleccionar un cliente antes de continuar.',
+              style: TextStyle(fontSize: 12, color: Color(0xFF757575)),
+            ),
+          ),
       ],
     );
   }
@@ -1378,14 +1465,16 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                       ),
                                       Row(
                                         children: [
-                                          Text(
-                                            item['dimensions'] ?? '',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: const Color(0xFF757575),
+                                          Flexible(
+                                            child: Text(
+                                              item['dimensions'] ?? '',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: const Color(0xFF757575),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
                                           ),
                                           if (isRecipe &&
                                               item['livePricingUsed'] ==
@@ -2103,13 +2192,34 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 ],
               ),
               const SizedBox(height: 16),
+              Row(
+                children: [
+                  ChoiceChip(
+                    label: const Text('%'),
+                    selected: _discountIsPercent,
+                    onSelected: (_) =>
+                        setState(() => _discountIsPercent = true),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('Valor'),
+                    selected: !_discountIsPercent,
+                    onSelected: (_) =>
+                        setState(() => _discountIsPercent = false),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               if (isMobile) ...[
                 TextFormField(
                   controller: _discountController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'Porcentaje de descuento',
-                    suffixText: '%',
+                    labelText: _discountIsPercent
+                        ? 'Porcentaje de descuento'
+                        : 'Valor de descuento',
+                    suffixText: _discountIsPercent ? '%' : null,
+                    prefixText: _discountIsPercent ? null : '\$ ',
                     isDense: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -2117,20 +2227,22 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
-                const SizedBox(height: 8),
-                Slider(
-                  value: double.tryParse(_discountController.text) ?? 0,
-                  min: 0,
-                  max: 30,
-                  divisions: 30,
-                  label: '${_discountController.text}%',
-                  activeColor: const Color(0xFFEF5350),
-                  onChanged: (value) {
-                    setState(() {
-                      _discountController.text = value.toStringAsFixed(0);
-                    });
-                  },
-                ),
+                if (_discountIsPercent) ...[
+                  const SizedBox(height: 8),
+                  Slider(
+                    value: double.tryParse(_discountController.text) ?? 0,
+                    min: 0,
+                    max: 30,
+                    divisions: 30,
+                    label: '${_discountController.text}%',
+                    activeColor: const Color(0xFFEF5350),
+                    onChanged: (value) {
+                      setState(() {
+                        _discountController.text = value.toStringAsFixed(0);
+                      });
+                    },
+                  ),
+                ],
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
@@ -2163,8 +2275,11 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                         controller: _discountController,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
-                          labelText: 'Porcentaje de descuento',
-                          suffixText: '%',
+                          labelText: _discountIsPercent
+                              ? 'Porcentaje de descuento'
+                              : 'Valor de descuento',
+                          suffixText: _discountIsPercent ? '%' : null,
+                          prefixText: _discountIsPercent ? null : '\$ ',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -2172,22 +2287,37 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                         onChanged: (_) => setState(() {}),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Slider(
-                        value: double.tryParse(_discountController.text) ?? 0,
-                        min: 0,
-                        max: 30,
-                        divisions: 30,
-                        label: '${_discountController.text}%',
-                        activeColor: const Color(0xFFEF5350),
-                        onChanged: (value) {
-                          setState(() {
-                            _discountController.text = value.toStringAsFixed(0);
-                          });
-                        },
+                    if (_discountIsPercent) ...[
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Slider(
+                          value: double.tryParse(_discountController.text) ?? 0,
+                          min: 0,
+                          max: 30,
+                          divisions: 30,
+                          label: '${_discountController.text}%',
+                          activeColor: const Color(0xFFEF5350),
+                          onChanged: (value) {
+                            setState(() {
+                              _discountController.text = value.toStringAsFixed(
+                                0,
+                              );
+                            });
+                          },
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'Ingresa el valor total del descuento.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: const Color(0xFF757575),
+                          ),
+                        ),
+                      ),
+                    ],
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -2347,6 +2477,81 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                   hintText: 'Notas adicionales de la venta...',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // ═══════ DÍAS DE ENTREGA ═══════
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _deliveryDaysController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Días de entrega',
+                    prefixIcon: const Icon(Icons.local_shipping),
+                    suffixText: 'días',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.event,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Entregar antes',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          Text(
+                            Helpers.formatDate(
+                              ColombiaTime.now().add(
+                                Duration(
+                                  days:
+                                      int.tryParse(
+                                        _deliveryDaysController.text,
+                                      ) ??
+                                      3,
+                                ),
+                              ),
+                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -3890,6 +4095,11 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           ? ColombiaTime.now().add(Duration(days: _advanceCreditDays))
           : ColombiaTime.now();
 
+      // Fecha de entrega
+      final deliveryDate = ColombiaTime.now().add(
+        Duration(days: int.tryParse(_deliveryDaysController.text) ?? 3),
+      );
+
       // 1. Crear factura con items
       // Factor para distribuir mano de obra, costos indirectos
       // y margen de ganancia proporcionalmente en cada item (SIN descuento)
@@ -3904,6 +4114,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
         customer: customer,
         issueDate: ColombiaTime.now(),
         dueDate: dueDate,
+        deliveryDate: deliveryDate,
         salePaymentType: _paymentType,
         taxRate: 0,
         discount: _discountAmount,
@@ -4228,6 +4439,286 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           });
           _refreshConsolidatedStock();
         },
+      ),
+    );
+  }
+
+  Future<void> _showCustomerSelectorDialog() async {
+    if (_customers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay clientes registrados.'),
+          backgroundColor: Color(0xFFF9A825),
+        ),
+      );
+      return;
+    }
+
+    final selectedId = await showDialog<String>(
+      context: context,
+      builder: (context) => _SaleCustomerSelectorDialog(
+        customers: _customers,
+        selectedCustomerId: _selectedCustomerId,
+      ),
+    );
+
+    if (selectedId != null && mounted) {
+      setState(() => _selectedCustomerId = selectedId);
+    }
+  }
+}
+
+class _SaleCustomerSelectorDialog extends StatefulWidget {
+  final List<Map<String, dynamic>> customers;
+  final String? selectedCustomerId;
+
+  const _SaleCustomerSelectorDialog({
+    required this.customers,
+    required this.selectedCustomerId,
+  });
+
+  @override
+  State<_SaleCustomerSelectorDialog> createState() =>
+      _SaleCustomerSelectorDialogState();
+}
+
+class _SaleCustomerSelectorDialogState
+    extends State<_SaleCustomerSelectorDialog> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  List<Map<String, dynamic>> get _filteredCustomers {
+    if (_searchQuery.trim().isEmpty) {
+      return widget.customers;
+    }
+
+    final query = _searchQuery.trim().toLowerCase();
+    return widget.customers.where((customer) {
+      final name = (customer['name'] as String? ?? '').toLowerCase();
+      final document = (customer['ruc'] as String? ?? '').toLowerCase();
+      final documentType = (customer['documentType'] as String? ?? '')
+          .toLowerCase();
+      return name.contains(query) ||
+          document.contains(query) ||
+          documentType.contains(query);
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+    final screenSize = MediaQuery.of(context).size;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 40,
+        vertical: isMobile ? 24 : 32,
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 720,
+          minWidth: isMobile ? 0 : 520,
+          maxHeight: isMobile ? screenSize.height * 0.82 : 560,
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(isMobile ? 16 : 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _saleThemeColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.people_alt_outlined,
+                      color: _saleThemeColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Seleccionar cliente',
+                          style: TextStyle(
+                            fontSize: isMobile ? 17 : 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Busca por nombre o documento.',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Escribe nombre, CC o NIT',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                          icon: const Icon(Icons.clear),
+                        ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  isDense: true,
+                ),
+                onChanged: (value) => setState(() => _searchQuery = value),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${_filteredCustomers.length} cliente(s) encontrados',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF6B7280),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: _filteredCustomers.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.person_off_outlined,
+                              size: 42,
+                              color: Color(0xFFB0BEC5),
+                            ),
+                            SizedBox(height: 10),
+                            Text(
+                              'No hay clientes que coincidan con la búsqueda.',
+                              style: TextStyle(color: Color(0xFF607D8B)),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: _filteredCustomers.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final customer = _filteredCustomers[index];
+                          final isSelected =
+                              customer['id'] == widget.selectedCustomerId;
+
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => Navigator.of(
+                                context,
+                              ).pop(customer['id'] as String),
+                              borderRadius: BorderRadius.circular(14),
+                              child: Ink(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? _saleThemeColor.withValues(alpha: 0.10)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? _saleThemeColor
+                                        : const Color(0xFFE5E7EB),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 20,
+                                      backgroundColor: isSelected
+                                          ? _saleThemeColor
+                                          : const Color(0xFFDCEBFA),
+                                      child: Icon(
+                                        Icons.person,
+                                        color: isSelected
+                                            ? Colors.white
+                                            : _saleThemeColor,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            customer['name'] as String? ??
+                                                'Cliente',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${customer['documentType'] ?? 'CC'}: ${customer['ruc'] ?? 'Sin documento'}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Color(0xFF6B7280),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Icon(
+                                      isSelected
+                                          ? Icons.check_circle
+                                          : Icons.chevron_right,
+                                      color: isSelected
+                                          ? _saleThemeColor
+                                          : const Color(0xFF9CA3AF),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -10,6 +10,7 @@ class CompanySettings {
   final String? logoUrl;
   final String currency;
   final double taxRate;
+  final int autoDeliveryDays;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -24,6 +25,7 @@ class CompanySettings {
     this.logoUrl,
     this.currency = 'USD',
     this.taxRate = 0.0,
+    this.autoDeliveryDays = 1,
     this.createdAt,
     this.updatedAt,
   });
@@ -39,6 +41,7 @@ class CompanySettings {
     String? logoUrl,
     String? currency,
     double? taxRate,
+    int? autoDeliveryDays,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -53,6 +56,7 @@ class CompanySettings {
       logoUrl: logoUrl ?? this.logoUrl,
       currency: currency ?? this.currency,
       taxRate: taxRate ?? this.taxRate,
+      autoDeliveryDays: autoDeliveryDays ?? this.autoDeliveryDays,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -69,22 +73,29 @@ class CompanySettings {
     'logo_url': logoUrl,
     'currency': currency,
     'tax_rate': taxRate,
+    'auto_delivery_days': autoDeliveryDays,
   };
 
-  factory CompanySettings.fromJson(Map<String, dynamic> json) => CompanySettings(
-    id: json['id'],
-    name: json['name'] ?? 'Industrial de Molinos',
-    tradeName: json['trade_name'],
-    ruc: json['ruc'],
-    address: json['address'],
-    phone: json['phone'],
-    email: json['email'],
-    logoUrl: json['logo_url'],
-    currency: json['currency'] ?? 'USD',
-    taxRate: (json['tax_rate'] ?? 0.0).toDouble(),
-    createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
-    updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
-  );
+  factory CompanySettings.fromJson(Map<String, dynamic> json) =>
+      CompanySettings(
+        id: json['id'],
+        name: json['name'] ?? 'Industrial de Molinos',
+        tradeName: json['trade_name'],
+        ruc: json['ruc'],
+        address: json['address'],
+        phone: json['phone'],
+        email: json['email'],
+        logoUrl: json['logo_url'],
+        currency: json['currency'] ?? 'USD',
+        taxRate: (json['tax_rate'] ?? 0.0).toDouble(),
+        autoDeliveryDays: (json['auto_delivery_days'] as num?)?.toInt() ?? 1,
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'])
+            : null,
+        updatedAt: json['updated_at'] != null
+            ? DateTime.parse(json['updated_at'])
+            : null,
+      );
 }
 
 /// Categoría de productos
@@ -112,14 +123,17 @@ class ProductCategory {
     'is_active': isActive,
   };
 
-  factory ProductCategory.fromJson(Map<String, dynamic> json) => ProductCategory(
-    id: json['id'],
-    name: json['name'],
-    description: json['description'],
-    parentId: json['parent_id'],
-    isActive: json['is_active'] ?? true,
-    createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
-  );
+  factory ProductCategory.fromJson(Map<String, dynamic> json) =>
+      ProductCategory(
+        id: json['id'],
+        name: json['name'],
+        description: json['description'],
+        parentId: json['parent_id'],
+        isActive: json['is_active'] ?? true,
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'])
+            : null,
+      );
 }
 
 /// Concepto de nómina
@@ -128,7 +142,8 @@ class PayrollConcept {
   final String code;
   final String name;
   final String type; // 'ingreso', 'descuento'
-  final String category; // 'salario', 'hora_extra', 'bonificacion', 'descuento', 'incapacidad'
+  final String
+  category; // 'salario', 'hora_extra', 'bonificacion', 'descuento', 'incapacidad'
   final bool isPercentage;
   final double defaultValue;
   final bool affectsTaxes;

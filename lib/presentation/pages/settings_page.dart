@@ -22,6 +22,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _overdueAlerts = true;
   String _language = 'Español';
   String _currency = 'USD (\$)';
+  int _autoDeliveryDays = 1;
+  bool _settingsLoaded = false;
 
   // Controladores para edición de perfil
   final _nameController = TextEditingController(text: 'Administrador');
@@ -55,6 +57,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     {'icon': Icons.location_on, 'label': 'Ubicaciones'},
     {'icon': Icons.category, 'label': 'Categorías'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_loadSettings);
+  }
+
+  Future<void> _loadSettings() async {
+    await ref.read(settingsProvider.notifier).loadAll();
+    if (!mounted) return;
+
+    final company = ref.read(settingsProvider).companySettings;
+    setState(() {
+      _autoDeliveryDays = company.autoDeliveryDays;
+      _settingsLoaded = true;
+    });
+  }
 
   @override
   void dispose() {
@@ -759,6 +778,38 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   activeColor: cs.primary,
                 ),
               ),
+              const Divider(height: 32),
+              _buildSettingRow(
+                'Días de Entrega Automática',
+                'Se usa cuando se emite/finaliza factura sin fecha de entrega.',
+                trailing: SizedBox(
+                  width: 130,
+                  child: DropdownButtonFormField<int>(
+                    value: _autoDeliveryDays,
+                    isDense: true,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                    items: List.generate(31, (i) => i)
+                        .map(
+                          (days) => DropdownMenuItem(
+                            value: days,
+                            child: Text('$days día${days == 1 ? '' : 's'}'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() => _autoDeliveryDays = v);
+                      }
+                    },
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1403,11 +1454,35 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         const SizedBox(width: 12),
         FilledButton.icon(
-          onPressed: () {
+          onPressed: () async {
+            if (!_settingsLoaded) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Cargando configuración, intenta de nuevo.'),
+                ),
+              );
+              return;
+            }
+
+            final currentCompany = ref.read(settingsProvider).companySettings;
+            final updatedCompany = currentCompany.copyWith(
+              autoDeliveryDays: _autoDeliveryDays,
+            );
+
+            final ok = await ref
+                .read(settingsProvider.notifier)
+                .updateCompanySettings(updatedCompany);
+
+            if (!mounted) return;
+
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Cambios guardados correctamente'),
-                backgroundColor: AppColors.success,
+              SnackBar(
+                content: Text(
+                  ok
+                      ? 'Configuración guardada correctamente'
+                      : 'No se pudo guardar la configuración',
+                ),
+                backgroundColor: ok ? AppColors.success : AppColors.danger,
               ),
             );
           },

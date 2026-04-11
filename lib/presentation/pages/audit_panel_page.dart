@@ -5,6 +5,7 @@ import '../../core/responsive/responsive_helper.dart';
 import '../../domain/entities/audit_log.dart';
 import '../../data/providers/audit_log_provider.dart';
 import '../../core/utils/colombia_time.dart';
+import '../widgets/screen_permissions_manager.dart';
 
 /// Página de Panel de Auditoría — Movimientos del sistema
 /// Muestra quién hizo qué y cuándo
@@ -15,16 +16,25 @@ class AuditPanelPage extends ConsumerStatefulWidget {
   ConsumerState<AuditPanelPage> createState() => _AuditPanelPageState();
 }
 
-class _AuditPanelPageState extends ConsumerState<AuditPanelPage> {
+class _AuditPanelPageState extends ConsumerState<AuditPanelPage>
+    with SingleTickerProviderStateMixin {
   final _dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'es_CO');
   final _dateOnlyFormat = DateFormat('dd/MM/yyyy', 'es_CO');
+  late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(auditLogProvider.notifier).loadLogs();
     });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
@@ -39,16 +49,30 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage> {
           color: colorScheme.surfaceContainerLowest,
           child: Column(
             children: [
-              _buildHeader(context, state),
-              _buildFilterBar(context, state),
+              _buildMainHeader(context),
               Expanded(
-                child: state.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : state.error != null
-                    ? _buildErrorState(context, state.error!)
-                    : state.logs.isEmpty
-                    ? _buildEmptyState(context)
-                    : _buildLogList(context, state),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // Tab 1: Auditoría (logs)
+                    Column(
+                      children: [
+                        _buildFilterBar(context, state),
+                        Expanded(
+                          child: state.isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : state.error != null
+                              ? _buildErrorState(context, state.error!)
+                              : state.logs.isEmpty
+                              ? _buildEmptyState(context)
+                              : _buildLogList(context, state),
+                        ),
+                      ],
+                    ),
+                    // Tab 2: Permisos de pantalla
+                    const ScreenPermissionsManager(),
+                  ],
+                ),
               ),
             ],
           ),
@@ -57,61 +81,42 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, AuditLogState state) {
+  Widget _buildMainHeader(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         border: Border(
           bottom: BorderSide(color: colorScheme.outlineVariant.withAlpha(80)),
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Icon(Icons.security, color: colorScheme.primary, size: 28),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+            child: Row(
               children: [
-                Text(
-                  'Panel de Auditoría',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'Registro de todos los movimientos del sistema',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                Icon(Icons.security, color: colorScheme.primary, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Panel de Auditoría',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          // Contador de registros
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '${state.logs.length} registros',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: colorScheme.onPrimaryContainer,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar',
-            onPressed: () => ref.read(auditLogProvider.notifier).loadLogs(),
+          TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(icon: Icon(Icons.list_alt), text: 'Movimientos'),
+              Tab(icon: Icon(Icons.admin_panel_settings), text: 'Permisos'),
+            ],
           ),
         ],
       ),
