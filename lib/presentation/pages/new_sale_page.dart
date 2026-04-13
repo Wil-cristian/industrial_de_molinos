@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart' as intl;
 import '../../core/utils/helpers.dart';
 import '../../core/utils/logger.dart';
 import '../../core/responsive/responsive_helper.dart';
@@ -60,6 +61,10 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
   List<Account> _accounts = [];
   int _creditDays = 30;
   int _installments = 1;
+  String _creditFrequency = 'days'; // 'days' o 'weeks'
+  int _creditWeeks = 4;
+  DateTime _creditStartDate = DateTime.now();
+  final _weeksController = TextEditingController(text: '4');
   final _advanceAmountController = TextEditingController();
   int _advanceCreditDays = 30;
 
@@ -821,6 +826,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                           ? 'Pago de Contado'
                           : _paymentType == 'advance'
                           ? 'Adelanto + Crédito'
+                          : _creditFrequency == 'weeks'
+                          ? 'Crédito ($_creditWeeks semanas)'
                           : 'Crédito ($_creditDays días)',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
@@ -846,11 +853,14 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                     ),
                   ),
                 ),
-              if (_paymentType == 'credit' && _installments > 1)
+              if (_paymentType == 'credit' &&
+                  (_installments > 1 || _creditFrequency == 'weeks'))
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    '$_installments cuotas de ${Helpers.formatCurrency(_total / _installments)}',
+                    _creditFrequency == 'weeks'
+                        ? '$_creditWeeks sem. - ${_installments > 1 ? '$_installments cuotas' : '1 pago'}'
+                        : '$_installments cuotas de ${Helpers.formatCurrency(_total / _installments)}',
                     style: TextStyle(
                       fontSize: 10,
                       color: const Color(0xFFFB8C00),
@@ -2788,6 +2798,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                     ? '${_getPaymentMethodLabel()} (contado)'
                     : _paymentType == 'advance'
                     ? 'Adelanto ${Helpers.formatCurrency(_advanceAmount)} + crédito $_advanceCreditDays días'
+                    : _creditFrequency == 'weeks'
+                    ? 'Crédito $_creditWeeks semanas${_installments > 1 ? ' ($_installments cuotas)' : ''}'
                     : 'Crédito $_creditDays días${_installments > 1 ? ' ($_installments cuotas)' : ''}',
               ),
               if (_createProductionOrder && _selectedProcesses.isNotEmpty)
@@ -3354,8 +3366,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ── Frecuencia de pago ──
         Text(
-          'Plazo de crédito',
+          'Frecuencia de pago',
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: const Color(0xFF424242),
@@ -3367,32 +3380,265 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _buildDaysChip(30),
-            _buildDaysChip(60),
-            _buildDaysChip(90),
+            ChoiceChip(
+              selected: _creditFrequency == 'days',
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.calendar_month,
+                    size: 16,
+                    color: _creditFrequency == 'days'
+                        ? Colors.white
+                        : const Color(0xFF424242),
+                  ),
+                  const SizedBox(width: 4),
+                  const Text('Por días'),
+                ],
+              ),
+              onSelected: (_) => setState(() {
+                _creditFrequency = 'days';
+              }),
+              selectedColor: const Color(0xFFF9A825),
+              labelStyle: TextStyle(
+                color: _creditFrequency == 'days'
+                    ? Colors.white
+                    : const Color(0xFF424242),
+              ),
+            ),
+            ChoiceChip(
+              selected: _creditFrequency == 'weeks',
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.date_range,
+                    size: 16,
+                    color: _creditFrequency == 'weeks'
+                        ? Colors.white
+                        : const Color(0xFF424242),
+                  ),
+                  const SizedBox(width: 4),
+                  const Text('Por semanas'),
+                ],
+              ),
+              onSelected: (_) => setState(() {
+                _creditFrequency = 'weeks';
+              }),
+              selectedColor: const Color(0xFFF9A825),
+              labelStyle: TextStyle(
+                color: _creditFrequency == 'weeks'
+                    ? Colors.white
+                    : const Color(0xFF424242),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 16),
-        Text(
-          'Número de cuotas',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF424242),
-            fontSize: 14,
+
+        // ── Opciones por días ──
+        if (_creditFrequency == 'days') ...[
+          Text(
+            'Plazo de crédito',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF424242),
+              fontSize: 14,
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _buildInstallmentChip(1),
-            _buildInstallmentChip(2),
-            _buildInstallmentChip(3),
-            _buildInstallmentChip(6),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildDaysChip(30),
+              _buildDaysChip(60),
+              _buildDaysChip(90),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Número de cuotas',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF424242),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildInstallmentChip(1),
+              _buildInstallmentChip(2),
+              _buildInstallmentChip(3),
+              _buildInstallmentChip(6),
+            ],
+          ),
+          if (_installments > 1) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFFCC80)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Monto por cuota:',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        Helpers.formatCurrency(_total / _installments),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: const Color(0xFFEF6C00),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$_installments cuotas durante $_creditDays días',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: const Color(0xFFFB8C00),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
-        ),
-        if (_installments > 1) ...[
+        ],
+
+        // ── Opciones por semanas ──
+        if (_creditFrequency == 'weeks') ...[
+          Text(
+            'Fecha de inicio',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF424242),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _creditStartDate,
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+                locale: const Locale('es', 'CO'),
+              );
+              if (picked != null) {
+                setState(() => _creditStartDate = picked);
+              }
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFBDBDBD)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 18,
+                    color: Color(0xFFF9A825),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    intl.DateFormat(
+                      'dd/MM/yyyy',
+                      'es_CO',
+                    ).format(_creditStartDate),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_drop_down, color: Color(0xFF757575)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Número de semanas',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF424242),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildWeeksChip(2),
+              _buildWeeksChip(4),
+              _buildWeeksChip(6),
+              _buildWeeksChip(8),
+              _buildWeeksChip(12),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 140,
+            child: TextField(
+              controller: _weeksController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Otro',
+                suffixText: 'sem.',
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onChanged: (v) {
+                final weeks = int.tryParse(v);
+                if (weeks != null && weeks > 0) {
+                  setState(() => _creditWeeks = weeks);
+                }
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Número de cuotas',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF424242),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildInstallmentChip(1),
+              _buildInstallmentChip(2),
+              _buildInstallmentChip(3),
+              _buildInstallmentChip(4),
+              _buildInstallmentChip(_creditWeeks),
+            ],
+          ),
+          // Resumen semanal
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
@@ -3411,7 +3657,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                       style: TextStyle(fontWeight: FontWeight.w500),
                     ),
                     Text(
-                      Helpers.formatCurrency(_total / _installments),
+                      Helpers.formatCurrency(
+                        _total / (_installments > 0 ? _installments : 1),
+                      ),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -3422,10 +3670,19 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$_installments cuotas durante $_creditDays días',
+                  '${_installments > 1 ? '$_installments cuotas en ' : ''}$_creditWeeks semanas desde ${intl.DateFormat('dd/MM/yyyy', 'es_CO').format(_creditStartDate)}',
                   style: TextStyle(
                     fontSize: 12,
                     color: const Color(0xFFFB8C00),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Vence: ${intl.DateFormat('dd/MM/yyyy', 'es_CO').format(_creditStartDate.add(Duration(days: _creditWeeks * 7)))}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: const Color(0xFFEF6C00),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -3455,6 +3712,22 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
       selected: isSelected,
       label: Text(n == 1 ? '1 pago' : '$n cuotas'),
       onSelected: (_) => setState(() => _installments = n),
+      selectedColor: const Color(0xFFF9A825),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : const Color(0xFF424242),
+      ),
+    );
+  }
+
+  Widget _buildWeeksChip(int weeks) {
+    final isSelected = _creditWeeks == weeks;
+    return ChoiceChip(
+      selected: isSelected,
+      label: Text('$weeks sem.'),
+      onSelected: (_) => setState(() {
+        _creditWeeks = weeks;
+        _weeksController.text = weeks.toString();
+      }),
       selectedColor: const Color(0xFFF9A825),
       labelStyle: TextStyle(
         color: isSelected ? Colors.white : const Color(0xFF424242),
@@ -3778,6 +4051,8 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
             ? _advanceCreditDays
             : _creditDays,
         installments: _installments,
+        creditFrequency: _creditFrequency,
+        creditWeeks: _creditWeeks,
         advanceAmount: _advanceAmount,
         stockMaterials: _allConsolidatedMaterials,
         stockIssues: _getStockIssues(),
@@ -3984,7 +4259,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Crédito: $_creditDays días${_installments > 1 ? ', $_installments cuotas de ${Helpers.formatCurrency(_total / _installments)}' : ''}',
+                        _creditFrequency == 'weeks'
+                            ? 'Crédito: $_creditWeeks semanas desde ${intl.DateFormat('dd/MM/yyyy').format(_creditStartDate)}${_installments > 1 ? ', $_installments cuotas de ${Helpers.formatCurrency(_total / _installments)}' : ''}'
+                            : 'Crédito: $_creditDays días${_installments > 1 ? ', $_installments cuotas de ${Helpers.formatCurrency(_total / _installments)}' : ''}',
                         style: const TextStyle(fontSize: 13),
                       ),
                     ),
@@ -4090,7 +4367,9 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
 
       // Fecha de vencimiento según tipo de pago
       final dueDate = _paymentType == 'credit'
-          ? ColombiaTime.now().add(Duration(days: _creditDays))
+          ? _creditFrequency == 'weeks'
+                ? _creditStartDate.add(Duration(days: _creditWeeks * 7))
+                : ColombiaTime.now().add(Duration(days: _creditDays))
           : _paymentType == 'advance'
           ? ColombiaTime.now().add(Duration(days: _advanceCreditDays))
           : ColombiaTime.now();
@@ -6425,6 +6704,8 @@ class _SalePreviewDialog extends StatefulWidget {
   final String accountName;
   final int creditDays;
   final int installments;
+  final String creditFrequency;
+  final int creditWeeks;
   final List<Map<String, dynamic>> stockMaterials;
   final List<Map<String, dynamic>> stockIssues;
   final double advanceAmount;
@@ -6449,6 +6730,8 @@ class _SalePreviewDialog extends StatefulWidget {
     required this.accountName,
     required this.creditDays,
     required this.installments,
+    this.creditFrequency = 'days',
+    this.creditWeeks = 4,
     required this.stockMaterials,
     required this.stockIssues,
     this.advanceAmount = 0,
@@ -6682,6 +6965,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                     ? 'Contado: ${widget.paymentMethodLabel}'
                                     : widget.paymentType == 'advance'
                                     ? 'Adelanto: ${Helpers.formatCurrency(widget.advanceAmount)}'
+                                    : widget.creditFrequency == 'weeks'
+                                    ? 'Crédito: ${widget.creditWeeks} semanas'
                                     : 'Crédito: ${widget.creditDays} días',
                                 style: const TextStyle(
                                   fontSize: 11,
@@ -6793,6 +7078,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                 ? 'Pago de contado: ${widget.paymentMethodLabel} → ${widget.accountName}'
                                 : widget.paymentType == 'advance'
                                 ? 'Adelanto: ${Helpers.formatCurrency(widget.advanceAmount)} → ${widget.accountName} | Restante: ${Helpers.formatCurrency(widget.total - widget.advanceAmount)} a ${widget.creditDays} días'
+                                : widget.creditFrequency == 'weeks'
+                                ? 'Crédito: ${widget.creditWeeks} semanas${widget.installments > 1 ? ', ${widget.installments} cuotas de \$${Helpers.formatNumber(widget.total / widget.installments)}' : ''}'
                                 : 'Crédito: ${widget.creditDays} días${widget.installments > 1 ? ', ${widget.installments} cuotas de \$${Helpers.formatNumber(widget.total / widget.installments)}' : ''}',
                             style: TextStyle(
                               fontSize: 12,
@@ -7145,9 +7432,15 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                   _buildDateRow(
                                     'Vencimiento:',
                                     _formatDate(
-                                      ColombiaTime.now().add(
-                                        Duration(days: widget.creditDays),
-                                      ),
+                                      widget.creditFrequency == 'weeks'
+                                          ? ColombiaTime.now().add(
+                                              Duration(
+                                                days: widget.creditWeeks * 7,
+                                              ),
+                                            )
+                                          : ColombiaTime.now().add(
+                                              Duration(days: widget.creditDays),
+                                            ),
                                     ),
                                   ),
                                 const SizedBox(height: 6),
@@ -7169,6 +7462,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                         ? 'CONTADO - ${widget.paymentMethodLabel}'
                                         : widget.paymentType == 'advance'
                                         ? 'ADELANTO ${Helpers.formatCurrency(widget.advanceAmount)}'
+                                        : widget.creditFrequency == 'weeks'
+                                        ? 'CRÉDITO ${widget.creditWeeks} sem.${widget.installments > 1 ? ' (${widget.installments} cuotas)' : ''}'
                                         : 'CRÉDITO ${widget.creditDays} días${widget.installments > 1 ? ' (${widget.installments} cuotas)' : ''}',
                                     style: TextStyle(
                                       fontSize: 11,
@@ -8260,6 +8555,8 @@ class _SalePreviewDialogState extends State<_SalePreviewDialog>
                                     ? '${widget.paymentMethodLabel} → ${widget.accountName}'
                                     : widget.paymentType == 'advance'
                                     ? 'Adelanto: ${Helpers.formatCurrency(widget.advanceAmount)} → ${widget.accountName} | Restante: ${Helpers.formatCurrency(widget.total - widget.advanceAmount)} a ${widget.creditDays} días'
+                                    : widget.creditFrequency == 'weeks'
+                                    ? '${widget.creditWeeks} semanas${widget.installments > 1 ? ' | ${widget.installments} cuotas de \$${Helpers.formatNumber(widget.total / widget.installments)}' : ''}'
                                     : '${widget.creditDays} días${widget.installments > 1 ? ' | ${widget.installments} cuotas de \$${Helpers.formatNumber(widget.total / widget.installments)}' : ''}',
                                 style: TextStyle(
                                   fontSize: 12,

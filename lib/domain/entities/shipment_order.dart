@@ -13,6 +13,7 @@ class ShipmentOrder {
   final String? customerId;
   final String customerName;
   final String? customerAddress;
+  final String? customerPhone;
 
   // Transporte
   final String? carrierName;
@@ -54,6 +55,7 @@ class ShipmentOrder {
     this.customerId,
     required this.customerName,
     this.customerAddress,
+    this.customerPhone,
     this.carrierName,
     this.carrierDocument,
     this.vehiclePlate,
@@ -102,6 +104,7 @@ class ShipmentOrder {
     String? customerId,
     String? customerName,
     String? customerAddress,
+    String? customerPhone,
     String? carrierName,
     String? carrierDocument,
     String? vehiclePlate,
@@ -130,6 +133,7 @@ class ShipmentOrder {
       customerId: customerId ?? this.customerId,
       customerName: customerName ?? this.customerName,
       customerAddress: customerAddress ?? this.customerAddress,
+      customerPhone: customerPhone ?? this.customerPhone,
       carrierName: carrierName ?? this.carrierName,
       carrierDocument: carrierDocument ?? this.carrierDocument,
       vehiclePlate: vehiclePlate ?? this.vehiclePlate,
@@ -175,6 +179,7 @@ class ShipmentOrder {
       customerId: json['customer_id']?.toString(),
       customerName: (json['customer_name'] ?? '').toString(),
       customerAddress: json['customer_address']?.toString(),
+      customerPhone: json['customer_phone']?.toString(),
       carrierName: json['carrier_name']?.toString(),
       carrierDocument: json['carrier_document']?.toString(),
       vehiclePlate: json['vehicle_plate']?.toString(),
@@ -215,14 +220,19 @@ class ShipmentOrder {
       'customer_id': customerId,
       'customer_name': customerName,
       'customer_address': customerAddress,
+      'customer_phone': customerPhone,
       'carrier_name': carrierName,
       'carrier_document': carrierDocument,
       'vehicle_plate': vehiclePlate,
       'driver_name': driverName,
       'driver_document': driverDocument,
       'dispatch_date': ColombiaTime.dateString(dispatchDate),
-      'delivery_date': (deliveryDate != null ? ColombiaTime.dateString(deliveryDate!) : null),
-      'delivered_at': (deliveredAt != null ? ColombiaTime.toIso8601(deliveredAt!) : null),
+      'delivery_date': (deliveryDate != null
+          ? ColombiaTime.dateString(deliveryDate!)
+          : null),
+      'delivered_at': (deliveredAt != null
+          ? ColombiaTime.toIso8601(deliveredAt!)
+          : null),
       'status': statusToString(status),
       'notes': notes,
       'internal_notes': internalNotes,

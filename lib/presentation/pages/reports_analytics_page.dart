@@ -457,6 +457,46 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
       return const Center(child: CircularProgressIndicator());
     }
 
+    if (state.error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error cargando analytics',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                state.error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  ref.read(analyticsProvider.notifier).loadAll();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Reintentar'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // Calcular KPIs
     final totalRevenue = state.profitLoss.fold(
       0.0,
@@ -2093,11 +2133,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   padding: EdgeInsets.symmetric(vertical: 24),
                   child: Center(child: Text('Sin datos')),
                 )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: topClients.length,
-                  itemBuilder: (context, index) {
+              : Column(
+                  children: List.generate(topClients.length, (index) {
                     final client = topClients[index];
                     final progress = maxSpent > 0
                         ? client.totalSpent / maxSpent
@@ -2210,7 +2247,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         ],
                       ),
                     );
-                  },
+                  }),
                 ),
         ],
       ),
@@ -2263,11 +2300,8 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   padding: EdgeInsets.symmetric(vertical: 24),
                   child: Center(child: Text('Sin datos')),
                 )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
+              : Column(
+                  children: List.generate(products.length, (index) {
                     final product = products[index];
                     final progress = maxRevenue > 0
                         ? product.totalRevenue / maxRevenue
@@ -2354,7 +2388,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         ],
                       ),
                     );
-                  },
+                  }),
                 ),
         ],
       ),
@@ -3294,7 +3328,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
 
   // Card: Rotación de Inventario de Productos
   Widget _buildInventoryTurnoverCard(AnalyticsState state) {
-    final items = state.inventoryTurnover;
+    final items = state.inventoryTurnover
+        .where((i) => i.inventoryStatus != 'NORMAL')
+        .toList();
     final hasData = items.isNotEmpty;
 
     return Container(
@@ -3315,7 +3351,6 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
         children: [
           Row(
             children: [
-              const Icon(Icons.autorenew, color: Color(0xFF009688), size: 20),
               const Icon(Icons.autorenew, color: Color(0xFF009688), size: 20),
               const SizedBox(width: 8),
               const Text(
@@ -3340,22 +3375,15 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
                     child: Text(
-                      'Sin datos de productos',
+                      'Sin productos en estado crítico ✓',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
                 )
-              : ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => Divider(
-                    height: 1,
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                  itemBuilder: (context, index) {
+              : Column(
+                  children: List.generate(items.length, (index) {
                     final item = items[index];
                     Color statusColor;
                     IconData statusIcon;
@@ -3497,7 +3525,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         ],
                       ),
                     );
-                  },
+                  }),
                 ),
         ],
       ),
@@ -3506,7 +3534,9 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
 
   // Card: Eficiencia de Materia Prima
   Widget _buildMaterialEfficiencyCard(AnalyticsState state) {
-    final items = state.materialEfficiency;
+    final items = state.materialEfficiency
+        .where((i) => i.reorderStatus != 'NORMAL')
+        .toList();
     final hasData = items.isNotEmpty;
 
     return Container(
@@ -3555,22 +3585,15 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
                     child: Text(
-                      'Sin datos de materiales',
+                      'Sin materiales en estado crítico ✓',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
                 )
-              : ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => Divider(
-                    height: 1,
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                  itemBuilder: (context, index) {
+              : Column(
+                  children: List.generate(items.length, (index) {
                     final item = items[index];
                     Color statusColor;
                     String statusLabel;
@@ -3709,7 +3732,7 @@ class _ReportsAnalyticsPageState extends ConsumerState<ReportsAnalyticsPage>
                         ],
                       ),
                     );
-                  },
+                  }),
                 ),
         ],
       ),

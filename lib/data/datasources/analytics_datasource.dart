@@ -809,6 +809,7 @@ class AnalyticsDataSource {
       final response = await _client
           .from('v_inventory_turnover')
           .select()
+          .neq('inventory_status', 'NORMAL')
           .order('annual_turnover_rate', ascending: false);
 
       return (response as List)
@@ -826,6 +827,7 @@ class AnalyticsDataSource {
       final response = await _client
           .from('v_material_efficiency')
           .select()
+          .neq('reorder_status', 'NORMAL')
           .order('days_of_stock_remaining', ascending: true);
 
       return (response as List)

@@ -298,18 +298,21 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
   }
 
   Widget _buildHeaderActionButton() {
-    final labels = ['+Emp', '+Tar', '+Nóm', '+Prés', '+Inc', ''];
+    final labels = ['+Emp', '+Tar', '+Nóm', '+Prés', '', '+Inc', ''];
     final icons = [
       Icons.person_add,
       Icons.add_task,
       Icons.payments,
       Icons.attach_money,
+      Icons.monetization_on,
       Icons.medical_services,
       Icons.precision_manufacturing,
     ];
 
-    // Tab de activos no tiene botón de acción (solo lectura)
-    if (_tabController.index == 5) return const SizedBox.shrink();
+    // Tabs de comisiones y activos no tienen botón de acción (solo lectura)
+    if (_tabController.index == 4 || _tabController.index == 6) {
+      return const SizedBox.shrink();
+    }
 
     return FilledButton.icon(
       onPressed: () {
@@ -326,7 +329,7 @@ class _EmployeesPageState extends ConsumerState<EmployeesPage>
           case 3:
             _loansTabKey.currentState?.showLoanDialog();
             break;
-          case 4:
+          case 5:
             _incapacitiesTabKey.currentState?.showNewIncapacityDialog();
             break;
         }

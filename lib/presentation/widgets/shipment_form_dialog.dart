@@ -1259,6 +1259,9 @@ class _ShipmentFormDialogState extends State<ShipmentFormDialog> {
       customerAddress: _customerAddressCtrl.text.trim().isEmpty
           ? null
           : _customerAddressCtrl.text.trim(),
+      customerPhone: _customerPhoneCtrl.text.trim().isEmpty
+          ? null
+          : _customerPhoneCtrl.text.trim(),
       carrierName: _carrierNameCtrl.text.trim().isEmpty
           ? null
           : _carrierNameCtrl.text.trim(),

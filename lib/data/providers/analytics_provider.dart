@@ -77,7 +77,8 @@ class AnalyticsState {
   double get totalReceivables =>
       agingSummary.values.fold(0, (sum, val) => sum + val);
 
-  double get overdueReceivables => (agingSummary['1-30 days'] ?? 0) +
+  double get overdueReceivables =>
+      (agingSummary['1-30 days'] ?? 0) +
       (agingSummary['31-60 days'] ?? 0) +
       (agingSummary['61-90 days'] ?? 0) +
       (agingSummary['over 90 days'] ?? 0);
@@ -93,24 +94,92 @@ class AnalyticsNotifier extends Notifier<AnalyticsState> {
     return AnalyticsState();
   }
 
+  /// Helper para ejecutar una llamada con timeout individual
+  Future<T> _safeCall<T>(
+    Future<T> Function() call,
+    T fallback,
+    String label,
+  ) async {
+    try {
+      return await call().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          print('⚠️ Analytics timeout: $label');
+          return fallback;
+        },
+      );
+    } catch (e) {
+      print('⚠️ Analytics error en $label: $e');
+      return fallback;
+    }
+  }
+
   /// Cargar todos los datos de analytics
   Future<void> loadAll() async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
       final results = await Future.wait([
-        AnalyticsDataSource.getAllCustomerMetrics(),
-        AnalyticsDataSource.getTopSellingProducts(limit: 20),
-        AnalyticsDataSource.getProfitLoss(limit: 12),
-        AnalyticsDataSource.getAccountsReceivable(),
-        AnalyticsDataSource.getAgingSummary(),
-        AnalyticsDataSource.getDSOTrend(months: 12),
-        AnalyticsDataSource.getCollectionKPIs(),
-        AnalyticsDataSource.getProductABCAnalysis(),
-        AnalyticsDataSource.getBusinessHealthMonthly(),
-        AnalyticsDataSource.getBusinessHealthSnapshot(),
-        AnalyticsDataSource.getInventoryTurnover(),
-        AnalyticsDataSource.getMaterialEfficiency(),
+        _safeCall(
+          () => AnalyticsDataSource.getAllCustomerMetrics(),
+          <CustomerMetrics>[],
+          'customerMetrics',
+        ),
+        _safeCall(
+          () => AnalyticsDataSource.getTopSellingProducts(limit: 20),
+          <TopSellingProduct>[],
+          'topProducts',
+        ),
+        _safeCall(
+          () => AnalyticsDataSource.getProfitLoss(limit: 12),
+          <ProfitLossMonthly>[],
+          'profitLoss',
+        ),
+        _safeCall(
+          () => AnalyticsDataSource.getAccountsReceivable(),
+          <AccountReceivableAging>[],
+          'accountsReceivable',
+        ),
+        _safeCall(
+          () => AnalyticsDataSource.getAgingSummary(),
+          <String, double>{},
+          'agingSummary',
+        ),
+        _safeCall(
+          () => AnalyticsDataSource.getDSOTrend(months: 12),
+          <DSOMonthly>[],
+          'dsoTrend',
+        ),
+        _safeCall(
+          () => AnalyticsDataSource.getCollectionKPIs(),
+          CollectionKPIs(),
+          'collectionKPIs',
+        ),
+        _safeCall(
+          () => AnalyticsDataSource.getProductABCAnalysis(),
+          <ProductABC>[],
+          'productABC',
+        ),
+        _safeCall(
+          () => AnalyticsDataSource.getBusinessHealthMonthly(),
+          <BusinessHealthMonthly>[],
+          'businessHealth',
+        ),
+        _safeCall(
+          () => AnalyticsDataSource.getBusinessHealthSnapshot(),
+          BusinessHealthSnapshot(),
+          'healthSnapshot',
+        ),
+        _safeCall(
+          () => AnalyticsDataSource.getInventoryTurnover(),
+          <InventoryTurnover>[],
+          'inventoryTurnover',
+        ),
+        _safeCall(
+          () => AnalyticsDataSource.getMaterialEfficiency(),
+          <MaterialEfficiency>[],
+          'materialEfficiency',
+        ),
       ]);
 
       state = state.copyWith(
@@ -128,7 +197,9 @@ class AnalyticsNotifier extends Notifier<AnalyticsState> {
         materialEfficiency: results[11] as List<MaterialEfficiency>,
         isLoading: false,
       );
+      print('✅ Analytics cargado completamente');
     } catch (e) {
+      print('❌ Error general en analytics loadAll: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Error cargando analytics: $e',
@@ -151,8 +222,9 @@ class AnalyticsNotifier extends Notifier<AnalyticsState> {
   Future<void> loadTopProducts({int limit = 20}) async {
     state = state.copyWith(isLoading: true);
     try {
-      final products =
-          await AnalyticsDataSource.getTopSellingProducts(limit: limit);
+      final products = await AnalyticsDataSource.getTopSellingProducts(
+        limit: limit,
+      );
       state = state.copyWith(topProducts: products, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -376,8 +448,9 @@ class MaterialConsumptionNotifier extends Notifier<MaterialConsumptionState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final data =
-          await AnalyticsDataSource.getMaterialConsumptionById(materialId);
+      final data = await AnalyticsDataSource.getMaterialConsumptionById(
+        materialId,
+      );
       state = state.copyWith(consumption: data, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -390,43 +463,54 @@ class MaterialConsumptionNotifier extends Notifier<MaterialConsumptionState> {
 // ============================================================
 
 /// Provider principal de analytics
-final analyticsProvider =
-    NotifierProvider<AnalyticsNotifier, AnalyticsState>(AnalyticsNotifier.new);
+final analyticsProvider = NotifierProvider<AnalyticsNotifier, AnalyticsState>(
+  AnalyticsNotifier.new,
+);
 
 /// Provider de historial de cliente
 final customerHistoryProvider =
     NotifierProvider<CustomerHistoryNotifier, CustomerHistoryState>(
-        CustomerHistoryNotifier.new);
+      CustomerHistoryNotifier.new,
+    );
 
 /// Provider de consumo de materiales
 final materialConsumptionProvider =
     NotifierProvider<MaterialConsumptionNotifier, MaterialConsumptionState>(
-        MaterialConsumptionNotifier.new);
+      MaterialConsumptionNotifier.new,
+    );
 
 // ============================================================
 // PROVIDERS AUXILIARES (para consultas específicas)
 // ============================================================
 
 /// Provider para obtener CLV de un cliente específico
-final customerCLVProvider =
-    FutureProvider.family<CustomerCLV?, String>((ref, customerId) async {
+final customerCLVProvider = FutureProvider.family<CustomerCLV?, String>((
+  ref,
+  customerId,
+) async {
   return await AnalyticsDataSource.calculateCustomerCLV(customerId);
 });
 
 /// Provider para obtener productos relacionados
-final relatedProductsProvider = FutureProvider.family<List<RelatedProduct>,
-    String>((ref, productCode) async {
-  return await AnalyticsDataSource.getRelatedProducts(productCode);
-});
+final relatedProductsProvider =
+    FutureProvider.family<List<RelatedProduct>, String>((
+      ref,
+      productCode,
+    ) async {
+      return await AnalyticsDataSource.getRelatedProducts(productCode);
+    });
 
 /// Provider para dashboard summary
-final dashboardSummaryProvider =
-    FutureProvider<Map<String, dynamic>>((ref) async {
+final dashboardSummaryProvider = FutureProvider<Map<String, dynamic>>((
+  ref,
+) async {
   return await AnalyticsDataSource.getDashboardSummary();
 });
 
 /// Provider para top clientes
-final topCustomersProvider =
-    FutureProvider.family<List<CustomerMetrics>, int>((ref, limit) async {
+final topCustomersProvider = FutureProvider.family<List<CustomerMetrics>, int>((
+  ref,
+  limit,
+) async {
   return await AnalyticsDataSource.getTopCustomers(limit: limit);
 });
