@@ -1,0 +1,35 @@
+﻿# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE
+.idea/
+.vs/
+*.iml
+.vscode/
+
+# Windows build artifacts
+windows/build_test/
+*.exe
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# Generated
+*.g.dart
+*.freezed.dart
+
+# Python - venv y scripts utilitarios
+venv/
+fix_app_icons.py

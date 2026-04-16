@@ -1,0 +1,54 @@
+-- ========================================================================
+-- RESET Y MIGRACIÓN COMPLETA - Industrial de Molinos
+-- ========================================================================
+-- INSTRUCCIONES:
+-- 1. Resetea la BD: Supabase Dashboard → Settings → Database → Reset
+-- 2. Espera a que finalice (~30 segundos)
+-- 3. Abre SQL Editor
+-- 4. Copia las migraciones en este ORDEN (002 a 042):
+--    - 002_daily_cash_tables.sql
+--    - 003_insert_accounts.sql
+--    - 004_cleanup_duplicate_accounts.sql
+--    - 005_suppliers_table.sql
+--    - 006_ventas_completo.sql
+--    - 007_setup_completo.sql
+--    - 008_materials_y_recetas.sql
+--    - 009_descontar_inventario.sql
+--    - 010_unified_inventory_deduction.sql
+--    - 011_fix_quotation_items_columns.sql
+--    - 012_fix_inventory_deduction.sql
+--    - 013_fix_material_movements.sql
+--    - 014_analytics_tables.sql
+--    - 015_analytics_kpis_views.sql
+--    - 016_activities_notifications.sql
+--    - 017_invoice_interests.sql
+--    - 018_payroll_system.sql
+--    - 019_employee_tasks.sql
+--    - 020_add_anulada_status.sql
+--    - 021_update_payroll_payment.sql
+--    - 022_fix_employee_tasks_columns.sql
+--    - 023_profit_margins.sql
+--    - 023_quotation_item_costs.sql (SÍ, es otra 023 - renombrar a 023b si hay conflicto)
+--    - 024_fix_loans_and_overtime.sql
+--    - 025_payroll_process_loans.sql
+--    - 026_real_rls_policies.sql
+--    - 027_consolidar_proveedores.sql
+--    - 028_consolidar_materiales.sql
+--    - 029_eliminar_tablas_muertas.sql
+--    - 030_funciones_consolidadas.sql
+--    - 031_employee_time_tracking.sql
+--    - 032_atomic_balance_operations.sql
+--    - 033_stock_constraints.sql
+--    - 034_indices_faltantes.sql
+--    - 035_materialized_views.sql
+--    - 036_bulk_inventory_operations.sql
+--    - 037_dimensional_inventory.sql
+--    - 038_contabilidad_automatica.sql
+--    - 039_restore_atomic_functions.sql
+--    - 040_revert_dimensional_inventory.sql
+--    - 041_iva_control.sql
+--    - 042_fix_materials_trigger.sql (IMPORTANTE: esto arregla el error de materialized)
+-- ========================================================================
+
+-- Si todo anduvo bien, la BD estará lista sin errores de "tracking_mode"
+-- Luego: rebuild del app en VS Code

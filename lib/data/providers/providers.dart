@@ -1,0 +1,16 @@
+// Exportar todos los providers
+export 'customers_provider.dart';
+export 'products_provider.dart';
+export 'quotations_provider.dart';
+export 'materials_provider.dart';
+export 'invoices_provider.dart';
+export 'reports_provider.dart';
+export 'accounts_provider.dart';
+export 'inventory_provider.dart';
+export 'analytics_provider.dart';
+export 'recipes_provider.dart';
+export 'composite_products_provider.dart';
+export 'production_orders_provider.dart';
+export 'material_category_provider.dart';
+export 'ai_assistant_provider.dart';
+export 'commissions_provider.dart';

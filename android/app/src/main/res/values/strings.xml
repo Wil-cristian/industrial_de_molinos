@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hce_service_description">Punto de fichaje NFC para control de asistencia</string>
+    <string name="hce_aid_description">Asistencia Industrial de Molinos</string>
+</resources>

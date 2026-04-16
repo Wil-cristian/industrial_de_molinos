@@ -1,0 +1,898 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../datasources/payroll_datasource.dart';
+import '../datasources/employees_datasource.dart';
+import '../../core/utils/colombia_time.dart';
+
+/// Estado del sistema de nómina
+class PayrollState {
+  final List<PayrollConcept> concepts;
+  final List<PayrollPeriod> periods;
+  final List<EmployeePayroll> payrolls;
+  final List<EmployeeIncapacity> incapacities;
+  final List<EmployeeLoan> loans;
+  final PayrollPeriod? currentPeriod;
+  final EmployeePayroll? selectedPayroll;
+  final bool isLoading;
+  final String? error;
+
+  PayrollState({
+    this.concepts = const [],
+    this.periods = const [],
+    this.payrolls = const [],
+    this.incapacities = const [],
+    this.loans = const [],
+    this.currentPeriod,
+    this.selectedPayroll,
+    this.isLoading = false,
+    this.error,
+  });
+
+  PayrollState copyWith({
+    List<PayrollConcept>? concepts,
+    List<PayrollPeriod>? periods,
+    List<EmployeePayroll>? payrolls,
+    List<EmployeeIncapacity>? incapacities,
+    List<EmployeeLoan>? loans,
+    PayrollPeriod? currentPeriod,
+    EmployeePayroll? selectedPayroll,
+    bool? isLoading,
+    String? error,
+  }) {
+    return PayrollState(
+      concepts: concepts ?? this.concepts,
+      periods: periods ?? this.periods,
+      payrolls: payrolls ?? this.payrolls,
+      incapacities: incapacities ?? this.incapacities,
+      loans: loans ?? this.loans,
+      currentPeriod: currentPeriod ?? this.currentPeriod,
+      selectedPayroll: selectedPayroll ?? this.selectedPayroll,
+      isLoading: isLoading ?? this.isLoading,
+      error: error,
+    );
+  }
+
+  /// Conceptos de tipo ingreso
+  List<PayrollConcept> get incomeConcepts =>
+      concepts.where((c) => c.type == 'ingreso').toList();
+
+  /// Conceptos de tipo descuento
+  List<PayrollConcept> get deductionConcepts =>
+      concepts.where((c) => c.type == 'descuento').toList();
+
+  /// Préstamos activos
+  List<EmployeeLoan> get activeLoans =>
+      loans.where((l) => l.status == 'activo').toList();
+
+  /// Incapacidades activas
+  List<EmployeeIncapacity> get activeIncapacities =>
+      incapacities.where((i) => i.status == 'activa').toList();
+
+  /// Total a pagar en el periodo actual
+  double get totalNetPayroll => payrolls.fold(0, (sum, p) => sum + p.netPay);
+
+  /// Nóminas pendientes de pago
+  List<EmployeePayroll> get pendingPayrolls =>
+      payrolls.where((p) => p.status != 'pagado').toList();
+
+  /// Nóminas pagadas
+  List<EmployeePayroll> get paidPayrolls =>
+      payrolls.where((p) => p.status == 'pagado').toList();
+}
+
+/// Notifier para el sistema de nómina
+class PayrollNotifier extends Notifier<PayrollState> {
+  @override
+  PayrollState build() {
+    return PayrollState();
+  }
+
+  /// Cargar todos los datos iniciales
+  Future<void> loadAll() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final concepts = await PayrollDatasource.getConcepts();
+      final periods = await PayrollDatasource.getPeriods();
+
+      // NO crear periodo automáticamente — solo buscar el más reciente que ya exista.
+      // El periodo solo se crea cuando el usuario genera una nómina explícitamente.
+      // EXCEPCIÓN: si no hay ningún periodo en la BD (primera vez), crear el actual.
+      final now = ColombiaTime.now();
+      final isQ1 = now.day <= 15;
+      final currentPeriodNumber = isQ1 ? (now.month * 2 - 1) : (now.month * 2);
+
+      final quincenalPeriods =
+          periods.where((p) => p.periodType == 'quincenal').toList()
+            ..sort((a, b) {
+              final yearCmp = a.year.compareTo(b.year);
+              if (yearCmp != 0) return yearCmp;
+              return a.periodNumber.compareTo(b.periodNumber);
+            });
+
+      // Preferir el periodo de la quincena actual si ya existe, si no → el más reciente
+      PayrollPeriod? currentPeriod = quincenalPeriods
+          .where(
+            (p) => p.periodNumber == currentPeriodNumber && p.year == now.year,
+          )
+          .firstOrNull;
+      currentPeriod ??= quincenalPeriods.isNotEmpty
+          ? quincenalPeriods.last
+          : null;
+
+      final allPeriods = [...periods];
+
+      // Solo crear periodo si no hay NINGUNO (primera vez usando la app)
+      if (currentPeriod == null) {
+        final created = await PayrollDatasource.getOrCreateCurrentPeriod();
+        if (created != null) {
+          currentPeriod = created;
+          allPeriods.add(created);
+        }
+      }
+
+      print('📋 Periodos cargados: ${allPeriods.length}');
+      for (final p in allPeriods) {
+        print(
+          '   - ${p.displayName} (${p.periodType}, #${p.periodNumber}, ${p.year}) id=${p.id}',
+        );
+      }
+
+      List<EmployeePayroll> payrolls = [];
+      if (currentPeriod != null) {
+        // Buscar TODOS los periodos duplicados con la misma quincena
+        final duplicatePeriods = allPeriods
+            .where(
+              (p) =>
+                  p.periodType == 'quincenal' &&
+                  p.periodNumber == currentPeriod!.periodNumber &&
+                  p.year == currentPeriod.year,
+            )
+            .toList();
+
+        for (final dp in duplicatePeriods) {
+          final dpPayrolls = await PayrollDatasource.getPayrolls(
+            periodId: dp.id,
+          );
+          payrolls.addAll(dpPayrolls);
+        }
+
+        if (payrolls.isEmpty) {
+          payrolls = await PayrollDatasource.getPayrolls(
+            periodId: currentPeriod.id,
+          );
+        }
+      }
+
+      // Si el periodo actual (matemático) está vacío, preferir el periodo más
+      // reciente que sí tenga nóminas. Ej: hoy día 16 → Q2 vacío → mostrar Q1.
+      if (payrolls.isEmpty && quincenalPeriods.length > 1) {
+        for (final p in quincenalPeriods.reversed) {
+          if (p.id == currentPeriod?.id) continue;
+          final pPayrolls = await PayrollDatasource.getPayrolls(periodId: p.id);
+          if (pPayrolls.isNotEmpty) {
+            currentPeriod = p;
+            payrolls = pPayrolls;
+            print(
+              '📋 Sin nóminas en quincena actual → usando ${p.displayName} (${pPayrolls.length} nóminas)',
+            );
+            break;
+          }
+        }
+      }
+
+      print('📋 Conceptos cargados: ${concepts.length}');
+      print('📋 Nóminas en periodo actual: ${payrolls.length}');
+
+      final incapacities = await PayrollDatasource.getIncapacities();
+      final loans = await PayrollDatasource.getLoans();
+
+      state = state.copyWith(
+        concepts: concepts,
+        periods: allPeriods,
+        payrolls: payrolls,
+        incapacities: incapacities,
+        loans: loans,
+        currentPeriod: currentPeriod,
+        isLoading: false,
+      );
+    } catch (e) {
+      print('❌ Error cargando nómina: $e');
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  /// Cargar nóminas de un periodo específico
+  Future<void> loadPayrollsForPeriod(String periodId) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      // Buscar periodo en state, o cargarlo desde DB si es nuevo
+      PayrollPeriod? period = state.periods
+          .where((p) => p.id == periodId)
+          .firstOrNull;
+
+      List<PayrollPeriod> allPeriods = state.periods;
+      if (period == null) {
+        // Periodo nuevo, recargar lista de periodos
+        allPeriods = await PayrollDatasource.getPeriods();
+        period = allPeriods.where((p) => p.id == periodId).firstOrNull;
+      }
+
+      // Buscar TODOS los periodos duplicados con la misma quincena
+      List<EmployeePayroll> payrolls = [];
+      if (period != null) {
+        final duplicatePeriods = allPeriods
+            .where(
+              (p) =>
+                  p.periodType == period!.periodType &&
+                  p.periodNumber == period.periodNumber &&
+                  p.year == period.year,
+            )
+            .toList();
+
+        for (final dp in duplicatePeriods) {
+          final dpPayrolls = await PayrollDatasource.getPayrolls(
+            periodId: dp.id,
+          );
+          payrolls.addAll(dpPayrolls);
+        }
+      }
+
+      // Fallback: si no encontró nada, intentar directamente con el periodId dado
+      if (payrolls.isEmpty) {
+        payrolls = await PayrollDatasource.getPayrolls(periodId: periodId);
+      }
+
+      state = state.copyWith(
+        payrolls: payrolls,
+        currentPeriod: period ?? state.currentPeriod,
+        periods: allPeriods,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  /// Crear nueva nómina para empleado
+  Future<EmployeePayroll?> createPayroll({
+    required String employeeId,
+    required String periodId,
+    required double baseSalary,
+    int daysWorked = 30,
+  }) async {
+    try {
+      final payroll = await PayrollDatasource.createPayroll(
+        employeeId: employeeId,
+        periodId: periodId,
+        baseSalary: baseSalary,
+        daysWorked: daysWorked,
+      );
+
+      if (payroll != null) {
+        state = state.copyWith(payrolls: [...state.payrolls, payroll]);
+      }
+      return payroll;
+    } catch (e) {
+      print('❌ Error creando nómina: $e');
+      return null;
+    }
+  }
+
+  /// Seleccionar una nómina para ver/editar detalles
+  Future<void> selectPayroll(String payrollId) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final payroll = await PayrollDatasource.getPayrollWithDetails(payrollId);
+      state = state.copyWith(selectedPayroll: payroll, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  /// Eliminar nómina (solo si está en borrador/pendiente)
+  Future<bool> deletePayroll(String payrollId) async {
+    try {
+      await PayrollDatasource.deletePayroll(payrollId);
+      state = state.copyWith(
+        payrolls: state.payrolls.where((p) => p.id != payrollId).toList(),
+      );
+      return true;
+    } catch (e) {
+      print('❌ Error eliminando nómina: $e');
+      return false;
+    }
+  }
+
+  /// Agregar concepto a nómina (ingreso o descuento)
+  /// Si [skipReload] es true, no recarga estado (útil en creación masiva).
+  Future<bool> addConceptToPayroll({
+    required String payrollId,
+    required String conceptId,
+    required double amount,
+    double quantity = 1,
+    double unitValue = 0,
+    String? notes,
+    bool skipReload = false,
+  }) async {
+    try {
+      // Si conceptos vacíos, intentar recargar
+      if (state.concepts.isEmpty) {
+        print('⚠️ Conceptos vacíos en addConceptToPayroll, recargando...');
+        final concepts = await PayrollDatasource.getConcepts();
+        if (concepts.isNotEmpty) {
+          state = state.copyWith(concepts: concepts);
+        }
+      }
+
+      final concept = state.concepts.firstWhere((c) => c.id == conceptId);
+
+      await PayrollDatasource.addPayrollDetail(
+        payrollId: payrollId,
+        concept: concept,
+        amount: amount,
+        quantity: quantity,
+        unitValue: unitValue,
+        notes: notes,
+      );
+
+      // Si skipReload, no recargar estado (el llamador hará reload al final)
+      if (!skipReload) {
+        // Recargar la nómina seleccionada
+        await selectPayroll(payrollId);
+
+        // Recargar lista de nóminas
+        if (state.currentPeriod != null) {
+          final payrolls = await PayrollDatasource.getPayrolls(
+            periodId: state.currentPeriod!.id,
+          );
+          state = state.copyWith(payrolls: payrolls);
+        }
+      }
+
+      return true;
+    } catch (e) {
+      print('❌ Error agregando concepto: $e');
+      return false;
+    }
+  }
+
+  /// Eliminar concepto de nómina
+  Future<bool> removeConceptFromPayroll(
+    String detailId,
+    String payrollId,
+  ) async {
+    try {
+      await PayrollDatasource.removePayrollDetail(detailId, payrollId);
+      await selectPayroll(payrollId);
+      return true;
+    } catch (e) {
+      print('❌ Error eliminando concepto: $e');
+      return false;
+    }
+  }
+
+  /// Procesar pago de nómina
+  Future<bool> processPayment({
+    required String payrollId,
+    required String accountId,
+    DateTime? paymentDate,
+  }) async {
+    try {
+      await PayrollDatasource.processPayrollPayment(
+        payrollId: payrollId,
+        accountId: accountId,
+        paymentDate: paymentDate ?? ColombiaTime.now(),
+      );
+
+      // Recargar nóminas
+      if (state.currentPeriod != null) {
+        await loadPayrollsForPeriod(state.currentPeriod!.id);
+      }
+
+      return true;
+    } catch (e) {
+      print('❌ Error procesando pago: $e');
+      return false;
+    }
+  }
+
+  // ==========================================
+  // INCAPACIDADES
+  // ==========================================
+  Future<void> loadIncapacities({String? employeeId}) async {
+    try {
+      final incapacities = await PayrollDatasource.getIncapacities(
+        employeeId: employeeId,
+      );
+      state = state.copyWith(incapacities: incapacities);
+    } catch (e) {
+      print('❌ Error cargando incapacidades: $e');
+    }
+  }
+
+  Future<bool> createIncapacity(EmployeeIncapacity incapacity) async {
+    try {
+      final created = await PayrollDatasource.createIncapacity(incapacity);
+      if (created != null) {
+        state = state.copyWith(incapacities: [...state.incapacities, created]);
+
+        // ── Auto-generar time_adjustments para cada día de la incapacidad ──
+        await _generateTimeAdjustmentsForIncapacity(created);
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Error creando incapacidad: $e');
+      return false;
+    }
+  }
+
+  /// Genera automáticamente los time_adjustments para cada día laboral
+  /// de la incapacidad/permiso, siguiendo las reglas colombianas (Art. 227 CST).
+  Future<void> _generateTimeAdjustmentsForIncapacity(
+    EmployeeIncapacity incapacity,
+  ) async {
+    try {
+      final employeeId = incapacity.employeeId;
+      final type = incapacity
+          .type; // enfermedad, accidente_laboral, accidente_comun, permiso, maternidad
+
+      // Cargar ajustes existentes para evitar duplicados
+      final existingAdj = await EmployeesDatasource.getTimeAdjustments(
+        employeeId: employeeId,
+        startDate: incapacity.startDate,
+        endDate: incapacity.endDate,
+      );
+      final existingDates = <String>{};
+      for (final adj in existingAdj) {
+        existingDates.add(ColombiaTime.dateString(adj.adjustmentDate));
+      }
+
+      // Iterar cada día del rango
+      DateTime current = incapacity.startDate;
+      int dayNumber = 0; // Contador de días laborales en esta incapacidad
+
+      while (!current.isAfter(incapacity.endDate)) {
+        // Saltar domingos (día de descanso)
+        if (current.weekday == DateTime.sunday) {
+          current = current.add(const Duration(days: 1));
+          continue;
+        }
+
+        dayNumber++;
+        final dateStr = '${current.day}/${current.month}/${current.year}';
+        final dateKey = ColombiaTime.dateString(current);
+
+        // Verificar si ya existe ajuste para esta fecha
+        if (existingDates.contains(dateKey)) {
+          print('⏭️ Ajuste ya existe para $dateKey — omitiendo');
+          current = current.add(const Duration(days: 1));
+          continue;
+        }
+
+        final isSaturday = current.weekday == DateTime.saturday;
+        // Horas laborales: L-V = 7.7h, Sáb = 5.5h (jornada 44h/semana)
+        final hoursToDeduct = isSaturday ? 5.5 : 7.7;
+        final minutesToDeduct = (hoursToDeduct * 60).round(); // 462 o 330 min
+
+        if (type == 'permiso') {
+          // ─── PERMISO: 0% pago → descuento 100% del día + PIERDE_BONO ───
+          await EmployeesDatasource.createTimeAdjustment(
+            employeeId: employeeId,
+            minutes: minutesToDeduct,
+            type: 'deduction',
+            date: current,
+            reason: 'Permiso — $dateStr | PIERDE_BONO',
+          );
+          print('✅ Permiso ajuste creado: $dateKey ($minutesToDeduct min)');
+        } else if (type == 'accidente_laboral') {
+          // ─── ACCIDENTE LABORAL: ARL paga 100% desde día 1, sin descuento ───
+          // No crear ajuste — pago completo
+          print(
+            'ℹ️ Accidente laboral día $dayNumber: sin descuento (ARL 100%)',
+          );
+        } else {
+          // ─── ENFERMEDAD / ACCIDENTE COMÚN / MATERNIDAD ───
+          // Art. 227 CST:
+          //   Días 1-3: empresa paga 100% (sin descuento)
+          //   Día 4+: pago 66.33% (descuento del 33.67%)
+          if (dayNumber <= 3) {
+            // Días 1-3: pago completo, NO crear adjustment (sin descuento)
+            print(
+              'ℹ️ Incapacidad día $dayNumber: empresa paga 100% — sin ajuste',
+            );
+          } else {
+            // Día 4+: descuento del 33.67%
+            final discountMinutes = (minutesToDeduct * 0.3367).round();
+            await EmployeesDatasource.createTimeAdjustment(
+              employeeId: employeeId,
+              minutes: discountMinutes,
+              type: 'deduction',
+              date: current,
+              reason: 'Incapacidad día $dayNumber — pago 66.33% — $dateStr',
+            );
+            print(
+              '✅ Incapacidad día $dayNumber ajuste: $dateKey ($discountMinutes min)',
+            );
+          }
+        }
+
+        current = current.add(const Duration(days: 1));
+      }
+
+      print(
+        '✅ Auto-generación de time_adjustments completada para ${incapacity.type} (${incapacity.startDate} → ${incapacity.endDate})',
+      );
+    } catch (e) {
+      print('⚠️ Error generando time_adjustments automáticos: $e');
+      // No lanzar excepción — la incapacidad ya se creó correctamente
+    }
+  }
+
+  Future<bool> endIncapacity(String incapacityId) async {
+    try {
+      await PayrollDatasource.updateIncapacity(incapacityId, {
+        'status': 'terminada',
+        'end_date': ColombiaTime.todayString(),
+      });
+      await loadIncapacities();
+      return true;
+    } catch (e) {
+      print('❌ Error terminando incapacidad: $e');
+      return false;
+    }
+  }
+
+  // ==========================================
+  // PRÉSTAMOS
+  // ==========================================
+  Future<void> loadLoans({String? employeeId}) async {
+    try {
+      final loans = await PayrollDatasource.getLoans(employeeId: employeeId);
+      state = state.copyWith(loans: loans);
+    } catch (e) {
+      print('❌ Error cargando préstamos: $e');
+    }
+  }
+
+  /// Cargar solo conceptos sin afectar el resto del estado
+  Future<void> loadConcepts() async {
+    try {
+      final concepts = await PayrollDatasource.getConcepts();
+      print('📋 loadConcepts: ${concepts.length} conceptos');
+      state = state.copyWith(concepts: concepts);
+    } catch (e) {
+      print('❌ Error cargando conceptos: $e');
+    }
+  }
+
+  Future<bool> createLoan({
+    required String employeeId,
+    required double amount,
+    required int installments,
+    required String accountId,
+    String? reason,
+  }) async {
+    try {
+      final loanId = await PayrollDatasource.createLoan(
+        employeeId: employeeId,
+        amount: amount,
+        installments: installments,
+        accountId: accountId,
+        reason: reason,
+      );
+
+      if (loanId != null) {
+        await loadLoans();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Error creando préstamo: $e');
+      return false;
+    }
+  }
+
+  Future<bool> registerLoanPayment({
+    required String loanId,
+    required double amount,
+    required int installmentNumber,
+    String? payrollId,
+  }) async {
+    try {
+      await PayrollDatasource.registerLoanPayment(
+        loanId: loanId,
+        amount: amount,
+        installmentNumber: installmentNumber,
+        payrollId: payrollId,
+      );
+      await loadLoans();
+      return true;
+    } catch (e) {
+      print('❌ Error registrando pago de préstamo: $e');
+      return false;
+    }
+  }
+
+  Future<bool> cancelLoan(String loanId) async {
+    try {
+      await PayrollDatasource.cancelLoan(loanId);
+      await loadLoans();
+      return true;
+    } catch (e) {
+      print('❌ Error anulando préstamo: $e');
+      return false;
+    }
+  }
+
+  // ==========================================
+  // HORAS EXTRAS
+  // ==========================================
+  Future<bool> addOvertimeHours({
+    required String payrollId,
+    required double hours,
+    required String
+    type, // 'normal', '25' (diurna), '75' (nocturna), '100' (dom/fest), '150' (dom/fest noct)
+    required double hourlyRate,
+    bool skipReload = false,
+  }) async {
+    double multiplier = 1.0;
+    String typeLabel = '';
+    switch (type) {
+      case 'normal':
+        multiplier = 1.0;
+        typeLabel = 'Normal';
+        break;
+      case '25':
+        multiplier = 1.25;
+        typeLabel = 'Diurna';
+        break;
+      case '75':
+        multiplier = 1.75;
+        typeLabel = 'Nocturna';
+        break;
+      case '100':
+        multiplier = 2.0;
+        typeLabel = 'Dom/Fest Diurna';
+        break;
+      case '150':
+        multiplier = 2.5;
+        typeLabel = 'Dom/Fest Nocturna';
+        break;
+      default:
+        multiplier = 1.0;
+        typeLabel = 'Normal';
+    }
+
+    final amount = hours * hourlyRate * multiplier;
+    final recargoText = multiplier > 1.0
+        ? ' (+${((multiplier - 1) * 100).toInt()}%)'
+        : ' (sin recargo)';
+    final notesText = '${hours.toStringAsFixed(1)} hrs $typeLabel$recargoText';
+
+    // Si no hay conceptos, recargar
+    if (state.concepts.isEmpty) {
+      final concepts = await PayrollDatasource.getConcepts();
+      if (concepts.isNotEmpty) state = state.copyWith(concepts: concepts);
+    }
+
+    final conceptCode = type == 'normal' ? 'HORA_EXTRA' : 'HORA_EXTRA_$type';
+    final concept = state.concepts.isEmpty
+        ? null
+        : state.concepts.firstWhere(
+            (c) => c.code == conceptCode,
+            orElse: () => state.incomeConcepts.isNotEmpty
+                ? state.incomeConcepts.first
+                : state.concepts.first,
+          );
+
+    if (concept != null) {
+      return addConceptToPayroll(
+        payrollId: payrollId,
+        conceptId: concept.id,
+        amount: amount,
+        quantity: hours,
+        unitValue: hourlyRate * multiplier,
+        notes: notesText,
+        skipReload: skipReload,
+      );
+    } else {
+      // Fallback: insertar directamente
+      try {
+        await PayrollDatasource.addPayrollDetailDirect(
+          payrollId: payrollId,
+          conceptCode: conceptCode,
+          conceptName: 'Hora Extra $typeLabel',
+          type: 'ingreso',
+          amount: amount,
+          quantity: hours,
+          unitValue: hourlyRate * multiplier,
+          notes: notesText,
+        );
+        return true;
+      } catch (e) {
+        print('❌ Error agregando horas extras directamente: $e');
+        return false;
+      }
+    }
+  }
+
+  // ==========================================
+  // DESCUENTOS RÁPIDOS
+  // ==========================================
+
+  /// Descuento por horas faltantes (trabajó menos de 88h en la quincena)
+  Future<bool> addUnderHoursDiscount({
+    required String payrollId,
+    required double hours,
+    required double hourlyRate,
+    String? notes,
+    bool skipReload = false,
+  }) async {
+    final notesText = notes ?? '${hours.toStringAsFixed(1)} horas faltantes';
+    final amount = hours * hourlyRate;
+
+    // Si no hay conceptos, recargar
+    if (state.concepts.isEmpty) {
+      final concepts = await PayrollDatasource.getConcepts();
+      if (concepts.isNotEmpty) state = state.copyWith(concepts: concepts);
+    }
+
+    if (state.deductionConcepts.isNotEmpty) {
+      final concept = state.deductionConcepts.firstWhere(
+        (c) => c.code == 'DESC_FALTAS',
+        orElse: () => state.deductionConcepts.first,
+      );
+      return addConceptToPayroll(
+        payrollId: payrollId,
+        conceptId: concept.id,
+        amount: amount,
+        quantity: hours,
+        unitValue: hourlyRate,
+        notes: notesText,
+        skipReload: skipReload,
+      );
+    } else {
+      // Fallback: insertar directamente
+      try {
+        await PayrollDatasource.addPayrollDetailDirect(
+          payrollId: payrollId,
+          conceptCode: 'DESC_FALTAS',
+          conceptName: 'Descuento por Faltas',
+          type: 'descuento',
+          amount: amount,
+          quantity: hours,
+          unitValue: hourlyRate,
+          notes: notesText,
+        );
+        return true;
+      } catch (e) {
+        print('❌ Error agregando descuento horas directamente: $e');
+        return false;
+      }
+    }
+  }
+
+  Future<bool> addAbsenceDiscount({
+    required String payrollId,
+    required int days,
+    required double dailyRate,
+    String? notes,
+  }) async {
+    final concept = state.deductionConcepts.firstWhere(
+      (c) => c.code == 'DESC_FALTAS',
+      orElse: () => state.deductionConcepts.first,
+    );
+
+    return addConceptToPayroll(
+      payrollId: payrollId,
+      conceptId: concept.id,
+      amount: days * dailyRate,
+      quantity: days.toDouble(),
+      unitValue: dailyRate,
+      notes: notes ?? '$days día(s) de ausencia',
+    );
+  }
+
+  Future<bool> addLateDiscount({
+    required String payrollId,
+    required double amount,
+    String? notes,
+  }) async {
+    final concept = state.deductionConcepts.firstWhere(
+      (c) => c.code == 'DESC_TARDANZA',
+      orElse: () => state.deductionConcepts.first,
+    );
+
+    return addConceptToPayroll(
+      payrollId: payrollId,
+      conceptId: concept.id,
+      amount: amount,
+      notes: notes ?? 'Descuento por tardanzas',
+    );
+  }
+
+  Future<bool> addAdvanceDiscount({
+    required String payrollId,
+    required double amount,
+    String? notes,
+  }) async {
+    final concept = state.deductionConcepts.firstWhere(
+      (c) => c.code == 'DESC_ADELANTO',
+      orElse: () => state.deductionConcepts.first,
+    );
+
+    return addConceptToPayroll(
+      payrollId: payrollId,
+      conceptId: concept.id,
+      amount: amount,
+      notes: notes ?? 'Adelanto de sueldo',
+    );
+  }
+
+  /// Agregar cuota de préstamo como descuento.
+  /// IMPORTANTE: aquí solo se agrega el detalle a la nómina.
+  /// El préstamo se marca como pagado únicamente cuando la nómina
+  /// se procesa realmente en caja con register_payroll_payment.
+  Future<bool> addLoanInstallmentDiscount({
+    required String payrollId,
+    required EmployeeLoan loan,
+    bool skipReload = false,
+  }) async {
+    try {
+      if (state.deductionConcepts.isEmpty) {
+        print('⚠️ Conceptos de descuento vacíos, recargando...');
+        final concepts = await PayrollDatasource.getConcepts();
+        if (concepts.isNotEmpty) {
+          state = state.copyWith(concepts: concepts);
+        }
+      }
+
+      final notes =
+          'Cuota ${loan.paidInstallments + 1}/${loan.installments} - Préstamo';
+
+      if (state.deductionConcepts.isEmpty) {
+        print('⚠️ Agregando cuota de préstamo por ruta directa');
+        await PayrollDatasource.addPayrollDetailDirect(
+          payrollId: payrollId,
+          conceptCode: 'DESC_PRESTAMO',
+          conceptName: 'Cuota Préstamo',
+          type: 'descuento',
+          amount: loan.nextInstallmentAmount,
+          notes: notes,
+        );
+        return true;
+      }
+
+      final concept = state.deductionConcepts.firstWhere(
+        (c) => c.code == 'DESC_PRESTAMO',
+        orElse: () => state.deductionConcepts.first,
+      );
+
+      print(
+        '📋 Concepto préstamo: ${concept.code} (${concept.name}) id=${concept.id}',
+      );
+      print(
+        '💰 Monto cuota preparada: ${loan.nextInstallmentAmount}, Cuota ${loan.paidInstallments + 1}/${loan.installments}',
+      );
+
+      await addConceptToPayroll(
+        payrollId: payrollId,
+        conceptId: concept.id,
+        amount: loan.nextInstallmentAmount,
+        notes: notes,
+        skipReload: skipReload,
+      );
+
+      return true;
+    } catch (e) {
+      print('❌ Error en addLoanInstallmentDiscount: $e');
+      return false;
+    }
+  }
+}
+
+/// Provider de nómina
+final payrollProvider = NotifierProvider<PayrollNotifier, PayrollState>(() {
+  return PayrollNotifier();
+});
