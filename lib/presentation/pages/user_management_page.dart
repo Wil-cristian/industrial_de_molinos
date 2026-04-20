@@ -496,7 +496,7 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Desde: ${dateFormat.format(startedAt.toLocal())}',
+                                    'Desde: ${dateFormat.format(ColombiaTime.toColombia(startedAt))}',                                    
                                     style: tt.labelSmall?.copyWith(
                                       color: cs.onSurfaceVariant,
                                     ),
@@ -536,7 +536,7 @@ class _UserManagementPageState extends ConsumerState<UserManagementPage>
   }
 
   String _timeAgo(DateTime dt) {
-    final diff = ColombiaTime.now().difference(dt.toLocal());
+    final diff = ColombiaTime.now().difference(ColombiaTime.toColombia(dt));
     if (diff.inSeconds < 60) return 'Ahora';
     if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
     if (diff.inHours < 24) return 'Hace ${diff.inHours}h';

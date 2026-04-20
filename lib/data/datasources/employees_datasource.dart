@@ -684,11 +684,25 @@ class EmployeesDatasource {
     required String nfcCardId,
   }) async {
     try {
-      await _client
+      AppLogger.info('📱 Intentando asignar tarjeta $nfcCardId a empleado $employeeId');
+      final result = await _client
           .from('employees')
           .update({'nfc_card_id': nfcCardId})
-          .eq('id', employeeId);
-      AppLogger.success('✅ Tarjeta NFC asignada');
+          .eq('id', employeeId)
+          .select('id, nfc_card_id');
+      
+      if (result.isEmpty) {
+        AppLogger.error('❌ assignNfcCard: update retornó 0 filas. employeeId=$employeeId puede no existir o RLS bloqueó');
+        return false;
+      }
+      
+      final updated = result.first;
+      if (updated['nfc_card_id'] != nfcCardId) {
+        AppLogger.error('❌ assignNfcCard: nfc_card_id no coincide después de update. Esperado=$nfcCardId, Actual=${updated['nfc_card_id']}');
+        return false;
+      }
+      
+      AppLogger.success('✅ Tarjeta NFC $nfcCardId asignada a empleado $employeeId');
       return true;
     } catch (e) {
       AppLogger.error('❌ Error asignando tarjeta NFC: $e');
@@ -699,11 +713,19 @@ class EmployeesDatasource {
   /// Desasignar tarjeta NFC de un empleado
   static Future<bool> removeNfcCard(String employeeId) async {
     try {
-      await _client
+      AppLogger.info('📱 Removiendo tarjeta NFC de empleado $employeeId');
+      final result = await _client
           .from('employees')
           .update({'nfc_card_id': null})
-          .eq('id', employeeId);
-      AppLogger.success('✅ Tarjeta NFC removida');
+          .eq('id', employeeId)
+          .select('id, nfc_card_id');
+      
+      if (result.isEmpty) {
+        AppLogger.error('❌ removeNfcCard: update retornó 0 filas');
+        return false;
+      }
+      
+      AppLogger.success('✅ Tarjeta NFC removida de empleado $employeeId');
       return true;
     } catch (e) {
       AppLogger.error('❌ Error removiendo tarjeta NFC: $e');
@@ -721,7 +743,7 @@ class EmployeesDatasource {
     try {
       var query = _client
           .from('nfc_attendance_log')
-          .select('*, employees(first_name, last_name, photo_url)');
+          .select('*, employees(first_name, last_name)');
 
       if (employeeId != null) {
         query = query.eq('employee_id', employeeId);
@@ -744,6 +766,103 @@ class EmployeesDatasource {
     }
   }
 
+  /// Obtener registros de tiempo de TODOS los empleados activos en un rango de fechas
+  static Future<List<Map<String, dynamic>>> getAllEmployeesTimeEntries({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final start = ColombiaTime.dateString(startDate);
+      final end = ColombiaTime.dateString(endDate);
+
+      final response = await _client
+          .from('employee_time_entries')
+          .select('*, employees!inner(id, first_name, last_name, position, department, nfc_card_id)')
+          .gte('entry_date', start)
+          .lte('entry_date', end)
+          .order('entry_date', ascending: false)
+          .order('check_in', ascending: false);
+
+      return (response as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    } catch (e) {
+      AppLogger.error('❌ Error cargando entradas de todos los empleados: $e');
+      return [];
+    }
+  }
+
+  /// Resumen de horas por empleado en un rango de fechas
+  static Future<List<Map<String, dynamic>>> getHoursSummaryAllEmployees({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final start = ColombiaTime.dateString(startDate);
+      final end = ColombiaTime.dateString(endDate);
+
+      // Obtener todos los empleados activos con sus entradas en el rango
+        final allEmployees = await _client
+          .from('employees')
+          .select('id, first_name, last_name, position, department, nfc_card_id, is_active')
+          .order('first_name');
+
+      final entries = await _client
+          .from('employee_time_entries')
+          .select('employee_id, entry_date, check_in, check_out, worked_minutes, overtime_minutes, deficit_minutes, source, status')
+          .gte('entry_date', start)
+          .lte('entry_date', end);
+
+      // Agrupar entradas por empleado
+      final entriesByEmployee = <String, List<Map<String, dynamic>>>{};
+      for (final entry in (entries as List)) {
+        final empId = entry['employee_id'] as String;
+        entriesByEmployee.putIfAbsent(empId, () => []);
+        entriesByEmployee[empId]!.add(Map<String, dynamic>.from(entry as Map));
+      }
+
+      // Construir resumen por empleado. Incluimos empleados visibles en operación
+      // y también cualquiera que ya tenga registros en el rango.
+      return (allEmployees as List)
+          .map((emp) {
+        final empMap = Map<String, dynamic>.from(emp as Map);
+        final empId = empMap['id'] as String;
+        final empEntries = entriesByEmployee[empId] ?? [];
+        final shouldInclude =
+            _shouldIncludeEmployeeInAttendance(empMap) || empEntries.isNotEmpty;
+
+        if (!shouldInclude) {
+          return null;
+        }
+
+        final totalWorked = empEntries.fold<int>(
+          0,
+          (sum, e) => sum + _resolveWorkedMinutes(Map<String, dynamic>.from(e)),
+        );
+        final totalOvertime = empEntries.fold<int>(0, (sum, e) => sum + ((e['overtime_minutes'] as int?) ?? 0));
+        final totalDeficit = empEntries.fold<int>(0, (sum, e) => sum + ((e['deficit_minutes'] as int?) ?? 0));
+        final daysWorked = empEntries.where((e) => e['check_in'] != null).map((e) => e['entry_date'] as String).toSet().length;
+        final pendingCheckout = empEntries.where((e) => e['check_in'] != null && e['check_out'] == null).length;
+
+        return {
+          ...empMap,
+          'entries': empEntries,
+          'total_worked_minutes': totalWorked,
+          'total_overtime_minutes': totalOvertime,
+          'total_deficit_minutes': totalDeficit,
+          'days_worked': daysWorked,
+          'pending_checkout': pendingCheckout,
+          'has_nfc': empMap['nfc_card_id'] != null,
+        };
+      })
+          .whereType<Map<String, dynamic>>()
+          .toList();
+    } catch (e) {
+      AppLogger.error('❌ Error cargando resumen de horas: $e');
+      return [];
+    }
+  }
+
   /// Obtener estado actual de asistencia de todos los empleados (hoy)
   static Future<List<Map<String, dynamic>>> getTodayAttendanceStatus() async {
     try {
@@ -751,37 +870,68 @@ class EmployeesDatasource {
       final response = await _client
           .from('employees')
           .select(
-            'id, first_name, last_name, position, department, photo_url, nfc_card_id, employee_time_entries!inner(id, check_in, check_out, source)',
+            'id, first_name, last_name, position, department, nfc_card_id, is_active, employee_time_entries!inner(id, check_in, check_out, worked_minutes, source)',
           )
-          .eq('is_active', true)
           .eq('employee_time_entries.entry_date', today);
 
       // También obtener empleados sin entrada hoy
-      final allActive = await _client
+      final allEmployees = await _client
           .from('employees')
           .select(
-            'id, first_name, last_name, position, department, photo_url, nfc_card_id',
+            'id, first_name, last_name, position, department, nfc_card_id, is_active',
           )
-          .eq('is_active', true)
           .order('first_name', ascending: false);
 
       final withEntries = Map.fromEntries(
         (response as List).map((e) => MapEntry(e['id'] as String, e)),
       );
 
-      return (allActive as List).map((emp) {
+      return (allEmployees as List)
+          .map((emp) {
         final id = emp['id'] as String;
+        final empMap = Map<String, dynamic>.from(emp as Map);
+        if (!_shouldIncludeEmployeeInAttendance(empMap) &&
+            !withEntries.containsKey(id)) {
+          return null;
+        }
+
         if (withEntries.containsKey(id)) {
           return Map<String, dynamic>.from(withEntries[id] as Map);
         }
         return {
-          ...Map<String, dynamic>.from(emp as Map),
+          ...empMap,
           'employee_time_entries': <Map<String, dynamic>>[],
         };
-      }).toList();
+      })
+          .whereType<Map<String, dynamic>>()
+          .toList();
     } catch (e) {
       AppLogger.error('❌ Error cargando estado asistencia: $e');
       return [];
     }
+  }
+
+  static bool _shouldIncludeEmployeeInAttendance(Map<String, dynamic> employee) {
+    return employee['is_active'] == true;
+  }
+
+  static int _resolveWorkedMinutes(Map<String, dynamic> entry) {
+    final stored = (entry['worked_minutes'] as int?) ?? 0;
+    if (stored > 0) return stored;
+
+    final checkInRaw = entry['check_in'] as String?;
+    final checkOutRaw = entry['check_out'] as String?;
+    if (checkInRaw == null || checkOutRaw == null) return stored;
+
+    final checkIn = DateTime.tryParse(checkInRaw);
+    final checkOut = DateTime.tryParse(checkOutRaw);
+    if (checkIn == null || checkOut == null || !checkOut.isAfter(checkIn)) {
+      return stored;
+    }
+
+    final breakMinutes = (entry['break_minutes'] as int?) ?? 0;
+    final minutes = ((checkOut.difference(checkIn).inSeconds + 59) ~/ 60) -
+        breakMinutes;
+    return minutes > 0 ? minutes : 0;
   }
 }

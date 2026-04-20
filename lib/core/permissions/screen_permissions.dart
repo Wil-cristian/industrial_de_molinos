@@ -22,6 +22,8 @@ class AppScreen {
   static const ivaControl = 'iva-control';
   static const userManagement = 'user-management';
   static const auditPanel = 'audit-panel';
+  static const nfcCardsConfig = 'nfc-cards-config';
+  static const hoursReport = 'hours-report';
 
   /// Mapa ruta → screen key (para buscar permisos desde la ruta)
   static const routeToScreen = <String, String>{
@@ -44,6 +46,8 @@ class AppScreen {
     '/iva-control': ivaControl,
     '/user-management': userManagement,
     '/audit-panel': auditPanel,
+    '/nfc-cards-config': nfcCardsConfig,
+    '/hours-report': hoursReport,
   };
 
   /// Nombre legible de cada pantalla (para UI de administración)
@@ -66,6 +70,8 @@ class AppScreen {
     ivaControl: 'Control IVA',
     userManagement: 'Usuarios',
     auditPanel: 'Auditoría',
+    nfcCardsConfig: 'Tarjetas NFC',
+    hoursReport: 'Reporte Horas',
   };
 
   /// Permisos por defecto para cada rol.
@@ -89,6 +95,8 @@ class AppScreen {
       accounting,
       ivaControl,
       userManagement,
+      nfcCardsConfig,
+      hoursReport,
       // admin NO ve auditoría por defecto
     },
     'dueno': {
@@ -109,6 +117,8 @@ class AppScreen {
       accounting,
       ivaControl,
       userManagement,
+      nfcCardsConfig,
+      hoursReport,
       // auditPanel se asigna por usuario, no por rol
     },
     'tecnico': {

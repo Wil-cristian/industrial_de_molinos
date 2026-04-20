@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/utils/helpers.dart';
-import '../../../core/services/nfc_reader_service.dart';
+import '../../../core/services/nfc_pcsc_service.dart';
 import '../../../data/datasources/employees_datasource.dart';
 import '../../../data/datasources/accounts_datasource.dart';
 import '../../../data/datasources/payroll_datasource.dart';
 import '../../../data/providers/employees_provider.dart';
+import '../../../data/providers/nfc_kiosk_provider.dart';
 import '../../../data/providers/payroll_provider.dart';
 import '../../../data/providers/accounts_provider.dart';
 import '../../../domain/entities/employee.dart';
@@ -38,6 +39,16 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
   void showLoanDialog() => _showLoanDialog();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(nfcKioskProvider.notifier).loadTodayStatus();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -47,14 +58,16 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
   Widget build(BuildContext context) {
     final state = ref.watch(employeesProvider);
     final payrollState = ref.watch(payrollProvider);
+    final kioskState = ref.watch(nfcKioskProvider);
     final theme = Theme.of(context);
-    return _buildEmployeesTab(theme, state, payrollState);
+    return _buildEmployeesTab(theme, state, payrollState, kioskState);
   }
 
   Widget _buildEmployeesTab(
     ThemeData theme,
     EmployeesState state,
     PayrollState payrollState,
+    NfcKioskState kioskState,
   ) {
     final selectedEmployee = state.selectedEmployee;
 
@@ -278,6 +291,10 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
             },
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: _buildTodayAttendanceTray(theme, kioskState),
+        ),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -314,6 +331,111 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTodayAttendanceTray(ThemeData theme, NfcKioskState kioskState) {
+    final attendance = kioskState.todayStatus
+        .map(_mapAttendanceSnapshot)
+        .toList()
+      ..sort((a, b) {
+        final statusCmp =
+            (_attendancePriority(a['status'] as String)).compareTo(
+              _attendancePriority(b['status'] as String),
+            );
+        if (statusCmp != 0) return statusCmp;
+        return (a['name'] as String).compareTo(b['name'] as String);
+      });
+
+    final inPlant = attendance.where((e) => e['status'] == 'in_plant').length;
+    final checkedOut =
+        attendance.where((e) => e['status'] == 'checked_out').length;
+    final absent = attendance.where((e) => e['status'] == 'absent').length;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.fact_check, color: theme.colorScheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Asistencia de hoy',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Actualizar asistencia',
+                  onPressed: () =>
+                      ref.read(nfcKioskProvider.notifier).loadTodayStatus(),
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _buildAttendanceStatChip(
+                  icon: Icons.factory,
+                  label: 'En planta',
+                  value: '$inPlant',
+                  color: const Color(0xFF2E7D32),
+                ),
+                _buildAttendanceStatChip(
+                  icon: Icons.logout,
+                  label: 'Salieron',
+                  value: '$checkedOut',
+                  color: const Color(0xFF1565C0),
+                ),
+                _buildAttendanceStatChip(
+                  icon: Icons.person_off,
+                  label: 'Sin registro',
+                  value: '$absent',
+                  color: const Color(0xFFC62828),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (attendance.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  'No hay empleados o no se pudo cargar la asistencia de hoy.',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              )
+            else
+              SizedBox(
+                height: 174,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: attendance.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final item = attendance[index];
+                    return _buildAttendanceEmployeeCard(theme, item);
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -602,6 +724,317 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
         ],
       ),
     );
+  }
+
+  Widget _buildAttendanceStatChip({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceEmployeeCard(
+    ThemeData theme,
+    Map<String, dynamic> attendance,
+  ) {
+    final color = attendance['color'] as Color;
+    final name = attendance['name'] as String;
+    final position = attendance['position'] as String;
+    final department = attendance['department'] as String;
+    final statusLabel = attendance['statusLabel'] as String;
+    final status = attendance['status'] as String;
+    final photoUrl = attendance['photoUrl'] as String?;
+    final initials = attendance['initials'] as String;
+    final checkIn = attendance['checkInText'] as String;
+    final checkOut = attendance['checkOutText'] as String;
+
+    return Container(
+      width: 280,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: color.withValues(alpha: 0.15),
+                    backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+                    child: photoUrl == null
+                        ? Text(
+                            initials,
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: status == 'in_plant'
+                            ? const Color(0xFF2E7D32)
+                            : status == 'checked_out'
+                                ? const Color(0xFF1565C0)
+                                : const Color(0xFFC62828),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: theme.colorScheme.surface, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      position,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (department.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    department,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildAttendanceTimeRow(
+            icon: Icons.login,
+            label: 'Entrada',
+            value: checkIn,
+            color: const Color(0xFF2E7D32),
+          ),
+          const SizedBox(height: 8),
+          _buildAttendanceTimeRow(
+            icon: Icons.logout,
+            label: 'Salida',
+            value: checkOut,
+            color: const Color(0xFF1565C0),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceTimeRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Text(
+          '$label:',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Map<String, dynamic> _mapAttendanceSnapshot(Map<String, dynamic> raw) {
+    final firstName = raw['first_name'] as String? ?? '';
+    final lastName = raw['last_name'] as String? ?? '';
+    final entries = (raw['employee_time_entries'] as List? ?? const [])
+        .cast<dynamic>();
+
+    DateTime? firstCheckIn;
+    DateTime? lastCheckOut;
+    bool hasOpenSession = false;
+
+    for (final row in entries) {
+      final entry = Map<String, dynamic>.from(row as Map);
+      final checkIn = _parseAttendanceDate(entry['check_in']);
+      final checkOut = _parseAttendanceDate(entry['check_out']);
+
+      if (checkIn != null) {
+        if (firstCheckIn == null || checkIn.isBefore(firstCheckIn)) {
+          firstCheckIn = checkIn;
+        }
+      }
+
+      if (checkOut != null) {
+        if (lastCheckOut == null || checkOut.isAfter(lastCheckOut)) {
+          lastCheckOut = checkOut;
+        }
+      } else if (checkIn != null) {
+        hasOpenSession = true;
+      }
+    }
+
+    final status = firstCheckIn == null
+        ? 'absent'
+        : hasOpenSession
+        ? 'in_plant'
+        : 'checked_out';
+
+    final name = '$firstName $lastName'.trim();
+    return {
+      'name': name.isEmpty ? 'Sin nombre' : name,
+      'initials': _buildInitials(firstName, lastName),
+      'position': raw['position'] as String? ?? 'Sin cargo',
+      'department': raw['department'] as String? ?? '',
+      'photoUrl': raw['photo_url'] as String?,
+      'checkInText': _formatAttendanceText(firstCheckIn),
+      'checkOutText': hasOpenSession
+          ? 'En planta'
+          : _formatAttendanceText(lastCheckOut),
+      'status': status,
+      'statusLabel': _attendanceTrayStatusLabel(status),
+      'color': _attendanceTrayStatusColor(status),
+    };
+  }
+
+  DateTime? _parseAttendanceDate(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is DateTime) return raw;
+    if (raw is String && raw.isNotEmpty) {
+      final parsed = DateTime.tryParse(raw);
+      return parsed != null ? ColombiaTime.toColombia(parsed) : null;
+    }
+    return null;
+  }
+
+  String _formatAttendanceText(DateTime? value) {
+    if (value == null) return 'Sin registro';
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String _attendanceTrayStatusLabel(String status) {
+    switch (status) {
+      case 'in_plant':
+        return 'En planta';
+      case 'checked_out':
+        return 'Ya salio';
+      default:
+        return 'Sin registrar';
+    }
+  }
+
+  Color _attendanceTrayStatusColor(String status) {
+    switch (status) {
+      case 'in_plant':
+        return const Color(0xFF2E7D32);
+      case 'checked_out':
+        return const Color(0xFF1565C0);
+      default:
+        return const Color(0xFFC62828);
+    }
+  }
+
+  int _attendancePriority(String status) {
+    switch (status) {
+      case 'in_plant':
+        return 0;
+      case 'checked_out':
+        return 1;
+      default:
+        return 2;
+    }
+  }
+
+  String _buildInitials(String firstName, String lastName) {
+    final first = firstName.isNotEmpty ? firstName[0] : '';
+    final last = lastName.isNotEmpty ? lastName[0] : '';
+    final initials = '$first$last'.trim();
+    return initials.isEmpty ? '?' : initials.toUpperCase();
   }
 
   Widget _buildEmployeeHoursProgressBar(
@@ -2224,9 +2657,9 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
 
   String _formatTime(DateTime? dateTime) {
     if (dateTime == null) return '--:--';
-    final local = dateTime.toLocal();
-    final hours = local.hour.toString().padLeft(2, '0');
-    final minutes = local.minute.toString().padLeft(2, '0');
+    final col = ColombiaTime.toColombia(dateTime);
+    final hours = col.hour.toString().padLeft(2, '0');
+    final minutes = col.minute.toString().padLeft(2, '0');
     return '$hours:$minutes';
   }
 
@@ -6060,7 +6493,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                       });
                       // Escuchar el próximo escaneo HID
                       late StreamSubscription<NfcScanResult> sub;
-                      sub = NfcReaderService.instance.onCardScanned.listen((
+                      sub = NfcPcscService.instance.onCardScanned.listen((
                         scan,
                       ) {
                         cardController.text = scan.cardId;
@@ -6071,7 +6504,7 @@ class EmployeesMainTabState extends ConsumerState<EmployeesMainTab> {
                         });
                       });
                       // Iniciar lectura si no está activa
-                      NfcReaderService.instance.startNfcReading();
+                      NfcPcscService.instance.startNfcReading();
                       // Timeout de 30 segundos
                       Future.delayed(const Duration(seconds: 30), () {
                         if (isListening) {

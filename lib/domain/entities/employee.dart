@@ -101,14 +101,17 @@ class Employee {
   }
 
   factory Employee.fromJson(Map<String, dynamic> json) {
-    // Determinar status basado en is_active o status string
+    // Priorizar status explícito si existe; usar is_active como compatibilidad.
     EmployeeStatus employeeStatus;
-    if (json.containsKey('is_active')) {
+    final rawStatus = (json['status'] as String?)?.trim();
+    if (rawStatus != null && rawStatus.isNotEmpty) {
+      employeeStatus = _parseStatus(rawStatus);
+    } else if (json.containsKey('is_active')) {
       employeeStatus = (json['is_active'] == true)
           ? EmployeeStatus.activo
           : EmployeeStatus.inactivo;
     } else {
-      employeeStatus = _parseStatus(json['status'] as String?);
+      employeeStatus = EmployeeStatus.activo;
     }
 
     return Employee(

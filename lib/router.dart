@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'data/datasources/supabase_datasource.dart';
 import 'data/providers/auth_provider.dart';
+import 'data/providers/nfc_kiosk_provider.dart';
 import 'data/providers/role_provider.dart';
 import 'core/permissions/screen_permissions.dart';
 import 'presentation/pages/dashboard_page.dart';
@@ -30,6 +32,8 @@ import 'presentation/pages/login_page.dart';
 import 'presentation/pages/accounting_page.dart';
 import 'presentation/pages/iva_control_page.dart';
 import 'presentation/pages/nfc_attendance_page.dart';
+import 'presentation/pages/nfc_cards_config_page.dart';
+import 'presentation/pages/hours_report_page.dart';
 import 'presentation/pages/employee_dashboard_page.dart';
 import 'presentation/pages/user_management_page.dart';
 import 'presentation/pages/diagnostics_page.dart';
@@ -323,6 +327,26 @@ final GoRouter router = GoRouter(
             ),
           ],
         ),
+        // Branch 18: Configuración de Tarjetas NFC
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/nfc-cards-config',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: NfcCardsConfigPage()),
+            ),
+          ],
+        ),
+        // Branch 19: Reporte de Horas Trabajadas
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/hours-report',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: HoursReportPage()),
+            ),
+          ],
+        ),
       ],
     ),
     // Rutas fuera del shell (pantalla completa sin sidebar)
@@ -348,6 +372,7 @@ final GoRouter router = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const NfcAttendancePage(),
     ),
+
     // Dashboard del empleado (pantalla completa sin sidebar)
     GoRoute(
       path: '/employee-dashboard',
@@ -382,6 +407,8 @@ class _MainShellState extends ConsumerState<_MainShell>
   late Animation<Offset> _navBarSlide;
   int _previousIndex = -1;
   double _fadeOpacity = 1.0;
+  ProviderSubscription<NfcKioskState>? _nfcSubscription;
+  String? _lastNfcToastToken;
 
   @override
   void initState() {
@@ -397,6 +424,19 @@ class _MainShellState extends ConsumerState<_MainShell>
         ).animate(
           CurvedAnimation(parent: _navBarController, curve: Curves.easeInOut),
         );
+
+    _nfcSubscription = ref.listenManual<NfcKioskState>(
+      nfcKioskProvider,
+      _onNfcStateChanged,
+    );
+
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(nfcKioskProvider.notifier).startKiosk();
+        }
+      });
+    }
   }
 
   @override
@@ -417,8 +457,73 @@ class _MainShellState extends ConsumerState<_MainShell>
 
   @override
   void dispose() {
+    _nfcSubscription?.close();
     _navBarController.dispose();
     super.dispose();
+  }
+
+  void _onNfcStateChanged(NfcKioskState? previous, NfcKioskState next) {
+    if (!mounted) return;
+
+    final result = next.lastResult;
+    if (result == null) return;
+
+    final token =
+        '${result.action}|${result.employeeId}|${result.checkIn?.toIso8601String() ?? ''}|${result.checkOut?.toIso8601String() ?? ''}|${result.workedMinutes ?? 0}';
+    if (token == _lastNfcToastToken) return;
+    _lastNfcToastToken = token;
+
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+
+    final employeeName = result.employeeName ?? 'Empleado';
+    final isCheckIn = result.action == 'CHECK_IN';
+    final isCheckOut = result.action == 'CHECK_OUT';
+
+    String message;
+    Color? backgroundColor;
+
+    if (result.success && isCheckIn) {
+      final time = result.checkIn ?? DateTime.now();
+      message = '$employeeName entro a las ${_formatClock(time)}';
+      backgroundColor = Colors.green.shade700;
+    } else if (result.success && isCheckOut) {
+      final worked = result.workedMinutes != null
+          ? _formatMinutes(result.workedMinutes!)
+          : '0m';
+      final time = result.checkOut ?? DateTime.now();
+      message = '$employeeName salio a las ${_formatClock(time)}. Total: $worked';
+      backgroundColor = Colors.blue.shade700;
+    } else {
+      message = result.message.isNotEmpty
+          ? result.message
+          : 'No se pudo registrar la tarjeta';
+      backgroundColor = Colors.orange.shade800;
+    }
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: backgroundColor,
+        ),
+      );
+  }
+
+  String _formatClock(DateTime value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String _formatMinutes(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (h > 0) return '${h}h ${m}m';
+    return '${m}m';
   }
 
   bool _handleScrollNotification(UserScrollNotification notification) {

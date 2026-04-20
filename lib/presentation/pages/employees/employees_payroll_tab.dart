@@ -1635,12 +1635,30 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
         d = d.add(const Duration(days: 1));
       }
 
-      // Cargar ajustes directamente de Supabase para este empleado y rango
+      // Cargar ajustes manuales de Supabase
       final adjustments = await EmployeesDatasource.getTimeAdjustments(
         employeeId: employeeId,
         startDate: quinStart,
         endDate: quinEnd,
       );
+
+      // Cargar entradas NFC reales (employee_time_entries)
+      final nfcEntries = await EmployeesDatasource.getTimeEntries(
+        employeeId: employeeId,
+        startDate: quinStart,
+        endDate: quinEnd,
+      );
+
+      // Indexar entradas NFC por fecha (yyyy-MM-dd)
+      final nfcByDate = <String, List<EmployeeTimeEntry>>{};
+      for (final entry in nfcEntries) {
+        final dk =
+            '${entry.entryDate.year}-${entry.entryDate.month.toString().padLeft(2, '0')}-${entry.entryDate.day.toString().padLeft(2, '0')}';
+        nfcByDate.putIfAbsent(dk, () => []);
+        nfcByDate[dk]!.add(entry);
+      }
+
+      final bool hasNfcData = nfcByDate.isNotEmpty;
 
       // Los ajustes ya están filtrados por [quinStart, quinEnd] en la query
       final quinAdjustments = adjustments;
@@ -1652,17 +1670,23 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
       bool perdioBonoFlag = false;
       double totalDeductionMin = 0;
       double overtimeMin = 0;
+      double nfcWorkedMin = 0;
+      double nfcOvertimeMin = 0;
+      int nfcDaysPresent = 0;
       final absentDatesSet = <String>{};
 
+      // Procesar ajustes manuales (ausencias, permisos, incapacidades, etc.)
+      final adjustmentDates = <String>{};
       for (final adj in quinAdjustments) {
         final reason = (adj.reason ?? '').toLowerCase();
+        final dk =
+            '${adj.adjustmentDate.year}-${adj.adjustmentDate.month.toString().padLeft(2, '0')}-${adj.adjustmentDate.day.toString().padLeft(2, '0')}';
         if (reason.startsWith('ausencia')) {
           ausencias++;
           perdioBonoFlag = true;
           totalDeductionMin += adj.minutes;
-          final dk =
-              '${adj.adjustmentDate.year}-${adj.adjustmentDate.month.toString().padLeft(2, '0')}-${adj.adjustmentDate.day.toString().padLeft(2, '0')}';
           absentDatesSet.add(dk);
+          adjustmentDates.add(dk);
         } else if (reason.startsWith('descuento dominical')) {
           domingos++;
           totalDeductionMin += adj.minutes;
@@ -1670,16 +1694,14 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
           permisos++;
           perdioBonoFlag = true;
           totalDeductionMin += adj.minutes;
-          final dk =
-              '${adj.adjustmentDate.year}-${adj.adjustmentDate.month.toString().padLeft(2, '0')}-${adj.adjustmentDate.day.toString().padLeft(2, '0')}';
           absentDatesSet.add(dk);
+          adjustmentDates.add(dk);
         } else if (reason.startsWith('incapacidad')) {
           incapacidades++;
           perdioBonoFlag = true;
           totalDeductionMin += adj.minutes;
-          final dk =
-              '${adj.adjustmentDate.year}-${adj.adjustmentDate.month.toString().padLeft(2, '0')}-${adj.adjustmentDate.day.toString().padLeft(2, '0')}';
           absentDatesSet.add(dk);
+          adjustmentDates.add(dk);
         } else if (adj.type == 'overtime') {
           overtimeMin += adj.minutes;
         } else if (adj.type == 'deduction') {
@@ -1687,10 +1709,56 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
         }
       }
 
+      // Si hay datos NFC, calcular horas reales trabajadas
+      if (hasNfcData) {
+        // Recorrer días laborales para detectar ausencias por NFC
+        DateTime dd = quinStart;
+        while (!dd.isAfter(quinEnd)) {
+          if (dd.weekday != DateTime.sunday) {
+            // Día laboral (L-S)
+            final dk =
+                '${dd.year}-${dd.month.toString().padLeft(2, '0')}-${dd.day.toString().padLeft(2, '0')}';
+            final dayEntries = nfcByDate[dk] ?? const <EmployeeTimeEntry>[];
+            final hasCheckIn = dayEntries.any((entry) => entry.checkIn != null);
+
+            if (hasCheckIn) {
+              // Tiene registro NFC
+              nfcDaysPresent++;
+              for (final entry in dayEntries) {
+                if (entry.checkOut != null) {
+                  // Entrada completa: sumar minutos de cada sesión del día.
+                  nfcWorkedMin += entry.workedMinutes.toDouble();
+                  nfcOvertimeMin += entry.overtimeMinutes.toDouble();
+                }
+              }
+            } else if (!adjustmentDates.contains(dk) &&
+                !dd.isAfter(DateTime.now())) {
+              // Día laboral pasado sin NFC ni ajuste manual = ausencia automática
+              ausencias++;
+              perdioBonoFlag = true;
+              final baseMin =
+                  (dd.weekday == DateTime.saturday ? 5.5 : 7.7) * 60;
+              totalDeductionMin += baseMin;
+              absentDatesSet.add(dk);
+            }
+          }
+          dd = dd.add(const Duration(days: 1));
+        }
+      }
+
       final deductionHrs = totalDeductionMin / 60.0;
-      final overtimeHrs = overtimeMin / 60.0;
-      final worked = baseHrs - deductionHrs + overtimeHrs;
-      final actualDaysWorked = workdays - ausencias - permisos - incapacidades;
+      // Combinar overtime manual + NFC
+      final totalOvertimeHrs =
+          (overtimeMin / 60.0) + (nfcOvertimeMin / 60.0);
+
+      // Si hay NFC, usar horas NFC reales; si no, calcular con base - deducciones
+      final worked = hasNfcData
+          ? (nfcWorkedMin / 60.0) - deductionHrs + totalOvertimeHrs
+          : baseHrs - deductionHrs + (overtimeMin / 60.0);
+
+      final actualDaysWorked = hasNfcData
+          ? nfcDaysPresent
+          : workdays - ausencias - permisos - incapacidades;
 
       return {
         'workedHours': worked,
@@ -1703,8 +1771,12 @@ class EmployeesPayrollTabState extends ConsumerState<EmployeesPayrollTab> {
         'incapacidadDays': incapacidades,
         'domingoDeductions': domingos,
         'pierdeBono': perdioBonoFlag,
-        'overtimeHours': overtimeHrs,
+        'overtimeHours': totalOvertimeHrs,
         'absentDates': absentDatesSet,
+        'hasNfcData': hasNfcData,
+        'nfcWorkedHours': nfcWorkedMin / 60.0,
+        'nfcOvertimeHours': nfcOvertimeMin / 60.0,
+        'nfcDaysPresent': nfcDaysPresent,
       };
     }
 

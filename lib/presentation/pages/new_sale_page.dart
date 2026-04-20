@@ -1542,7 +1542,7 @@ class _NewSalePageState extends ConsumerState<NewSalePage> {
                                 SizedBox(
                                   width: 70,
                                   child: Text(
-                                    '${item['quantity']}',
+                                    '${(item['quantity'] as num?)?.toInt() ?? 1}',
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(fontSize: 12),
                                   ),
@@ -6626,7 +6626,7 @@ class _SaleAddMaterialDialogState extends State<_SaleAddMaterialDialog> {
       'materialId': m.id,
       'inv_material_id': m.id,
       'dimensions': '${m.category} - ${m.unit}',
-      'quantity': qty.toInt() > 0 ? qty.toInt() : 1,
+      'quantity': 1,
       'unitWeight': qty,
       'totalWeight': qty,
       'pricePerKg': m.effectivePrice,

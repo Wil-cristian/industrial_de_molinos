@@ -17,6 +17,9 @@ class _NfcAttendancePageState extends ConsumerState<NfcAttendancePage>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   final _manualController = TextEditingController();
+  ProviderSubscription<NfcKioskState>? _kioskSubscription;
+  OverlayEntry? _attendancePopupEntry;
+  String? _lastPopupToken;
 
   @override
   void initState() {
@@ -26,6 +29,11 @@ class _NfcAttendancePageState extends ConsumerState<NfcAttendancePage>
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
+    _kioskSubscription = ref.listenManual<NfcKioskState>(
+      nfcKioskProvider,
+      _onKioskStateChanged,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(nfcKioskProvider.notifier).startKiosk();
     });
@@ -33,9 +41,139 @@ class _NfcAttendancePageState extends ConsumerState<NfcAttendancePage>
 
   @override
   void dispose() {
+    _kioskSubscription?.close();
+    _attendancePopupEntry?.remove();
     _pulseController.dispose();
     _manualController.dispose();
     super.dispose();
+  }
+
+  void _onKioskStateChanged(NfcKioskState? previous, NfcKioskState next) {
+    final result = next.lastResult;
+    if (result == null || !result.success) return;
+
+    final isAttendanceAction =
+        result.action == 'CHECK_IN' || result.action == 'CHECK_OUT';
+    if (!isAttendanceAction) return;
+
+    final token = _resultToken(result);
+    if (token == _lastPopupToken) return;
+
+    _lastPopupToken = token;
+    _showAttendancePopup(result);
+  }
+
+  String _resultToken(NfcAttendanceResult result) {
+    final checkInKey = result.checkIn?.toIso8601String() ?? '';
+    final checkOutKey = result.checkOut?.toIso8601String() ?? '';
+    return '${result.action}|${result.employeeId}|$checkInKey|$checkOutKey|${result.workedMinutes ?? 0}';
+  }
+
+  String _formatTime(DateTime time) {
+    return DateFormat('hh:mm a').format(time);
+  }
+
+  void _showAttendancePopup(NfcAttendanceResult result) {
+    if (!mounted) return;
+
+    final overlay = Overlay.of(context, rootOverlay: true);
+
+    final isCheckIn = result.action == 'CHECK_IN';
+    final employeeName = result.employeeName ?? 'Empleado';
+    final title = isCheckIn ? '$employeeName entro' : '$employeeName salio';
+
+    String subtitle;
+    if (isCheckIn) {
+      final checkInTime = result.checkIn != null
+          ? _formatTime(result.checkIn!)
+          : _formatTime(ColombiaTime.now());
+      subtitle = 'Hora de entrada: $checkInTime';
+    } else {
+      final worked = result.workedMinutes != null && result.workedMinutes! > 0
+          ? _formatMinutes(result.workedMinutes!)
+          : 'Pendiente';
+      final checkOutTime = result.checkOut != null
+          ? _formatTime(result.checkOut!)
+          : _formatTime(ColombiaTime.now());
+      subtitle = 'Hora de salida: $checkOutTime  •  Total: $worked';
+    }
+
+    final color = isCheckIn ? AppColors.success : AppColors.info;
+    final icon = isCheckIn ? Icons.login : Icons.logout;
+
+    _attendancePopupEntry?.remove();
+    final entry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 24,
+        right: 24,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 360,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: color.withValues(alpha: 0.35)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: color,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    _attendancePopupEntry = entry;
+    overlay.insert(entry);
+
+    Future.delayed(const Duration(seconds: 4), () {
+      if (!mounted) return;
+      if (_attendancePopupEntry == entry) {
+        _attendancePopupEntry?.remove();
+        _attendancePopupEntry = null;
+      }
+    });
   }
 
   @override
@@ -878,7 +1016,7 @@ class _TimeChip extends StatelessWidget {
             children: [
               Text(label, style: TextStyle(fontSize: 10, color: color)),
               Text(
-                DateFormat('HH:mm').format(time.toLocal()),
+                DateFormat('HH:mm').format(ColombiaTime.toColombia(time)),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -903,30 +1041,63 @@ class _EmployeeStatusTile extends StatelessWidget {
     final theme = Theme.of(context);
     final entries = employee['employee_time_entries'] as List? ?? [];
     final hasEntry = entries.isNotEmpty;
-    final entry = hasEntry ? entries.first as Map<String, dynamic> : null;
-    final hasCheckOut = entry?['check_out'] != null;
+
+    // Aggregate all sessions for the day
+    DateTime? firstCheckIn;
+    DateTime? lastCheckOut;
+    bool hasOpenSession = false;
+    int totalWorkedMin = 0;
+
+    for (final raw in entries) {
+      final entry = raw is Map<String, dynamic>
+          ? raw
+          : Map<String, dynamic>.from(raw as Map);
+      final ciStr = entry['check_in'] as String?;
+      final coStr = entry['check_out'] as String?;
+
+      if (ciStr != null) {
+        final ci = DateTime.tryParse(ciStr);
+        if (ci != null && (firstCheckIn == null || ci.isBefore(firstCheckIn))) {
+          firstCheckIn = ci;
+        }
+      }
+      if (coStr != null) {
+        final co = DateTime.tryParse(coStr);
+        if (co != null && (lastCheckOut == null || co.isAfter(lastCheckOut))) {
+          lastCheckOut = co;
+        }
+        totalWorkedMin += (entry['worked_minutes'] as int?) ?? 0;
+      } else if (ciStr != null) {
+        hasOpenSession = true;
+      }
+    }
 
     final String statusText;
     final Color statusColor;
     final IconData statusIcon;
 
-    if (!hasEntry) {
+    if (!hasEntry || firstCheckIn == null) {
       statusText = 'Sin registrar';
       statusColor = Colors.grey;
       statusIcon = Icons.remove_circle_outline;
-    } else if (hasCheckOut) {
-      statusText = 'Jornada completa';
-      statusColor = AppColors.info;
-      statusIcon = Icons.check_circle;
-    } else {
+    } else if (hasOpenSession) {
       statusText = 'Trabajando';
       statusColor = AppColors.success;
       statusIcon = Icons.play_circle;
+    } else {
+      statusText = 'Jornada completa';
+      statusColor = AppColors.info;
+      statusIcon = Icons.check_circle;
     }
 
     final firstName = employee['first_name'] as String? ?? '';
     final lastName = employee['last_name'] as String? ?? '';
     final position = employee['position'] as String? ?? '';
+
+    final sessionsCount = entries.length;
+    final workedLabel = totalWorkedMin > 0
+        ? '${totalWorkedMin ~/ 60}h ${totalWorkedMin % 60}m'
+        : null;
 
     return ListTile(
       dense: true,
@@ -958,25 +1129,42 @@ class _EmployeeStatusTile extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (entry?['check_in'] != null)
+          if (firstCheckIn != null)
             Text(
-              DateFormat(
-                'HH:mm',
-              ).format(DateTime.parse(entry!['check_in'] as String).toLocal()),
+              DateFormat('HH:mm').format(ColombiaTime.toColombia(firstCheckIn)),
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.success,
               ),
             ),
-          if (entry?['check_out'] != null) ...[
+          if (lastCheckOut != null) ...[
             Text(' - ', style: theme.textTheme.bodySmall),
             Text(
-              DateFormat(
-                'HH:mm',
-              ).format(DateTime.parse(entry!['check_out'] as String).toLocal()),
+              DateFormat('HH:mm').format(ColombiaTime.toColombia(lastCheckOut)),
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.info,
+              ),
+            ),
+          ],
+          if (sessionsCount > 1) ...[
+            const SizedBox(width: 4),
+            Text(
+              '(${sessionsCount}x)',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 10,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          if (workedLabel != null) ...[
+            const SizedBox(width: 6),
+            Text(
+              workedLabel,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: statusColor,
               ),
             ),
           ],

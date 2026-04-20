@@ -90,6 +90,38 @@ class NfcReaderService {
   String? _lastCardId;
   DateTime? _lastScanTime;
 
+  /// Mapa de LogicalKeyboardKey → caracter hex.
+  /// Más confiable que event.character en Flutter Windows.
+  static final _hexKeyMap = <LogicalKeyboardKey, String>{
+    LogicalKeyboardKey.digit0: '0',
+    LogicalKeyboardKey.digit1: '1',
+    LogicalKeyboardKey.digit2: '2',
+    LogicalKeyboardKey.digit3: '3',
+    LogicalKeyboardKey.digit4: '4',
+    LogicalKeyboardKey.digit5: '5',
+    LogicalKeyboardKey.digit6: '6',
+    LogicalKeyboardKey.digit7: '7',
+    LogicalKeyboardKey.digit8: '8',
+    LogicalKeyboardKey.digit9: '9',
+    LogicalKeyboardKey.keyA: 'A',
+    LogicalKeyboardKey.keyB: 'B',
+    LogicalKeyboardKey.keyC: 'C',
+    LogicalKeyboardKey.keyD: 'D',
+    LogicalKeyboardKey.keyE: 'E',
+    LogicalKeyboardKey.keyF: 'F',
+    // Numpad
+    LogicalKeyboardKey.numpad0: '0',
+    LogicalKeyboardKey.numpad1: '1',
+    LogicalKeyboardKey.numpad2: '2',
+    LogicalKeyboardKey.numpad3: '3',
+    LogicalKeyboardKey.numpad4: '4',
+    LogicalKeyboardKey.numpad5: '5',
+    LogicalKeyboardKey.numpad6: '6',
+    LogicalKeyboardKey.numpad7: '7',
+    LogicalKeyboardKey.numpad8: '8',
+    LogicalKeyboardKey.numpad9: '9',
+  };
+
   bool _handleHidKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
     final key = event.logicalKey;
@@ -97,21 +129,51 @@ class NfcReaderService {
     // Enter = fin de transmisión del UID
     if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter) {
-      _processHidBuffer();
-      return true; // Consumir Enter para que no afecte otros campos
+      if (_hidBuffer.isNotEmpty) {
+        AppLogger.debug('📱 NFC HID: Enter recibido, buffer="${_hidBuffer.toString()}"');
+        _processHidBuffer();
+        return true;
+      }
+      return false;
     }
 
-    final char = event.character;
-    if (char != null && char.isNotEmpty && _isHexChar(char)) {
-      _hidBuffer.write(char.toUpperCase());
+    // Mapear logicalKey a carácter hex (no depende de event.character)
+    final hexChar = _hexKeyMap[key];
+    if (hexChar != null) {
+      _hidBuffer.write(hexChar);
       _hidTimeout?.cancel();
       _hidTimeout = Timer(
         const Duration(milliseconds: _hidTimeoutMs),
-        _processHidBuffer,
+        () {
+          if (_hidBuffer.isNotEmpty) {
+            AppLogger.debug('📱 NFC HID: timeout, buffer="${_hidBuffer.toString()}"');
+            _processHidBuffer();
+          }
+        },
       );
-      return true; // Consumir caracteres hex del lector
+      // Solo consumir si el buffer parece input del lector (>= 4 chars rápidos)
+      // Esto evita bloquear tecleo normal del usuario
+      return _hidBuffer.length >= 4;
+    }
+
+    // Tecla no-hex recibida mientras hay buffer → probablemente input humano, limpiar
+    if (_hidBuffer.isNotEmpty && !_isModifierKey(key)) {
+      AppLogger.debug('📱 NFC HID: tecla no-hex (${key.keyLabel}), descartando buffer="${_hidBuffer.toString()}"');
+      _hidBuffer.clear();
+      _hidTimeout?.cancel();
     }
     return false;
+  }
+
+  /// Teclas modificadoras que no deben limpiar el buffer
+  bool _isModifierKey(LogicalKeyboardKey key) {
+    return key == LogicalKeyboardKey.shiftLeft ||
+        key == LogicalKeyboardKey.shiftRight ||
+        key == LogicalKeyboardKey.controlLeft ||
+        key == LogicalKeyboardKey.controlRight ||
+        key == LogicalKeyboardKey.altLeft ||
+        key == LogicalKeyboardKey.altRight ||
+        key == LogicalKeyboardKey.capsLock;
   }
 
   void _processHidBuffer() {
@@ -119,10 +181,12 @@ class NfcReaderService {
     final raw = _hidBuffer.toString().trim();
     _hidBuffer.clear();
 
-    // Normalizar: quitar espacios, guiones, dos puntos (formatos posibles del ACR1552U)
     final cardId = _normalizeUid(raw);
 
-    if (cardId.length < _minCardIdLength) return;
+    if (cardId.length < _minCardIdLength) {
+      AppLogger.debug('📱 NFC HID: descartado, muy corto: "$cardId" (${cardId.length} chars)');
+      return;
+    }
 
     // Verificar anti-duplicado
     if (_isDuplicate(cardId)) {
@@ -135,21 +199,13 @@ class NfcReaderService {
     _lastCardId = cardId;
     _lastScanTime = ColombiaTime.now();
     _scanCount++;
+    AppLogger.info('📱 NFC HID: UID capturado: $cardId (${cardId.length} chars)');
     _emitScanResult(cardId);
   }
 
   /// Normaliza el UID: uppercase, sin separadores
   String _normalizeUid(String raw) {
     return raw.toUpperCase().replaceAll(RegExp(r'[\s:\-]'), '');
-  }
-
-  /// Solo caracteres hexadecimales válidos (0-9, A-F, a-f)
-  bool _isHexChar(String char) {
-    if (char.length != 1) return false;
-    final code = char.codeUnitAt(0);
-    return (code >= 48 && code <= 57) || // 0-9
-        (code >= 65 && code <= 70) || // A-F
-        (code >= 97 && code <= 102); // a-f
   }
 
   /// Verifica si la misma tarjeta fue escaneada dentro del cooldown

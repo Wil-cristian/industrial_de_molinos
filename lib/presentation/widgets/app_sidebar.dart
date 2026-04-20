@@ -141,6 +141,18 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
       route: '/audit-panel',
       screenKey: AppScreen.auditPanel,
     ),
+    NavItemData(
+      icon: Icons.nfc,
+      label: 'NFC',
+      route: '/nfc-cards-config',
+      screenKey: AppScreen.nfcCardsConfig,
+    ),
+    NavItemData(
+      icon: Icons.schedule,
+      label: 'Horas',
+      route: '/hours-report',
+      screenKey: AppScreen.hoursReport,
+    ),
   ];
 
   int _selectedIndex(List<NavItemData> navItems) {

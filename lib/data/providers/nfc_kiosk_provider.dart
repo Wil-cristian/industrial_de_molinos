@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/services/nfc_reader_service.dart';
+import '../../core/services/nfc_pcsc_service.dart';
 import '../../core/utils/logger.dart';
 import '../datasources/employees_datasource.dart';
 import '../../core/utils/colombia_time.dart';
@@ -137,7 +137,7 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
     ref.onDispose(() {
       _scanSubscription?.cancel();
       _clearResultTimer?.cancel();
-      NfcReaderService.instance.stopNfcReading();
+      NfcPcscService.instance.stopNfcReading();
     });
     return const NfcKioskState();
   }
@@ -158,17 +158,17 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
     state = state.copyWith(isActive: true, clearError: true);
 
     _scanSubscription?.cancel();
-    _scanSubscription = NfcReaderService.instance.onCardScanned.listen(
+    _scanSubscription = NfcPcscService.instance.onCardScanned.listen(
       _onKioskScan,
     );
 
-    await NfcReaderService.instance.startNfcReading();
+    await NfcPcscService.instance.startNfcReading();
     await loadTodayStatus();
     AppLogger.info('Modo kiosko iniciado (ACR1552U)');
   }
 
   void stopKiosk() {
-    NfcReaderService.instance.stopNfcReading();
+    NfcPcscService.instance.stopNfcReading();
     _scanSubscription?.cancel();
     _clearResultTimer?.cancel();
     state = state.copyWith(isActive: false);
@@ -178,13 +178,13 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
     if (state.isProcessing) return;
 
     // Verificar cooldown: si la RPC ya devolvió empleado recientemente, ignorar
-    // (protección adicional al anti-duplicado del NfcReaderService)
+    // (protección adicional al anti-duplicado del NfcPcscService)
     if (_isEmployeeOnCooldown(scan.cardId)) return;
 
     state = state.copyWith(
       isProcessing: true,
       clearLastResult: true,
-      scanCount: NfcReaderService.instance.scanCount,
+      scanCount: NfcPcscService.instance.scanCount,
     );
 
     try {
@@ -242,7 +242,7 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
   }
 
   void simulateScan(String cardId, {String? payload}) {
-    NfcReaderService.instance.simulateScan(cardId, payload: payload);
+    NfcPcscService.instance.simulateScan(cardId, payload: payload);
   }
 
   // ========== VINCULAR TARJETA A EMPLEADO ==========
@@ -256,10 +256,10 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
       await startKiosk();
     }
 
-    NfcReaderService.instance.resetDuplicateGuard();
+    NfcPcscService.instance.resetDuplicateGuard();
 
     _scanSubscription?.cancel();
-    _scanSubscription = NfcReaderService.instance.onCardScanned.listen(
+    _scanSubscription = NfcPcscService.instance.onCardScanned.listen(
       _onLinkingScan,
     );
 
@@ -274,9 +274,9 @@ class NfcKioskNotifier extends Notifier<NfcKioskState> {
 
   /// Cancela el modo vinculacion y vuelve al modo kiosko normal
   void cancelCardLinking() {
-    NfcReaderService.instance.resetDuplicateGuard();
+    NfcPcscService.instance.resetDuplicateGuard();
     _scanSubscription?.cancel();
-    _scanSubscription = NfcReaderService.instance.onCardScanned.listen(
+    _scanSubscription = NfcPcscService.instance.onCardScanned.listen(
       _onKioskScan,
     );
     state = state.copyWith(clearLinking: true);

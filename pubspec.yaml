@@ -50,6 +50,9 @@ dependencies:
   # Variables de entorno
   flutter_dotenv: ^5.2.1
   
+  # FFI para PC/SC (lector NFC via winscard.dll)
+  ffi: ^2.1.3
+  
   # NFC (lectura de tags en Android/iOS) - Temporarily disabled due to Kotlin deprecation issues
   # nfc_manager: ^3.5.0
   

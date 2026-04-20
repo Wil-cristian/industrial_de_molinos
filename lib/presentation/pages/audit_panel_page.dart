@@ -438,7 +438,7 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage>
     // Agrupar por fecha
     final grouped = <String, List<AuditLog>>{};
     for (final log in state.logs) {
-      final key = _dateOnlyFormat.format(log.createdAt.toLocal());
+      final key = _dateOnlyFormat.format(ColombiaTime.toColombia(log.createdAt));
       grouped.putIfAbsent(key, () => []).add(log);
     }
 
@@ -507,7 +507,7 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage>
     final timeStr = DateFormat(
       'HH:mm:ss',
       'es_CO',
-    ).format(log.createdAt.toLocal());
+    ).format(ColombiaTime.toColombia(log.createdAt));
 
     return Card(
       margin: const EdgeInsets.only(bottom: 4),
@@ -798,7 +798,7 @@ class _AuditPanelPageState extends ConsumerState<AuditPanelPage>
                   _detailRow('Departamento', log.employeeDepartment!),
                 _detailRow(
                   'Fecha y hora',
-                  _dateFormat.format(log.createdAt.toLocal()),
+                  _dateFormat.format(ColombiaTime.toColombia(log.createdAt)),
                 ),
                 if (log.recordId != null)
                   _detailRow('ID Registro', log.recordId!),
